@@ -29,6 +29,19 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/settings', 'saas.settings-manager')
         ->middleware('role:saas-admin')
         ->name('saas.settings');
+
+    Volt::route('turf/dashboard', 'turf.dashboard-manager')
+        ->middleware('role:turf-admin')
+        ->name('turf.dashboard');
+    Volt::route('turf/bookings', 'turf.booking-manager')
+        ->middleware('role:turf-admin')
+        ->name('turf.bookings');
+    Volt::route('turf/settings', 'turf.settings-manager')
+        ->middleware('role:turf-admin')
+        ->name('turf.settings');
+    Volt::route('turf/offers', 'turf.offer-manager')
+        ->middleware('role:turf-admin')
+        ->name('turf.offers');
     Route::get('/git-info', function () {
         try {
             $basePath = base_path();
