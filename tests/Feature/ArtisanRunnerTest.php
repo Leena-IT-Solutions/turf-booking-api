@@ -55,6 +55,17 @@ class ArtisanRunnerTest extends TestCase
         $this->assertArrayHasKey('output', $response->json());
     }
 
+    public function test_admin_can_run_fix_permissions_command(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $response = $this->actingAs($admin)->postJson('/artisan-run', ['command' => 'fix-permissions']);
+        $response->assertOk();
+        $this->assertArrayHasKey('success', $response->json());
+        $this->assertArrayHasKey('output', $response->json());
+    }
+
     public function test_invalid_command_returns_bad_request(): void
     {
         $admin = User::factory()->create();

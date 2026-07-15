@@ -126,13 +126,104 @@
                             >
                                 {{ __('Optimize Cache') }}
                             </button>
-                             <button 
-                                 @click="runCommand('composer-install')" 
-                                 :disabled="isUpdating"
-                                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                             >
-                                 {{ __('Composer Install') }}
-                             </button>
+                              <button 
+                                  @click="runCommand('composer-install')" 
+                                  :disabled="isUpdating"
+                                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                              >
+                                  {{ __('Composer Install') }}
+                              </button>
+                              <button 
+                                  @click="runCommand('fix-permissions')" 
+                                  :disabled="isUpdating"
+                                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-650 hover:bg-purple-750 disabled:bg-purple-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                              >
+                                  {{ __('Permissions 777') }}
+                              </button>
+                         </div>
+
+                        <!-- Command Explanations & Descriptions -->
+                        <div class="mt-6 border-t border-gray-150 dark:border-gray-700/60 pt-6">
+                            <h5 class="text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-4">Command Guide & Best Use Cases</h5>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span class="inline-block w-2.5 h-2.5 bg-indigo-500 rounded-lg"></span>
+                                            <span class="text-xs font-bold text-gray-850 dark:text-gray-250">Migrate</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
+                                            Runs pending database schema updates. Best use case: After pulling updates that introduce new tables or columns.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span class="inline-block w-2.5 h-2.5 bg-amber-500 rounded-lg"></span>
+                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Migrate Fresh & Seed</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
+                                            <strong>Caution:</strong> Drops all tables and re-seeds. Best use case: Hard-resetting system to default configurations. Permanent data loss!
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span class="inline-block w-2.5 h-2.5 bg-teal-500 rounded-lg"></span>
+                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Seed DB</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
+                                            Seeds lookups and master entities. Best use case: Resetting test datasets or default listings.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span class="inline-block w-2.5 h-2.5 bg-rose-500 rounded-lg"></span>
+                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Optimize Clear</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
+                                            Clears configs, routing, views, and compiled caches. Best use case: If code or settings changes are not reflecting in browser.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span class="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-lg"></span>
+                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Optimize Cache</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
+                                            Caches configuration, routes, and views. Best use case: Boosting live application performance.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span class="inline-block w-2.5 h-2.5 bg-sky-500 rounded-lg"></span>
+                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Composer Install</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-455 dark:text-gray-500 leading-normal">
+                                            Installs package dependencies. Best use case: Syncing library versions after pull updates.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between md:col-span-2 lg:col-span-1">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span class="inline-block w-2.5 h-2.5 bg-purple-500 rounded-lg"></span>
+                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Permissions 777</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
+                                            Executes `chmod -R 777` on files and folders. Best use case: Fixing directory write errors on storage, logs, and caches.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -357,6 +448,12 @@
                         this.confirm(
                             'Composer Install',
                             'Are you sure you want to run composer install --no-dev --optimize-autoloader? This will install production dependencies and optimize the autoloader.',
+                            performRun
+                        );
+                    } else if (commandName === 'fix-permissions') {
+                        this.confirm(
+                            'Fix Folder Permissions',
+                            'Are you sure you want to run chmod -R 777 on all files and folders in this project? This will recursively set write and execute access.',
                             performRun
                         );
                     } else {
