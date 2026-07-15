@@ -272,7 +272,7 @@ new #[Layout('layouts.app')] class extends Component
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
-                <h3 class="text-sm font-bold text-gray-750 dark:text-gray-250 uppercase tracking-wider">{{ __('No Turf Selected') }}</h3>
+                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('No Turf Selected') }}</h3>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-sm mx-auto leading-relaxed">{{ __('Please add a Location and Turf first, or choose one from the selector in the top bar to configure pricing.') }}</p>
             </div>
         @else
@@ -312,7 +312,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </h4>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <!-- Yes Option -->
-                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'yes' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
+                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'yes' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700/60 dark:hover:bg-gray-800/30' }}">
                                         <div class="flex items-center justify-between">
                                             <span class="font-bold text-sm text-gray-900 dark:text-gray-100">{{ __('Yes, same price everyday') }}</span>
                                             <input type="radio" wire:model.live="sameRateThroughoutWeek" value="yes" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-700 dark:bg-gray-900">
@@ -323,7 +323,7 @@ new #[Layout('layouts.app')] class extends Component
                                     </label>
 
                                     <!-- No Option -->
-                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'no' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
+                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'no' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700/60 dark:hover:bg-gray-800/30' }}">
                                         <div class="flex items-center justify-between">
                                             <span class="font-bold text-sm text-gray-900 dark:text-gray-100">{{ __('No, rates are different') }}</span>
                                             <input type="radio" wire:model.live="sameRateThroughoutWeek" value="no" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-700 dark:bg-gray-900">
@@ -348,20 +348,20 @@ new #[Layout('layouts.app')] class extends Component
                                 @if ($sameRateThroughoutWeek === 'yes')
                                     <!-- Case A: All Days Same -->
                                     <div class="space-y-4">
-                                        <h4 class="text-xs font-bold text-gray-750 dark:text-gray-250 uppercase tracking-wider">
+                                        <h4 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
                                             {{ __('Q2. Do you have same rate throughout the day?') }}
                                         </h4>
 
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <!-- Flat Rate Option -->
-                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'yes' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
-                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Yes, flat rate all day') }}</span>
+                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'yes' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700/60 dark:hover:bg-gray-800/30' }}">
+                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-105">{{ __('Yes, flat rate all day') }}</span>
                                                 <input type="radio" wire:model.live="sameRateThroughoutDayAll" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
                                             </label>
 
                                             <!-- Dynamic Rates Option -->
-                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'no' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
-                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('No, dynamic rates') }}</span>
+                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'no' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700/60 dark:hover:bg-gray-800/30' }}">
+                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-105">{{ __('No, dynamic rates') }}</span>
                                                 <input type="radio" wire:model.live="sameRateThroughoutDayAll" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
                                             </label>
                                         </div>
@@ -369,19 +369,19 @@ new #[Layout('layouts.app')] class extends Component
                                         @if ($sameRateThroughoutDayAll === 'yes')
                                             <!-- Flat Price Input -->
                                             <div class="p-4 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800/40 rounded-2xl space-y-2">
-                                                <label class="text-[10px] font-bold text-gray-455 dark:text-gray-500 uppercase tracking-wider">{{ __('Flat Rate per Hour (₹)') }}</label>
+                                                <label class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Flat Rate per Hour (₹)') }}</label>
                                                 <div class="relative rounded-xl shadow-sm max-w-xs">
                                                     <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-                                                        <span class="text-gray-450 dark:text-gray-500 text-xs font-semibold">₹</span>
+                                                        <span class="text-gray-500 dark:text-gray-400 text-xs font-semibold">₹</span>
                                                     </div>
-                                                    <input type="number" wire:model="flatRateAll" required class="block w-full ps-7 pe-3 py-2 text-xs font-mono font-bold rounded-xl border-gray-250 dark:border-gray-700 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600 transition" placeholder="500">
+                                                    <input type="number" wire:model="flatRateAll" required class="block w-full ps-7 pe-3 py-2 text-xs font-mono font-bold rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600 transition" placeholder="500">
                                                 </div>
                                             </div>
                                         @else
                                             <!-- Dynamic Time-Range Repeaters -->
                                             <div class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800/40 rounded-2xl space-y-4">
                                                 <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800/50 pb-2">
-                                                    <span class="text-[10px] font-bold text-gray-455 dark:text-gray-500 uppercase tracking-wider">{{ __('Time Slices & Surcharges') }}</span>
+                                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('Time Slices & Surcharges') }}</span>
                                                     <button type="button" wire:click="addTimeRange('all')" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 transition cursor-pointer">
                                                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -392,21 +392,21 @@ new #[Layout('layouts.app')] class extends Component
 
                                                 <div class="space-y-3">
                                                     @foreach ($timeRangesAll as $idx => $range)
-                                                        <div wire:key="time-range-all-{{ $idx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-150/40 dark:border-gray-800/60 shadow-sm relative">
+                                                        <div wire:key="time-range-all-{{ $idx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/40 dark:border-gray-800/60 shadow-sm relative">
                                                             <!-- From Time -->
                                                             <div class="w-full">
                                                                 <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
-                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
                                                             </div>
                                                             <!-- To Time -->
                                                             <div class="w-full">
                                                                 <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('To') }}</label>
-                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
                                                             </div>
                                                             <!-- Rate -->
                                                             <div class="w-full">
                                                                 <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('Rate/Hr (₹)') }}</label>
-                                                                <input type="number" wire:model="timeRangesAll.{{ $idx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
+                                                                <input type="number" wire:model="timeRangesAll.{{ $idx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
                                                             </div>
                                                             <!-- Delete Button -->
                                                             @if (count($timeRangesAll) > 1)
@@ -438,7 +438,7 @@ new #[Layout('layouts.app')] class extends Component
                                         </div>
 
                                         @foreach ($dayGroups as $gIndex => $group)
-                                            <div wire:key="day-group-{{ $gIndex }}" class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-150/60 dark:border-gray-850/40 rounded-3xl space-y-4 relative">
+                                            <div wire:key="day-group-{{ $gIndex }}" class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-3xl space-y-4 relative">
                                                 <!-- Remove Group button -->
                                                 @if (count($dayGroups) > 1)
                                                     <button type="button" wire:click="removeDayGroup({{ $gIndex }})" class="absolute top-4 end-4 text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition cursor-pointer">
@@ -451,11 +451,11 @@ new #[Layout('layouts.app')] class extends Component
 
                                                 <!-- Group Title & Days checkboxes -->
                                                 <div class="space-y-2">
-                                                    <span class="text-[10px] font-bold text-gray-450 dark:text-gray-500 uppercase tracking-wider">{{ __('1. Select days in this group:') }}</span>
+                                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('1. Select days in this group:') }}</span>
                                                     
                                                     <div class="flex flex-wrap gap-2">
                                                         @foreach (['mon' => 'Mon', 'tue' => 'Tue', 'wed' => 'Wed', 'thu' => 'Thu', 'fri' => 'Fri', 'sat' => 'Sat', 'sun' => 'Sun'] as $dayVal => $dayLbl)
-                                                            <label wire:key="day-checkbox-{{ $gIndex }}-{{ $dayVal }}" class="relative flex items-center px-3.5 py-1.5 rounded-xl border text-[10px] font-bold transition duration-100 cursor-pointer select-none {{ in_array($dayVal, $group['days'] ?? []) ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-500 dark:border-indigo-500 shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-50/50 border-gray-250 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/40' }}">
+                                                            <label wire:key="day-checkbox-{{ $gIndex }}-{{ $dayVal }}" class="relative flex items-center px-3.5 py-1.5 rounded-xl border text-[10px] font-bold transition duration-100 cursor-pointer select-none {{ in_array($dayVal, $group['days'] ?? []) ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-500 dark:border-indigo-500 shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-50/50 border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/40' }}">
                                                                 <input type="checkbox" wire:model.live="dayGroups.{{ $gIndex }}.days" value="{{ $dayVal }}" class="sr-only">
                                                                 {{ $dayLbl }}
                                                             </label>
@@ -465,14 +465,14 @@ new #[Layout('layouts.app')] class extends Component
 
                                                 <!-- Rate selector -->
                                                 <div class="space-y-3 pt-2">
-                                                    <span class="text-[10px] font-bold text-gray-455 dark:text-gray-500 uppercase tracking-wider block">{{ __('2. Rates configuration:') }}</span>
+                                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">{{ __('2. Rates configuration:') }}</span>
                                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                        <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'yes' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                                        <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'yes' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
                                                             <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Flat rate all day') }}</span>
                                                             <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
                                                         </label>
 
-                                                        <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'no' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                                        <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'no' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
                                                             <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Different time range rates') }}</span>
                                                             <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
                                                         </label>
@@ -485,9 +485,9 @@ new #[Layout('layouts.app')] class extends Component
                                                         <label class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Flat Rate/Hr (₹)') }}</label>
                                                         <div class="relative rounded-xl shadow-sm">
                                                             <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-                                                                <span class="text-gray-455 dark:text-gray-500 text-xs font-semibold">₹</span>
+                                                                <span class="text-gray-500 dark:text-gray-400 text-xs font-semibold">₹</span>
                                                             </div>
-                                                            <input type="number" wire:model="dayGroups.{{ $gIndex }}.flatRate" required class="block w-full ps-7 pe-3 py-2 text-xs font-mono font-bold rounded-xl border-gray-250 dark:border-gray-700 dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600 transition" placeholder="600">
+                                                            <input type="number" wire:model="dayGroups.{{ $gIndex }}.flatRate" required class="block w-full ps-7 pe-3 py-2 text-xs font-mono font-bold rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600 transition" placeholder="600">
                                                         </div>
                                                     </div>
                                                 @else
@@ -505,19 +505,19 @@ new #[Layout('layouts.app')] class extends Component
 
                                                         <div class="space-y-3">
                                                             @foreach ($group['timeRanges'] as $tIdx => $range)
-                                                                <div wire:key="time-range-{{ $gIndex }}-{{ $tIdx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-150/40 dark:border-gray-800/60 shadow-sm relative">
+                                                                <div wire:key="time-range-{{ $gIndex }}-{{ $tIdx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/40 dark:border-gray-800/60 shadow-sm relative">
                                                                     <div class="w-full">
                                                                         <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
-                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
                                                                     </div>
                                                                     <div class="w-full">
                                                                         <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('To') }}</label>
-                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
                                                                     </div>
                                                                     <div class="w-full">
                                                                         <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('Rate/Hr (₹)') }}</label>
-                                                                        <input type="number" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
-                                                                    </div>
+                                                                        <input type="number" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
+                                                                    </div>      </div>
                                                                     @if (count($group['timeRanges']) > 1)
                                                                         <button type="button" wire:click="removeTimeRange('group', {{ $tIdx }}, {{ $gIndex }})" class="sm:mt-4 p-1.5 text-gray-400 hover:text-red-500 transition cursor-pointer">
                                                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -584,15 +584,15 @@ new #[Layout('layouts.app')] class extends Component
                                     @if ($categorySlots->isNotEmpty())
                                         <div class="space-y-3">
                                             <!-- Category Header -->
-                                            <div class="flex items-center gap-2 pb-1.5 border-b border-gray-50 dark:border-gray-800/60">
+                                            <div class="flex items-center gap-2 pb-1.5 border-b border-gray-100 dark:border-gray-800/60">
                                                 <span class="text-sm shrink-0">{{ $category->icon ?: '⏰' }}</span>
-                                                <h4 class="text-[10px] font-bold text-gray-450 dark:text-gray-500 uppercase tracking-wider">{{ $category->name }}</h4>
+                                                <h4 class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ $category->name }}</h4>
                                             </div>
 
                                             <!-- Slots Grid -->
                                             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                                 @foreach ($categorySlots as $slot)
-                                                    <div class="p-4 rounded-2xl border border-gray-150/40 bg-gray-50/20 dark:border-gray-700/50 dark:bg-gray-800/30 flex flex-col justify-between">
+                                                    <div class="p-4 rounded-2xl border border-gray-200/40 bg-gray-50/20 dark:border-gray-700/50 dark:bg-gray-800/30 flex flex-col justify-between">
                                                         <div class="flex justify-between items-start">
                                                             <div class="flex flex-col">
                                                                 <span class="font-bold text-sm text-gray-900 dark:text-gray-100 font-mono">
@@ -611,7 +611,7 @@ new #[Layout('layouts.app')] class extends Component
                                                                     $price = $slot->pivot ? $slot->pivot->$dayKey : null;
                                                                 @endphp
                                                                 <div class="flex flex-col items-center bg-gray-50 dark:bg-gray-900/50 py-1.5 px-0.5 rounded-lg border border-gray-100/50 dark:border-gray-800/30">
-                                                                    <span class="text-[8px] font-bold text-gray-450 dark:text-gray-500 uppercase">{{ $dayName }}</span>
+                                                                    <span class="text-[8px] font-bold text-gray-500 dark:text-gray-400 uppercase">{{ $dayName }}</span>
                                                                     <span class="text-[10px] font-mono font-bold text-indigo-600 dark:text-indigo-400 mt-1">
                                                                         {{ $price !== null ? '₹' . number_format($price, 0) : '—' }}
                                                                     </span>
