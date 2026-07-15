@@ -225,7 +225,7 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Filters Block -->
         <div class="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
             <div class="relative w-full md:max-w-xs">
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search by name, email, or mobile..." class="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-750 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-850 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search by name, email, or mobile..." class="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
                 <div class="absolute left-3.5 top-3.5 text-gray-400">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -234,7 +234,7 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <div class="w-full md:w-48">
-                <select wire:model.live="roleFilter" class="w-full px-3 py-2 border border-gray-200 dark:border-gray-750 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-850 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                <select wire:model.live="roleFilter" class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
                     <option value="">{{ __('All Roles') }}</option>
                     @foreach ($availableRoles as $role)
                         <option value="{{ $role->name }}">{{ $role->display_name }}</option>
@@ -244,7 +244,7 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <!-- Users Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
             @forelse ($users as $user)
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
                     <div>
@@ -302,13 +302,13 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- User Contact Info Block -->
                         <div class="mt-5 space-y-2.5 border-t border-gray-50 dark:border-gray-700/40 pt-4">
-                            <div class="flex items-center gap-2.5 text-xs text-gray-600 dark:text-gray-350">
+                            <div class="flex items-center gap-2.5 text-xs text-gray-600 dark:text-gray-300">
                                 <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
                                 <span class="truncate font-semibold tracking-wide">{{ $user->email }}</span>
                             </div>
-                            <div class="flex items-center gap-2.5 text-xs text-gray-650 dark:text-gray-350">
+                            <div class="flex items-center gap-2.5 text-xs text-gray-600 dark:text-gray-300">
                                 <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                 </svg>
@@ -406,7 +406,7 @@ new #[Layout('layouts.app')] class extends Component
                                     @foreach ($availableRoles as $role)
                                         <label class="inline-flex items-center select-none cursor-pointer">
                                             <input type="checkbox" wire:model.live="selectedRoles" value="{{ $role->name }}" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                            <span class="ms-2.5 text-xs font-bold text-gray-700 dark:text-gray-350 uppercase tracking-wider">{{ $role->display_name }}</span>
+                                            <span class="ms-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ $role->display_name }}</span>
                                         </label>
                                     @endforeach
                                 </div>
