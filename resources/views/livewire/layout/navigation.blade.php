@@ -263,22 +263,22 @@ new class extends Component
         </div>
 
         <!-- Sidebar User Card -->
-        <div class="shrink-0 border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
-            <div class="flex items-center gap-4">
-                <div class="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none">
-                    {{ $userInitials }}
+        <div class="shrink-0 border-t border-gray-100 dark:border-gray-800/80 p-4 bg-gray-50/50 dark:bg-gray-900/20">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none border border-indigo-200/20 dark:border-indigo-400/10">
+                        {{ $userInitials }}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
+                        <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ auth()->user()->email }}</p>
+                    </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ auth()->user()->email }}</p>
-                </div>
-            </div>
-            <div class="mt-5 space-y-1.5">
-                <button wire:click="logout" class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/15 rounded-xl transition text-start">
-                    <svg class="h-4 w-4 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <!-- Sleek Circular Logout Action -->
+                <button wire:click="logout" title="{{ __('Log Out') }}" class="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/15 text-red-500 hover:bg-red-100 dark:hover:bg-red-950/30 hover:text-red-600 transition cursor-pointer border border-red-100/50 dark:border-red-950/50">
+                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    {{ __('Log Out') }}
                 </button>
             </div>
         </div>
@@ -518,22 +518,22 @@ new class extends Component
         </div>
 
         <!-- Sidebar User Card -->
-        <div class="shrink-0 border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
-            <div class="flex items-center gap-4">
-                <div class="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none">
-                    {{ $userInitials }}
+        <div class="shrink-0 border-t border-gray-100 dark:border-gray-800/80 p-4 bg-gray-50/50 dark:bg-gray-900/20">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none border border-indigo-200/20 dark:border-indigo-400/10">
+                        {{ $userInitials }}
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
+                        <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ auth()->user()->email }}</p>
+                    </div>
                 </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ auth()->user()->email }}</p>
-                </div>
-            </div>
-            <div class="mt-5 space-y-1.5">
-                <button wire:click="logout" class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/15 rounded-xl transition text-start">
-                    <svg class="h-4 w-4 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <!-- Sleek Circular Logout Action -->
+                <button wire:click="logout" title="{{ __('Log Out') }}" class="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/15 text-red-500 hover:bg-red-100 dark:hover:bg-red-950/30 hover:text-red-600 transition cursor-pointer border border-red-100/50 dark:border-red-950/50">
+                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    {{ __('Log Out') }}
                 </button>
             </div>
         </div>
