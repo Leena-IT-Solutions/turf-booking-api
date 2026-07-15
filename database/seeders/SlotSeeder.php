@@ -30,8 +30,8 @@ class SlotSeeder extends Seeder
             $toHour = floor($endMinutes / 60);
             $toMin = $endMinutes % 60;
 
-            $fromTime = sprintf('%02d:%02d', $fromHour, $fromMin);
-            $toTime = sprintf('%02d:%02d', $toHour % 24, $toMin);
+            $fromTime = sprintf('%02d:%02d:00', $fromHour, $fromMin);
+            $toTime = sprintf('%02d:%02d:00', $toHour % 24, $toMin);
 
             // Determine category
             if ($fromHour >= 6 && $fromHour < 12) {
