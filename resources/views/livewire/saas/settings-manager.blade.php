@@ -127,35 +127,38 @@ new #[Layout('layouts.app')] class extends Component
 
 <div class="py-6">
     <div class="sm:px-6 lg:px-8 space-y-6">
-        
-        <!-- Header Card -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50">
-            <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('SaaS Global Settings') }}</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Configure and control core platform settings, logos, contact info, and maintenance mode status.') }}</p>
-            </div>
-        </div>
-
-        @if (session()->has('status'))
-            <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
-                <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span>{{ session('status') }}</span>
-            </div>
-        @endif
-
-        @if ($is_maintenance_mode)
-            <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
-                <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span>{{ __('Warning: Maintenance mode is currently active. The front-end booking options might be restricted.') }}</span>
-            </div>
-        @endif
-
-        <!-- Form Card Grid -->
         <form wire:submit="saveSettings" class="space-y-6">
+            <!-- Header Card -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('SaaS Global Settings') }}</h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Configure and control core platform settings, logos, contact info, and maintenance mode status.') }}</p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                    <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
+                        {{ __('Save Settings') }}
+                    </button>
+                </div>
+            </div>
+
+            @if (session()->has('status'))
+                <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ session('status') }}</span>
+                </div>
+            @endif
+
+            @if ($is_maintenance_mode)
+                <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
+                    <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>{{ __('Warning: Maintenance mode is currently active. The front-end booking options might be restricted.') }}</span>
+                </div>
+            @endif
+
             <!-- Core Platform Settings Card -->
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
