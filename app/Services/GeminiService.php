@@ -27,7 +27,7 @@ class GeminiService
         try {
             $response = Http::timeout(10)->withHeaders([
                 'Content-Type' => 'application/json',
-            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $apiKey, [
+            ])->post("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=" . $apiKey, [
                 'contents' => [
                     [
                         'parts' => [
