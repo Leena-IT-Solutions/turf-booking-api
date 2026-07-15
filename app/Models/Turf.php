@@ -17,10 +17,12 @@ class Turf extends Model
         'area',
         'is_active',
         'equipments',
+        'pricing_wizard_data',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'pricing_wizard_data' => 'array',
     ];
 
     /**

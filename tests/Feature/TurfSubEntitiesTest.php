@@ -311,12 +311,123 @@ class TurfSubEntitiesTest extends TestCase
 
         $this->testComponent('turf.pricing-manager')
             ->assertSee('Pricing Wizard')
-            ->assertSee('Wizard updates will be available here.')
+            ->assertSee('Q1. Do you have the same rate throughout the week days?')
             ->assertSee('Current Slot Rates')
             ->assertSee('Morning')
             ->assertSee('07:00 AM')
             ->assertSee('₹500')
             ->assertSee('₹800')
             ->assertSee('₹900');
+    }
+
+    public function test_pricing_wizard_flat_rate_sync(): void
+    {
+        $this->actingAs($this->user);
+
+        $category = \App\Models\SlotCategory::create(['name' => 'Morning', 'is_active' => true, 'sort_order' => 2]);
+        $slot = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '07:00:00',
+            'to_time' => '08:00:00',
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        $this->turf->slots()->attach($slot->id, ['is_active' => true]);
+
+        $this->testComponent('turf.pricing-manager')
+            ->set('sameRateThroughoutWeek', 'yes')
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->set('sameRateThroughoutDayAll', 'yes')
+            ->set('flatRateAll', '650')
+            ->call('applyPricing')
+            ->assertHasNoErrors()
+            ->assertSee('Pricing rules updated and applied successfully.');
+
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot->id,
+            'mon' => 650.00,
+            'sun' => 650.00,
+        ]);
+
+        // Verify wizard configuration is persisted in the turf's pricing_wizard_data JSON field
+        $this->assertEquals('yes', $this->turf->fresh()->pricing_wizard_data['sameRateThroughoutWeek']);
+        $this->assertEquals('650', $this->turf->fresh()->pricing_wizard_data['flatRateAll']);
+    }
+
+    public function test_pricing_wizard_custom_day_groups_dynamic_ranges_sync(): void
+    {
+        $this->actingAs($this->user);
+
+        $category = \App\Models\SlotCategory::create(['name' => 'Afternoon', 'is_active' => true, 'sort_order' => 3]);
+        $slot1 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '12:00:00',
+            'to_time' => '13:00:00',
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+        $slot2 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '16:00:00',
+            'to_time' => '17:00:00',
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        $this->turf->slots()->attach($slot1->id, ['is_active' => true]);
+        $this->turf->slots()->attach($slot2->id, ['is_active' => true]);
+
+        $dayGroupsConfig = [
+            [
+                'days' => ['mon', 'wed', 'fri'],
+                'sameRateThroughoutDay' => 'no',
+                'flatRate' => '',
+                'timeRanges' => [
+                    ['from' => '12:00', 'to' => '14:00', 'rate' => '450'],
+                    ['from' => '15:00', 'to' => '18:00', 'rate' => '750'],
+                ]
+            ],
+            [
+                'days' => ['sat', 'sun'],
+                'sameRateThroughoutDay' => 'yes',
+                'flatRate' => '1000',
+                'timeRanges' => []
+            ]
+        ];
+
+        $this->testComponent('turf.pricing-manager')
+            ->set('sameRateThroughoutWeek', 'no')
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->set('dayGroups', $dayGroupsConfig)
+            ->call('applyPricing')
+            ->assertHasNoErrors()
+            ->assertSee('Pricing rules updated and applied successfully.');
+
+        // Assert slot 1 rates
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot1->id,
+            'mon' => 450.00,
+            'wed' => 450.00,
+            'fri' => 450.00,
+            'sat' => 1000.00,
+            'sun' => 1000.00,
+            'tue' => null, // not in day groups
+        ]);
+
+        // Assert slot 2 rates
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot2->id,
+            'mon' => 750.00,
+            'wed' => 750.00,
+            'fri' => 750.00,
+            'sat' => 1000.00,
+            'sun' => 1000.00,
+        ]);
     }
 }
