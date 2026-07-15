@@ -430,4 +430,38 @@ class TurfSubEntitiesTest extends TestCase
             'sun' => 1000.00,
         ]);
     }
+
+    public function test_pricing_wizard_calculates_half_hour_rate_for_30_minute_slots(): void
+    {
+        $this->actingAs($this->user);
+
+        $category = \App\Models\SlotCategory::create(['name' => 'Evening', 'is_active' => true, 'sort_order' => 4]);
+        
+        // 30-minute slot (duration = 30)
+        $slot = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '18:00:00',
+            'to_time' => '18:30:00',
+            'duration' => 30,
+            'is_active' => true,
+        ]);
+
+        $this->turf->slots()->attach($slot->id, ['is_active' => true]);
+
+        $this->testComponent('turf.pricing-manager')
+            ->set('sameRateThroughoutWeek', 'yes')
+            ->call('nextStep')
+            ->assertSet('step', 2)
+            ->set('sameRateThroughoutDayAll', 'yes')
+            ->set('flatRateAll', '600') // 600/hr should result in 300 for 30-minute slot
+            ->call('applyPricing')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot->id,
+            'mon' => 300.00, // half-hour rate (600 * 30/60)
+            'sun' => 300.00,
+        ]);
+    }
 }

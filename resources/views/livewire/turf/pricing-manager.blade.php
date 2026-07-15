@@ -165,23 +165,27 @@ new #[Layout('layouts.app')] class extends Component
 
         foreach ($activeSlots as $slot) {
             $prices = [];
+            // Scale hourly rate based on slot duration (e.g. 30 mins slot gets 30/60 = 0.5 of hourly rate)
+            $scaleFactor = ((float)$slot->duration) / 60.0;
 
             if ($this->sameRateThroughoutWeek === 'yes') {
                 if ($this->sameRateThroughoutDayAll === 'yes') {
-                    $rate = (float)$this->flatRateAll;
+                    $rate = $this->flatRateAll !== '' ? (float)$this->flatRateAll : 0.0;
+                    $scaledRate = $rate * $scaleFactor;
                     foreach (['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as $day) {
-                        $prices[$day] = $rate;
+                        $prices[$day] = $scaledRate;
                     }
                 } else {
-                    $rate = null;
+                    $scaledRate = null;
                     foreach ($this->timeRangesAll as $range) {
                         if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'], $range['to'])) {
-                            $rate = (float)$range['rate'];
+                            $rate = $range['rate'] !== '' ? (float)$range['rate'] : 0.0;
+                            $scaledRate = $rate * $scaleFactor;
                             break;
                         }
                     }
                     foreach (['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as $day) {
-                        $prices[$day] = $rate;
+                        $prices[$day] = $scaledRate;
                     }
                 }
             } else {
@@ -192,20 +196,22 @@ new #[Layout('layouts.app')] class extends Component
                     }
 
                     if ($group['sameRateThroughoutDay'] === 'yes') {
-                        $rate = (float)$group['flatRate'];
+                        $rate = $group['flatRate'] !== '' ? (float)$group['flatRate'] : 0.0;
+                        $scaledRate = $rate * $scaleFactor;
                         foreach ($selectedDays as $day) {
-                            $prices[$day] = $rate;
+                            $prices[$day] = $scaledRate;
                         }
                     } else {
-                        $rate = null;
+                        $scaledRate = null;
                         foreach ($group['timeRanges'] as $range) {
                             if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'], $range['to'])) {
-                                $rate = (float)$range['rate'];
+                                $rate = $range['rate'] !== '' ? (float)$range['rate'] : 0.0;
+                                $scaledRate = $rate * $scaleFactor;
                                 break;
                             }
                         }
                         foreach ($selectedDays as $day) {
-                            $prices[$day] = $rate;
+                            $prices[$day] = $scaledRate;
                         }
                     }
                 }
