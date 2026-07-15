@@ -195,17 +195,29 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="absolute inset-0 bg-gradient-to-t from-gray-950/80 via-transparent to-gray-950/40"></div>
 
                         <!-- Top Badges & Controls Overlay -->
-                        <div class="absolute top-4 inset-x-4 flex justify-between items-center z-10">
+                        <div class="absolute top-4 inset-x-4 flex justify-between items-start z-10">
                             <!-- Active Status Trigger Badge -->
-                            <button wire:click="toggleActive({{ $sliderImage->id }})" class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-inner transition cursor-pointer {{ $sliderImage->is_active ? 'bg-emerald-500/90 text-white' : 'bg-gray-500/90 text-white' }}">
-                                {{ $sliderImage->is_active ? __('Active') : __('Inactive') }}
-                            </button>
-
-                            <!-- Order index badge -->
-                            <div class="flex items-center gap-1.5">
-                                <span class="bg-gray-950/70 border border-gray-800 text-gray-300 px-2 py-0.5 rounded-lg text-[9px] font-mono font-bold">
+                            <div class="flex flex-col gap-1.5">
+                                <button wire:click="toggleActive({{ $sliderImage->id }})" class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider shadow-md transition cursor-pointer {{ $sliderImage->is_active ? 'bg-emerald-500/90 text-white' : 'bg-gray-500/90 text-white' }}">
+                                    {{ $sliderImage->is_active ? __('Active') : __('Inactive') }}
+                                </button>
+                                <span class="bg-gray-950/70 border border-gray-800 text-gray-300 px-2 py-0.5 rounded-lg text-[9px] font-mono font-bold w-max">
                                     Order: {{ $sliderImage->order }}
                                 </span>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="flex items-center gap-2">
+                                <button wire:click="editSlide({{ $sliderImage->id }})" class="p-2 bg-white/95 hover:bg-white text-gray-850 rounded-xl shadow-md transition transform hover:scale-105 cursor-pointer backdrop-blur-sm flex items-center justify-center">
+                                    <svg class="h-4 w-4 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                                <button onclick="confirm('Are you sure you want to delete this slide?') || event.stopImmediatePropagation()" wire:click="deleteSlide({{ $sliderImage->id }})" class="p-2 bg-red-650/95 hover:bg-red-600 text-white rounded-xl shadow-md transition transform hover:scale-105 cursor-pointer backdrop-blur-sm flex items-center justify-center">
+                                    <svg class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
 
@@ -215,20 +227,6 @@ new #[Layout('layouts.app')] class extends Component
                             @if ($sliderImage->link_url)
                                 <p class="text-[10px] text-gray-300 font-medium truncate mt-0.5 drop-shadow-sm">{{ $sliderImage->link_url }}</p>
                             @endif
-                        </div>
-
-                        <!-- Action Buttons Overlay on Hover -->
-                        <div class="absolute inset-0 bg-gray-950/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 z-20">
-                            <button wire:click="editSlide({{ $sliderImage->id }})" class="p-3 bg-white hover:bg-gray-100 text-gray-800 rounded-xl shadow-md transition transform hover:scale-105 cursor-pointer">
-                                <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                            </button>
-                            <button onclick="confirm('Are you sure you want to delete this slide?') || event.stopImmediatePropagation()" wire:click="deleteSlide({{ $sliderImage->id }})" class="p-3 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md transition transform hover:scale-105 cursor-pointer">
-                                <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
                         </div>
                     </div>
                 @endforeach
