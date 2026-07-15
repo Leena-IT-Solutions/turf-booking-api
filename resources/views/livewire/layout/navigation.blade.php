@@ -46,7 +46,7 @@ new class extends Component
             <div class="h-16 flex items-center px-6 border-b border-gray-100 dark:border-gray-800">
                 <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2">
                     <x-application-logo class="h-8 w-auto fill-current text-indigo-600 dark:text-indigo-400" />
-                    <span class="font-bold text-lg text-gray-900 dark:text-white">TurfBooking</span>
+                    <span class="font-bold text-lg text-gray-900 dark:text-white">{{ config('app.name', 'TurfBooking') }}</span>
                 </a>
             </div>
             <!-- Navigation Links -->
@@ -153,7 +153,7 @@ new class extends Component
             <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-gray-800">
                 <div class="flex items-center gap-2">
                     <x-application-logo class="h-8 w-auto fill-current text-indigo-600 dark:text-indigo-400" />
-                    <span class="font-bold text-lg text-gray-900 dark:text-white">TurfBooking</span>
+                    <span class="font-bold text-lg text-gray-900 dark:text-white">{{ config('app.name', 'TurfBooking') }}</span>
                 </div>
                 <button @click="sidebarOpen = false" class="p-1 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
                     <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
