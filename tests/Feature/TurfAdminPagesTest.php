@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Coupon;
+use Livewire\Volt\Volt;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -56,5 +58,43 @@ class TurfAdminPagesTest extends TestCase
         $this->actingAs($manager)->get('/turf/bookings')->assertOk();
         $this->actingAs($manager)->get('/turf/offers')->assertOk();
         $this->actingAs($manager)->get('/turf/settings')->assertStatus(403);
+    }
+
+    public function test_turf_admin_dashboard_shows_statistics(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('turf-admin');
+        $this->actingAs($admin);
+
+        // Seed some locations & coupons to check counts on the dashboard view
+        $location = \App\Models\Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Mumbai Sports Complex',
+            'address' => 'Andheri West',
+            'description' => 'Great turf place',
+            'latitude' => '19.1136',
+            'longitude' => '72.8697',
+        ]);
+
+        $turf = \App\Models\Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Football Turf A',
+            'type' => 'Synthetic',
+            'width' => 20,
+            'length' => 40,
+        ]);
+
+        Coupon::create([
+            'code' => 'DASHBOARD50',
+            'discount_type' => 'percentage',
+            'discount_value' => 50,
+            'starts_at' => now(),
+            'expires_at' => now()->addMonth(),
+        ]);
+
+        Volt::test('turf.dashboard-manager')
+            ->assertSee('Mumbai Sports Complex')
+            ->assertSee('Football Turf A')
+            ->assertSee('Active Coupons');
     }
 }
