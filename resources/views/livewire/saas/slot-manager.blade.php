@@ -5,12 +5,8 @@ use App\Models\SlotCategory;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
-use Livewire\WithPagination;
-
 new #[Layout('layouts.app')] class extends Component
 {
-    use WithPagination;
-
     // Filters and search
     public $search = '';
     public $categoryFilter = '';
@@ -48,16 +44,6 @@ new #[Layout('layouts.app')] class extends Component
             $this->deleteSlot($this->deletingId);
         }
         $this->cancelDelete();
-    }
-
-    public function updatingSearch()
-    {
-        $this->resetPage();
-    }
-
-    public function updatingCategoryFilter()
-    {
-        $this->resetPage();
     }
 
     public function openCreateModal()
@@ -149,22 +135,27 @@ new #[Layout('layouts.app')] class extends Component
 
     public function with()
     {
-        $query = Slot::query()->with('category');
+        $query = Slot::query()
+            ->select('slots.*')
+            ->join('slot_categories', 'slots.slot_category_id', '=', 'slot_categories.id')
+            ->with('category');
 
         if ($this->search) {
             $query->where(function ($q) {
-                $q->where('from_time', 'like', '%' . $this->search . '%')
-                  ->orWhere('to_time', 'like', '%' . $this->search . '%')
-                  ->orWhere('duration', 'like', '%' . $this->search . '%');
+                $q->where('slots.from_time', 'like', '%' . $this->search . '%')
+                  ->orWhere('slots.to_time', 'like', '%' . $this->search . '%')
+                  ->orWhere('slots.duration', 'like', '%' . $this->search . '%');
             });
         }
 
         if ($this->categoryFilter) {
-            $query->where('slot_category_id', $this->categoryFilter);
+            $query->where('slots.slot_category_id', $this->categoryFilter);
         }
 
         return [
-            'slots' => $query->orderBy('from_time', 'asc')->paginate(12),
+            'slots' => $query->orderBy('slot_categories.name', 'asc')
+                             ->orderBy('slots.from_time', 'asc')
+                             ->get(),
             'availableCategories' => SlotCategory::orderBy('name', 'asc')->get(),
         ];
     }
@@ -291,12 +282,6 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             @endforelse
         </div>
-
-        @if ($slots->hasPages())
-            <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm mt-6">
-                {{ $slots->links() }}
-            </div>
-        @endif
 
         <!-- Create/Edit Modal -->
         @if ($showModal)
