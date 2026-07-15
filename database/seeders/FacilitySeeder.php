@@ -18,21 +18,22 @@ class FacilitySeeder extends Seeder
         Schema::enableForeignKeyConstraints();
 
         $facilities = [
-            'Locker Rooms',
-            'Shower & Washroom',
-            'Free Parking',
-            'Water Dispenser',
-            'Night Lighting (Floodlights)',
-            'First Aid Station',
-            'Cafeteria / Canteen',
-            'Spectator Seating',
-            'Waiting Lounge',
-            'Wi-Fi Zone',
+            'Locker Rooms' => 'key',
+            'Shower & Washroom' => 'shower',
+            'Free Parking' => 'parking',
+            'Water Dispenser' => 'water',
+            'Night Lighting (Floodlights)' => 'light',
+            'First Aid Station' => 'first-aid',
+            'Cafeteria / Canteen' => 'coffee',
+            'Spectator Seating' => 'seating',
+            'Waiting Lounge' => '🛋️',
+            'Wi-Fi Zone' => 'wifi',
         ];
 
-        foreach ($facilities as $name) {
+        foreach ($facilities as $name => $icon) {
             Facility::create([
                 'name' => $name,
+                'icon' => $icon,
                 'is_active' => true,
             ]);
         }

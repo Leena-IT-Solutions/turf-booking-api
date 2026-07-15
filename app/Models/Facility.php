@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Facility extends Model
 {
@@ -12,6 +12,7 @@ class Facility extends Model
 
     protected $fillable = [
         'name',
+        'icon',
         'is_active',
     ];
 
@@ -19,8 +20,8 @@ class Facility extends Model
         'is_active' => 'boolean',
     ];
 
-    public function turfFacilities(): HasMany
+    public function turfs(): BelongsToMany
     {
-        return $this->hasMany(TurfFacility::class);
+        return $this->belongsToMany(Turf::class);
     }
 }

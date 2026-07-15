@@ -60,6 +60,7 @@ class SaaSMasterListsTest extends TestCase
         Livewire::test('saas.facilities-manager')
             ->call('openCreateModal')
             ->set('name', 'Locker Room')
+            ->set('icon', 'key')
             ->set('is_active', true)
             ->call('saveFacility')
             ->assertHasNoErrors()
@@ -67,6 +68,7 @@ class SaaSMasterListsTest extends TestCase
 
         $this->assertDatabaseHas('facilities', [
             'name' => 'Locker Room',
+            'icon' => 'key',
             'is_active' => true,
         ]);
 
@@ -76,12 +78,15 @@ class SaaSMasterListsTest extends TestCase
         Livewire::test('saas.facilities-manager')
             ->call('openEditModal', $facility->id)
             ->assertSet('name', 'Locker Room')
+            ->assertSet('icon', 'key')
             ->set('name', 'Luxury Showers')
+            ->set('icon', 'shower')
             ->call('saveFacility')
             ->assertHasNoErrors()
             ->assertSee('Facility updated successfully.');
 
         $this->assertEquals('Luxury Showers', $facility->fresh()->name);
+        $this->assertEquals('shower', $facility->fresh()->icon);
 
         // 4. Toggle Active Status
         Livewire::test('saas.facilities-manager')
@@ -112,6 +117,7 @@ class SaaSMasterListsTest extends TestCase
         Livewire::test('saas.equipments-manager')
             ->call('openCreateModal')
             ->set('name', 'Wilson Tennis Balls')
+            ->set('icon', 'tennis-ball')
             ->set('is_active', true)
             ->call('saveEquipment')
             ->assertHasNoErrors()
@@ -119,6 +125,7 @@ class SaaSMasterListsTest extends TestCase
 
         $this->assertDatabaseHas('equipments', [
             'name' => 'Wilson Tennis Balls',
+            'icon' => 'tennis-ball',
             'is_active' => true,
         ]);
 
@@ -128,11 +135,13 @@ class SaaSMasterListsTest extends TestCase
         Livewire::test('saas.equipments-manager')
             ->call('openEditModal', $equipment->id)
             ->set('name', 'Wilson Rackets')
+            ->set('icon', '🎾')
             ->call('saveEquipment')
             ->assertHasNoErrors()
             ->assertSee('Equipment updated successfully.');
 
         $this->assertEquals('Wilson Rackets', $equipment->fresh()->name);
+        $this->assertEquals('🎾', $equipment->fresh()->icon);
 
         // 4. Toggle Active Status
         Livewire::test('saas.equipments-manager')
@@ -161,6 +170,7 @@ class SaaSMasterListsTest extends TestCase
         Livewire::test('saas.sports-manager')
             ->call('openCreateModal')
             ->set('name', 'Box Cricket')
+            ->set('icon', 'cricket')
             ->set('is_active', true)
             ->call('saveSport')
             ->assertHasNoErrors()
@@ -168,6 +178,7 @@ class SaaSMasterListsTest extends TestCase
 
         $this->assertDatabaseHas('sports', [
             'name' => 'Box Cricket',
+            'icon' => 'cricket',
             'is_active' => true,
         ]);
 
@@ -177,11 +188,13 @@ class SaaSMasterListsTest extends TestCase
         Livewire::test('saas.sports-manager')
             ->call('openEditModal', $sport->id)
             ->set('name', 'Indoor Cricket')
+            ->set('icon', '🏏')
             ->call('saveSport')
             ->assertHasNoErrors()
             ->assertSee('Sport updated successfully.');
 
         $this->assertEquals('Indoor Cricket', $sport->fresh()->name);
+        $this->assertEquals('🏏', $sport->fresh()->icon);
 
         // 4. Toggle Active Status
         Livewire::test('saas.sports-manager')

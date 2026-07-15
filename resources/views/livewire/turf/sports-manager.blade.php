@@ -136,12 +136,15 @@ new #[Layout('layouts.app')] class extends Component
                     <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             @foreach ($allSports as $sportItem)
-                                <label class="relative flex items-start p-4 rounded-2xl border transition duration-150 cursor-pointer {{ in_array((string)$sportItem->id, $selectedSportIds) ? 'bg-indigo-50/20 border-indigo-250 dark:bg-indigo-950/10 dark:border-indigo-900/50' : 'bg-transparent border-gray-100 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                <label class="relative flex items-center p-4 rounded-2xl border transition duration-150 cursor-pointer {{ in_array((string)$sportItem->id, $selectedSportIds) ? 'bg-indigo-50/20 border-indigo-250 dark:bg-indigo-950/10 dark:border-indigo-900/50' : 'bg-transparent border-gray-100 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
                                     <div class="flex items-center h-5">
                                         <input type="checkbox" wire:model="selectedSportIds" value="{{ $sportItem->id }}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/20 dark:border-gray-750 dark:bg-gray-900 dark:checked:bg-indigo-600 transition">
                                     </div>
-                                    <div class="ms-3 text-sm">
-                                        <span class="font-semibold text-gray-900 dark:text-gray-100">{{ $sportItem->name }}</span>
+                                    <div class="ms-3 flex items-center gap-3">
+                                        <div class="h-9 w-9 bg-gray-50 dark:bg-gray-900 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-gray-750 shrink-0">
+                                            <x-icon name="{{ $sportItem->icon }}" class="h-5 w-5" />
+                                        </div>
+                                        <span class="font-semibold text-sm text-gray-900 dark:text-gray-100">{{ $sportItem->name }}</span>
                                     </div>
                                 </label>
                             @endforeach

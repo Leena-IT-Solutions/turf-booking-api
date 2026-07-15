@@ -18,23 +18,24 @@ class EquipmentSeeder extends Seeder
         Schema::enableForeignKeyConstraints();
 
         $equipments = [
-            'FIFA Pro Soccer Balls',
-            'Colored Training Bibs (Red)',
-            'Colored Training Bibs (Blue)',
-            'Tennis Rackets',
-            'Cricket Bats (English Willow)',
-            'Cricket Leather Balls',
-            'Cricket Wooden Stumps',
-            'Agility Cones & Ladders',
-            'Basketballs',
-            'Volleyballs',
-            'Goal Post Nets',
-            'Tennis Balls',
+            'FIFA Pro Soccer Balls' => 'soccer-ball',
+            'Colored Training Bibs (Red)' => '🔴',
+            'Colored Training Bibs (Blue)' => '🔵',
+            'Tennis Rackets' => '🎾',
+            'Cricket Bats (English Willow)' => 'cricket-bat',
+            'Cricket Leather Balls' => 'cricket-ball',
+            'Cricket Wooden Stumps' => 'cricket-stumps',
+            'Agility Cones & Ladders' => '📐',
+            'Basketballs' => 'basketball-ball',
+            'Volleyballs' => '🏐',
+            'Goal Post Nets' => '🥅',
+            'Tennis Balls' => 'tennis-ball',
         ];
 
-        foreach ($equipments as $name) {
+        foreach ($equipments as $name => $icon) {
             Equipment::create([
                 'name' => $name,
+                'icon' => $icon,
                 'is_active' => true,
             ]);
         }

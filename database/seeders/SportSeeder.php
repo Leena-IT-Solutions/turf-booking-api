@@ -18,20 +18,21 @@ class SportSeeder extends Seeder
         Schema::enableForeignKeyConstraints();
 
         $sports = [
-            'Football (5-a-side)',
-            'Football (7-a-side)',
-            'Box Cricket',
-            'Lawn Tennis',
-            'Basketball',
-            'Volleyball',
-            'Kabaddi',
-            'Badminton',
-            'Table Tennis',
+            'Football (5-a-side)' => 'football',
+            'Football (7-a-side)' => 'football',
+            'Box Cricket' => 'cricket',
+            'Lawn Tennis' => 'tennis',
+            'Basketball' => 'basketball',
+            'Volleyball' => 'volleyball',
+            'Kabaddi' => '🤼',
+            'Badminton' => '🏸',
+            'Table Tennis' => '🏓',
         ];
 
-        foreach ($sports as $name) {
+        foreach ($sports as $name => $icon) {
             Sport::create([
                 'name' => $name,
+                'icon' => $icon,
                 'is_active' => true,
             ]);
         }

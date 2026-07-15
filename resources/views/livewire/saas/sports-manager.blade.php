@@ -15,6 +15,7 @@ new #[Layout('layouts.app')] class extends Component
     // Form inputs
     public $sportId = null;
     public $name = '';
+    public $icon = '';
     public $is_active = true;
 
     // States
@@ -30,7 +31,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['sportId', 'name', 'is_active']);
+        $this->reset(['sportId', 'name', 'icon', 'is_active']);
         $this->resetErrorBag();
         $this->isEditing = false;
         $this->showFormModal = true;
@@ -44,6 +45,7 @@ new #[Layout('layouts.app')] class extends Component
         $sport = Sport::findOrFail($id);
         $this->sportId = $sport->id;
         $this->name = $sport->name;
+        $this->icon = $sport->icon;
         $this->is_active = $sport->is_active;
 
         $this->showFormModal = true;
@@ -58,6 +60,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->validate([
             'name' => 'required|string|max:100|unique:sports,name,' . ($this->sportId ?? 'NULL'),
+            'icon' => 'nullable|string|max:50',
             'is_active' => 'required|boolean',
         ]);
 
@@ -65,12 +68,14 @@ new #[Layout('layouts.app')] class extends Component
             $sport = Sport::findOrFail($this->sportId);
             $sport->update([
                 'name' => $this->name,
+                'icon' => $this->icon,
                 'is_active' => $this->is_active,
             ]);
             session()->flash('status', 'Sport updated successfully.');
         } else {
             Sport::create([
                 'name' => $this->name,
+                'icon' => $this->icon,
                 'is_active' => $this->is_active,
             ]);
             session()->flash('status', 'Sport created successfully.');
@@ -113,7 +118,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $sports = Sport::where('name', 'like', '%' . $this->search . '%')
             ->orderBy('name', 'asc')
-            ->paginate(10);
+            ->paginate(12);
 
         return [
             'sports' => $sports,
@@ -141,7 +146,7 @@ new #[Layout('layouts.app')] class extends Component
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
-                {{ __('Add Sport option') }}
+                {{ __('Add Sport Option') }}
             </button>
         </div>
 
@@ -169,55 +174,53 @@ new #[Layout('layouts.app')] class extends Component
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">{{ __('Add sports options to populate the global selector repository.') }}</p>
             </div>
         @else
-            <!-- Sports Table -->
-            <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-750">
-                        <thead class="bg-gray-50/55 dark:bg-gray-900/10">
-                            <tr>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Sport Option Name') }}</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Status') }}</th>
-                                <th scope="col" class="px-6 py-4 class text-right text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider pr-8">{{ __('Actions') }}</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-750 bg-transparent">
-                            @foreach ($sports as $sportItem)
-                                <tr class="hover:bg-gray-50/30 dark:hover:bg-gray-800/10 transition">
-                                    <td class="px-6 py-4.5 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                        {{ $sportItem->name }}
-                                    </td>
-                                    <td class="px-6 py-4.5 whitespace-nowrap">
-                                        <button type="button" wire:click="toggleActive({{ $sportItem->id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition {{ $sportItem->is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30' : 'bg-gray-55 text-gray-500 dark:bg-gray-900 dark:text-gray-400 border border-gray-200 dark:border-gray-800' }}">
-                                            <span class="h-1.5 w-1.5 rounded-full {{ $sportItem->is_active ? 'bg-emerald-500' : 'bg-gray-400' }}"></span>
-                                            {{ $sportItem->is_active ? __('Active') : __('Inactive') }}
-                                        </button>
-                                    </td>
-                                    <td class="px-6 py-4.5 whitespace-nowrap text-right text-xs font-medium pr-8">
-                                        <div class="inline-flex items-center gap-2">
-                                            <button type="button" wire:click="openEditModal({{ $sportItem->id }})" class="p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition cursor-pointer" title="{{ __('Edit') }}">
-                                                <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                </svg>
-                                            </button>
-                                            <button type="button" wire:click="confirmDelete({{ $sportItem->id }})" class="p-2 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition cursor-pointer" title="{{ __('Delete') }}">
-                                                <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-                <!-- Pagination -->
-                @if ($sports->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-750">
-                        {{ $sports->links() }}
+            <!-- Grid list of Sport Options (Card Design) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                @foreach ($sports as $sportItem)
+                    <div class="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col justify-between hover:shadow-md transition duration-200">
+                        <div class="flex items-start justify-between gap-4">
+                            <!-- Icon display -->
+                            <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/50 shrink-0">
+                                <x-icon name="{{ $sportItem->icon }}" class="h-6 w-6" />
+                            </div>
+                            <!-- Card Actions -->
+                            <div class="inline-flex items-center gap-1">
+                                <button type="button" wire:click="openEditModal({{ $sportItem->id }})" class="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-450 transition cursor-pointer" title="{{ __('Edit') }}">
+                                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button type="button" wire:click="confirmDelete({{ $sportItem->id }})" class="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition cursor-pointer" title="{{ __('Delete') }}">
+                                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 line-clamp-2">
+                                {{ $sportItem->name }}
+                            </h3>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between">
+                            <!-- Toggle Active Button -->
+                            <button type="button" wire:click="toggleActive({{ $sportItem->id }})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold cursor-pointer transition {{ $sportItem->is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30' : 'bg-gray-50 text-gray-500 dark:bg-gray-900 dark:text-gray-400 border border-gray-200 dark:border-gray-800' }}">
+                                <span class="h-1.5 w-1.5 rounded-full {{ $sportItem->is_active ? 'bg-emerald-500' : 'bg-gray-400' }}"></span>
+                                {{ $sportItem->is_active ? __('Active') : __('Inactive') }}
+                            </button>
+                        </div>
                     </div>
-                @endif
+                @endforeach
             </div>
+
+            <!-- Pagination -->
+            @if ($sports->hasPages())
+                <div class="mt-6 bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+                    {{ $sports->links() }}
+                </div>
+            @endif
         @endif
 
         <!-- Form Dialog (Create / Edit) -->
@@ -225,7 +228,6 @@ new #[Layout('layouts.app')] class extends Component
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="formModal" @click="formModal = false" class="fixed inset-0 transition-opacity bg-gray-950/40 dark:bg-gray-950/60 backdrop-blur-sm"></div>
 
-                <!-- Center helper -->
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
                 <div x-show="formModal" class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-100 dark:border-gray-700/50">
@@ -251,10 +253,19 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-error :messages="$errors->get('name')" class="mt-2" />
                             </div>
 
+                            <!-- Icon Name or Emoji -->
+                            <div>
+                                <label for="icon" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+                                    {{ __('Icon Name or Emoji') }}
+                                </label>
+                                <input type="text" id="icon" wire:model="icon" class="block w-full px-4 py-3 text-sm rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="e.g. football, cricket, tennis, or ⚽, 🏏, 🎾">
+                                <x-input-error :messages="$errors->get('icon')" class="mt-2" />
+                            </div>
+
                             <!-- Is Active status toggle -->
-                            <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-950/20 border border-gray-250 dark:border-gray-700">
+                            <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-55 dark:bg-gray-900 border border-gray-250 dark:border-gray-700">
                                 <div class="flex flex-col">
-                                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Sport Active Status') }}</span>
+                                    <span class="text-xs font-bold text-gray-850 dark:text-gray-200">{{ __('Sport Active Status') }}</span>
                                     <span class="text-[10px] text-gray-400 mt-0.5">{{ __('Active options are visible to turf owners when configuration updates are made.') }}</span>
                                 </div>
                                 <button type="button" @click="@this.set('is_active', !@this.get('is_active'))" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none" :class="@this.get('is_active') ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'">
@@ -263,7 +274,7 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
 
                             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                                <button type="button" @click="formModal = false" class="px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 border border-gray-255 dark:border-gray-655 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
+                                <button type="button" @click="formModal = false" class="px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 border border-gray-250 dark:border-gray-655 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
                                     {{ __('Cancel') }}
                                 </button>
                                 <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer">
@@ -281,7 +292,6 @@ new #[Layout('layouts.app')] class extends Component
             <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="deleteConfirm" @click="deleteConfirm = false" class="fixed inset-0 transition-opacity bg-gray-950/40 dark:bg-gray-950/60 backdrop-blur-sm"></div>
 
-                <!-- Center element helper -->
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
                 <div x-show="deleteConfirm" class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-gray-100 dark:border-gray-700/50">
@@ -303,7 +313,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                            <button type="button" @click="deleteConfirm = false" class="px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 border border-gray-250 dark:border-gray-655 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
+                            <button type="button" @click="deleteConfirm = false" class="px-4 py-2 text-xs font-bold text-gray-700 dark:text-gray-300 border border-gray-255 dark:border-gray-655 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer">
                                 {{ __('Cancel') }}
                             </button>
                             <button type="button" wire:click="performDelete" class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md shadow-red-500/20 transition cursor-pointer">
