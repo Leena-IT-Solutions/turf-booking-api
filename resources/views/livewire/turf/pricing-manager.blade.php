@@ -126,16 +126,27 @@ new #[Layout('layouts.app')] class extends Component
         $this->dayGroups = array_values($this->dayGroups);
     }
 
+    /**
+     * Check if a slot's start time falls within a time range.
+     * Only checks the start time — since slots are fixed-duration (e.g. 30 min),
+     * matching the start time is sufficient.
+     */
     private function slotMatchesRange($slotFrom, $slotTo, $rangeFrom, $rangeTo)
     {
-        $slotFromStr = date('H:i', strtotime($slotFrom));
-        $slotToStr = date('H:i', strtotime($slotTo));
+        $slotStart = date('H:i', strtotime($slotFrom));
 
-        if ($rangeFrom > $rangeTo) {
-            return ($slotFromStr >= $rangeFrom || $slotFromStr < $rangeTo);
+        // Normalise range boundaries to H:i
+        $from = strlen($rangeFrom) === 5 ? $rangeFrom : date('H:i', strtotime($rangeFrom));
+        $to   = strlen($rangeTo) === 5 ? $rangeTo : date('H:i', strtotime($rangeTo));
+
+        // Overnight range (e.g. 22:00 → 06:00)
+        if ($from > $to) {
+            return ($slotStart >= $from || $slotStart < $to);
         }
 
-        return ($slotFromStr >= $rangeFrom && $slotToStr <= $rangeTo);
+        // Normal range — slot start must be >= rangeFrom and < rangeTo
+        // Use < (not <=) so that a slot starting exactly at rangeTo belongs to the next range
+        return ($slotStart >= $from && $slotStart < $to);
     }
 
     public function applyPricing()
@@ -160,15 +171,34 @@ new #[Layout('layouts.app')] class extends Component
             ]
         ]);
 
-        // Get active slots for pivot update
+        // Ensure all active slots are attached to this turf in the pivot table
+        $allActiveSlots = Slot::where('is_active', true)->pluck('id');
+        $alreadyAttached = $turf->slots()->pluck('slots.id');
+        $toAttach = $allActiveSlots->diff($alreadyAttached);
+
+        if ($toAttach->isNotEmpty()) {
+            $attachData = [];
+            foreach ($toAttach as $slotId) {
+                $attachData[$slotId] = ['is_active' => true];
+            }
+            $turf->slots()->attach($attachData);
+        }
+
+        // Now get all active slots for this turf (freshly including newly attached)
         $activeSlots = $turf->slots()->wherePivot('is_active', true)->get();
 
         foreach ($activeSlots as $slot) {
-            $prices = [];
-            // Scale hourly rate based on slot duration (e.g. 30 mins slot gets 30/60 = 0.5 of hourly rate)
+            // Start with all days null — ensures unassigned days are explicitly set
+            $prices = [
+                'mon' => null, 'tue' => null, 'wed' => null, 'thu' => null,
+                'fri' => null, 'sat' => null, 'sun' => null,
+            ];
+
+            // Scale hourly rate based on slot duration (e.g. 30 min slot → 0.5 of hourly rate)
             $scaleFactor = ((float)$slot->duration) / 60.0;
 
             if ($this->sameRateThroughoutWeek === 'yes') {
+                // All days share the same pricing rule
                 if ($this->sameRateThroughoutDayAll === 'yes') {
                     $rate = $this->flatRateAll !== '' ? (float)$this->flatRateAll : 0.0;
                     $scaledRate = $rate * $scaleFactor;
@@ -176,10 +206,11 @@ new #[Layout('layouts.app')] class extends Component
                         $prices[$day] = $scaledRate;
                     }
                 } else {
+                    // Match slot to a time range
                     $scaledRate = null;
                     foreach ($this->timeRangesAll as $range) {
-                        if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'], $range['to'])) {
-                            $rate = $range['rate'] !== '' ? (float)$range['rate'] : 0.0;
+                        if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'] ?? '', $range['to'] ?? '')) {
+                            $rate = ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : 0.0;
                             $scaledRate = $rate * $scaleFactor;
                             break;
                         }
@@ -189,23 +220,27 @@ new #[Layout('layouts.app')] class extends Component
                     }
                 }
             } else {
+                // Custom day groups — each group can cover different days with different rates
                 foreach ($this->dayGroups as $group) {
                     $selectedDays = $group['days'] ?? [];
                     if (empty($selectedDays)) {
                         continue;
                     }
 
-                    if ($group['sameRateThroughoutDay'] === 'yes') {
-                        $rate = $group['flatRate'] !== '' ? (float)$group['flatRate'] : 0.0;
+                    if (($group['sameRateThroughoutDay'] ?? 'yes') === 'yes') {
+                        // Flat rate for all slots in these days
+                        $rate = ($group['flatRate'] ?? '') !== '' ? (float)$group['flatRate'] : 0.0;
                         $scaledRate = $rate * $scaleFactor;
                         foreach ($selectedDays as $day) {
                             $prices[$day] = $scaledRate;
                         }
                     } else {
+                        // Match slot to this group's time ranges
                         $scaledRate = null;
-                        foreach ($group['timeRanges'] as $range) {
-                            if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'], $range['to'])) {
-                                $rate = $range['rate'] !== '' ? (float)$range['rate'] : 0.0;
+                        $groupRanges = $group['timeRanges'] ?? [];
+                        foreach ($groupRanges as $range) {
+                            if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'] ?? '', $range['to'] ?? '')) {
+                                $rate = ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : 0.0;
                                 $scaledRate = $rate * $scaleFactor;
                                 break;
                             }
@@ -217,9 +252,7 @@ new #[Layout('layouts.app')] class extends Component
                 }
             }
 
-            if (!empty($prices)) {
-                $turf->slots()->updateExistingPivot($slot->id, $prices);
-            }
+            $turf->slots()->updateExistingPivot($slot->id, $prices);
         }
 
         session()->flash('status', 'Pricing rules updated and applied successfully.');
