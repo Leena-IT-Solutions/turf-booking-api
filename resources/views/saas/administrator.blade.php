@@ -317,8 +317,32 @@
 
                     if (commandName === 'migrate-fresh') {
                         this.confirm(
-                            'Warning: Migrate Fresh',
-                            'WARNING: This will drop all tables and re-run all seeders. All existing transactional data will be lost. Are you sure you want to proceed?',
+                            'Warning: Migrate Fresh & Seed',
+                            'WARNING: This will drop all database tables and re-run all seeders. All transactional records and changes will be permanently deleted. Are you sure you want to proceed?',
+                            performRun
+                        );
+                    } else if (commandName === 'migrate') {
+                        this.confirm(
+                            'Run Database Migrations',
+                            'Are you sure you want to run pending database migrations on the system?',
+                            performRun
+                        );
+                    } else if (commandName === 'seed') {
+                        this.confirm(
+                            'Seed Database Tables',
+                            'Are you sure you want to run the database seeders? This will insert default test and configuration records.',
+                            performRun
+                        );
+                    } else if (commandName === 'clear-cache') {
+                        this.confirm(
+                            'Optimize Clear',
+                            'Are you sure you want to run optimize:clear? This will flush config, route, view, and compiled application caches.',
+                            performRun
+                        );
+                    } else if (commandName === 'optimize') {
+                        this.confirm(
+                            'Optimize Cache',
+                            'Are you sure you want to run optimize? This will cache config, routes, and views to improve load performance.',
                             performRun
                         );
                     } else {
