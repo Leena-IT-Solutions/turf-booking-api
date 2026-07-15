@@ -223,10 +223,10 @@ new #[Layout('layouts.app')] class extends Component
         @endif
 
         <!-- Filters Block -->
-        <div class="bg-white dark:bg-gray-805 p-4 rounded-3xl border border-gray-150 dark:border-gray-700/60 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
             <div class="relative w-full md:max-w-xs">
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search by name, email, or mobile..." class="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                <div class="absolute left-3.5 top-3 text-gray-400">
+                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search by name, email, or mobile..." class="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-750 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-850 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                <div class="absolute left-3.5 top-3.5 text-gray-400">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
@@ -234,7 +234,7 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <div class="w-full md:w-48">
-                <select wire:model.live="roleFilter" class="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                <select wire:model.live="roleFilter" class="w-full px-3 py-2 border border-gray-200 dark:border-gray-750 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-850 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
                     <option value="">{{ __('All Roles') }}</option>
                     @foreach ($availableRoles as $role)
                         <option value="{{ $role->name }}">{{ $role->display_name }}</option>
@@ -243,103 +243,108 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         </div>
 
-        <!-- Users Table -->
-        <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden border border-gray-100 dark:border-gray-700/50 shadow-sm">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-700/50">
-                    <thead class="bg-gray-50/50 dark:bg-gray-900/40">
-                        <tr>
-                            <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('User Name') }}</th>
-                            <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Contact Info') }}</th>
-                            <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Roles') }}</th>
-                            <th scope="col" class="px-6 py-4 text-left text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Registration Date') }}</th>
-                            <th scope="col" class="relative px-6 py-4 text-right text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/40">
-                        @forelse ($users as $user)
-                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/20 transition duration-150">
-                                <td class="px-6 py-4.5 whitespace-nowrap">
-                                    <div class="flex items-center gap-3.5">
-                                        <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-sm">
-                                            @php
-                                                $names = explode(' ', $user->name);
-                                                $initials = strtoupper(substr($names[0], 0, 1) . (isset($names[1]) ? substr($names[1], 0, 1) : ''));
-                                            @endphp
-                                            {{ $initials }}
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-bold text-gray-900 dark:text-gray-100">{{ $user->name }}</div>
-                                            @if ($user->id === auth()->id())
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 mt-1">
-                                                    {{ __('You') }}
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4.5 whitespace-nowrap text-xs">
-                                    <div class="text-gray-900 dark:text-gray-100 font-medium">{{ $user->email }}</div>
-                                    <div class="text-gray-400 dark:text-gray-500 mt-0.5 font-mono">{{ $user->mobile }}</div>
-                                </td>
-                                <td class="px-6 py-4.5 whitespace-nowrap">
-                                    <div class="flex flex-wrap gap-1.5 max-w-xs">
-                                        @foreach ($user->roles as $role)
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider shadow-inner {{
-                                                $role->name === 'saas-admin' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200/20' : (
-                                                $role->name === 'turf-admin' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/20' : (
-                                                $role->name === 'manager' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200/20' :
-                                                'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200/20'))
-                                            }}">
-                                                {{ $role->display_name }}
-                                            </span>
-                                        @endforeach
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4.5 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400">
-                                    {{ $user->created_at->format('M d, Y') }}
-                                </td>
-                                <td class="px-6 py-4.5 whitespace-nowrap text-right text-xs font-medium">
-                                    <div class="flex items-center justify-end gap-2">
-                                        <button wire:click="editUser({{ $user->id }})" class="p-2 bg-white hover:bg-gray-50 text-indigo-600 rounded-xl shadow-md transition transform hover:scale-105 cursor-pointer flex items-center justify-center border border-gray-100 dark:border-gray-800">
-                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                            </svg>
-                                        </button>
-                                        
-                                        @if ($user->id !== auth()->id())
-                                            <button onclick="confirm('Are you sure you want to delete this user? All their role mappings will be removed.') || event.stopImmediatePropagation()" wire:click="deleteUser({{ $user->id }})" class="p-2 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-md transition transform hover:scale-105 cursor-pointer flex items-center justify-center">
-                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        @else
-                                            <button disabled class="p-2 bg-gray-100 dark:bg-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed flex items-center justify-center">
-                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                </svg>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-xs text-gray-500 dark:text-gray-400">
-                                    {{ __('No user accounts match the search or filter rules.') }}
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+        <!-- Users Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            @forelse ($users as $user)
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
+                    <div>
+                        <!-- Header with avatar & actions -->
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-3">
+                                <div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-md">
+                                    @php
+                                        $names = explode(' ', $user->name);
+                                        $initials = strtoupper(substr($names[0], 0, 1) . (isset($names[1]) ? substr($names[1], 0, 1) : ''));
+                                    @endphp
+                                    {{ $initials }}
+                                </div>
+                                <div>
+                                    <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5">
+                                        {{ $user->name }}
+                                    </h3>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5">{{ __('Joined') }} {{ $user->created_at->format('M d, Y') }}</p>
+                                </div>
+                            </div>
 
-            @if ($users->hasPages())
-                <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700/50">
-                    {{ $users->links() }}
+                            <div class="flex items-center gap-1.5">
+                                <!-- Edit Button -->
+                                <button wire:click="editUser({{ $user->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                                
+                                <!-- Delete Button -->
+                                @if ($user->id !== auth()->id())
+                                    <button onclick="confirm('Are you sure you want to delete this user? All their role mappings will be removed.') || event.stopImmediatePropagation()" wire:click="deleteUser({{ $user->id }})" class="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10 dark:border-red-900/10">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                @else
+                                    <button disabled class="p-2 bg-gray-50 dark:bg-gray-800 text-gray-300 dark:text-gray-600 rounded-xl cursor-not-allowed border border-gray-100 dark:border-gray-700 flex items-center justify-center">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Current User Indicator -->
+                        @if ($user->id === auth()->id())
+                            <div class="mt-2.5">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-200/20">
+                                    {{ __('Logged In') }}
+                                </span>
+                            </div>
+                        @endif
+
+                        <!-- User Contact Info Block -->
+                        <div class="mt-5 space-y-2.5 border-t border-gray-50 dark:border-gray-700/40 pt-4">
+                            <div class="flex items-center gap-2.5 text-xs text-gray-600 dark:text-gray-350">
+                                <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                <span class="truncate font-semibold tracking-wide">{{ $user->email }}</span>
+                            </div>
+                            <div class="flex items-center gap-2.5 text-xs text-gray-650 dark:text-gray-350">
+                                <svg class="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                </svg>
+                                <span class="font-mono font-semibold">{{ $user->mobile }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Roles list section -->
+                    <div class="mt-5 pt-4 border-t border-gray-50 dark:border-gray-700/40">
+                        <div class="flex flex-wrap gap-1.5">
+                            @foreach ($user->roles as $role)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{
+                                    $role->name === 'saas-admin' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200/20' : (
+                                    $role->name === 'turf-admin' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/20' : (
+                                    $role->name === 'manager' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200/20' :
+                                    'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200/20'))
+                                }}">
+                                    {{ $role->display_name }}
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
-            @endif
+            @empty
+                <div class="col-span-full bg-white dark:bg-gray-800 p-12 text-center text-xs text-gray-500 dark:text-gray-400 rounded-3xl border border-gray-100 dark:border-gray-700/50">
+                    {{ __('No user accounts match the search or filter rules.') }}
+                </div>
+            @endforelse
         </div>
+
+        @if ($users->hasPages())
+            <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm mt-6">
+                {{ $users->links() }}
+            </div>
+        @endif
 
         <!-- Create/Edit Modal Dialog -->
         @if ($showModal)
