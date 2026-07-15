@@ -14,9 +14,12 @@ class SliderImageSeeder extends Seeder
     public function run(): void
     {
         $publicDisk = Storage::disk('public');
-        if (!$publicDisk->exists('sliders')) {
-            $publicDisk->makeDirectory('sliders');
+        
+        // Clean old files in the sliders directory to prevent stale storage accumulation
+        if ($publicDisk->exists('sliders')) {
+            $publicDisk->deleteDirectory('sliders');
         }
+        $publicDisk->makeDirectory('sliders');
 
         $slides = [
             [
