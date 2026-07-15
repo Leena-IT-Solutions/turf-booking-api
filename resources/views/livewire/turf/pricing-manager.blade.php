@@ -312,10 +312,10 @@ new #[Layout('layouts.app')] class extends Component
                                 </h4>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <!-- Yes Option -->
-                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'yes' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'yes' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
                                         <div class="flex items-center justify-between">
                                             <span class="font-bold text-sm text-gray-900 dark:text-gray-100">{{ __('Yes, same price everyday') }}</span>
-                                            <input type="radio" wire:model="sameRateThroughoutWeek" value="yes" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-700 dark:bg-gray-900">
+                                            <input type="radio" wire:model.live="sameRateThroughoutWeek" value="yes" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-700 dark:bg-gray-900">
                                         </div>
                                         <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-relaxed mt-2">
                                             {{ __('Choose this if booking prices are identical from Monday through Sunday.') }}
@@ -323,10 +323,10 @@ new #[Layout('layouts.app')] class extends Component
                                     </label>
 
                                     <!-- No Option -->
-                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'no' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                    <label class="relative p-5 rounded-2xl border transition duration-150 cursor-pointer flex flex-col justify-between h-32 {{ $sameRateThroughoutWeek === 'no' ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
                                         <div class="flex items-center justify-between">
                                             <span class="font-bold text-sm text-gray-900 dark:text-gray-100">{{ __('No, rates are different') }}</span>
-                                            <input type="radio" wire:model="sameRateThroughoutWeek" value="no" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-700 dark:bg-gray-900">
+                                            <input type="radio" wire:model.live="sameRateThroughoutWeek" value="no" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-700 dark:bg-gray-900">
                                         </div>
                                         <p class="text-[10px] text-gray-400 dark:text-gray-500 leading-relaxed mt-2">
                                             {{ __('Choose this if you want to group days (e.g. Mon/Wed/Fri, Tue/Thu, Sat/Sun) with separate prices.') }}
@@ -354,22 +354,22 @@ new #[Layout('layouts.app')] class extends Component
 
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <!-- Flat Rate Option -->
-                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'yes' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'yes' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
                                                 <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Yes, flat rate all day') }}</span>
-                                                <input type="radio" wire:model="sameRateThroughoutDayAll" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
+                                                <input type="radio" wire:model.live="sameRateThroughoutDayAll" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
                                             </label>
 
                                             <!-- Dynamic Rates Option -->
-                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'no' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                            <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'no' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
                                                 <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('No, dynamic rates') }}</span>
-                                                <input type="radio" wire:model="sameRateThroughoutDayAll" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
+                                                <input type="radio" wire:model.live="sameRateThroughoutDayAll" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
                                             </label>
                                         </div>
 
                                         @if ($sameRateThroughoutDayAll === 'yes')
                                             <!-- Flat Price Input -->
                                             <div class="p-4 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800/40 rounded-2xl space-y-2">
-                                                <label class="text-[10px] font-bold text-gray-450 dark:text-gray-500 uppercase tracking-wider">{{ __('Flat Rate per Hour (₹)') }}</label>
+                                                <label class="text-[10px] font-bold text-gray-455 dark:text-gray-500 uppercase tracking-wider">{{ __('Flat Rate per Hour (₹)') }}</label>
                                                 <div class="relative rounded-xl shadow-sm max-w-xs">
                                                     <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
                                                         <span class="text-gray-450 dark:text-gray-500 text-xs font-semibold">₹</span>
@@ -381,7 +381,7 @@ new #[Layout('layouts.app')] class extends Component
                                             <!-- Dynamic Time-Range Repeaters -->
                                             <div class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800/40 rounded-2xl space-y-4">
                                                 <div class="flex items-center justify-between border-b border-gray-100 dark:border-gray-800/50 pb-2">
-                                                    <span class="text-[10px] font-bold text-gray-450 dark:text-gray-500 uppercase tracking-wider">{{ __('Time Slices & Surcharges') }}</span>
+                                                    <span class="text-[10px] font-bold text-gray-455 dark:text-gray-500 uppercase tracking-wider">{{ __('Time Slices & Surcharges') }}</span>
                                                     <button type="button" wire:click="addTimeRange('all')" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 transition cursor-pointer">
                                                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -392,7 +392,7 @@ new #[Layout('layouts.app')] class extends Component
 
                                                 <div class="space-y-3">
                                                     @foreach ($timeRangesAll as $idx => $range)
-                                                        <div class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-150/40 dark:border-gray-800/60 shadow-sm relative">
+                                                        <div wire:key="time-range-all-{{ $idx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-150/40 dark:border-gray-800/60 shadow-sm relative">
                                                             <!-- From Time -->
                                                             <div class="w-full">
                                                                 <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
@@ -430,7 +430,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 {{ __('Configure Day Groups & Pricing Rules') }}
                                             </h4>
                                             <button type="button" wire:click="addDayGroup" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 transition cursor-pointer bg-indigo-50 dark:bg-indigo-950/20 px-3 py-1.5 rounded-xl border border-indigo-100/30">
-                                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                                                 </svg>
                                                 {{ __('Add Day Group') }}
@@ -438,7 +438,7 @@ new #[Layout('layouts.app')] class extends Component
                                         </div>
 
                                         @foreach ($dayGroups as $gIndex => $group)
-                                            <div class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-150/60 dark:border-gray-850/40 rounded-3xl space-y-4 relative">
+                                            <div wire:key="day-group-{{ $gIndex }}" class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-150/60 dark:border-gray-850/40 rounded-3xl space-y-4 relative">
                                                 <!-- Remove Group button -->
                                                 @if (count($dayGroups) > 1)
                                                     <button type="button" wire:click="removeDayGroup({{ $gIndex }})" class="absolute top-4 end-4 text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition cursor-pointer">
@@ -455,8 +455,8 @@ new #[Layout('layouts.app')] class extends Component
                                                     
                                                     <div class="flex flex-wrap gap-2">
                                                         @foreach (['mon' => 'Mon', 'tue' => 'Tue', 'wed' => 'Wed', 'thu' => 'Thu', 'fri' => 'Fri', 'sat' => 'Sat', 'sun' => 'Sun'] as $dayVal => $dayLbl)
-                                                            <label class="relative flex items-center px-3.5 py-1.5 rounded-xl border text-[10px] font-bold transition duration-100 cursor-pointer select-none {{ in_array($dayVal, $group['days'] ?? []) ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-500 dark:border-indigo-500 shadow-sm' : 'bg-white text-gray-505 dark:bg-gray-900 border-gray-150 dark:border-gray-750 dark:text-gray-400 dark:hover:bg-gray-800' }}">
-                                                                <input type="checkbox" wire:model="dayGroups.{{ $gIndex }}.days" value="{{ $dayVal }}" class="sr-only">
+                                                            <label wire:key="day-checkbox-{{ $gIndex }}-{{ $dayVal }}" class="relative flex items-center px-3.5 py-1.5 rounded-xl border text-[10px] font-bold transition duration-100 cursor-pointer select-none {{ in_array($dayVal, $group['days'] ?? []) ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-500 dark:border-indigo-500 shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-50/50 border-gray-250 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/40' }}">
+                                                                <input type="checkbox" wire:model.live="dayGroups.{{ $gIndex }}.days" value="{{ $dayVal }}" class="sr-only">
                                                                 {{ $dayLbl }}
                                                             </label>
                                                         @endforeach
@@ -465,16 +465,16 @@ new #[Layout('layouts.app')] class extends Component
 
                                                 <!-- Rate selector -->
                                                 <div class="space-y-3 pt-2">
-                                                    <span class="text-[10px] font-bold text-gray-450 dark:text-gray-500 uppercase tracking-wider block">{{ __('2. Rates configuration:') }}</span>
+                                                    <span class="text-[10px] font-bold text-gray-455 dark:text-gray-500 uppercase tracking-wider block">{{ __('2. Rates configuration:') }}</span>
                                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                                         <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'yes' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
                                                             <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Flat rate all day') }}</span>
-                                                            <input type="radio" wire:model="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
+                                                            <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
                                                         </label>
 
                                                         <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'no' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-150 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
                                                             <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Different time range rates') }}</span>
-                                                            <input type="radio" wire:model="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
+                                                            <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
                                                         </label>
                                                     </div>
                                                 </div>
@@ -505,7 +505,7 @@ new #[Layout('layouts.app')] class extends Component
 
                                                         <div class="space-y-3">
                                                             @foreach ($group['timeRanges'] as $tIdx => $range)
-                                                                <div class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-150/40 dark:border-gray-800/60 shadow-sm relative">
+                                                                <div wire:key="time-range-{{ $gIndex }}-{{ $tIdx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-150/40 dark:border-gray-800/60 shadow-sm relative">
                                                                     <div class="w-full">
                                                                         <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
                                                                         <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg border-gray-250 dark:border-gray-700 dark:bg-gray-850 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
