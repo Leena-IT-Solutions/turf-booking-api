@@ -140,7 +140,7 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         return [
-            'slots' => $query->orderBy('slot_category_id', 'asc')->orderBy('from_time', 'asc')->paginate(12),
+            'slots' => $query->orderBy('from_time', 'asc')->paginate(12),
             'availableCategories' => SlotCategory::orderBy('name', 'asc')->get(),
         ];
     }
