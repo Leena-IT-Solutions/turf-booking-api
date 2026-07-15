@@ -93,143 +93,178 @@
 
                         <div class="space-y-4">
                             <!-- Command 1: Migrate -->
-                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col gap-4">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-block w-2.5 h-2.5 bg-indigo-500 rounded-lg"></span>
                                         <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Migrate</h5>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                         Runs pending database schema updates. Best use case: After pulling updates that introduce new tables, columns, or relations.
                                     </p>
+                                    <div class="pt-2">
+                                        <code class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-mono border border-gray-200/50 dark:border-gray-800 select-all">php artisan migrate</code>
+                                    </div>
                                 </div>
-                                <button 
-                                    @click="runCommand('migrate')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
-                                >
-                                    {{ __('Migrate') }}
-                                </button>
+                                <div class="flex">
+                                    <button 
+                                        @click="runCommand('migrate')" 
+                                        :disabled="isUpdating"
+                                        class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer shrink-0"
+                                    >
+                                        {{ __('Migrate') }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Command 2: Migrate Fresh & Seed -->
-                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col gap-4">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-block w-2.5 h-2.5 bg-amber-500 rounded-lg"></span>
                                         <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Migrate Fresh & Seed</h5>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                         <strong>Caution:</strong> Drops all database tables and runs all seeders from scratch. Best use case: Hard-resetting system to default configurations. Permanent data loss!
                                     </p>
+                                    <div class="pt-2">
+                                        <code class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-mono border border-gray-200/50 dark:border-gray-800 select-all">php artisan migrate:fresh --seed</code>
+                                    </div>
                                 </div>
-                                <button 
-                                    @click="runCommand('migrate-fresh')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
-                                >
-                                    {{ __('Migrate Fresh & Seed') }}
-                                </button>
+                                <div class="flex">
+                                    <button 
+                                        @click="runCommand('migrate-fresh')" 
+                                        :disabled="isUpdating"
+                                        class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer shrink-0"
+                                    >
+                                        {{ __('Migrate Fresh & Seed') }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Command 3: Seed DB -->
-                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col gap-4">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-block w-2.5 h-2.5 bg-teal-500 rounded-lg"></span>
                                         <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Seed DB</h5>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                         Populates database tables with default configuration and test relations. Best use case: Restoring missing lookups or default seeded values.
                                     </p>
+                                    <div class="pt-2">
+                                        <code class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-mono border border-gray-200/50 dark:border-gray-800 select-all">php artisan db:seed</code>
+                                    </div>
                                 </div>
-                                <button 
-                                    @click="runCommand('seed')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
-                                >
-                                    {{ __('Seed DB') }}
-                                </button>
+                                <div class="flex">
+                                    <button 
+                                        @click="runCommand('seed')" 
+                                        :disabled="isUpdating"
+                                        class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer shrink-0"
+                                    >
+                                        {{ __('Seed DB') }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Command 4: Optimize Clear -->
-                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col gap-4">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-block w-2.5 h-2.5 bg-rose-500 rounded-lg"></span>
                                         <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Optimize Clear</h5>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                         Flushes all system cache compiled bundles (config, route, view). Best use case: If code or config updates are not reflecting.
                                     </p>
+                                    <div class="pt-2">
+                                        <code class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-mono border border-gray-200/50 dark:border-gray-800 select-all">php artisan optimize:clear</code>
+                                    </div>
                                 </div>
-                                <button 
-                                    @click="runCommand('clear-cache')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
-                                >
-                                    {{ __('Optimize Clear') }}
-                                </button>
+                                <div class="flex">
+                                    <button 
+                                        @click="runCommand('clear-cache')" 
+                                        :disabled="isUpdating"
+                                        class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer shrink-0"
+                                    >
+                                        {{ __('Optimize Clear') }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Command 5: Optimize Cache -->
-                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col gap-4">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-lg"></span>
                                         <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Optimize Cache</h5>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                         Re-caches config, routes, and views to memory. Best use case: Improving application performance on production environments.
                                     </p>
+                                    <div class="pt-2">
+                                        <code class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-mono border border-gray-200/50 dark:border-gray-800 select-all">php artisan optimize</code>
+                                    </div>
                                 </div>
-                                <button 
-                                    @click="runCommand('optimize')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
-                                >
-                                    {{ __('Optimize Cache') }}
-                                </button>
+                                <div class="flex">
+                                    <button 
+                                        @click="runCommand('optimize')" 
+                                        :disabled="isUpdating"
+                                        class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer shrink-0"
+                                    >
+                                        {{ __('Optimize Cache') }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Command 6: Composer Install -->
-                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col gap-4">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-block w-2.5 h-2.5 bg-sky-500 rounded-lg"></span>
                                         <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Composer Install</h5>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                         Installs production package dependencies and optimizes autoloader. Best use case: After updating dependencies or composer.lock files.
                                     </p>
+                                    <div class="pt-2">
+                                        <code class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-mono border border-gray-200/50 dark:border-gray-800 select-all">composer install --no-dev --optimize-autoloader</code>
+                                    </div>
                                 </div>
-                                <button 
-                                    @click="runCommand('composer-install')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
-                                >
-                                    {{ __('Composer Install') }}
-                                </button>
+                                <div class="flex">
+                                    <button 
+                                        @click="runCommand('composer-install')" 
+                                        :disabled="isUpdating"
+                                        class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer shrink-0"
+                                    >
+                                        {{ __('Composer Install') }}
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Command 7: Permissions 777 -->
-                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col gap-4">
                                 <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2 mb-1">
                                         <span class="inline-block w-2.5 h-2.5 bg-purple-500 rounded-lg"></span>
                                         <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Permissions 777</h5>
                                     </div>
                                     <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
                                         Executes recursive write permissions (`chmod -R 777`) on project files. Best use case: Resolving directory write access errors (e.g. storage, log, cache folder issues).
                                     </p>
+                                    <div class="pt-2">
+                                        <code class="px-2.5 py-1 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 rounded-lg text-[10px] font-mono border border-gray-200/50 dark:border-gray-800 select-all">sudo chmod -R 777 .</code>
+                                    </div>
                                 </div>
-                                <button 
-                                    @click="runCommand('fix-permissions')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
-                                >
-                                    {{ __('Permissions 777') }}
-                                </button>
+                                <div class="flex">
+                                    <button 
+                                        @click="runCommand('fix-permissions')" 
+                                        :disabled="isUpdating"
+                                        class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer shrink-0"
+                                    >
+                                        {{ __('Permissions 777') }}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
