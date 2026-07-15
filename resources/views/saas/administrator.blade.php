@@ -126,13 +126,13 @@
                             >
                                 {{ __('Optimize Cache') }}
                             </button>
-                            <button 
-                                @click="runCommand('composer-install')" 
-                                :disabled="isUpdating"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                            >
-                                {{ __('Composer Install') }}
-                            </button>
+                             <button 
+                                 @click="runCommand('composer-install')" 
+                                 :disabled="isUpdating"
+                                 class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                             >
+                                 {{ __('Composer Install') }}
+                             </button>
                         </div>
                     </div>
                 </div>
