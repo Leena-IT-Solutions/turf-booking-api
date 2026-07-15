@@ -40,6 +40,7 @@ new #[Layout('layouts.app')] class extends Component
     public function openCreateModal()
     {
         $this->resetForm();
+        $this->selectedRoles = ['customer'];
         $this->showModal = true;
     }
 
@@ -121,9 +122,10 @@ new #[Layout('layouts.app')] class extends Component
                 ]);
             }
 
-            // Sync roles
+            // Sync roles - force merge 'customer' so it cannot be removed
+            $rolesToSync = array_unique(array_merge($this->selectedRoles, ['customer']));
             $user->roles()->sync(
-                Role::whereIn('name', $this->selectedRoles)->pluck('id')->toArray()
+                Role::whereIn('name', $rolesToSync)->pluck('id')->toArray()
             );
 
             session()->flash('status', 'User details updated successfully.');
@@ -135,9 +137,10 @@ new #[Layout('layouts.app')] class extends Component
                 'password' => Hash::make($this->password),
             ]);
 
-            // Sync roles
+            // Sync roles - force merge 'customer' so it cannot be removed
+            $rolesToSync = array_unique(array_merge($this->selectedRoles, ['customer']));
             $user->roles()->sync(
-                Role::whereIn('name', $this->selectedRoles)->pluck('id')->toArray()
+                Role::whereIn('name', $rolesToSync)->pluck('id')->toArray()
             );
 
             session()->flash('status', 'User created successfully.');
@@ -404,9 +407,13 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-label :value="__('Assign Security Roles')" />
                                 <div class="mt-2.5 grid grid-cols-2 gap-3 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-150 dark:border-gray-700/60 p-4 rounded-2xl">
                                     @foreach ($availableRoles as $role)
-                                        <label class="inline-flex items-center select-none cursor-pointer">
-                                            <input type="checkbox" wire:model.live="selectedRoles" value="{{ $role->name }}" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500">
-                                            <span class="ms-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ $role->display_name }}</span>
+                                        <label class="inline-flex items-center select-none {{ $role->name === 'customer' ? 'cursor-not-allowed opacity-70' : 'cursor-pointer' }}">
+                                            <input type="checkbox" 
+                                                   wire:model.live="selectedRoles" 
+                                                   value="{{ $role->name }}" 
+                                                   {{ $role->name === 'customer' ? 'disabled' : '' }}
+                                                   class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 {{ $role->name === 'customer' ? 'cursor-not-allowed text-indigo-400 opacity-80' : '' }}">
+                                            <span class="ms-2.5 text-xs font-bold text-gray-750 dark:text-gray-300 uppercase tracking-wider">{{ $role->display_name }}</span>
                                         </label>
                                     @endforeach
                                 </div>

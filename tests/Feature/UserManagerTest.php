@@ -97,7 +97,7 @@ class UserManagerTest extends TestCase
 
         $this->assertEquals('New Name', $targetUser->fresh()->name);
         $this->assertTrue($targetUser->fresh()->hasRole('saas-admin'));
-        $this->assertFalse($targetUser->fresh()->hasRole('customer'));
+        $this->assertTrue($targetUser->fresh()->hasRole('customer'));
     }
 
     public function test_saas_admin_cannot_delete_themselves(): void
