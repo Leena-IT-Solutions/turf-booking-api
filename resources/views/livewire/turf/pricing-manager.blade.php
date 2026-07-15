@@ -390,7 +390,7 @@ new #[Layout('layouts.app')] class extends Component
                                                     </button>
                                                 </div>
 
-                                                <div class="space-y-3">
+                                                <div class="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
                                                     @foreach ($timeRangesAll as $idx => $range)
                                                         <div wire:key="time-range-all-{{ $idx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/40 dark:border-gray-800/60 shadow-sm relative">
                                                             <!-- From Time -->
@@ -437,106 +437,108 @@ new #[Layout('layouts.app')] class extends Component
                                             </button>
                                         </div>
 
-                                        @foreach ($dayGroups as $gIndex => $group)
-                                            <div wire:key="day-group-{{ $gIndex }}" class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-3xl space-y-4 relative">
-                                                <!-- Remove Group button -->
-                                                @if (count($dayGroups) > 1)
-                                                    <button type="button" wire:click="removeDayGroup({{ $gIndex }})" class="absolute top-4 end-4 text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition cursor-pointer">
-                                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                        </svg>
-                                                        {{ __('Remove Group') }}
-                                                    </button>
-                                                @endif
+                                         <div class="space-y-6 max-h-[480px] overflow-y-auto custom-scrollbar pr-1.5 pb-2">
+                                             @foreach ($dayGroups as $gIndex => $group)
+                                                 <div wire:key="day-group-{{ $gIndex }}" class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-3xl space-y-4 relative">
+                                                     <!-- Remove Group button -->
+                                                     @if (count($dayGroups) > 1)
+                                                         <button type="button" wire:click="removeDayGroup({{ $gIndex }})" class="absolute top-4 end-4 text-[10px] font-bold text-red-500 hover:text-red-600 flex items-center gap-1 transition cursor-pointer">
+                                                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                             </svg>
+                                                             {{ __('Remove Group') }}
+                                                         </button>
+                                                     @endif
 
-                                                <!-- Group Title & Days checkboxes -->
-                                                <div class="space-y-2">
-                                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('1. Select days in this group:') }}</span>
-                                                    
-                                                    <div class="flex flex-wrap gap-2">
-                                                        @foreach (['mon' => 'Mon', 'tue' => 'Tue', 'wed' => 'Wed', 'thu' => 'Thu', 'fri' => 'Fri', 'sat' => 'Sat', 'sun' => 'Sun'] as $dayVal => $dayLbl)
-                                                            <label wire:key="day-checkbox-{{ $gIndex }}-{{ $dayVal }}" class="relative flex items-center px-3.5 py-1.5 rounded-xl border text-[10px] font-bold transition duration-100 cursor-pointer select-none {{ in_array($dayVal, $group['days'] ?? []) ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-500 dark:border-indigo-500 shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-50/50 border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/40' }}">
-                                                                <input type="checkbox" wire:model.live="dayGroups.{{ $gIndex }}.days" value="{{ $dayVal }}" class="sr-only">
-                                                                {{ $dayLbl }}
-                                                            </label>
-                                                        @endforeach
-                                                    </div>
-                                                </div>
+                                                     <!-- Group Title & Days checkboxes -->
+                                                     <div class="space-y-2">
+                                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{{ __('1. Select days in this group:') }}</span>
+                                                         
+                                                         <div class="flex flex-wrap gap-2">
+                                                             @foreach (['mon' => 'Mon', 'tue' => 'Tue', 'wed' => 'Wed', 'thu' => 'Thu', 'fri' => 'Fri', 'sat' => 'Sat', 'sun' => 'Sun'] as $dayVal => $dayLbl)
+                                                                 <label wire:key="day-checkbox-{{ $gIndex }}-{{ $dayVal }}" class="relative flex items-center px-3.5 py-1.5 rounded-xl border text-[10px] font-bold transition duration-100 cursor-pointer select-none {{ in_array($dayVal, $group['days'] ?? []) ? 'bg-indigo-600 border-indigo-600 text-white dark:bg-indigo-500 dark:border-indigo-500 shadow-sm' : 'bg-transparent text-gray-500 hover:bg-gray-50/50 border-gray-300 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800/40' }}">
+                                                                     <input type="checkbox" wire:model.live="dayGroups.{{ $gIndex }}.days" value="{{ $dayVal }}" class="sr-only">
+                                                                     {{ $dayLbl }}
+                                                                 </label>
+                                                             @endforeach
+                                                         </div>
+                                                     </div>
 
-                                                <!-- Rate selector -->
-                                                <div class="space-y-3 pt-2">
-                                                    <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">{{ __('2. Rates configuration:') }}</span>
-                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                                        <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'yes' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
-                                                            <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Flat rate all day') }}</span>
-                                                            <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
-                                                        </label>
+                                                     <!-- Rate selector -->
+                                                     <div class="space-y-3 pt-2">
+                                                         <span class="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider block">{{ __('2. Rates configuration:') }}</span>
+                                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                                             <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'yes' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
+                                                                 <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Flat rate all day') }}</span>
+                                                                 <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
+                                                             </label>
 
-                                                        <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'no' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
-                                                            <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Different time range rates') }}</span>
-                                                            <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
-                                                        </label>
-                                                    </div>
-                                                </div>
+                                                             <label class="relative p-3.5 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $group['sameRateThroughoutDay'] === 'no' ? 'bg-indigo-50/20 border-indigo-600 dark:bg-indigo-950/10 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-750/60 dark:hover:bg-gray-800/30' }}">
+                                                                 <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Different time range rates') }}</span>
+                                                                 <input type="radio" wire:model.live="dayGroups.{{ $gIndex }}.sameRateThroughoutDay" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
+                                                             </label>
+                                                         </div>
+                                                     </div>
 
-                                                <!-- Inputs depending on rate type -->
-                                                @if ($group['sameRateThroughoutDay'] === 'yes')
-                                                    <div class="ps-1 max-w-xs space-y-1.5">
-                                                        <label class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Flat Rate/Hr (₹)') }}</label>
-                                                        <div class="relative rounded-xl shadow-sm">
-                                                            <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
-                                                                <span class="text-gray-500 dark:text-gray-400 text-xs font-semibold">₹</span>
-                                                            </div>
-                                                            <input type="number" wire:model="dayGroups.{{ $gIndex }}.flatRate" required class="block w-full ps-7 pe-3 py-2 text-xs font-mono font-bold rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600 transition" placeholder="600">
-                                                        </div>
-                                                    </div>
-                                                @else
-                                                    <!-- Dynamic time ranges per day group -->
-                                                    <div class="space-y-3 pt-2">
-                                                        <div class="flex items-center justify-between pb-1 border-b border-gray-100 dark:border-gray-800/50">
-                                                            <span class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase">{{ __('Time Slices') }}</span>
-                                                            <button type="button" wire:click="addTimeRange('group', {{ $gIndex }})" class="text-[9px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 cursor-pointer">
-                                                                <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                                                                </svg>
-                                                                {{ __('Add Row') }}
-                                                            </button>
-                                                        </div>
+                                                     <!-- Inputs depending on rate type -->
+                                                     @if ($group['sameRateThroughoutDay'] === 'yes')
+                                                         <div class="ps-1 max-w-xs space-y-1.5">
+                                                             <label class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Flat Rate/Hr (₹)') }}</label>
+                                                             <div class="relative rounded-xl shadow-sm">
+                                                                 <div class="absolute inset-y-0 start-0 ps-3 flex items-center pointer-events-none">
+                                                                     <span class="text-gray-500 dark:text-gray-400 text-xs font-semibold">₹</span>
+                                                                 </div>
+                                                                 <input type="number" wire:model="dayGroups.{{ $gIndex }}.flatRate" required class="block w-full ps-7 pe-3 py-2 text-xs font-mono font-bold rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600 transition" placeholder="600">
+                                                             </div>
+                                                         </div>
+                                                     @else
+                                                         <!-- Dynamic time ranges per day group -->
+                                                         <div class="space-y-3 pt-2">
+                                                             <div class="flex items-center justify-between pb-1 border-b border-gray-100 dark:border-gray-800/50">
+                                                                 <span class="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase">{{ __('Time Slices') }}</span>
+                                                                 <button type="button" wire:click="addTimeRange('group', {{ $gIndex }})" class="text-[9px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1 cursor-pointer">
+                                                                     <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                                                     </svg>
+                                                                     {{ __('Add Row') }}
+                                                                 </button>
+                                                             </div>
 
-                                                        <div class="space-y-3">
-                                                            @foreach ($group['timeRanges'] as $tIdx => $range)
-                                                                <div wire:key="time-range-{{ $gIndex }}-{{ $tIdx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/40 dark:border-gray-800/60 shadow-sm relative">
-                                                                    <div class="w-full">
-                                                                        <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
-                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
-                                                                    </div>
-                                                                    <div class="w-full">
-                                                                        <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('To') }}</label>
-                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
-                                                                    </div>
-                                                                    <div class="w-full">
-                                                                        <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('Rate/Hr (₹)') }}</label>
-                                                                        <input type="number" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
-                                                                    </div>      </div>
-                                                                    @if (count($group['timeRanges']) > 1)
-                                                                        <button type="button" wire:click="removeTimeRange('group', {{ $tIdx }}, {{ $gIndex }})" class="sm:mt-4 p-1.5 text-gray-400 hover:text-red-500 transition cursor-pointer">
-                                                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                                            </svg>
-                                                                        </button>
-                                                                    @endif
-                                                                </div>
-                                                            @endforeach
-                                                        </div>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @endif
+                                                             <div class="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                                                                 @foreach ($group['timeRanges'] as $tIdx => $range)
+                                                                     <div wire:key="time-range-{{ $gIndex }}-{{ $tIdx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/40 dark:border-gray-800/60 shadow-sm relative">
+                                                                         <div class="w-full">
+                                                                             <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
+                                                                             <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                         </div>
+                                                                         <div class="w-full">
+                                                                             <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('To') }}</label>
+                                                                             <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                         </div>
+                                                                         <div class="w-full">
+                                                                             <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('Rate/Hr (₹)') }}</label>
+                                                                             <input type="number" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
+                                                                         </div>
+                                                                         @if (count($group['timeRanges']) > 1)
+                                                                             <button type="button" wire:click="removeTimeRange('group', {{ $tIdx }}, {{ $gIndex }})" class="sm:mt-4 p-1.5 text-gray-400 hover:text-red-500 transition cursor-pointer">
+                                                                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                                                 </svg>
+                                                                             </button>
+                                                                         @endif
+                                                                     </div>
+                                                                 @endforeach
+                                                             </div>
+                                                         </div>
+                                                     @endif
+                                                 </div>
+                                             @endforeach
+                                         </div>
+                                     </div>
+                                 @endif
 
                                 <!-- Bottom actions for Step 2 -->
-                                <div class="flex justify-between items-center pt-4 border-t border-gray-55 dark:border-gray-700/40">
+                                <div class="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700/40">
                                     <button type="button" wire:click="prevStep" class="px-4 py-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition cursor-pointer border border-gray-200 dark:border-gray-600 flex items-center gap-1.5">
                                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
