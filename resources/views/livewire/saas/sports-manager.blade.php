@@ -17,6 +17,7 @@ new #[Layout('layouts.app')] class extends Component
     public $name = '';
     public $icon = '';
     public $is_active = true;
+    public $generatedIconOptions = [];
 
     // States
     public $showFormModal = false;
@@ -31,7 +32,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['sportId', 'name', 'icon', 'is_active']);
+        $this->reset(['sportId', 'name', 'icon', 'is_active', 'generatedIconOptions']);
         $this->resetErrorBag();
         $this->isEditing = false;
         $this->showFormModal = true;
@@ -40,6 +41,7 @@ new #[Layout('layouts.app')] class extends Component
     public function openEditModal($id)
     {
         $this->resetErrorBag();
+        $this->reset(['generatedIconOptions']);
         $this->isEditing = true;
         
         $sport = Sport::findOrFail($id);
@@ -54,6 +56,7 @@ new #[Layout('layouts.app')] class extends Component
     public function closeFormModal()
     {
         $this->showFormModal = false;
+        $this->reset(['generatedIconOptions']);
     }
 
     public $aiGenerating = false;
@@ -68,8 +71,12 @@ new #[Layout('layouts.app')] class extends Component
         $this->resetErrorBag('icon');
 
         try {
-            $this->icon = \App\Services\GeminiService::generateSvgIcon($this->name);
-            session()->flash('status', __('AI SVG Icon generated successfully. Preview it below.'));
+            $options = \App\Services\GeminiService::generateSvgIconOptions($this->name);
+            $this->generatedIconOptions = $options;
+            if (!empty($options)) {
+                $this->icon = $options[0]['svg'];
+                session()->flash('status', __('AI SVG Icon options generated. Select one of the previews below.'));
+            }
         } catch (\Exception $e) {
             $this->addError('icon', $e->getMessage());
         } finally {
@@ -303,6 +310,27 @@ new #[Layout('layouts.app')] class extends Component
                                     @endif
                                 </div>
                                 <x-input-error :messages="$errors->get('icon')" class="mt-2" />
+                                
+                                @if (!empty($generatedIconOptions))
+                                    <div class="mt-4 p-4 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-150 dark:border-gray-700/60 rounded-2xl">
+                                        <span class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                                            {{ __('AI Alternatives (Click to Select)') }}
+                                        </span>
+                                        <div class="grid grid-cols-3 gap-3">
+                                            @foreach ($generatedIconOptions as $option)
+                                                <button type="button" wire:click="$set('icon', @js($option['svg']))" class="group flex flex-col items-center gap-2 p-3 bg-white dark:bg-gray-800 border {{ $icon === $option['svg'] ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }} rounded-xl transition duration-150 text-center cursor-pointer">
+                                                    <div class="h-10 w-10 shrink-0 text-gray-700 dark:text-gray-300 flex items-center justify-center">
+                                                        <x-icon :name="$option['svg']" class="h-6 w-6" />
+                                                    </div>
+                                                    <span class="text-[9px] font-bold text-gray-500 dark:text-gray-400 truncate w-full group-hover:text-gray-900 dark:group-hover:text-gray-100">
+                                                        {{ $option['word'] }}
+                                                    </span>
+                                                </button>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
                                 <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2 leading-relaxed">
                                     Supported pre-compiled names: <code class="bg-gray-55 dark:bg-gray-900 px-1 py-0.5 rounded text-indigo-500 font-mono text-[9px]">wifi, parking, shower, water, light, first-aid, coffee, seating, key, football, cricket, tennis, basketball, sun, sunset, moon</code>. Find emojis at <a href="https://emojipedia.org" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Emojipedia</a>, or click the AI button to generate a custom SVG vector instantly using Gemini.
                                 </p>

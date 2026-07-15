@@ -33,7 +33,22 @@ class GeminiIconGenerationTest extends TestCase
                         'content' => [
                             'parts' => [
                                 [
-                                    'text' => "```xml\n<svg viewBox='0 0 24 24'><path d='M12 2L2 22h20L12 2z'/></svg>\n```"
+                                    'text' => json_encode([
+                                        'options' => [
+                                            [
+                                                'word' => 'football',
+                                                'svg' => "<svg viewBox='0 0 24 24'><path d='M12 2L2 22h20L12 2z'/></svg>"
+                                            ],
+                                            [
+                                                'word' => 'soccer',
+                                                'svg' => "<svg viewBox='0 0 24 24'></svg>"
+                                            ],
+                                            [
+                                                'word' => 'ball',
+                                                'svg' => "<svg viewBox='0 0 24 24'></svg>"
+                                            ]
+                                        ]
+                                    ])
                                 ]
                             ]
                         ]
