@@ -55,17 +55,17 @@ new class extends Component
     </header>
 
     <!-- Desktop Sidebar (always visible on lg screens) -->
-    <aside class="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 lg:flex flex-col justify-between overflow-y-auto custom-scrollbar">
-        <div>
+    <aside class="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 lg:flex flex-col justify-between">
+        <div class="flex flex-col flex-1 min-h-0">
             <!-- Sidebar Brand Section -->
-            <div class="h-16 flex items-center px-6 border-b border-gray-100 dark:border-gray-800">
+            <div class="h-16 shrink-0 flex items-center px-6 border-b border-gray-100 dark:border-gray-800">
                 <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2">
                     <x-application-logo class="h-8 w-auto fill-current text-indigo-600 dark:text-indigo-400" />
                     <span class="font-bold text-lg text-gray-900 dark:text-white">{{ config('app.name', 'TurfBooking') }}</span>
                 </a>
             </div>
             <!-- Navigation Links -->
-            <nav class="p-4 space-y-6">
+            <nav class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
                 <!-- Administrator Section -->
                 @if (auth()->user()->hasRole('saas-admin'))
                     <div class="space-y-2">
@@ -263,7 +263,7 @@ new class extends Component
         </div>
 
         <!-- Sidebar User Card -->
-        <div class="border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
+        <div class="shrink-0 border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
             <div class="flex items-center gap-4">
                 <div class="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none">
                     {{ $userInitials }}
@@ -310,11 +310,11 @@ new class extends Component
          x-transition:leave="transition ease-in duration-200 transform"
          x-transition:leave-start="translate-x-0"
          x-transition:leave-end="-translate-x-full"
-         class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col justify-between overflow-y-auto custom-scrollbar lg:hidden"
+         class="fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col justify-between lg:hidden"
          style="display: none;">
-        <div>
+        <div class="flex flex-col flex-1 min-h-0">
             <!-- Sidebar Brand Section -->
-            <div class="h-16 flex items-center justify-between px-6 border-b border-gray-100 dark:border-gray-800">
+            <div class="h-16 shrink-0 flex items-center justify-between px-6 border-b border-gray-100 dark:border-gray-800">
                 <div class="flex items-center gap-2">
                     <x-application-logo class="h-8 w-auto fill-current text-indigo-600 dark:text-indigo-400" />
                     <span class="font-bold text-lg text-gray-900 dark:text-white">{{ config('app.name', 'TurfBooking') }}</span>
@@ -326,7 +326,7 @@ new class extends Component
                 </button>
             </div>
             <!-- Navigation Links -->
-            <nav class="p-4 space-y-6">
+            <nav class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
                 <!-- Administrator Section -->
                 @if (auth()->user()->hasRole('saas-admin'))
                     <div class="space-y-2">
@@ -524,7 +524,7 @@ new class extends Component
         </div>
 
         <!-- Sidebar User Card -->
-        <div class="border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
+        <div class="shrink-0 border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
             <div class="flex items-center gap-4">
                 <div class="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none">
                     {{ $userInitials }}
