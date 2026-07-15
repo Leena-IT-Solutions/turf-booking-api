@@ -33,7 +33,7 @@ class OfferController extends Controller
         $request->validate([
             'code' => 'required|string',
             'amount' => 'required|numeric|min:0',
-            'slots_count' => 'nullable|integer|min:1',
+            'slots_count' => 'nullable|integer|min:1|max:48',
             'date' => 'nullable|date',
         ]);
 

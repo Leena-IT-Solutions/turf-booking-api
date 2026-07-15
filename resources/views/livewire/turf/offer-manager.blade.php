@@ -114,7 +114,7 @@ new #[Layout('layouts.app')] class extends Component {
             'discount_type' => 'required|in:percentage,fixed',
             'discount_value' => 'required|numeric|min:0.01',
             'max_discount_amount' => 'nullable|numeric|min:0',
-            'minimum_slots_to_be_ordered' => 'nullable|integer|min:1',
+            'minimum_slots_to_be_ordered' => 'nullable|integer|min:1|max:48',
             'usage_limit' => 'nullable|integer|min:1',
             'usage_limit_per_user' => 'nullable|integer|min:1',
             'starts_at' => 'required|date',
@@ -403,7 +403,12 @@ new #[Layout('layouts.app')] class extends Component {
                             <!-- Minimum Slots -->
                             <div class="col-span-2 sm:col-span-1">
                                 <label class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('Minimum Slots Required') }}</label>
-                                <input wire:model="minimum_slots_to_be_ordered" type="number" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500" placeholder="Optional">
+                                <select wire:model="minimum_slots_to_be_ordered" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500">
+                                    <option value="">{{ __('Optional') }}</option>
+                                    @for ($i = 1; $i <= 48; $i++)
+                                        <option value="{{ $i }}">{{ $i }}</option>
+                                    @endfor
+                                </select>
                                 @error('minimum_slots_to_be_ordered') <span class="block text-[10px] text-rose-500 mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
 
