@@ -124,4 +124,23 @@ class SliderManagerTest extends TestCase
 
         Storage::disk('public')->assertMissing($path);
     }
+
+    public function test_saas_admin_can_reorder_slider_images(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('saas-admin');
+
+        $this->actingAs($user);
+
+        $slide1 = SliderImage::create(['title' => 'Slide 1', 'image_path' => 's1.jpg', 'order' => 0]);
+        $slide2 = SliderImage::create(['title' => 'Slide 2', 'image_path' => 's2.jpg', 'order' => 1]);
+        $slide3 = SliderImage::create(['title' => 'Slide 3', 'image_path' => 's3.jpg', 'order' => 2]);
+
+        $component = Volt::test('saas.slider-manager')
+            ->call('reorderSlides', $slide3->id, $slide1->id);
+
+        $this->assertEquals(0, $slide3->fresh()->order);
+        $this->assertEquals(1, $slide1->fresh()->order);
+        $this->assertEquals(2, $slide2->fresh()->order);
+    }
 }

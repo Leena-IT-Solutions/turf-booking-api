@@ -90,10 +90,12 @@ new #[Layout('layouts.app')] class extends Component
             // Save image
             $path = $this->image->store('sliders', 'public');
 
+            $orderValue = $this->order > 0 ? $this->order : ((SliderImage::max('order') ?? -1) + 1);
+
             SliderImage::create([
                 'title' => $this->title,
                 'link_url' => $this->link_url,
-                'order' => $this->order,
+                'order' => $orderValue,
                 'is_active' => $this->is_active,
                 'image_path' => $path,
             ]);
@@ -141,6 +143,49 @@ new #[Layout('layouts.app')] class extends Component
 
         session()->flash('status', 'Slide deleted successfully.');
     }
+
+    public function reorderSlides($draggedId, $targetId)
+    {
+        $dragged = SliderImage::findOrFail($draggedId);
+        $target = SliderImage::findOrFail($targetId);
+
+        $draggedOrder = $dragged->order;
+        $targetOrder = $target->order;
+
+        if ($draggedOrder === $targetOrder) {
+            $slides = SliderImage::orderBy('order', 'asc')->get();
+            foreach ($slides as $index => $slide) {
+                $slide->update(['order' => $index * 10]);
+            }
+            $dragged = $dragged->fresh();
+            $target = $target->fresh();
+            $draggedOrder = $dragged->order;
+            $targetOrder = $target->order;
+        }
+
+        if ($draggedOrder > $targetOrder) {
+            SliderImage::where('order', '>=', $targetOrder)
+                ->where('order', '<', $draggedOrder)
+                ->increment('order');
+        } else {
+            SliderImage::where('order', '>', $draggedOrder)
+                ->where('order', '<=', $targetOrder)
+                ->decrement('order');
+        }
+
+        $dragged->update(['order' => $targetOrder]);
+
+        $this->normalizeOrders();
+        $this->loadSlides();
+    }
+
+    protected function normalizeOrders()
+    {
+        $slides = SliderImage::orderBy('order', 'asc')->orderBy('updated_at', 'desc')->get();
+        foreach ($slides as $index => $slide) {
+            $slide->update(['order' => $index]);
+        }
+    }
 }; ?>
 
 <div class="py-6">
@@ -186,9 +231,25 @@ new #[Layout('layouts.app')] class extends Component
                 </button>
             </div>
         @else
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
+                 x-data="{ draggingId: null, dragOverId: null }">
                 @foreach ($sliderImages as $sliderImage)
-                    <div class="relative aspect-[16/9] bg-gray-900 rounded-3xl overflow-hidden shadow-sm group border border-gray-100 dark:border-gray-800">
+                    <div class="relative aspect-[16/9] bg-gray-900 rounded-3xl overflow-hidden shadow-sm group border border-gray-100 dark:border-gray-800 cursor-move transition-all duration-300"
+                         draggable="true"
+                         x-on:dragstart="draggingId = {{ $sliderImage->id }}; event.dataTransfer.effectAllowed = 'move';"
+                         x-on:dragover.prevent="dragOverId = {{ $sliderImage->id }}"
+                         x-on:dragleave="if (dragOverId === {{ $sliderImage->id }}) dragOverId = null;"
+                         x-on:drop="
+                             if (draggingId && draggingId !== {{ $sliderImage->id }}) {
+                                 $wire.reorderSlides(draggingId, {{ $sliderImage->id }});
+                             }
+                             draggingId = null;
+                             dragOverId = null;
+                         "
+                         x-bind:class="{ 
+                             'opacity-50 ring-2 ring-indigo-500 scale-95': draggingId === {{ $sliderImage->id }},
+                             'ring-2 ring-indigo-400 scale-[1.01]': dragOverId === {{ $sliderImage->id }} && draggingId !== {{ $sliderImage->id }}
+                         }">
                         <!-- Slide Image Fill -->
                         <img src="{{ Storage::url($sliderImage->image_path) }}" alt="{{ $sliderImage->title }}" class="absolute inset-0 h-full w-full object-cover opacity-75 group-hover:scale-102 transition duration-500">
                         
