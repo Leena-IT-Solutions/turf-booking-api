@@ -20,26 +20,28 @@ class DatabaseSeeder extends Seeder
         $this->call(RoleSeeder::class);
         $this->call(SlotCategorySeeder::class);
 
-        $sandeep = User::create([
-            'name' => 'Sandeep Rathod',
+        $sandeep = User::firstOrCreate([
             'email' => 'sandeep198558@gmail.com',
+        ], [
+            'name' => 'Sandeep Rathod',
             'mobile' => '9664588677',
             'password' => Hash::make('password'),
         ]);
-        $sandeep->assignRole('saas-admin');
-        $sandeep->assignRole('turf-admin');
-        $sandeep->assignRole('manager');
-        $sandeep->assignRole('customer');
+        
+        $sandeep->roles()->sync(
+            \App\Models\Role::whereIn('name', ['saas-admin', 'turf-admin', 'manager', 'customer'])->pluck('id')->toArray()
+        );
 
-        $leena = User::create([
-            'name' => 'Leena Adam',
+        $leena = User::firstOrCreate([
             'email' => 'leenaadam28@gmail.com',
+        ], [
+            'name' => 'Leena Adam',
             'mobile' => '9769409405',
             'password' => Hash::make('password'),
         ]);
-        $leena->assignRole('saas-admin');
-        $leena->assignRole('turf-admin');
-        $leena->assignRole('manager');
-        $leena->assignRole('customer');
+
+        $leena->roles()->sync(
+            \App\Models\Role::whereIn('name', ['saas-admin', 'turf-admin', 'manager', 'customer'])->pluck('id')->toArray()
+        );
     }
 }
