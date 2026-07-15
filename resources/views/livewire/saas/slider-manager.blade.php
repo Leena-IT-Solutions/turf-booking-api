@@ -45,6 +45,7 @@ new #[Layout('layouts.app')] class extends Component
     public function resetForm()
     {
         $this->reset(['title', 'link_url', 'order', 'is_active', 'image', 'editingId', 'existingImagePath']);
+        $this->showModal = false;
         $this->resetErrorBag();
     }
 
