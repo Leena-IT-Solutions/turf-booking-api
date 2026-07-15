@@ -17,6 +17,11 @@ new #[Layout('layouts.app')] class extends Component
     public $address = '';
     public $is_maintenance_mode = false;
     public $gemini_api_key = '';
+    public $razorpay_key = '';
+    public $razorpay_secret = '';
+    public $mailgun_domain = '';
+    public $mailgun_secret = '';
+    public $mailgun_endpoint = 'api.mailgun.net';
     
     // File inputs
     public $new_logo;
@@ -39,6 +44,11 @@ new #[Layout('layouts.app')] class extends Component
         $this->is_maintenance_mode = $setting->is_maintenance_mode;
         $this->current_logo_path = $setting->logo_path;
         $this->gemini_api_key = $setting->gemini_api_key;
+        $this->razorpay_key = $setting->razorpay_key;
+        $this->razorpay_secret = $setting->razorpay_secret;
+        $this->mailgun_domain = $setting->mailgun_domain;
+        $this->mailgun_secret = $setting->mailgun_secret;
+        $this->mailgun_endpoint = $setting->mailgun_endpoint ?: 'api.mailgun.net';
     }
 
     public function updated($propertyName)
@@ -51,6 +61,11 @@ new #[Layout('layouts.app')] class extends Component
             'new_logo' => 'nullable|image|max:2048', // 2MB max
             'is_maintenance_mode' => 'boolean',
             'gemini_api_key' => 'nullable|string|max:255',
+            'razorpay_key' => 'nullable|string|max:255',
+            'razorpay_secret' => 'nullable|string|max:255',
+            'mailgun_domain' => 'nullable|string|max:255',
+            'mailgun_secret' => 'nullable|string|max:255',
+            'mailgun_endpoint' => 'nullable|string|max:255',
         ];
 
         $this->validateOnly($propertyName, $rules);
@@ -66,6 +81,11 @@ new #[Layout('layouts.app')] class extends Component
             'new_logo' => 'nullable|image|max:2048',
             'is_maintenance_mode' => 'boolean',
             'gemini_api_key' => 'nullable|string|max:255',
+            'razorpay_key' => 'nullable|string|max:255',
+            'razorpay_secret' => 'nullable|string|max:255',
+            'mailgun_domain' => 'nullable|string|max:255',
+            'mailgun_secret' => 'nullable|string|max:255',
+            'mailgun_endpoint' => 'nullable|string|max:255',
         ];
 
         $this->validate($rules);
@@ -79,6 +99,11 @@ new #[Layout('layouts.app')] class extends Component
             'address' => $this->address,
             'is_maintenance_mode' => $this->is_maintenance_mode,
             'gemini_api_key' => $this->gemini_api_key,
+            'razorpay_key' => $this->razorpay_key,
+            'razorpay_secret' => $this->razorpay_secret,
+            'mailgun_domain' => $this->mailgun_domain,
+            'mailgun_secret' => $this->mailgun_secret,
+            'mailgun_endpoint' => $this->mailgun_endpoint,
         ];
 
         if ($this->new_logo) {
@@ -228,6 +253,69 @@ new #[Layout('layouts.app')] class extends Component
                             {{ __('Get your API Key from the Google AI Studio console.') }}
                         </span>
                         <x-input-error :messages="$errors->get('gemini_api_key')" class="mt-2" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Razorpay Setup Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+                <div class="max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Razorpay Payment Gateway') }}</h3>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                            {{ __('Configure your Razorpay API credentials to process secure, real-time client payments and slot bookings on the platform.') }}
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <!-- Razorpay Key -->
+                        <div>
+                            <x-input-label for="razorpayKey" :value="__('Razorpay Key ID')" />
+                            <x-text-input wire:model.live.debounce.250ms="razorpay_key" id="razorpayKey" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="rzp_live_..." />
+                            <x-input-error :messages="$errors->get('razorpay_key')" class="mt-2" />
+                        </div>
+
+                        <!-- Razorpay Secret -->
+                        <div>
+                            <x-input-label for="razorpaySecret" :value="__('Razorpay Key Secret')" />
+                            <x-text-input wire:model.live.debounce.250ms="razorpay_secret" id="razorpaySecret" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="••••••••••••••••" />
+                            <x-input-error :messages="$errors->get('razorpay_secret')" class="mt-2" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mailgun Setup Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+                <div class="max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Mailgun Email Gateway') }}</h3>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                            {{ __('Configure your Mailgun credentials to handle transactional mail delivery, reservation confirmations, and system alerts.') }}
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                        <!-- Mailgun Domain -->
+                        <div class="md:col-span-2">
+                            <x-input-label for="mailgunDomain" :value="__('Mailgun Domain')" />
+                            <x-text-input wire:model.live.debounce.250ms="mailgun_domain" id="mailgunDomain" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="mg.yourdomain.com" />
+                            <x-input-error :messages="$errors->get('mailgun_domain')" class="mt-2" />
+                        </div>
+
+                        <!-- Mailgun Endpoint -->
+                        <div>
+                            <x-input-label for="mailgunEndpoint" :value="__('Mailgun Endpoint')" />
+                            <x-text-input wire:model.live.debounce.250ms="mailgun_endpoint" id="mailgunEndpoint" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="api.mailgun.net" />
+                            <x-input-error :messages="$errors->get('mailgun_endpoint')" class="mt-2" />
+                        </div>
+
+                        <!-- Mailgun Secret -->
+                        <div class="md:col-span-3">
+                            <x-input-label for="mailgunSecret" :value="__('Mailgun API Secret Key')" />
+                            <x-text-input wire:model.live.debounce.250ms="mailgun_secret" id="mailgunSecret" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="key-..." />
+                            <x-input-error :messages="$errors->get('mailgun_secret')" class="mt-2" />
+                        </div>
                     </div>
                 </div>
             </div>

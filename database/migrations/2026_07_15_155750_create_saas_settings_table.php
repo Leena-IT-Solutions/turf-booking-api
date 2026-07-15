@@ -20,6 +20,11 @@ return new class extends Migration
             $table->string('logo_path')->nullable();
             $table->boolean('is_maintenance_mode')->default(false);
             $table->string('gemini_api_key')->nullable();
+            $table->string('razorpay_key')->nullable();
+            $table->string('razorpay_secret')->nullable();
+            $table->string('mailgun_domain')->nullable();
+            $table->string('mailgun_secret')->nullable();
+            $table->string('mailgun_endpoint')->default('api.mailgun.net');
             $table->timestamps();
         });
     }
