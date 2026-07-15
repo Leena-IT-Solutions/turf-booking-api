@@ -70,11 +70,11 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             </div>
 
-            <!-- Two-Column Grid Layout -->
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Vertical Stack Layout -->
+            <div class="space-y-6">
                 
-                <!-- Left Column: Wizard Form Section (Initially Empty Placeholder) -->
-                <div class="lg:col-span-5 bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-6 min-h-[400px] flex flex-col justify-between">
+                <!-- Pricing Wizard Section (Initially Empty Placeholder) -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-6">
                     <div>
                         <div class="flex items-center gap-2 pb-4 border-b border-gray-50 dark:border-gray-700/40">
                             <span class="flex items-center justify-center h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400">
@@ -86,7 +86,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                         
                         <!-- Empty Wizard Content (To be updated later) -->
-                        <div class="py-12 text-center text-xs text-gray-400 dark:text-gray-500">
+                        <div class="py-10 text-center text-xs text-gray-400 dark:text-gray-500">
                             <svg class="h-10 w-10 mx-auto mb-3 text-gray-300 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
@@ -95,10 +95,9 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
 
-                <!-- Right Column: Slots List showing pricing -->
-                <div class="lg:col-span-7 space-y-6">
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
-                        <div class="flex items-center justify-between pb-4 border-b border-gray-50 dark:border-gray-700/40">
+                <!-- Slots List showing pricing -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-6">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-50 dark:border-gray-700/40">
                             <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Current Slot Rates') }}</h3>
                             <a href="{{ route('turf.slots') }}" wire:navigate class="text-xs text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-bold transition flex items-center gap-1">
                                 <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -130,7 +129,7 @@ new #[Layout('layouts.app')] class extends Component
                                             </div>
 
                                             <!-- Slots Grid -->
-                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                                 @foreach ($categorySlots as $slot)
                                                     <div class="p-4 rounded-2xl border border-gray-150/40 bg-gray-50/20 dark:border-gray-700/50 dark:bg-gray-800/30 flex flex-col justify-between">
                                                         <div class="flex justify-between items-start">
