@@ -50,4 +50,11 @@ class Turf extends Model
     {
         return $this->belongsToMany(Sport::class);
     }
+
+    public function slots()
+    {
+        return $this->belongsToMany(Slot::class, 'slot_turf')
+            ->withPivot('is_active')
+            ->withTimestamps();
+    }
 }

@@ -8,6 +8,7 @@ use App\Models\TurfPhoto;
 use App\Models\Facility;
 use App\Models\Equipment;
 use App\Models\Sport;
+use App\Models\Slot;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -193,6 +194,70 @@ class TurfSubEntitiesTest extends TestCase
         $this->assertDatabaseHas('sport_turf', [
             'turf_id' => $this->turf->id,
             'sport_id' => $this->sport1->id,
+        ]);
+    }
+
+    public function test_slots_selection_sync(): void
+    {
+        $this->actingAs($this->user);
+
+        // Seed some master slots
+        $category = \App\Models\SlotCategory::create(['name' => 'Midnight', 'is_active' => true, 'sort_order' => 1]);
+        $slot1 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '00:00:00',
+            'to_time' => '00:30:00',
+            'duration' => 30,
+            'is_active' => true,
+        ]);
+        $slot2 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '00:30:00',
+            'to_time' => '01:00:00',
+            'duration' => 30,
+            'is_active' => true,
+        ]);
+
+        // 1. Initially none selected
+        $this->testComponent('turf.slots-manager')
+            ->assertSet('selectedSlotIds', [])
+            ->assertSee('12:00 AM')
+            ->assertSee('12:30 AM');
+
+        // 2. Sync select options
+        $this->testComponent('turf.slots-manager')
+            ->set('selectedSlotIds', [(string)$slot1->id])
+            ->call('saveSlots')
+            ->assertHasNoErrors()
+            ->assertSee('Slots configuration updated successfully.');
+
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot1->id,
+            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot2->id,
+            'is_active' => false,
+        ]);
+
+        // 3. Select slot2 and deselect slot1
+        $this->testComponent('turf.slots-manager')
+            ->set('selectedSlotIds', [(string)$slot2->id])
+            ->call('saveSlots')
+            ->assertHasNoErrors()
+            ->assertSee('Slots configuration updated successfully.');
+
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot1->id,
+            'is_active' => false,
+        ]);
+        $this->assertDatabaseHas('slot_turf', [
+            'turf_id' => $this->turf->id,
+            'slot_id' => $slot2->id,
+            'is_active' => true,
         ]);
     }
 }
