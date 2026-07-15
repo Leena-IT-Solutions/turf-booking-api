@@ -5,9 +5,16 @@ use Livewire\Volt\Volt;
 
 Route::view('/', 'welcome');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::get('dashboard', function () {
+    $user = auth()->user();
+    if ($user->hasRole('saas-admin')) {
+        return redirect()->route('saas.administrator');
+    }
+    if ($user->hasRole('turf-admin')) {
+        return redirect()->route('turf.dashboard');
+    }
+    return view('dashboard');
+})->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::view('profile', 'profile')
     ->middleware(['auth'])
@@ -29,6 +36,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/settings', 'saas.settings-manager')
         ->middleware('role:saas-admin')
         ->name('saas.settings');
+    Route::view('saas/administrator', 'saas.administrator')
+        ->middleware('role:saas-admin')
+        ->name('saas.administrator');
 
     Volt::route('turf/dashboard', 'turf.dashboard-manager')
         ->middleware('role:turf-admin')
