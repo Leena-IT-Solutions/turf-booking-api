@@ -127,6 +127,7 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $this->resetForm();
+        $this->dispatch('locations-updated');
     }
 
     public function useOwnDetails()
@@ -140,6 +141,7 @@ new #[Layout('layouts.app')] class extends Component
         $location = Location::where('user_id', auth()->id())->findOrFail($id);
         $location->delete();
         session()->flash('status', 'Location deleted successfully.');
+        $this->dispatch('locations-updated');
     }
 
     public function with()

@@ -20,6 +20,15 @@
 
             <!-- Page Content Area -->
             <div class="lg:ps-64 flex flex-col min-h-screen pt-16 lg:pt-0">
+                <!-- Global Top Bar for Turf Admins & Managers -->
+                @auth
+                    @if(auth()->user()->hasRole('turf-admin') || auth()->user()->hasRole('manager'))
+                        <div class="bg-white dark:bg-gray-800 border-b border-gray-200/50 dark:border-gray-850 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+                            <livewire:layout.global-context-selector />
+                        </div>
+                    @endif
+                @endauth
+
                 <!-- Page Heading -->
                 @if (isset($header))
                     <header class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">

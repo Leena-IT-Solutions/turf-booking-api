@@ -3,6 +3,7 @@
 use App\Models\Location;
 use App\Models\Turf;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 use Illuminate\Validation\Rule;
@@ -10,6 +11,12 @@ use Illuminate\Validation\Rule;
 new #[Layout('layouts.app')] class extends Component
 {
     use WithPagination;
+
+    #[On('global-context-updated')]
+    public function refreshTurfs()
+    {
+        $this->resetPage();
+    }
 
     // Search filter
     public $search = '';
@@ -59,11 +66,7 @@ new #[Layout('layouts.app')] class extends Component
     public function openCreateModal()
     {
         $this->resetForm();
-        // Pre-select first location if available
-        $firstLocation = Location::where('user_id', auth()->id())->first();
-        if ($firstLocation) {
-            $this->location_id = $firstLocation->id;
-        }
+        $this->location_id = session('active_location_id') ?: (Location::where('user_id', auth()->id())->first()->id ?? '');
         $this->showModal = true;
     }
 
@@ -153,6 +156,7 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $this->resetForm();
+        $this->dispatch('turfs-updated');
     }
 
     public function deleteTurf($id)
@@ -163,6 +167,7 @@ new #[Layout('layouts.app')] class extends Component
         
         $turf->delete();
         session()->flash('status', 'Turf deleted successfully.');
+        $this->dispatch('turfs-updated');
     }
 
     public function with()
@@ -170,6 +175,10 @@ new #[Layout('layouts.app')] class extends Component
         $query = Turf::whereHas('location', function ($q) {
             $q->where('user_id', auth()->id());
         });
+
+        if (session('active_location_id')) {
+            $query->where('location_id', session('active_location_id'));
+        }
 
         if ($this->search) {
             $query->where(function ($q) {
