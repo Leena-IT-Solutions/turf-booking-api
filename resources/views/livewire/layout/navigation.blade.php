@@ -16,6 +16,11 @@ new class extends Component
     }
 }; ?>
 
+@php
+    $userNames = explode(' ', auth()->user()->name);
+    $userInitials = strtoupper(substr($userNames[0], 0, 1) . (isset($userNames[1]) ? substr($userNames[1], 0, 1) : ''));
+@endphp
+
 <div>
     <!-- Mobile Header -->
     <header class="lg:hidden fixed top-0 left-0 right-0 z-30 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4">
@@ -28,8 +33,8 @@ new class extends Component
             <span class="font-bold text-lg text-gray-900 dark:text-white">TurfBooking</span>
         </div>
         <div class="flex items-center">
-            <a href="{{ route('profile') }}" wire:navigate class="h-9 w-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-indigo-200 dark:shadow-none">
-                {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+            <a href="{{ route('profile') }}" wire:navigate class="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-xs shadow-md shadow-indigo-500/20 dark:shadow-none">
+                {{ $userInitials }}
             </a>
         </div>
     </header>
@@ -56,21 +61,27 @@ new class extends Component
         </div>
 
         <!-- Sidebar User Card -->
-        <div class="border-t border-gray-100 dark:border-gray-800 p-4">
-            <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-200 dark:shadow-none">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+        <div class="border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
+            <div class="flex items-center gap-4">
+                <div class="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none">
+                    {{ $userInitials }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
-                    <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ auth()->user()->email }}</p>
                 </div>
             </div>
-            <div class="mt-4 flex gap-2">
-                <a href="{{ route('profile') }}" wire:navigate class="flex-grow text-center text-xs font-semibold py-2 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    {{ __('Profile') }}
+            <div class="mt-5 space-y-1.5">
+                <a href="{{ route('profile') }}" wire:navigate class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60 rounded-xl transition">
+                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {{ __('Profile Settings') }}
                 </a>
-                <button wire:click="logout" class="flex-grow text-center text-xs font-semibold py-2 px-3 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition">
+                <button wire:click="logout" class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/15 rounded-xl transition text-start">
+                    <svg class="h-4 w-4 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
                     {{ __('Log Out') }}
                 </button>
             </div>
@@ -86,7 +97,7 @@ new class extends Component
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
          @click="sidebarOpen = false" 
-         class="fixed inset-0 z-40 bg-gray-950/40 dark:bg-gray-950/60 backdrop-blur-sm lg:hidden"
+         class="fixed inset-0 z-45 bg-gray-950/40 dark:bg-gray-950/60 backdrop-blur-sm lg:hidden"
          style="display: none;"></div>
 
     <!-- Mobile Drawer Sidebar -->
@@ -124,21 +135,27 @@ new class extends Component
         </div>
 
         <!-- Sidebar User Card -->
-        <div class="border-t border-gray-100 dark:border-gray-800 p-4">
-            <div class="flex items-center gap-3">
-                <div class="h-10 w-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-200 dark:shadow-none">
-                    {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+        <div class="border-t border-gray-100 dark:border-gray-800 p-5 bg-gray-50/30 dark:bg-gray-900/10">
+            <div class="flex items-center gap-4">
+                <div class="h-11 w-11 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20 dark:shadow-none">
+                    {{ $userInitials }}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
-                    <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
+                    <p class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate" x-data="{{ json_encode(['name' => auth()->user()->name]) }}" x-text="name" x-on:profile-updated.window="name = $event.detail.name"></p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ auth()->user()->email }}</p>
                 </div>
             </div>
-            <div class="mt-4 flex gap-2">
-                <a href="{{ route('profile') }}" wire:navigate @click="sidebarOpen = false" class="flex-grow text-center text-xs font-semibold py-2 px-3 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition">
-                    {{ __('Profile') }}
+            <div class="mt-5 space-y-1.5">
+                <a href="{{ route('profile') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800/60 rounded-xl transition">
+                    <svg class="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {{ __('Profile Settings') }}
                 </a>
-                <button wire:click="logout" class="flex-grow text-center text-xs font-semibold py-2 px-3 rounded-lg bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition">
+                <button wire:click="logout" class="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/15 rounded-xl transition text-start">
+                    <svg class="h-4 w-4 text-red-500 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
                     {{ __('Log Out') }}
                 </button>
             </div>
