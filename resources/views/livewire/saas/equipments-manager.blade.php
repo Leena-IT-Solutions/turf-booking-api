@@ -260,6 +260,9 @@ new #[Layout('layouts.app')] class extends Component
                                 </label>
                                 <input type="text" id="icon" wire:model="icon" class="block w-full px-4 py-3 text-sm rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="e.g. tennis-ball, soccer-ball, or 🎾, ⚽, 🥅">
                                 <x-input-error :messages="$errors->get('icon')" class="mt-2" />
+                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2 leading-relaxed">
+                                    Supported SVG names: <code class="bg-gray-55 dark:bg-gray-900 px-1 py-0.5 rounded text-indigo-500 font-mono text-[9px]">wifi, parking, shower, water, light, first-aid, coffee, seating, key, football, cricket, tennis, basketball, sun, sunset, moon</code>. Find emojis at <a href="https://emojipedia.org" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Emojipedia</a>.
+                                </p>
                             </div>
 
                             <!-- Is Active status toggle -->
