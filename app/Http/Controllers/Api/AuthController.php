@@ -41,6 +41,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'mobile' => $user->mobile,
+                'roles' => $user->roles()->pluck('name'),
             ]
         ]);
     }
@@ -62,6 +63,8 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        $user = $request->user();
+        $user->load('roles');
+        return response()->json($user);
     }
 }
