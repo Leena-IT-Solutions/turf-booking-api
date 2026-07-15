@@ -49,5 +49,9 @@ class DatabaseSeeder extends Seeder
 
         $this->call(LocationSeeder::class);
         $this->call(TurfSeeder::class);
+        $this->call(TurfPhotoSeeder::class);
+        $this->call(TurfFacilitySeeder::class);
+        $this->call(TurfEquipmentSeeder::class);
+        $this->call(TurfSportSeeder::class);
     }
 }
