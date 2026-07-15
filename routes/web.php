@@ -82,6 +82,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('turf/sports', 'turf.sports-manager')
         ->middleware('role:turf-admin|manager')
         ->name('turf.sports');
+    Volt::route('turf/slots', 'turf.slots-manager')
+        ->middleware('role:turf-admin|manager')
+        ->name('turf.slots');
     Route::get('/git-info', function () {
         try {
             $basePath = base_path();
