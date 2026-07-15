@@ -16,6 +16,7 @@ class SaasSetting extends Model
         'address',
         'logo_path',
         'is_maintenance_mode',
+        'gemini_api_key',
     ];
 
     protected $casts = [

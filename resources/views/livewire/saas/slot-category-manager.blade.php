@@ -75,6 +75,27 @@ new #[Layout('layouts.app')] class extends Component
         $this->showModal = true;
     }
 
+    public $aiGenerating = false;
+
+    public function generateIcon()
+    {
+        $this->validateOnly('name', [
+            'name' => 'required|string|max:100',
+        ]);
+
+        $this->aiGenerating = true;
+        $this->resetErrorBag('icon');
+
+        try {
+            $this->icon = \App\Services\GeminiService::generateSvgIcon($this->name);
+            session()->flash('status', __('AI SVG Icon generated successfully. Preview it below.'));
+        } catch (\Exception $e) {
+            $this->addError('icon', $e->getMessage());
+        } finally {
+            $this->aiGenerating = false;
+        }
+    }
+
     public function updated($propertyName)
     {
         $rules = [
@@ -84,7 +105,7 @@ new #[Layout('layouts.app')] class extends Component
                 'max:100',
                 Rule::unique('slot_categories')->ignore($this->editingId),
             ],
-            'icon' => 'nullable|string|max:50',
+            'icon' => 'nullable|string|max:5000',
             'is_active' => 'boolean',
         ];
 
@@ -100,7 +121,7 @@ new #[Layout('layouts.app')] class extends Component
                 'max:100',
                 Rule::unique('slot_categories')->ignore($this->editingId),
             ],
-            'icon' => 'nullable|string|max:50',
+            'icon' => 'nullable|string|max:5000',
             'is_active' => 'boolean',
         ];
 
@@ -294,11 +315,33 @@ new #[Layout('layouts.app')] class extends Component
 
                             <!-- Icon Field -->
                             <div>
-                                <x-input-label for="categoryIcon" :value="__('Category Icon Name or Emoji')" />
-                                <x-text-input wire:model.live.debounce.250ms="icon" id="categoryIcon" type="text" class="mt-1.5 block w-full" placeholder="e.g. morning, sunset, night, or 🌅, ☀️, 🌇, 🌙" />
+                                <div class="flex items-center justify-between">
+                                    <x-input-label for="categoryIcon" :value="__('Category Icon Name, Emoji, or SVG')" />
+                                    <button type="button" wire:click="generateIcon" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 transition cursor-pointer" wire:loading.attr="disabled" wire:target="generateIcon">
+                                        <svg class="h-3 w-3 animate-spin text-indigo-600 dark:text-indigo-400" wire:loading wire:target="generateIcon" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <svg wire:loading.remove wire:target="generateIcon" class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 21m0 0l-.813-5.096L3 15m6 6l6-6m-9-9V3m0 0l-.813 5.096L3 9m6-6l6 6M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                        <span wire:loading.remove wire:target="generateIcon">{{ __('Generate SVG with AI') }}</span>
+                                        <span wire:loading wire:target="generateIcon">{{ __('Generating SVG...') }}</span>
+                                    </button>
+                                </div>
+                                <div class="mt-1.5 flex gap-2">
+                                    <div class="relative flex-grow">
+                                        <x-text-input wire:model.live.debounce.250ms="icon" id="categoryIcon" type="text" class="block w-full font-mono text-xs" placeholder="e.g. morning, or paste raw <svg>...</svg>" />
+                                    </div>
+                                    @if ($icon)
+                                        <div class="h-[42px] w-[42px] bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl flex items-center justify-center shrink-0">
+                                            <x-icon name="{{ $icon }}" class="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                                        </div>
+                                    @endif
+                                </div>
                                 <x-input-error :messages="$errors->get('icon')" class="mt-2" />
                                 <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2 leading-relaxed">
-                                    Supported SVG names: <code class="bg-gray-50 dark:bg-gray-900 px-1 py-0.5 rounded text-indigo-500 font-mono text-[9px]">wifi, parking, shower, water, light, first-aid, coffee, seating, key, football, cricket, tennis, basketball, sun, sunset, moon</code>. Find emojis at <a href="https://emojipedia.org" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Emojipedia</a>.
+                                    Supported pre-compiled names: <code class="bg-gray-50 dark:bg-gray-900 px-1 py-0.5 rounded text-indigo-500 font-mono text-[9px]">wifi, parking, shower, water, light, first-aid, coffee, seating, key, football, cricket, tennis, basketball, sun, sunset, moon</code>. Find emojis at <a href="https://emojipedia.org" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Emojipedia</a>, or click the AI button to generate a custom SVG vector instantly using Gemini.
                                 </p>
                             </div>
 

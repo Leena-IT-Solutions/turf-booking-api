@@ -19,6 +19,7 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->string('logo_path')->nullable();
             $table->boolean('is_maintenance_mode')->default(false);
+            $table->string('gemini_api_key')->nullable();
             $table->timestamps();
         });
     }

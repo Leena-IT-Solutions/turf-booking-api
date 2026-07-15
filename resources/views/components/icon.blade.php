@@ -1,10 +1,19 @@
 @props(['name', 'class' => 'h-6 w-6'])
 
 @php
-    $name = strtolower($name ?? '');
+    $trimmedName = trim($name ?? '');
+    $isSvg = str_starts_with($trimmedName, '<svg') || str_contains($trimmedName, '<svg');
 @endphp
 
-@switch($name)
+@if ($isSvg)
+    <div class="{{ $class }} flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current [&>svg]:fill-none">
+        {!! $trimmedName !!}
+    </div>
+@else
+    @php
+        $name = strtolower($trimmedName);
+    @endphp
+    @switch($name)
     @case('wifi')
         <svg class="{{ $class }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071a10.5 10.5 0 0114.14 0M1.414 7.929a16.5 16.5 0 0123.172 0" />
@@ -102,3 +111,4 @@
     @default
         <span class="text-xl font-normal select-none flex items-center justify-center shrink-0">{{ $name ?: '📍' }}</span>
 @endswitch
+@endif

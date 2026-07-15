@@ -16,6 +16,7 @@ new #[Layout('layouts.app')] class extends Component
     public $contact_mobile = '';
     public $address = '';
     public $is_maintenance_mode = false;
+    public $gemini_api_key = '';
     
     // File inputs
     public $new_logo;
@@ -37,6 +38,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->address = $setting->address;
         $this->is_maintenance_mode = $setting->is_maintenance_mode;
         $this->current_logo_path = $setting->logo_path;
+        $this->gemini_api_key = $setting->gemini_api_key;
     }
 
     public function updated($propertyName)
@@ -48,6 +50,7 @@ new #[Layout('layouts.app')] class extends Component
             'address' => 'nullable|string|max:500',
             'new_logo' => 'nullable|image|max:2048', // 2MB max
             'is_maintenance_mode' => 'boolean',
+            'gemini_api_key' => 'nullable|string|max:255',
         ];
 
         $this->validateOnly($propertyName, $rules);
@@ -62,6 +65,7 @@ new #[Layout('layouts.app')] class extends Component
             'address' => 'nullable|string|max:500',
             'new_logo' => 'nullable|image|max:2048',
             'is_maintenance_mode' => 'boolean',
+            'gemini_api_key' => 'nullable|string|max:255',
         ];
 
         $this->validate($rules);
@@ -74,6 +78,7 @@ new #[Layout('layouts.app')] class extends Component
             'contact_mobile' => $this->contact_mobile,
             'address' => $this->address,
             'is_maintenance_mode' => $this->is_maintenance_mode,
+            'gemini_api_key' => $this->gemini_api_key,
         ];
 
         if ($this->new_logo) {
@@ -191,6 +196,14 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-label for="contactMobile" :value="__('Contact Mobile')" />
                                 <x-text-input wire:model.live.debounce.250ms="contact_mobile" id="contactMobile" type="text" class="mt-1.5 block w-full" placeholder="9876543210" />
                                 <x-input-error :messages="$errors->get('contact_mobile')" class="mt-2" />
+                            </div>
+
+                            <!-- Gemini API Key -->
+                            <div class="md:col-span-2">
+                                <x-input-label for="geminiApiKey" :value="__('Gemini API Key')" />
+                                <x-text-input wire:model.live.debounce.250ms="gemini_api_key" id="geminiApiKey" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="AIzaSy..." />
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1.5 block">{{ __('Configure your Gemini API key to enable AI-powered custom SVG vector icon generation.') }}</span>
+                                <x-input-error :messages="$errors->get('gemini_api_key')" class="mt-2" />
                             </div>
 
                         </div>

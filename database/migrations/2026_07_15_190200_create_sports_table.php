@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('sports', function (Blueprint $table) {
             $table->id();
             $table->string('name')->unique();
-            $table->string('icon')->nullable();
+            $table->text('icon')->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
