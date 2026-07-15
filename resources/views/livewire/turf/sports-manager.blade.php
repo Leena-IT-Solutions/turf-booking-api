@@ -142,7 +142,7 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                     <div class="ms-3 flex items-center gap-3">
                                         <div class="h-9 w-9 bg-gray-50 dark:bg-gray-900 flex items-center justify-center rounded-xl text-gray-500 dark:text-gray-400 border border-gray-200/50 dark:border-gray-750 shrink-0">
-                                            <x-icon name="{{ $sportItem->icon }}" class="h-5 w-5" />
+                                            <x-icon :name="$sportItem->icon" class="h-5 w-5" />
                                         </div>
                                         <span class="font-semibold text-sm text-gray-900 dark:text-gray-100">{{ $sportItem->name }}</span>
                                     </div>

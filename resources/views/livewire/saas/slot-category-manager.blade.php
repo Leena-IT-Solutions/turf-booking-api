@@ -229,7 +229,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="flex items-start justify-between gap-4 min-w-0 w-full">
                             <div class="flex items-center gap-3 min-w-0">
                                 <div class="h-11 w-11 shrink-0 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/50 shadow-sm">
-                                    <x-icon name="{{ $category->icon }}" class="h-5 w-5" />
+                                    <x-icon :name="$category->icon" class="h-5 w-5" />
                                 </div>
                                 <div class="min-w-0">
                                     <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
@@ -335,7 +335,7 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                     @if ($icon)
                                         <div class="h-[42px] w-[42px] bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl flex items-center justify-center shrink-0">
-                                            <x-icon name="{{ $icon }}" class="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                                            <x-icon :name="$icon" class="h-5 w-5 text-gray-700 dark:text-gray-300" />
                                         </div>
                                     @endif
                                 </div>

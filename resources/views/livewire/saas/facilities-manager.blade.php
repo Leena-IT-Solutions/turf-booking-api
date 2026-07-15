@@ -202,7 +202,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="flex items-start justify-between gap-4">
                             <!-- Icon display -->
                             <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/50 shrink-0">
-                                <x-icon name="{{ $facilityItem->icon }}" class="h-6 w-6" />
+                                <x-icon :name="$facilityItem->icon" class="h-6 w-6" />
                             </div>
                             <!-- Card Actions -->
                             <div class="inline-flex items-center gap-1">
@@ -298,7 +298,7 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                     @if ($icon)
                                         <div class="h-[46px] w-[46px] bg-gray-55 dark:bg-gray-900 border border-gray-250 dark:border-gray-700 rounded-2xl flex items-center justify-center shrink-0">
-                                            <x-icon name="{{ $icon }}" class="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                                            <x-icon :name="$icon" class="h-5 w-5 text-gray-700 dark:text-gray-300" />
                                         </div>
                                     @endif
                                 </div>
