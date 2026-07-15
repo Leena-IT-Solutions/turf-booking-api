@@ -504,7 +504,7 @@ new #[Layout('layouts.app')] class extends Component
                         id="is_active" 
                         type="checkbox" 
                         wire:model="is_active" 
-                        class="h-4.5 w-4.5 rounded border-gray-300 dark:border-gray-700 text-indigo-600 focus:ring-indigo-500/20 dark:focus:ring-offset-gray-800 transition cursor-pointer"
+                        class="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-indigo-600 focus:ring-indigo-500/20 dark:focus:ring-offset-gray-800 transition cursor-pointer"
                     />
                     <label for="is_active" class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer">
                         {{ __('Active & Available for Booking') }}

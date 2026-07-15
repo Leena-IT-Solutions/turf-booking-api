@@ -294,7 +294,7 @@ new class extends Component
                 </div>
                 <!-- Sleek Circular Logout Action -->
                 <button wire:click="logout" title="{{ __('Log Out') }}" class="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/15 text-red-500 hover:bg-red-100 dark:hover:bg-red-950/30 hover:text-red-600 transition cursor-pointer border border-red-100/50 dark:border-red-950/50">
-                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                 </button>
@@ -567,7 +567,7 @@ new class extends Component
                 </div>
                 <!-- Sleek Circular Logout Action -->
                 <button wire:click="logout" title="{{ __('Log Out') }}" class="h-9 w-9 shrink-0 flex items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/15 text-red-500 hover:bg-red-100 dark:hover:bg-red-950/30 hover:text-red-600 transition cursor-pointer border border-red-100/50 dark:border-red-950/50">
-                    <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
                 </button>
