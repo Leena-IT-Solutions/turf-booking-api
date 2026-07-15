@@ -167,7 +167,7 @@ new #[Layout('layouts.app')] class extends Component
                                     <!-- Checkbox Grid -->
                                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                                         @foreach ($categorySlots as $slot)
-                                            <label class="relative flex items-center p-4 rounded-2xl border transition duration-150 cursor-pointer {{ in_array((string)$slot->id, $selectedSlotIds) ? 'bg-indigo-50/20 border-indigo-250 dark:bg-indigo-950/10 dark:border-indigo-900/50' : 'bg-transparent border-gray-100 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
+                                            <label class="relative flex items-center p-4 rounded-2xl border transition duration-150 cursor-pointer {{ in_array((string)$slot->id, $selectedSlotIds) ? 'bg-indigo-50/40 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10 dark:ring-indigo-500/10' : 'bg-transparent border-gray-100 hover:bg-gray-50/50 dark:border-gray-700 dark:hover:bg-gray-800/30' }}">
                                                 <div class="flex items-center h-5">
                                                     <input type="checkbox" wire:model="selectedSlotIds" value="{{ $slot->id }}" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/20 dark:border-gray-750 dark:bg-gray-900 dark:checked:bg-indigo-600 transition">
                                                 </div>
