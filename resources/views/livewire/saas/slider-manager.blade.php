@@ -212,7 +212,7 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50">
             <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Image Slider Management') }}</h2>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Slider Manager') }}</h2>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Configure and order homepage image slides. Recommends a 16:9 aspect ratio image size.') }}</p>
             </div>
             <div>
