@@ -23,6 +23,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/slot-categories', 'saas.slot-category-manager')
         ->middleware('role:saas-admin')
         ->name('saas.slot-categories');
+    Volt::route('saas/slots', 'saas.slot-manager')
+        ->middleware('role:saas-admin')
+        ->name('saas.slots');
     Route::get('/git-info', function () {
         try {
             $basePath = base_path();

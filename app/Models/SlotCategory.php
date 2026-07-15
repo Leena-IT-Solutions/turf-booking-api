@@ -17,4 +17,9 @@ class SlotCategory extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function slots(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Slot::class, 'slot_category_id');
+    }
 }
