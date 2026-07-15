@@ -6,7 +6,7 @@
 @endphp
 
 @if ($isSvg)
-    <div class="{{ $class }} flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-current [&>svg]:fill-none">
+    <div class="{{ $class }} flex items-center justify-center shrink-0 [&>svg]:w-full [&>svg]:h-full">
         {!! $trimmedName !!}
     </div>
 @else

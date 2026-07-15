@@ -50,7 +50,7 @@ class GeminiService
                                           "The other two options should represent closely related words or concepts associated with \"{$concept}\".\n\n" .
                                           "Return a JSON object with an \"options\" array, where each item contains:\n" .
                                           "- \"word\": The concept name/word.\n" .
-                                          "- \"svg\": Raw clean vector SVG markup. Do not specify fixed width/height. Use viewBox=\"0 0 24 24\", stroke=\"currentColor\", stroke-width=\"2\", fill=\"none\"."
+                                          "- \"svg\": Raw clean vector SVG markup. Do not specify fixed width/height. Use viewBox=\"0 0 24 24\". Design each icon to be multicolored, modern, and visually outstanding using a curated color palette of 2 to 3 matching vibrant colors (using gradients with defs/linearGradient, or different stroke and fill colors for path/circle elements). Do not use generic solid black or plain gray icons."
                             ]
                         ]
                     ]
