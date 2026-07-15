@@ -145,4 +145,23 @@ class SliderManagerTest extends TestCase
         $this->assertEquals(1, $slide1->fresh()->order);
         $this->assertEquals(2, $slide2->fresh()->order);
     }
+
+    public function test_slider_seeder_creates_records_and_images(): void
+    {
+        Storage::fake('public');
+
+        $this->seed(\Database\Seeders\SliderImageSeeder::class);
+
+        $this->assertDatabaseCount('slider_images', 3);
+        $this->assertDatabaseHas('slider_images', [
+            'title' => 'Unleash Your Game - Premium Turf Booking',
+            'image_path' => 'sliders/slide_1.png',
+            'order' => 1,
+            'is_active' => 1,
+        ]);
+
+        Storage::disk('public')->assertExists('sliders/slide_1.png');
+        Storage::disk('public')->assertExists('sliders/slide_2.png');
+        Storage::disk('public')->assertExists('sliders/slide_3.png');
+    }
 }

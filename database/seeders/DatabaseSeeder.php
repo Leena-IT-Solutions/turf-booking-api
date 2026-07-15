@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call(SlotCategorySeeder::class);
         $this->call(SlotSeeder::class);
         $this->call(SaasSettingSeeder::class);
+        $this->call(SliderImageSeeder::class);
 
         $sandeep = User::firstOrCreate([
             'email' => 'sandeep198558@gmail.com',
