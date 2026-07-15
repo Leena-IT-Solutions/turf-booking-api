@@ -49,6 +49,24 @@ new #[Layout('layouts.app')] class extends Component
         $this->resetErrorBag();
     }
 
+    public function updated($propertyName)
+    {
+        $rules = [
+            'title' => 'nullable|string|max:100',
+            'link_url' => 'nullable|url',
+            'order' => 'required|integer|min:0',
+            'is_active' => 'boolean',
+        ];
+
+        if ($this->editingId) {
+            $rules['image'] = 'nullable|image|max:2048';
+        } else {
+            $rules['image'] = 'required|image|max:2048';
+        }
+
+        $this->validateOnly($propertyName, $rules);
+    }
+
     public function saveSlide()
     {
         $rules = [
