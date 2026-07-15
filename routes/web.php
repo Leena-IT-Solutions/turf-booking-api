@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Livewire\Volt\Volt;
 
 Route::view('/', 'welcome');
 
@@ -13,6 +14,9 @@ Route::view('profile', 'profile')
     ->name('profile');
 
 Route::middleware(['auth'])->group(function () {
+    Volt::route('saas/sliders', 'saas.slider-manager')
+        ->middleware('role:saas-admin')
+        ->name('saas.sliders');
     Route::get('/git-info', function () {
         try {
             $basePath = base_path();
