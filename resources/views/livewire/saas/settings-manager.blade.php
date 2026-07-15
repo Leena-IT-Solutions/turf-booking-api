@@ -130,8 +130,9 @@ new #[Layout('layouts.app')] class extends Component
         @endif
 
         <!-- Form Card Grid -->
-        <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 overflow-hidden">
-            <form wire:submit="saveSettings" class="p-6 sm:p-8 space-y-8">
+        <form wire:submit="saveSettings" class="space-y-6">
+            <!-- Core Platform Settings Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     
                     <!-- Left: Logo Upload -->
@@ -198,14 +199,6 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-error :messages="$errors->get('contact_mobile')" class="mt-2" />
                             </div>
 
-                            <!-- Gemini API Key -->
-                            <div class="md:col-span-2">
-                                <x-input-label for="geminiApiKey" :value="__('Gemini API Key')" />
-                                <x-text-input wire:model.live.debounce.250ms="gemini_api_key" id="geminiApiKey" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="AIzaSy..." />
-                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1.5 block">{{ __('Configure your Gemini API key to enable AI-powered custom SVG vector icon generation.') }}</span>
-                                <x-input-error :messages="$errors->get('gemini_api_key')" class="mt-2" />
-                            </div>
-
                         </div>
 
                         <!-- Address -->
@@ -216,14 +209,36 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Form Actions footer -->
-                <div class="flex justify-end pt-6 border-t border-gray-100 dark:border-gray-700/50">
-                    <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
-                        {{ __('Save Settings') }}
-                    </button>
+            <!-- Gemini AI Setup Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+                <div class="max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Gemini AI Integration') }}</h3>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                            {{ __('Configure your Google Gemini API details to automatically generate responsive, high-quality custom vector SVG icons for slot categories, facilities, equipments, and sports.') }}
+                        </p>
+                    </div>
+
+                    <div class="pt-2">
+                        <x-input-label for="geminiApiKey" :value="__('Gemini API Key')" />
+                        <x-text-input wire:model.live.debounce.250ms="gemini_api_key" id="geminiApiKey" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="AIzaSy..." />
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            {{ __('Get your API Key from the Google AI Studio console.') }}
+                        </span>
+                        <x-input-error :messages="$errors->get('gemini_api_key')" class="mt-2" />
+                    </div>
                 </div>
-            </form>
+            </div>
+
+            <!-- Form Actions footer -->
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
+                    {{ __('Save Settings') }}
+                </button>
+            </div>
+        </form>
         </div>
 
     </div>
