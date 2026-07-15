@@ -126,6 +126,13 @@
                             >
                                 {{ __('Optimize Cache') }}
                             </button>
+                            <button 
+                                @click="runCommand('composer-install')" 
+                                :disabled="isUpdating"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 disabled:bg-cyan-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                            >
+                                {{ __('Composer Install') }}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -344,6 +351,12 @@
                         this.confirm(
                             'Optimize Cache',
                             'Are you sure you want to run optimize? This will cache config, routes, and views to improve load performance.',
+                            performRun
+                        );
+                    } else if (commandName === 'composer-install') {
+                        this.confirm(
+                            'Composer Install',
+                            'Are you sure you want to run composer install --no-dev --optimize-autoloader? This will install production dependencies and optimize the autoloader.',
                             performRun
                         );
                     } else {

@@ -44,6 +44,17 @@ class ArtisanRunnerTest extends TestCase
             ]);
     }
 
+    public function test_admin_can_run_composer_install_command(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $response = $this->actingAs($admin)->postJson('/artisan-run', ['command' => 'composer-install']);
+        $response->assertOk();
+        $this->assertArrayHasKey('success', $response->json());
+        $this->assertArrayHasKey('output', $response->json());
+    }
+
     public function test_invalid_command_returns_bad_request(): void
     {
         $admin = User::factory()->create();
