@@ -396,17 +396,17 @@ new #[Layout('layouts.app')] class extends Component
                                                             <!-- From Time -->
                                                             <div class="w-full">
                                                                 <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
-                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg border-gray-250 dark:border-gray-700 dark:bg-gray-850 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
                                                             </div>
                                                             <!-- To Time -->
                                                             <div class="w-full">
                                                                 <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('To') }}</label>
-                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg border-gray-250 dark:border-gray-700 dark:bg-gray-850 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                <input type="time" wire:model="timeRangesAll.{{ $idx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
                                                             </div>
                                                             <!-- Rate -->
                                                             <div class="w-full">
                                                                 <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('Rate/Hr (₹)') }}</label>
-                                                                <input type="number" wire:model="timeRangesAll.{{ $idx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg border-gray-250 dark:border-gray-700 dark:bg-gray-850 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
+                                                                <input type="number" wire:model="timeRangesAll.{{ $idx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
                                                             </div>
                                                             <!-- Delete Button -->
                                                             @if (count($timeRangesAll) > 1)
@@ -508,15 +508,15 @@ new #[Layout('layouts.app')] class extends Component
                                                                 <div wire:key="time-range-{{ $gIndex }}-{{ $tIdx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-150/40 dark:border-gray-800/60 shadow-sm relative">
                                                                     <div class="w-full">
                                                                         <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('From') }}</label>
-                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg border-gray-250 dark:border-gray-700 dark:bg-gray-850 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.from" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
                                                                     </div>
                                                                     <div class="w-full">
                                                                         <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('To') }}</label>
-                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg border-gray-250 dark:border-gray-700 dark:bg-gray-850 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
+                                                                        <input type="time" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.to" required class="block w-full py-1.5 px-2 text-xs font-mono font-semibold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600">
                                                                     </div>
                                                                     <div class="w-full">
                                                                         <label class="block text-[8px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{{ __('Rate/Hr (₹)') }}</label>
-                                                                        <input type="number" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg border-gray-250 dark:border-gray-700 dark:bg-gray-850 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
+                                                                        <input type="number" wire:model="dayGroups.{{ $gIndex }}.timeRanges.{{ $tIdx }}.rate" required class="block w-full py-1.5 px-2 text-xs font-mono font-bold rounded-lg bg-white dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500/20 focus:border-indigo-600" placeholder="600">
                                                                     </div>
                                                                     @if (count($group['timeRanges']) > 1)
                                                                         <button type="button" wire:click="removeTimeRange('group', {{ $tIdx }}, {{ $gIndex }})" class="sm:mt-4 p-1.5 text-gray-400 hover:text-red-500 transition cursor-pointer">
