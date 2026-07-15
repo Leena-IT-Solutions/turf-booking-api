@@ -7,6 +7,9 @@ Route::view('/', 'welcome');
 
 Route::get('dashboard', function () {
     $user = auth()->user();
+    if ($user->hasRole('customer')) {
+        return view('dashboard');
+    }
     if ($user->hasRole('saas-admin')) {
         return redirect()->route('saas.administrator');
     }
