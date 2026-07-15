@@ -154,7 +154,9 @@ class LocationManagerTest extends TestCase
         ]);
 
         $component = Volt::test('turf.location-manager')
-            ->call('deleteLocation', $location->id);
+            ->call('confirmDelete', $location->id)
+            ->assertSet('showDeleteConfirm', true)
+            ->call('performDelete');
 
         $this->assertDatabaseMissing('locations', ['id' => $location->id]);
     }

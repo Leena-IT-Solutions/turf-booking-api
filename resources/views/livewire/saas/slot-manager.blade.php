@@ -26,6 +26,30 @@ new #[Layout('layouts.app')] class extends Component
     public $editingId = null;
     public $showModal = false;
 
+    // Delete confirmation state
+    public $deletingId = null;
+    public $showDeleteConfirm = false;
+
+    public function confirmDelete($id)
+    {
+        $this->deletingId = $id;
+        $this->showDeleteConfirm = true;
+    }
+
+    public function cancelDelete()
+    {
+        $this->deletingId = null;
+        $this->showDeleteConfirm = false;
+    }
+
+    public function performDelete()
+    {
+        if ($this->deletingId) {
+            $this->deleteSlot($this->deletingId);
+        }
+        $this->cancelDelete();
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -230,7 +254,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </button>
                                 
                                 <!-- Delete Button -->
-                                <button onclick="confirm('Are you sure you want to delete this time slot?') || event.stopImmediatePropagation()" wire:click="deleteSlot({{ $slot->id }})" class="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-650 dark:text-red-400 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10 dark:border-red-900/10">
+                                <button wire:click="confirmDelete({{ $slot->id }})" class="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10 dark:border-red-900/10">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -348,6 +372,49 @@ new #[Layout('layouts.app')] class extends Component
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- Delete Confirmation Modal -->
+        @if ($showDeleteConfirm)
+            <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="cancelDelete"></div>
+
+                <!-- Modal Container -->
+                <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100 dark:border-gray-700">
+                    <div class="p-6 sm:p-8">
+                        <div class="flex items-center gap-4 text-red-600 dark:text-red-400 mb-4">
+                            <div class="h-12 w-12 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center border border-red-100/50 dark:border-red-950/50 shrink-0">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">
+                                    {{ __('Confirm Delete') }}
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    {{ __('This action cannot be undone.') }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                            {{ __('Are you sure you want to delete this time slot?') }}
+                        </p>
+
+                        <!-- Form Actions -->
+                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                            <button type="button" wire:click="cancelDelete" class="px-5 py-2.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl font-bold text-xs uppercase text-gray-700 dark:text-gray-300 transition duration-150 cursor-pointer">
+                                {{ __('Cancel') }}
+                            </button>
+                            <button type="button" wire:click="performDelete" class="px-5 py-2.5 bg-red-600 hover:bg-red-750 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
+                                {{ __('Yes, Delete') }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

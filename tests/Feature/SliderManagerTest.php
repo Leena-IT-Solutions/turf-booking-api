@@ -116,7 +116,9 @@ class SliderManagerTest extends TestCase
         Storage::disk('public')->assertExists($path);
 
         $component = Volt::test('saas.slider-manager')
-            ->call('deleteSlide', $slide->id);
+            ->call('confirmDelete', $slide->id)
+            ->assertSet('showDeleteConfirm', true)
+            ->call('performDelete');
 
         $this->assertDatabaseMissing('slider_images', [
             'id' => $slide->id

@@ -125,7 +125,9 @@ class UserManagerTest extends TestCase
         $targetUser->assignRole('manager');
 
         $component = Volt::test('saas.user-manager')
-            ->call('deleteUser', $targetUser->id)
+            ->call('confirmDelete', $targetUser->id)
+            ->assertSet('showDeleteConfirm', true)
+            ->call('performDelete')
             ->assertSee('User deleted successfully.');
 
         $this->assertDatabaseMissing('users', ['id' => $targetUser->id]);

@@ -136,7 +136,9 @@ class SlotCategoryManagerTest extends TestCase
         ]);
 
         $component = Volt::test('saas.slot-category-manager')
-            ->call('deleteCategory', $category->id);
+            ->call('confirmDelete', $category->id)
+            ->assertSet('showDeleteConfirm', true)
+            ->call('performDelete');
 
         $this->assertDatabaseMissing('slot_categories', ['id' => $category->id]);
     }

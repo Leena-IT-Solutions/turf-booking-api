@@ -159,7 +159,9 @@ class SlotManagerTest extends TestCase
         ]);
 
         $component = Volt::test('saas.slot-manager')
-            ->call('deleteSlot', $slot->id);
+            ->call('confirmDelete', $slot->id)
+            ->assertSet('showDeleteConfirm', true)
+            ->call('performDelete');
 
         $this->assertDatabaseMissing('slots', ['id' => $slot->id]);
     }

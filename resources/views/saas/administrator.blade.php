@@ -146,6 +146,43 @@
                         <pre class="bg-gray-950 text-emerald-400 p-5 rounded-xl font-mono text-[11px] overflow-x-auto max-h-[250px] overflow-y-auto leading-relaxed border border-gray-900" x-text="updateOutput"></pre>
                     </div>
                 </template>
+
+                <!-- Custom Alpine Confirmation Modal -->
+                <div x-show="showConfirmModal" class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4" style="display: none;">
+                    <!-- Backdrop -->
+                    <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" @click="cancelConfirm()"></div>
+
+                    <!-- Modal Container -->
+                    <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100 dark:border-gray-700">
+                        <div class="p-6 sm:p-8">
+                            <div class="flex items-center gap-4 text-amber-600 dark:text-amber-400 mb-4">
+                                <div class="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center border border-amber-100/50 dark:border-amber-950/50 shrink-0">
+                                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-900 dark:text-gray-100" x-text="confirmTitle"></h3>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        {{ __('Action Confirmation Required') }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <p class="text-xs text-gray-605 dark:text-gray-300 mb-6 leading-relaxed" x-text="confirmDescription"></p>
+
+                            <!-- Form Actions -->
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                                <button type="button" @click="cancelConfirm()" class="px-5 py-2.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl font-bold text-xs uppercase text-gray-700 dark:text-gray-300 transition duration-150 cursor-pointer">
+                                    {{ __('Cancel') }}
+                                </button>
+                                <button type="button" @click="executeConfirm()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
+                                    {{ __('Confirm') }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -164,6 +201,29 @@
                 updateOutput: '',
                 successMessage: '',
                 
+                // Modal Confirmation State
+                showConfirmModal: false,
+                confirmTitle: '',
+                confirmDescription: '',
+                confirmAction: null,
+
+                confirm(title, description, callback) {
+                    this.confirmTitle = title;
+                    this.confirmDescription = description;
+                    this.confirmAction = callback;
+                    this.showConfirmModal = true;
+                },
+                cancelConfirm() {
+                    this.showConfirmModal = false;
+                    this.confirmAction = null;
+                },
+                executeConfirm() {
+                    if (this.confirmAction) {
+                        this.confirmAction();
+                    }
+                    this.cancelConfirm();
+                },
+
                 init() {
                     this.fetchInfo();
                 },
@@ -185,73 +245,85 @@
                 },
                 
                 updateSite() {
-                    if (!confirm('Are you sure you want to update the site from Git origin? This will hard reset any local changes on the server.')) {
-                        return;
-                    }
-                    this.isUpdating = true;
-                    this.successMessage = '';
-                    this.updateOutput = 'Starting update process...\n\n';
-                    
-                    fetch('{{ route('git.update') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json'
+                    this.confirm(
+                        'Update Site from Git',
+                        'Are you sure you want to update the site from Git origin? This will hard reset any local changes on the server.',
+                        () => {
+                            this.isUpdating = true;
+                            this.successMessage = '';
+                            this.updateOutput = 'Starting update process...\n\n';
+                            
+                            fetch('{{ route('git.update') }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                }
+                            })
+                            .then(res => res.json())
+                            .then(data => {
+                                this.updateOutput = data.output;
+                                if (data.success) {
+                                    this.successMessage = 'Update process completed successfully.';
+                                    this.fetchInfo();
+                                } else {
+                                    this.successMessage = 'Update finished with some errors (check exit codes).';
+                                }
+                            })
+                            .catch(err => {
+                                this.updateOutput += '\nError during update request:\n' + err.message;
+                                this.successMessage = 'Update request failed.';
+                            })
+                            .finally(() => {
+                                this.isUpdating = false;
+                            });
                         }
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        this.updateOutput = data.output;
-                        if (data.success) {
-                            this.successMessage = 'Update process completed successfully.';
-                            this.fetchInfo();
-                        } else {
-                            this.successMessage = 'Update finished with some errors (check exit codes).';
-                        }
-                    })
-                    .catch(err => {
-                        this.updateOutput += '\nError during update request:\n' + err.message;
-                        this.successMessage = 'Update request failed.';
-                    })
-                    .finally(() => {
-                        this.isUpdating = false;
-                    });
+                    );
                 },
 
                 runCommand(commandName) {
-                    if (commandName === 'migrate-fresh' && !confirm('WARNING: This will drop all tables and re-run all seeders. All existing transactional data will be lost. Are you sure you want to proceed?')) {
-                        return;
+                    const performRun = () => {
+                        this.isUpdating = true;
+                        this.successMessage = '';
+                        this.updateOutput = `Running artisan ${commandName} command...\n\n`;
+                        
+                        fetch('{{ route('artisan.run') }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ command: commandName })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            this.updateOutput = data.output;
+                            if (data.success) {
+                                this.successMessage = `Command '${commandName}' executed successfully.`;
+                            } else {
+                                this.successMessage = `Command '${commandName}' failed. Check console output.`;
+                            }
+                        })
+                        .catch(err => {
+                            this.updateOutput += '\nError executing command:\n' + err.message;
+                            this.successMessage = 'Request failed.';
+                        })
+                        .finally(() => {
+                            this.isUpdating = false;
+                        });
+                    };
+
+                    if (commandName === 'migrate-fresh') {
+                        this.confirm(
+                            'Warning: Migrate Fresh',
+                            'WARNING: This will drop all tables and re-run all seeders. All existing transactional data will be lost. Are you sure you want to proceed?',
+                            performRun
+                        );
+                    } else {
+                        performRun();
                     }
-                    this.isUpdating = true;
-                    this.successMessage = '';
-                    this.updateOutput = `Running artisan ${commandName} command...\n\n`;
-                    
-                    fetch('{{ route('artisan.run') }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({ command: commandName })
-                    })
-                    .then(res => res.json())
-                    .then(data => {
-                        this.updateOutput = data.output;
-                        if (data.success) {
-                            this.successMessage = `Command '${commandName}' executed successfully.`;
-                        } else {
-                            this.successMessage = `Command '${commandName}' failed. Check console output.`;
-                        }
-                    })
-                    .catch(err => {
-                        this.updateOutput += '\nError executing command:\n' + err.message;
-                        this.successMessage = 'Request failed.';
-                    })
-                    .finally(() => {
-                        this.isUpdating = false;
-                    });
                 }
             }
         }
