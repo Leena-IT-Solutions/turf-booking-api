@@ -259,5 +259,27 @@ class TurfSubEntitiesTest extends TestCase
             'slot_id' => $slot2->id,
             'is_active' => true,
         ]);
+
+        // 4. Test selectAll()
+        $this->testComponent('turf.slots-manager')
+            ->call('selectAll')
+            ->assertSet('selectedSlotIds', [(string)$slot1->id, (string)$slot2->id]);
+
+        // 5. Test deselectAll()
+        $this->testComponent('turf.slots-manager')
+            ->call('selectAll')
+            ->call('deselectAll')
+            ->assertSet('selectedSlotIds', []);
+
+        // 6. Test selectCategorySlots()
+        $this->testComponent('turf.slots-manager')
+            ->call('selectCategorySlots', $category->id)
+            ->assertSet('selectedSlotIds', [(string)$slot1->id, (string)$slot2->id]);
+
+        // 7. Test deselectCategorySlots()
+        $this->testComponent('turf.slots-manager')
+            ->call('selectAll')
+            ->call('deselectCategorySlots', $category->id)
+            ->assertSet('selectedSlotIds', []);
     }
 }
