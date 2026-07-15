@@ -160,4 +160,20 @@ class LocationManagerTest extends TestCase
 
         $this->assertDatabaseMissing('locations', ['id' => $location->id]);
     }
+
+    public function test_user_can_autofill_own_contact_details(): void
+    {
+        $user = User::factory()->create([
+            'mobile' => '9876543210',
+            'email' => 'testuser@example.com',
+        ]);
+        $user->assignRole('turf-admin');
+
+        $this->actingAs($user);
+
+        Volt::test('turf.location-manager')
+            ->call('useOwnDetails')
+            ->assertSet('contact_number', '9876543210')
+            ->assertSet('email', 'testuser@example.com');
+    }
 }

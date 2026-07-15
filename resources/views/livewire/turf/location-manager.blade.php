@@ -128,6 +128,12 @@ new #[Layout('layouts.app')] class extends Component
         $this->resetForm();
     }
 
+    public function useOwnDetails()
+    {
+        $this->contact_number = auth()->user()->mobile;
+        $this->email = auth()->user()->email;
+    }
+
     public function deleteLocation($id)
     {
         $location = Location::findOrFail($id);
@@ -348,12 +354,19 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Contact details Grid -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <x-input-label for="locPhone" :value="__('Contact Number')" />
+                                    <div class="flex justify-between items-center">
+                                        <x-input-label for="locPhone" :value="__('Contact Number')" />
+                                        <button type="button" wire:click="useOwnDetails" class="text-[10px] text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-semibold transition duration-150 cursor-pointer">
+                                            {{ __('Use my details') }}
+                                        </button>
+                                    </div>
                                     <x-text-input wire:model.live.debounce.250ms="contact_number" id="locPhone" type="text" class="mt-1.5 block w-full" placeholder="+91 XXXXXXXXXX" />
                                     <x-input-error :messages="$errors->get('contact_number')" class="mt-2" />
                                 </div>
                                 <div>
-                                    <x-input-label for="locEmail" :value="__('Email Address')" />
+                                    <div class="flex justify-between items-center">
+                                        <x-input-label for="locEmail" :value="__('Email Address')" />
+                                    </div>
                                     <x-text-input wire:model.live.debounce.250ms="email" id="locEmail" type="email" class="mt-1.5 block w-full" placeholder="contact@domain.com" />
                                     <x-input-error :messages="$errors->get('email')" class="mt-2" />
                                 </div>
