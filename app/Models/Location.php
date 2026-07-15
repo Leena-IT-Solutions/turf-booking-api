@@ -44,4 +44,12 @@ class Location extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get the turfs for this location.
+     */
+    public function turfs()
+    {
+        return $this->hasMany(Turf::class);
+    }
 }
