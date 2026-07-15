@@ -282,4 +282,41 @@ class TurfSubEntitiesTest extends TestCase
             ->call('deselectCategorySlots', $category->id)
             ->assertSet('selectedSlotIds', []);
     }
+
+    public function test_pricing_page_loads_and_displays_active_slots_pricing(): void
+    {
+        $this->actingAs($this->user);
+
+        // Seed some master slot categories and slots
+        $category = \App\Models\SlotCategory::create(['name' => 'Morning', 'is_active' => true, 'sort_order' => 2]);
+        $slot = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '07:00:00',
+            'to_time' => '08:00:00',
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        // Link slot to turf with active status and specific prices
+        $this->turf->slots()->attach($slot->id, [
+            'is_active' => true,
+            'mon' => 500.00,
+            'tue' => 500.00,
+            'wed' => 500.00,
+            'thu' => 550.00,
+            'fri' => 600.00,
+            'sat' => 800.00,
+            'sun' => 900.00,
+        ]);
+
+        $this->testComponent('turf.pricing-manager')
+            ->assertSee('Pricing Wizard')
+            ->assertSee('Wizard updates will be available here.')
+            ->assertSee('Current Slot Rates')
+            ->assertSee('Morning')
+            ->assertSee('07:00 AM')
+            ->assertSee('₹500')
+            ->assertSee('₹800')
+            ->assertSee('₹900');
+    }
 }

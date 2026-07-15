@@ -54,7 +54,7 @@ class Turf extends Model
     public function slots()
     {
         return $this->belongsToMany(Slot::class, 'slot_turf')
-            ->withPivot('is_active')
+            ->withPivot('is_active', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
             ->withTimestamps();
     }
 }
