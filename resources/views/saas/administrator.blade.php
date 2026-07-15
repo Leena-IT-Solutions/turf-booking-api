@@ -32,8 +32,38 @@
                     <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">System Updates & Deployment</h3>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                    <div class="lg:col-span-2">
+                <!-- Git Info Box (Full Width on Top) -->
+                <div class="bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 text-xs font-mono text-gray-600 dark:text-gray-400 flex flex-col gap-3 mb-6">
+                    <div class="flex items-center">
+                        <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 w-24 tracking-widest">Branch:</span>
+                        <span class="text-indigo-600 dark:text-indigo-400 truncate" x-text="gitInfo.branch + ' @ ' + gitInfo.commit_hash">Loading...</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 w-24 tracking-widest">Commit:</span>
+                        <span class="text-gray-700 dark:text-gray-300 truncate" x-text="'&quot;' + gitInfo.commit_message + '&quot;'">Loading...</span>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 w-24 tracking-widest">Timestamp:</span>
+                        <span class="text-emerald-600 dark:text-emerald-400 truncate" x-text="gitInfo.commit_date + ' (' + gitInfo.commit_relative + ')'">Loading...</span>
+                    </div>
+                    
+                    <template x-if="gitInfo.diagnostics">
+                        <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800 flex flex-col gap-2 text-[10px]">
+                            <div class="flex justify-between">
+                                <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 tracking-wider">PHP User:</span>
+                                <span class="text-gray-600 dark:text-gray-400 font-bold" x-text="gitInfo.diagnostics.php_user"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 tracking-wider">.git Readable:</span>
+                                <span :class="gitInfo.diagnostics.git_dir_readable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'" x-text="gitInfo.diagnostics.git_dir_readable ? 'YES' : 'NO'"></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Git Self-Update & Artisan Console Commands (Full Width) -->
+                <div class="mb-6 space-y-6">
+                    <div>
                         <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Git Self-Update</h4>
                         <p class="text-gray-500 dark:text-gray-400 text-xs mt-2 leading-relaxed">
                             Deploy the latest updates directly from the remote GitHub repository. This process pulls the latest branch commits, runs any new database migrations, and flushes cache bundles.
@@ -52,80 +82,51 @@
                                 <span x-text="isUpdating ? 'Updating...' : 'Update from GitHub'"></span>
                             </button>
                         </div>
-
-                        <!-- Artisan Commands Section -->
-                        <div class="border-t border-gray-100 dark:border-gray-700/60 my-6 pt-6">
-                            <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Artisan Console Commands</h4>
-                            <p class="text-gray-500 dark:text-gray-400 text-xs mt-2 leading-relaxed mb-4">
-                                Run database migrations, clear system cache bundles, or optimize execution performance directly on the active environment.
-                            </p>
-                            <div class="flex flex-wrap gap-2.5">
-                                <button 
-                                    @click="runCommand('migrate')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                                >
-                                    {{ __('Migrate') }}
-                                </button>
-                                <button 
-                                    @click="runCommand('migrate-fresh')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                                >
-                                    {{ __('Migrate Fresh & Seed') }}
-                                </button>
-                                <button 
-                                    @click="runCommand('seed')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                                >
-                                    {{ __('Seed DB') }}
-                                </button>
-                                <button 
-                                    @click="runCommand('clear-cache')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                                >
-                                    {{ __('Optimize Clear') }}
-                                </button>
-                                <button 
-                                    @click="runCommand('optimize')" 
-                                    :disabled="isUpdating"
-                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                                >
-                                    {{ __('Optimize Cache') }}
-                                </button>
-                            </div>
-                        </div>
                     </div>
 
-                    <!-- Git Info Box -->
-                    <div class="bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-2xl p-5 text-xs font-mono text-gray-600 dark:text-gray-400 flex flex-col gap-3">
-                        <div class="flex items-center">
-                            <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 w-24 tracking-widest">Branch:</span>
-                            <span class="text-indigo-600 dark:text-indigo-400 truncate" x-text="gitInfo.branch + ' @ ' + gitInfo.commit_hash">Loading...</span>
+                    <!-- Artisan Commands Section -->
+                    <div class="border-t border-gray-100 dark:border-gray-700/60 pt-6">
+                        <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Artisan Console Commands</h4>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs mt-2 leading-relaxed mb-4">
+                            Run database migrations, clear system cache bundles, or optimize execution performance directly on the active environment.
+                        </p>
+                        <div class="flex flex-wrap gap-2.5">
+                            <button 
+                                @click="runCommand('migrate')" 
+                                :disabled="isUpdating"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                            >
+                                {{ __('Migrate') }}
+                            </button>
+                            <button 
+                                @click="runCommand('migrate-fresh')" 
+                                :disabled="isUpdating"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                            >
+                                {{ __('Migrate Fresh & Seed') }}
+                            </button>
+                            <button 
+                                @click="runCommand('seed')" 
+                                :disabled="isUpdating"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                            >
+                                {{ __('Seed DB') }}
+                            </button>
+                            <button 
+                                @click="runCommand('clear-cache')" 
+                                :disabled="isUpdating"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                            >
+                                {{ __('Optimize Clear') }}
+                            </button>
+                            <button 
+                                @click="runCommand('optimize')" 
+                                :disabled="isUpdating"
+                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                            >
+                                {{ __('Optimize Cache') }}
+                            </button>
                         </div>
-                        <div class="flex items-center">
-                            <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 w-24 tracking-widest">Commit:</span>
-                            <span class="text-gray-700 dark:text-gray-300 truncate" x-text="'&quot;' + gitInfo.commit_message + '&quot;'">Loading...</span>
-                        </div>
-                        <div class="flex items-center">
-                            <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 w-24 tracking-widest">Timestamp:</span>
-                            <span class="text-emerald-600 dark:text-emerald-400 truncate" x-text="gitInfo.commit_date + ' (' + gitInfo.commit_relative + ')'">Loading...</span>
-                        </div>
-                        
-                        <template x-if="gitInfo.diagnostics">
-                            <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-800 flex flex-col gap-2 text-[10px]">
-                                <div class="flex justify-between">
-                                    <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 tracking-wider">PHP User:</span>
-                                    <span class="text-gray-600 dark:text-gray-400 font-bold" x-text="gitInfo.diagnostics.php_user"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-[9px] uppercase font-black text-gray-400 dark:text-gray-500 tracking-wider">.git Readable:</span>
-                                    <span :class="gitInfo.diagnostics.git_dir_readable ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'" x-text="gitInfo.diagnostics.git_dir_readable ? 'YES' : 'NO'"></span>
-                                </div>
-                            </div>
-                        </template>
                     </div>
                 </div>
 
