@@ -153,10 +153,10 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         return [
-            'slots' => $query->orderBy('slot_categories.name', 'asc')
+            'slots' => $query->orderBy('slot_categories.sort_order', 'asc')
                              ->orderBy('slots.from_time', 'asc')
                              ->get(),
-            'availableCategories' => SlotCategory::orderBy('name', 'asc')->get(),
+            'availableCategories' => SlotCategory::orderBy('sort_order', 'asc')->get(),
         ];
     }
 }; ?>

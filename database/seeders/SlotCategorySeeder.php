@@ -13,18 +13,19 @@ class SlotCategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            'Morning' => '🌅',
-            'Afternoon' => '☀️',
-            'Evening' => '🌇',
-            'Night' => '🌙',
-            'Midnight' => '🌌',
+            'Midnight' => ['icon' => '🌌', 'sort_order' => 1],
+            'Morning' => ['icon' => '🌅', 'sort_order' => 2],
+            'Afternoon' => ['icon' => '☀️', 'sort_order' => 3],
+            'Evening' => ['icon' => '🌇', 'sort_order' => 4],
+            'Night' => ['icon' => '🌙', 'sort_order' => 5],
         ];
 
-        foreach ($categories as $name => $icon) {
+        foreach ($categories as $name => $data) {
             SlotCategory::updateOrCreate([
                 'name' => $name,
             ], [
-                'icon' => $icon,
+                'icon' => $data['icon'],
+                'sort_order' => $data['sort_order'],
                 'is_active' => true,
             ]);
         }
