@@ -405,7 +405,7 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Roles Checkboxes Grid -->
                             <div>
                                 <x-input-label :value="__('Assign Security Roles')" />
-                                <div class="mt-2.5 grid grid-cols-2 gap-3 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-150 dark:border-gray-700/60 p-4 rounded-2xl">
+                                <div class="mt-2.5 grid grid-cols-2 gap-3 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/60 p-4 rounded-2xl">
                                     @foreach ($availableRoles as $role)
                                         <label class="inline-flex items-center select-none {{ $role->name === 'customer' ? 'cursor-not-allowed opacity-70' : 'cursor-pointer' }}">
                                             <input type="checkbox" 
@@ -413,7 +413,7 @@ new #[Layout('layouts.app')] class extends Component
                                                    value="{{ $role->name }}" 
                                                    {{ $role->name === 'customer' ? 'disabled' : '' }}
                                                    class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 {{ $role->name === 'customer' ? 'cursor-not-allowed text-indigo-400 opacity-80' : '' }}">
-                                            <span class="ms-2.5 text-xs font-bold text-gray-750 dark:text-gray-300 uppercase tracking-wider">{{ $role->display_name }}</span>
+                                            <span class="ms-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ $role->display_name }}</span>
                                         </label>
                                     @endforeach
                                 </div>
