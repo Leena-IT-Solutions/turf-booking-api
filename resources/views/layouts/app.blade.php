@@ -29,14 +29,7 @@
                     @endif
                 @endauth
 
-                <!-- Page Heading -->
-                @if (isset($header))
-                    <header class="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                        <div class="py-4 px-4 sm:px-6 lg:px-8">
-                            {{ $header }}
-                        </div>
-                    </header>
-                @endif
+
 
                 <!-- Page Content -->
                 <main class="flex-grow p-4 sm:p-6 lg:p-8">
