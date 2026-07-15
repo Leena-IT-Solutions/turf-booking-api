@@ -52,6 +52,51 @@
                                 <span x-text="isUpdating ? 'Updating...' : 'Update from GitHub'"></span>
                             </button>
                         </div>
+
+                        <!-- Artisan Commands Section -->
+                        <div class="border-t border-gray-100 dark:border-gray-700/60 my-6 pt-6">
+                            <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Artisan Console Commands</h4>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs mt-2 leading-relaxed mb-4">
+                                Run database migrations, clear system cache bundles, or optimize execution performance directly on the active environment.
+                            </p>
+                            <div class="flex flex-wrap gap-2.5">
+                                <button 
+                                    @click="runCommand('migrate')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                                >
+                                    {{ __('Migrate') }}
+                                </button>
+                                <button 
+                                    @click="runCommand('migrate-fresh')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                                >
+                                    {{ __('Migrate Fresh & Seed') }}
+                                </button>
+                                <button 
+                                    @click="runCommand('seed')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                                >
+                                    {{ __('Seed DB') }}
+                                </button>
+                                <button 
+                                    @click="runCommand('clear-cache')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                                >
+                                    {{ __('Optimize Clear') }}
+                                </button>
+                                <button 
+                                    @click="runCommand('optimize')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
+                                >
+                                    {{ __('Optimize Cache') }}
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Git Info Box -->
@@ -168,6 +213,41 @@
                     .catch(err => {
                         this.updateOutput += '\nError during update request:\n' + err.message;
                         this.successMessage = 'Update request failed.';
+                    })
+                    .finally(() => {
+                        this.isUpdating = false;
+                    });
+                },
+
+                runCommand(commandName) {
+                    if (commandName === 'migrate-fresh' && !confirm('WARNING: This will drop all tables and re-run all seeders. All existing transactional data will be lost. Are you sure you want to proceed?')) {
+                        return;
+                    }
+                    this.isUpdating = true;
+                    this.successMessage = '';
+                    this.updateOutput = `Running artisan ${commandName} command...\n\n`;
+                    
+                    fetch('{{ route('artisan.run') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({ command: commandName })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        this.updateOutput = data.output;
+                        if (data.success) {
+                            this.successMessage = `Command '${commandName}' executed successfully.`;
+                        } else {
+                            this.successMessage = `Command '${commandName}' failed. Check console output.`;
+                        }
+                    })
+                    .catch(err => {
+                        this.updateOutput += '\nError executing command:\n' + err.message;
+                        this.successMessage = 'Request failed.';
                     })
                     .finally(() => {
                         this.isUpdating = false;

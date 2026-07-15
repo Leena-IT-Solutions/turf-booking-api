@@ -106,6 +106,46 @@ Route::middleware(['auth'])->group(function () {
             'output' => implode("\n", $output),
         ]);
     })->name('git.update');
+
+    Route::post('/artisan-run', function (\Illuminate\Http\Request $request) {
+        $commandKey = $request->input('command');
+        $success = true;
+        $output = '';
+
+        try {
+            switch ($commandKey) {
+                case 'migrate':
+                    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+                    break;
+                case 'migrate-fresh':
+                    \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+                    break;
+                case 'seed':
+                    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+                    break;
+                case 'clear-cache':
+                    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+                    break;
+                case 'optimize':
+                    \Illuminate\Support\Facades\Artisan::call('optimize');
+                    break;
+                default:
+                    return response()->json([
+                        'success' => false,
+                        'output' => 'Invalid command request.',
+                    ], 400);
+            }
+            $output = \Illuminate\Support\Facades\Artisan::output();
+        } catch (\Exception $e) {
+            $success = false;
+            $output = $e->getMessage();
+        }
+
+        return response()->json([
+            'success' => $success,
+            'output' => $output,
+        ]);
+    })->middleware('role:saas-admin')->name('artisan.run');
 });
 
 require __DIR__.'/auth.php';
