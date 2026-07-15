@@ -199,23 +199,22 @@ new #[Layout('layouts.app')] class extends Component
             @forelse ($categories as $category)
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
                     <div>
-                        <!-- Header with tag avatar & actions -->
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="flex items-center gap-3">
+                        <div class="flex items-start justify-between gap-4 min-w-0 w-full">
+                            <div class="flex items-center gap-3 min-w-0">
                                 <div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                 </div>
-                                <div>
-                                    <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
                                         {{ $category->name }}
                                     </h3>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5">{{ __('Registered') }} {{ $category->created_at->format('M d, Y') }}</p>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 truncate">{{ __('Registered') }} {{ $category->created_at->format('M d, Y') }}</p>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-1.5">
+                            <div class="flex items-center gap-1.5 shrink-0">
                                 <!-- Edit Button -->
                                 <button wire:click="editCategory({{ $category->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

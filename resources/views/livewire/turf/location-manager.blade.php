@@ -205,9 +205,8 @@ new #[Layout('layouts.app')] class extends Component
             @forelse ($locations as $loc)
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative group">
                     <div>
-                        <!-- Header & Actions -->
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="flex items-center gap-3">
+                        <div class="flex items-start justify-between gap-4 min-w-0 w-full">
+                            <div class="flex items-center gap-3 min-w-0">
                                 <div class="h-11 w-11 shrink-0 rounded-2xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/50">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -222,7 +221,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition">
+                            <div class="flex items-center gap-1.5 shrink-0 opacity-80 group-hover:opacity-100 transition">
                                 <button wire:click="editLocation({{ $loc->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600/50 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />

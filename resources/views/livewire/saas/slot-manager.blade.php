@@ -224,16 +224,15 @@ new #[Layout('layouts.app')] class extends Component
             @forelse ($slots as $slot)
                 <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
                     <div>
-                        <!-- Header with tag avatar & actions -->
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="flex items-center gap-3">
+                        <div class="flex items-start justify-between gap-4 min-w-0 w-full">
+                            <div class="flex items-center gap-3 min-w-0">
                                 <div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <div>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{
+                                <div class="min-w-0">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider truncate {{
                                         $slot->category->name === 'Morning' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200/20' : (
                                         $slot->category->name === 'Afternoon' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/20' : (
                                         $slot->category->name === 'Evening' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200/20' :
@@ -241,11 +240,11 @@ new #[Layout('layouts.app')] class extends Component
                                     }}">
                                         {{ $slot->category->name }}
                                     </span>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1">{{ __('Duration:') }} {{ $slot->duration }} {{ __('min') }}</p>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1 truncate">{{ __('Duration:') }} {{ $slot->duration }} {{ __('min') }}</p>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-1.5">
+                            <div class="flex items-center gap-1.5 shrink-0">
                                 <!-- Edit Button -->
                                 <button wire:click="editSlot({{ $slot->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
