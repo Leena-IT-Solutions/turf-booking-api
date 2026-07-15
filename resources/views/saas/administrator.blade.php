@@ -87,142 +87,149 @@
                     <!-- Artisan Commands Section -->
                     <div class="border-t border-gray-100 dark:border-gray-700/60 pt-6">
                         <h4 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Artisan Console Commands</h4>
-                        <p class="text-gray-500 dark:text-gray-400 text-xs mt-2 leading-relaxed mb-4">
+                        <p class="text-gray-500 dark:text-gray-400 text-xs mt-2 leading-relaxed mb-6">
                             Run database migrations, clear system cache bundles, or optimize execution performance directly on the active environment.
                         </p>
-                        <div class="flex flex-wrap gap-2.5">
-                            <button 
-                                @click="runCommand('migrate')" 
-                                :disabled="isUpdating"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                            >
-                                {{ __('Migrate') }}
-                            </button>
-                            <button 
-                                @click="runCommand('migrate-fresh')" 
-                                :disabled="isUpdating"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                            >
-                                {{ __('Migrate Fresh & Seed') }}
-                            </button>
-                            <button 
-                                @click="runCommand('seed')" 
-                                :disabled="isUpdating"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                            >
-                                {{ __('Seed DB') }}
-                            </button>
-                            <button 
-                                @click="runCommand('clear-cache')" 
-                                :disabled="isUpdating"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                            >
-                                {{ __('Optimize Clear') }}
-                            </button>
-                            <button 
-                                @click="runCommand('optimize')" 
-                                :disabled="isUpdating"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                            >
-                                {{ __('Optimize Cache') }}
-                            </button>
-                              <button 
-                                  @click="runCommand('composer-install')" 
-                                  :disabled="isUpdating"
-                                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                              >
-                                  {{ __('Composer Install') }}
-                              </button>
-                              <button 
-                                  @click="runCommand('fix-permissions')" 
-                                  :disabled="isUpdating"
-                                  class="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-650 hover:bg-purple-750 disabled:bg-purple-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer"
-                              >
-                                  {{ __('Permissions 777') }}
-                              </button>
-                         </div>
 
-                        <!-- Command Explanations & Descriptions -->
-                        <div class="mt-6 border-t border-gray-150 dark:border-gray-700/60 pt-6">
-                            <h5 class="text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-4">Command Guide & Best Use Cases</h5>
-                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1.5">
-                                            <span class="inline-block w-2.5 h-2.5 bg-indigo-500 rounded-lg"></span>
-                                            <span class="text-xs font-bold text-gray-850 dark:text-gray-250">Migrate</span>
-                                        </div>
-                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
-                                            Runs pending database schema updates. Best use case: After pulling updates that introduce new tables or columns.
-                                        </p>
+                        <div class="space-y-4">
+                            <!-- Command 1: Migrate -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-block w-2.5 h-2.5 bg-indigo-500 rounded-lg"></span>
+                                        <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Migrate</h5>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Runs pending database schema updates. Best use case: After pulling updates that introduce new tables, columns, or relations.
+                                    </p>
                                 </div>
-                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1.5">
-                                            <span class="inline-block w-2.5 h-2.5 bg-amber-500 rounded-lg"></span>
-                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Migrate Fresh & Seed</span>
-                                        </div>
-                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
-                                            <strong>Caution:</strong> Drops all tables and re-seeds. Best use case: Hard-resetting system to default configurations. Permanent data loss!
-                                        </p>
+                                <button 
+                                    @click="runCommand('migrate')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
+                                >
+                                    {{ __('Migrate') }}
+                                </button>
+                            </div>
+
+                            <!-- Command 2: Migrate Fresh & Seed -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-block w-2.5 h-2.5 bg-amber-500 rounded-lg"></span>
+                                        <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Migrate Fresh & Seed</h5>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        <strong>Caution:</strong> Drops all database tables and runs all seeders from scratch. Best use case: Hard-resetting system to default configurations. Permanent data loss!
+                                    </p>
                                 </div>
-                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1.5">
-                                            <span class="inline-block w-2.5 h-2.5 bg-teal-500 rounded-lg"></span>
-                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Seed DB</span>
-                                        </div>
-                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
-                                            Seeds lookups and master entities. Best use case: Resetting test datasets or default listings.
-                                        </p>
+                                <button 
+                                    @click="runCommand('migrate-fresh')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
+                                >
+                                    {{ __('Migrate Fresh & Seed') }}
+                                </button>
+                            </div>
+
+                            <!-- Command 3: Seed DB -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-block w-2.5 h-2.5 bg-teal-500 rounded-lg"></span>
+                                        <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Seed DB</h5>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Populates database tables with default configuration and test relations. Best use case: Restoring missing lookups or default seeded values.
+                                    </p>
                                 </div>
-                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1.5">
-                                            <span class="inline-block w-2.5 h-2.5 bg-rose-500 rounded-lg"></span>
-                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Optimize Clear</span>
-                                        </div>
-                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
-                                            Clears configs, routing, views, and compiled caches. Best use case: If code or settings changes are not reflecting in browser.
-                                        </p>
+                                <button 
+                                    @click="runCommand('seed')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:bg-teal-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
+                                >
+                                    {{ __('Seed DB') }}
+                                </button>
+                            </div>
+
+                            <!-- Command 4: Optimize Clear -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-block w-2.5 h-2.5 bg-rose-500 rounded-lg"></span>
+                                        <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Optimize Clear</h5>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Flushes all system cache compiled bundles (config, route, view). Best use case: If code or config updates are not reflecting.
+                                    </p>
                                 </div>
-                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1.5">
-                                            <span class="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-lg"></span>
-                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Optimize Cache</span>
-                                        </div>
-                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
-                                            Caches configuration, routes, and views. Best use case: Boosting live application performance.
-                                        </p>
+                                <button 
+                                    @click="runCommand('clear-cache')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
+                                >
+                                    {{ __('Optimize Clear') }}
+                                </button>
+                            </div>
+
+                            <!-- Command 5: Optimize Cache -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-lg"></span>
+                                        <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Optimize Cache</h5>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Re-caches config, routes, and views to memory. Best use case: Improving application performance on production environments.
+                                    </p>
                                 </div>
-                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1.5">
-                                            <span class="inline-block w-2.5 h-2.5 bg-sky-500 rounded-lg"></span>
-                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Composer Install</span>
-                                        </div>
-                                        <p class="text-[11px] text-gray-455 dark:text-gray-500 leading-normal">
-                                            Installs package dependencies. Best use case: Syncing library versions after pull updates.
-                                        </p>
+                                <button 
+                                    @click="runCommand('optimize')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
+                                >
+                                    {{ __('Optimize Cache') }}
+                                </button>
+                            </div>
+
+                            <!-- Command 6: Composer Install -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-block w-2.5 h-2.5 bg-sky-500 rounded-lg"></span>
+                                        <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Composer Install</h5>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Installs production package dependencies and optimizes autoloader. Best use case: After updating dependencies or composer.lock files.
+                                    </p>
                                 </div>
-                                <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-4 rounded-2xl flex flex-col justify-between md:col-span-2 lg:col-span-1">
-                                    <div>
-                                        <div class="flex items-center gap-2 mb-1.5">
-                                            <span class="inline-block w-2.5 h-2.5 bg-purple-500 rounded-lg"></span>
-                                            <span class="text-xs font-bold text-gray-855 dark:text-gray-250">Permissions 777</span>
-                                        </div>
-                                        <p class="text-[11px] text-gray-450 dark:text-gray-500 leading-normal">
-                                            Executes `chmod -R 777` on files and folders. Best use case: Fixing directory write errors on storage, logs, and caches.
-                                        </p>
+                                <button 
+                                    @click="runCommand('composer-install')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:bg-sky-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
+                                >
+                                    {{ __('Composer Install') }}
+                                </button>
+                            </div>
+
+                            <!-- Command 7: Permissions 777 -->
+                            <div class="bg-gray-50/50 dark:bg-gray-900/30 border border-gray-100 dark:border-gray-800 p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="space-y-1">
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-block w-2.5 h-2.5 bg-purple-500 rounded-lg"></span>
+                                        <h5 class="text-xs font-bold text-gray-800 dark:text-gray-200">Permissions 777</h5>
                                     </div>
+                                    <p class="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed">
+                                        Executes recursive write permissions (`chmod -R 777`) on project files. Best use case: Resolving directory write access errors (e.g. storage, log, cache folder issues).
+                                    </p>
                                 </div>
+                                <button 
+                                    @click="runCommand('fix-permissions')" 
+                                    :disabled="isUpdating"
+                                    class="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow hover:shadow-md transition duration-150 ease-in-out cursor-pointer md:w-auto w-full shrink-0"
+                                >
+                                    {{ __('Permissions 777') }}
+                                </button>
                             </div>
                         </div>
                     </div>
