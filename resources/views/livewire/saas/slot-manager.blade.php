@@ -210,78 +210,105 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         </div>
 
-        <!-- Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
-            @forelse ($slots as $slot)
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
-                    <div>
-                        <div class="flex items-start justify-between gap-4 min-w-0 w-full">
-                            <div class="flex items-center gap-3 min-w-0">
-                                <div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
-                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
+        <!-- Grouped Categories & Slots -->
+        @if ($slots->isEmpty())
+            <div class="bg-white dark:bg-gray-800 p-12 text-center text-xs text-gray-500 dark:text-gray-400 rounded-3xl border border-gray-100 dark:border-gray-700/50">
+                {{ __('No activity time slots configured.') }}
+            </div>
+        @else
+            <div class="space-y-10">
+                @foreach ($availableCategories as $category)
+                    @php
+                        $categorySlots = $slots->where('slot_category_id', $category->id);
+                    @endphp
+                    @if ($categorySlots->isNotEmpty())
+                        <div class="space-y-4">
+                            <!-- Category Group Header -->
+                            <div class="flex items-center gap-3 border-b border-gray-100 dark:border-gray-800/80 pb-3">
+                                <div class="h-10 w-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-lg border border-indigo-100/50 dark:border-indigo-950/50 shrink-0">
+                                    {{ $category->icon ?: '⏰' }}
                                 </div>
-                                <div class="min-w-0">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider truncate {{
-                                        $slot->category->name === 'Morning' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200/20' : (
-                                        $slot->category->name === 'Afternoon' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/20' : (
-                                        $slot->category->name === 'Evening' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200/20' :
-                                        'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200/20'))
-                                    }}">
-                                        {{ $slot->category->name }}
-                                    </span>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1 truncate">{{ __('Duration:') }} {{ $slot->duration }} {{ __('min') }}</p>
+                                <div>
+                                    <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ $category->name }}</h3>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">
+                                        {{ $categorySlots->count() }} {{ $categorySlots->count() === 1 ? __('Active Slot') : __('Active Slots') }}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-1.5 shrink-0">
-                                <!-- Edit Button -->
-                                <button wire:click="editSlot({{ $slot->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
-                                
-                                <!-- Delete Button -->
-                                <button wire:click="confirmDelete({{ $slot->id }})" class="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10 dark:border-red-900/10">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
+                            <!-- Cards Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+                                @foreach ($categorySlots as $slot)
+                                    <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
+                                        <div>
+                                            <div class="flex items-start justify-between gap-4 min-w-0 w-full">
+                                                <div class="flex items-center gap-3 min-w-0">
+                                                    <div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
+                                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                    </div>
+                                                    <div class="min-w-0">
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider truncate {{
+                                                            $slot->category->name === 'Morning' ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border border-indigo-200/20' : (
+                                                            $slot->category->name === 'Afternoon' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200/20' : (
+                                                            $slot->category->name === 'Evening' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-200/20' : (
+                                                            $slot->category->name === 'Midnight' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border border-purple-200/20' :
+                                                            'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200/20')))
+                                                        }}">
+                                                            {{ $slot->category->name }}
+                                                        </span>
+                                                        <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1 truncate">{{ __('Duration:') }} {{ $slot->duration }} {{ __('min') }}</p>
+                                                    </div>
+                                                </div>
 
-                        <!-- Time Interval Display -->
-                        <div class="mt-5 space-y-1">
-                            <div class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 font-mono">
-                                {{ date('h:i A', strtotime($slot->from_time)) }}
-                                <span class="text-gray-400 font-normal">→</span>
-                                {{ date('h:i A', strtotime($slot->to_time)) }}
-                            </div>
-                        </div>
+                                                <div class="flex items-center gap-1.5 shrink-0">
+                                                    <!-- Edit Button -->
+                                                    <button wire:click="editSlot({{ $slot->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                                        </svg>
+                                                    </button>
+                                                    
+                                                    <!-- Delete Button -->
+                                                    <button wire:click="confirmDelete({{ $slot->id }})" class="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10 dark:border-red-900/10">
+                                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
 
-                        <!-- Status Toggle Section -->
-                        <div class="mt-6 flex items-center justify-between border-t border-gray-50 dark:border-gray-700/40 pt-4">
-                            <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Slot Availability') }}</span>
-                            <div class="flex items-center gap-3">
-                                <span class="text-[10px] font-black uppercase tracking-wider {{ $slot->is_active ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500' }}">
-                                    {{ $slot->is_active ? __('Active') : __('Inactive') }}
-                                </span>
-                                <!-- Custom Toggle Button -->
-                                <button wire:click="toggleStatus({{ $slot->id }})" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $slot->is_active ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700' }}">
-                                    <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $slot->is_active ? 'translate-x-4' : 'translate-x-0' }}"></span>
-                                </button>
+                                            <!-- Time Display -->
+                                            <div class="mt-5 space-y-1">
+                                                <div class="text-sm font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 font-mono">
+                                                    {{ date('h:i A', strtotime($slot->from_time)) }}
+                                                    <span class="text-gray-400 font-normal">→</span>
+                                                    {{ date('h:i A', strtotime($slot->to_time)) }}
+                                                </div>
+                                            </div>
+
+                                            <!-- Toggle -->
+                                            <div class="mt-6 flex items-center justify-between border-t border-gray-50 dark:border-gray-700/40 pt-4">
+                                                <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Slot Availability') }}</span>
+                                                <div class="flex items-center gap-3">
+                                                    <span class="text-[10px] font-black uppercase tracking-wider {{ $slot->is_active ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500' }}">
+                                                        {{ $slot->is_active ? __('Active') : __('Inactive') }}
+                                                    </span>
+                                                    <button wire:click="toggleStatus({{ $slot->id }})" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $slot->is_active ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700' }}">
+                                                        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $slot->is_active ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
-                    </div>
-                </div>
-            @empty
-                <div class="col-span-full bg-white dark:bg-gray-800 p-12 text-center text-xs text-gray-500 dark:text-gray-400 rounded-3xl border border-gray-100 dark:border-gray-700/50">
-                    {{ __('No activity time slots configured.') }}
-                </div>
-            @endforelse
-        </div>
+                    @endif
+                @endforeach
+            </div>
+        @endif
 
         <!-- Create/Edit Modal -->
         @if ($showModal)
