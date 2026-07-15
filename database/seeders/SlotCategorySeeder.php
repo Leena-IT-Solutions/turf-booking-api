@@ -17,6 +17,7 @@ class SlotCategorySeeder extends Seeder
             'Afternoon' => '☀️',
             'Evening' => '🌇',
             'Night' => '🌙',
+            'Midnight' => '🌌',
         ];
 
         foreach ($categories as $name => $icon) {

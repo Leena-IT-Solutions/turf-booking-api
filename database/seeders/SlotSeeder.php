@@ -15,6 +15,7 @@ class SlotSeeder extends Seeder
     {
         // Ensure categories exist
         $categories = [
+            'Midnight' => SlotCategory::firstOrCreate(['name' => 'Midnight']),
             'Morning' => SlotCategory::firstOrCreate(['name' => 'Morning']),
             'Afternoon' => SlotCategory::firstOrCreate(['name' => 'Afternoon']),
             'Evening' => SlotCategory::firstOrCreate(['name' => 'Evening']),
@@ -34,7 +35,9 @@ class SlotSeeder extends Seeder
             $toTime = sprintf('%02d:%02d:00', $toHour % 24, $toMin);
 
             // Determine category
-            if ($fromHour >= 6 && $fromHour < 12) {
+            if ($fromHour >= 0 && $fromHour < 6) {
+                $categoryName = 'Midnight';
+            } elseif ($fromHour >= 6 && $fromHour < 12) {
                 $categoryName = 'Morning';
             } elseif ($fromHour >= 12 && $fromHour < 17) {
                 $categoryName = 'Afternoon';
@@ -46,11 +49,11 @@ class SlotSeeder extends Seeder
 
             $category = $categories[$categoryName];
 
-            Slot::firstOrCreate([
-                'slot_category_id' => $category->id,
+            Slot::updateOrCreate([
                 'from_time' => $fromTime,
                 'to_time' => $toTime,
             ], [
+                'slot_category_id' => $category->id,
                 'duration' => 30,
                 'is_active' => true,
             ]);
