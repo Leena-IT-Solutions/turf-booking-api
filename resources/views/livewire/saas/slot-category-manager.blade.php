@@ -15,6 +15,7 @@ new #[Layout('layouts.app')] class extends Component
 
     // Form inputs
     public $name = '';
+    public $icon = '';
     public $is_active = true;
 
     // Editing state
@@ -58,7 +59,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function resetForm()
     {
-        $this->reset(['name', 'is_active', 'editingId']);
+        $this->reset(['name', 'icon', 'is_active', 'editingId']);
         $this->resetErrorBag();
         $this->showModal = false;
     }
@@ -69,6 +70,7 @@ new #[Layout('layouts.app')] class extends Component
         $category = SlotCategory::findOrFail($id);
         $this->editingId = $category->id;
         $this->name = $category->name;
+        $this->icon = $category->icon;
         $this->is_active = $category->is_active;
         $this->showModal = true;
     }
@@ -82,6 +84,7 @@ new #[Layout('layouts.app')] class extends Component
                 'max:100',
                 Rule::unique('slot_categories')->ignore($this->editingId),
             ],
+            'icon' => 'nullable|string|max:50',
             'is_active' => 'boolean',
         ];
 
@@ -97,6 +100,7 @@ new #[Layout('layouts.app')] class extends Component
                 'max:100',
                 Rule::unique('slot_categories')->ignore($this->editingId),
             ],
+            'icon' => 'nullable|string|max:50',
             'is_active' => 'boolean',
         ];
 
@@ -106,6 +110,7 @@ new #[Layout('layouts.app')] class extends Component
             $category = SlotCategory::findOrFail($this->editingId);
             $category->update([
                 'name' => $this->name,
+                'icon' => $this->icon,
                 'is_active' => $this->is_active,
             ]);
 
@@ -113,6 +118,7 @@ new #[Layout('layouts.app')] class extends Component
         } else {
             SlotCategory::create([
                 'name' => $this->name,
+                'icon' => $this->icon,
                 'is_active' => $this->is_active,
             ]);
 
@@ -201,10 +207,8 @@ new #[Layout('layouts.app')] class extends Component
                     <div>
                         <div class="flex items-start justify-between gap-4 min-w-0 w-full">
                             <div class="flex items-center gap-3 min-w-0">
-                                <div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
-                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
+                                <div class="h-11 w-11 shrink-0 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/50 shadow-sm">
+                                    <x-icon name="{{ $category->icon }}" class="h-5 w-5" />
                                 </div>
                                 <div class="min-w-0">
                                     <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
@@ -284,8 +288,15 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Name Field -->
                             <div>
                                 <x-input-label for="categoryName" :value="__('Category Name')" />
-                                <x-text-input wire:model.live.debounce.250ms="name" id="categoryName" type="text" class="mt-1.5 block w-full" placeholder="Football, Badminton, etc." />
+                                <x-text-input wire:model.live.debounce.250ms="name" id="categoryName" type="text" class="mt-1.5 block w-full" placeholder="Morning, Afternoon, etc." />
                                 <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                            </div>
+
+                            <!-- Icon Field -->
+                            <div>
+                                <x-input-label for="categoryIcon" :value="__('Category Icon Name or Emoji')" />
+                                <x-text-input wire:model.live.debounce.250ms="icon" id="categoryIcon" type="text" class="mt-1.5 block w-full" placeholder="e.g. morning, sunset, night, or 🌅, ☀️, 🌇, 🌙" />
+                                <x-input-error :messages="$errors->get('icon')" class="mt-2" />
                             </div>
 
                             <!-- Is Active Field -->

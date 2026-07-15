@@ -11,6 +11,7 @@ class SlotCategory extends Model
 
     protected $fillable = [
         'name',
+        'icon',
         'is_active',
     ];
 

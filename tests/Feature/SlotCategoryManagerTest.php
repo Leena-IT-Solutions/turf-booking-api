@@ -51,14 +51,16 @@ class SlotCategoryManagerTest extends TestCase
         $this->actingAs($admin);
 
         $component = Volt::test('saas.slot-category-manager')
-            ->set('name', 'Football')
+            ->set('name', 'Morning')
+            ->set('icon', 'sun')
             ->set('is_active', true)
             ->call('saveCategory');
 
         $component->assertHasNoErrors();
 
         $this->assertDatabaseHas('slot_categories', [
-            'name' => 'Football',
+            'name' => 'Morning',
+            'icon' => 'sun',
             'is_active' => true,
         ]);
     }
@@ -72,6 +74,7 @@ class SlotCategoryManagerTest extends TestCase
 
         SlotCategory::create([
             'name' => 'Badminton',
+            'icon' => '🏸',
             'is_active' => true,
         ]);
 
@@ -89,19 +92,23 @@ class SlotCategoryManagerTest extends TestCase
         $this->actingAs($admin);
 
         $category = SlotCategory::create([
-            'name' => 'Tennis',
+            'name' => 'Evening',
+            'icon' => 'sunset',
             'is_active' => true,
         ]);
 
         $component = Volt::test('saas.slot-category-manager')
             ->call('editCategory', $category->id)
-            ->set('name', 'Table Tennis')
+            ->assertSet('icon', 'sunset')
+            ->set('name', 'Night')
+            ->set('icon', 'moon')
             ->set('is_active', false)
             ->call('saveCategory');
 
         $component->assertHasNoErrors();
 
-        $this->assertEquals('Table Tennis', $category->fresh()->name);
+        $this->assertEquals('Night', $category->fresh()->name);
+        $this->assertEquals('moon', $category->fresh()->icon);
         $this->assertFalse($category->fresh()->is_active);
     }
 
