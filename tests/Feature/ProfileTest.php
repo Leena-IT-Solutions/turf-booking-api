@@ -33,6 +33,7 @@ class ProfileTest extends TestCase
         $component = Volt::test('profile.update-profile-information-form')
             ->set('name', 'Test User')
             ->set('email', 'test@example.com')
+            ->set('mobile', '9876543210')
             ->call('updateProfileInformation');
 
         $component
@@ -43,6 +44,7 @@ class ProfileTest extends TestCase
 
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
+        $this->assertSame('9876543210', $user->mobile);
         $this->assertNull($user->email_verified_at);
     }
 
