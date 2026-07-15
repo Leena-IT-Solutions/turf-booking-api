@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Turf;
+use App\Models\Sport;
 use App\Models\TurfSport;
 use Illuminate\Database\Seeder;
 
@@ -16,26 +17,18 @@ class TurfSportSeeder extends Seeder
         TurfSport::truncate();
 
         $turfs = Turf::all();
-        if ($turfs->isEmpty()) {
+        $sports = Sport::all();
+        if ($turfs->isEmpty() || $sports->isEmpty()) {
             return;
         }
 
-        $defaultSports = [
-            'Football (5-a-side)',
-            'Football (7-a-side)',
-            'Box Cricket',
-            'Lawn Tennis',
-            'Volleyball',
-            'Kabaddi',
-        ];
-
         foreach ($turfs as $turf) {
-            // Pick 2 random sports for each turf
-            $selected = (array) array_rand(array_flip($defaultSports), 2);
-            foreach ($selected as $sport) {
+            // Pick 2 random sport IDs for each turf
+            $selectedIds = $sports->random(2)->pluck('id');
+            foreach ($selectedIds as $sportId) {
                 TurfSport::create([
                     'turf_id' => $turf->id,
-                    'sport' => $sport,
+                    'sport_id' => $sportId,
                     'is_active' => true,
                 ]);
             }

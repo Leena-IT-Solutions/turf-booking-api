@@ -14,7 +14,7 @@ class TurfEquipment extends Model
 
     protected $fillable = [
         'turf_id',
-        'equipment',
+        'equipment_id',
         'is_active',
     ];
 
@@ -25,5 +25,10 @@ class TurfEquipment extends Model
     public function turf(): BelongsTo
     {
         return $this->belongsTo(Turf::class);
+    }
+
+    public function equipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class);
     }
 }

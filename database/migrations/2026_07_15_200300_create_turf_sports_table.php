@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('turf_sports', function (Blueprint $blueprint) {
             $blueprint->id();
             $blueprint->foreignId('turf_id')->constrained('turfs')->cascadeOnDelete();
-            $blueprint->string('sport');
+            $blueprint->foreignId('sport_id')->constrained('sports')->cascadeOnDelete();
             $blueprint->boolean('is_active')->default(true);
             $blueprint->timestamps();
         });

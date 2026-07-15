@@ -5,8 +5,11 @@ namespace Tests\Feature;
 use App\Models\Location;
 use App\Models\Turf;
 use App\Models\TurfPhoto;
+use App\Models\Facility;
 use App\Models\TurfFacility;
+use App\Models\Equipment;
 use App\Models\TurfEquipment;
+use App\Models\Sport;
 use App\Models\TurfSport;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
@@ -22,6 +25,12 @@ class TurfSubEntitiesTest extends TestCase
 
     private User $user;
     private Turf $turf;
+    private Facility $facility1;
+    private Facility $facility2;
+    private Equipment $equipment1;
+    private Equipment $equipment2;
+    private Sport $sport1;
+    private Sport $sport2;
 
     protected function setUp(): void
     {
@@ -44,6 +53,16 @@ class TurfSubEntitiesTest extends TestCase
             'type' => 'Synthetic',
             'is_active' => true,
         ]);
+
+        // Seed master options
+        $this->facility1 = Facility::create(['name' => 'Locker Room', 'is_active' => true]);
+        $this->facility2 = Facility::create(['name' => 'VIP Changing Room', 'is_active' => true]);
+
+        $this->equipment1 = Equipment::create(['name' => 'FIFA Pro Soccer Balls', 'is_active' => true]);
+        $this->equipment2 = Equipment::create(['name' => 'Training Cones', 'is_active' => true]);
+
+        $this->sport1 = Sport::create(['name' => 'Box Cricket', 'is_active' => true]);
+        $this->sport2 = Sport::create(['name' => 'Indoor Football', 'is_active' => true]);
     }
 
     private function testComponent(string $name)
@@ -99,10 +118,10 @@ class TurfSubEntitiesTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        // 1. Create Facility
+        // 1. Create Facility Link
         $this->testComponent('turf.facilities-manager')
             ->call('openCreateModal')
-            ->set('facility', 'Locker Room')
+            ->set('facility_id', $this->facility1->id)
             ->set('is_active', true)
             ->call('saveFacility')
             ->assertHasNoErrors()
@@ -110,22 +129,22 @@ class TurfSubEntitiesTest extends TestCase
 
         $this->assertDatabaseHas('turf_facilities', [
             'turf_id' => $this->turf->id,
-            'facility' => 'Locker Room',
+            'facility_id' => $this->facility1->id,
             'is_active' => true,
         ]);
 
         $facility = TurfFacility::first();
 
-        // 2. Edit Facility
+        // 2. Edit Facility Link
         $this->testComponent('turf.facilities-manager')
             ->call('openEditModal', $facility->id)
-            ->assertSet('facility', 'Locker Room')
-            ->set('facility', 'VIP Changing Room')
+            ->assertSet('facility_id', $this->facility1->id)
+            ->set('facility_id', $this->facility2->id)
             ->call('saveFacility')
             ->assertHasNoErrors()
             ->assertSee('Facility updated successfully.');
 
-        $this->assertEquals('VIP Changing Room', $facility->fresh()->facility);
+        $this->assertEquals($this->facility2->id, $facility->fresh()->facility_id);
 
         // 3. Toggle Active
         $this->testComponent('turf.facilities-manager')
@@ -133,7 +152,7 @@ class TurfSubEntitiesTest extends TestCase
 
         $this->assertFalse($facility->fresh()->is_active);
 
-        // 4. Delete Facility
+        // 4. Delete Facility Link
         $this->testComponent('turf.facilities-manager')
             ->call('confirmDelete', $facility->id)
             ->call('performDelete')
@@ -146,10 +165,10 @@ class TurfSubEntitiesTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        // 1. Create Equipment
+        // 1. Create Equipment Link
         $this->testComponent('turf.equipments-manager')
             ->call('openCreateModal')
-            ->set('equipment', 'FIFA Pro Soccer Balls')
+            ->set('equipment_id', $this->equipment1->id)
             ->set('is_active', true)
             ->call('saveEquipment')
             ->assertHasNoErrors()
@@ -157,22 +176,22 @@ class TurfSubEntitiesTest extends TestCase
 
         $this->assertDatabaseHas('turf_equipments', [
             'turf_id' => $this->turf->id,
-            'equipment' => 'FIFA Pro Soccer Balls',
+            'equipment_id' => $this->equipment1->id,
             'is_active' => true,
         ]);
 
         $equipment = TurfEquipment::first();
 
-        // 2. Edit Equipment
+        // 2. Edit Equipment Link
         $this->testComponent('turf.equipments-manager')
             ->call('openEditModal', $equipment->id)
-            ->assertSet('equipment', 'FIFA Pro Soccer Balls')
-            ->set('equipment', 'Training Cones')
+            ->assertSet('equipment_id', $this->equipment1->id)
+            ->set('equipment_id', $this->equipment2->id)
             ->call('saveEquipment')
             ->assertHasNoErrors()
             ->assertSee('Equipment updated successfully.');
 
-        $this->assertEquals('Training Cones', $equipment->fresh()->equipment);
+        $this->assertEquals($this->equipment2->id, $equipment->fresh()->equipment_id);
 
         // 3. Toggle Active
         $this->testComponent('turf.equipments-manager')
@@ -180,7 +199,7 @@ class TurfSubEntitiesTest extends TestCase
 
         $this->assertFalse($equipment->fresh()->is_active);
 
-        // 4. Delete Equipment
+        // 4. Delete Equipment Link
         $this->testComponent('turf.equipments-manager')
             ->call('confirmDelete', $equipment->id)
             ->call('performDelete')
@@ -193,10 +212,10 @@ class TurfSubEntitiesTest extends TestCase
     {
         $this->actingAs($this->user);
 
-        // 1. Create Sport
+        // 1. Create Sport Link
         $this->testComponent('turf.sports-manager')
             ->call('openCreateModal')
-            ->set('sport', 'Box Cricket')
+            ->set('sport_id', $this->sport1->id)
             ->set('is_active', true)
             ->call('saveSport')
             ->assertHasNoErrors()
@@ -204,22 +223,22 @@ class TurfSubEntitiesTest extends TestCase
 
         $this->assertDatabaseHas('turf_sports', [
             'turf_id' => $this->turf->id,
-            'sport' => 'Box Cricket',
+            'sport_id' => $this->sport1->id,
             'is_active' => true,
         ]);
 
         $sport = TurfSport::first();
 
-        // 2. Edit Sport
+        // 2. Edit Sport Link
         $this->testComponent('turf.sports-manager')
             ->call('openEditModal', $sport->id)
-            ->assertSet('sport', 'Box Cricket')
-            ->set('sport', 'Indoor Football')
+            ->assertSet('sport_id', $this->sport1->id)
+            ->set('sport_id', $this->sport2->id)
             ->call('saveSport')
             ->assertHasNoErrors()
             ->assertSee('Sport updated successfully.');
 
-        $this->assertEquals('Indoor Football', $sport->fresh()->sport);
+        $this->assertEquals($this->sport2->id, $sport->fresh()->sport_id);
 
         // 3. Toggle Active
         $this->testComponent('turf.sports-manager')
@@ -227,7 +246,7 @@ class TurfSubEntitiesTest extends TestCase
 
         $this->assertFalse($sport->fresh()->is_active);
 
-        // 4. Delete Sport
+        // 4. Delete Sport Link
         $this->testComponent('turf.sports-manager')
             ->call('confirmDelete', $sport->id)
             ->call('performDelete')

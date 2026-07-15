@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Turf;
+use App\Models\Sport;
 use App\Models\TurfSport;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -9,8 +10,8 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.app')] class extends Component
 {
     // Form properties
-    public $sportId = null;
-    public $sport = '';
+    public $turfSportId = null;
+    public $sport_id = '';
     public $is_active = true;
 
     // Modals visibility state
@@ -27,7 +28,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function openCreateModal()
     {
-        $this->reset(['sportId', 'sport', 'is_active']);
+        $this->reset(['turfSportId', 'sport_id', 'is_active']);
         $this->resetErrorBag();
         $this->isEditing = false;
         $this->showFormModal = true;
@@ -42,8 +43,8 @@ new #[Layout('layouts.app')] class extends Component
             $q->where('user_id', auth()->id());
         })->findOrFail($id);
 
-        $this->sportId = $item->id;
-        $this->sport = $item->sport;
+        $this->turfSportId = $item->id;
+        $this->sport_id = $item->sport_id;
         $this->is_active = $item->is_active;
 
         $this->showFormModal = true;
@@ -57,7 +58,7 @@ new #[Layout('layouts.app')] class extends Component
     public function saveSport()
     {
         $this->validate([
-            'sport' => 'required|string|max:100',
+            'sport_id' => 'required|exists:sports,id',
             'is_active' => 'required|boolean',
         ]);
 
@@ -72,13 +73,24 @@ new #[Layout('layouts.app')] class extends Component
             $q->where('user_id', auth()->id());
         })->findOrFail($activeTurfId);
 
+        // Check if sport option is already added to this turf
+        $query = TurfSport::where('turf_id', $turf->id)
+            ->where('sport_id', $this->sport_id);
+        if ($this->isEditing) {
+            $query->where('id', '!=', $this->turfSportId);
+        }
+        if ($query->exists()) {
+            $this->addError('sport_id', __('This sport is already configured for this turf.'));
+            return;
+        }
+
         if ($this->isEditing) {
             $item = TurfSport::whereHas('turf.location', function ($q) {
                 $q->where('user_id', auth()->id());
-            })->findOrFail($this->sportId);
+            })->findOrFail($this->turfSportId);
 
             $item->update([
-                'sport' => $this->sport,
+                'sport_id' => $this->sport_id,
                 'is_active' => $this->is_active,
             ]);
 
@@ -86,7 +98,7 @@ new #[Layout('layouts.app')] class extends Component
         } else {
             TurfSport::create([
                 'turf_id' => $turf->id,
-                'sport' => $this->sport,
+                'sport_id' => $this->sport_id,
                 'is_active' => $this->is_active,
             ]);
 
@@ -145,13 +157,22 @@ new #[Layout('layouts.app')] class extends Component
             })->find($activeTurfId);
 
             if ($turf) {
-                $sports = TurfSport::where('turf_id', $turf->id)->orderBy('sport', 'asc')->get();
+                $sports = TurfSport::with('sport')
+                    ->where('turf_id', $turf->id)
+                    ->get()
+                    ->sortBy(function($item) {
+                        return $item->sport->name ?? '';
+                    });
             }
         }
+
+        // Active global master sports list
+        $masterSports = Sport::where('is_active', true)->orderBy('name', 'asc')->get();
 
         return [
             'turf' => $turf,
             'sports' => $sports,
+            'masterSports' => $masterSports,
         ];
     }
 }; ?>
@@ -182,13 +203,13 @@ new #[Layout('layouts.app')] class extends Component
             <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Sports for') }} <span class="text-indigo-600 dark:text-indigo-400">{{ $turf->name }}</span></h2>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ __('Manage sports categories, box cricket configurations, football pitches, or tennis courts supported on this field.') }}</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ __('Configure sport categories or box match types associated with this turf.') }}</p>
                 </div>
                 <button type="button" wire:click="openCreateModal" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition flex items-center justify-center gap-2 cursor-pointer shrink-0">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
-                    {{ __('Add Sport') }}
+                    {{ __('Link Sport') }}
                 </button>
             </div>
 
@@ -200,8 +221,8 @@ new #[Layout('layouts.app')] class extends Component
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h2a2.5 2.5 0 002.5-2.5V10a2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('No Sports Found') }}</h3>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">{{ __('Add sports to define what games (e.g. Football 5-a-side, Box Cricket) can be scheduled on this field.') }}</p>
+                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('No Sports Configured') }}</h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-xs mx-auto leading-relaxed">{{ __('Link sports matches to this turf field to allow sports filtering on the public view.') }}</p>
                 </div>
             @else
                 <!-- Sports List Table -->
@@ -210,16 +231,16 @@ new #[Layout('layouts.app')] class extends Component
                         <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-750">
                             <thead class="bg-gray-50/55 dark:bg-gray-900/10">
                                 <tr>
-                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Sport Name') }}</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Sport') }}</th>
                                     <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Status') }}</th>
-                                    <th scope="col" class="px-6 py-4 class text-right text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider pr-8">{{ __('Actions') }}</th>
+                                    <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider pr-8">{{ __('Actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-750 bg-transparent">
                                 @foreach ($sports as $sportItem)
                                     <tr class="hover:bg-gray-50/30 dark:hover:bg-gray-800/10 transition">
                                         <td class="px-6 py-4.5 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-gray-100">
-                                            {{ $sportItem->sport }}
+                                            {{ $sportItem->sport->name ?? __('Unknown') }}
                                         </td>
                                         <td class="px-6 py-4.5 whitespace-nowrap">
                                             <button type="button" wire:click="toggleActive({{ $sportItem->id }})" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer transition {{ $sportItem->is_active ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/30' : 'bg-gray-55 text-gray-500 dark:bg-gray-900 dark:text-gray-400 border border-gray-200 dark:border-gray-800' }}">
@@ -262,7 +283,7 @@ new #[Layout('layouts.app')] class extends Component
                     <div class="p-6">
                         <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700/50">
                             <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">
-                                {{ $isEditing ? __('Edit Sport') : __('Add New Sport') }}
+                                {{ $isEditing ? __('Edit Turf Sport') : __('Link Turf Sport') }}
                             </h3>
                             <button type="button" @click="formModal = false" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 cursor-pointer">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -272,20 +293,25 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <form wire:submit="saveSport" class="space-y-4 mt-4">
-                            <!-- Sport Name -->
+                            <!-- Sport Name Dropdown -->
                             <div>
-                                <label for="sport" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
-                                    {{ __('Sport Name') }}
+                                <label for="sport_id" class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+                                    {{ __('Select Sport Option') }}
                                 </label>
-                                <input type="text" id="sport" wire:model="sport" class="block w-full px-4 py-3 text-sm rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out" placeholder="e.g. Football (5-a-side), Box Cricket">
-                                <x-input-error :messages="$errors->get('sport')" class="mt-2" />
+                                <select id="sport_id" wire:model="sport_id" class="block w-full px-4 py-3 text-sm rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out">
+                                    <option value="">{{ __('Select an option...') }}</option>
+                                    @foreach ($masterSports as $opt)
+                                        <option value="{{ $opt->id }}">{{ $opt->name }}</option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('sport_id')" class="mt-2" />
                             </div>
 
                             <!-- Is Active status toggle -->
                             <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-250 dark:border-gray-700">
                                 <div class="flex flex-col">
                                     <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Sport Active Status') }}</span>
-                                    <span class="text-[10px] text-gray-400 mt-0.5">{{ __('Active sports configurations are visible to end users during booking.') }}</span>
+                                    <span class="text-[10px] text-gray-400 mt-0.5">{{ __('Active sports are visible to end users during booking.') }}</span>
                                 </div>
                                 <button type="button" @click="@this.set('is_active', !@this.get('is_active'))" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none" :class="@this.get('is_active') ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700'">
                                     <span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out" :class="@this.get('is_active') ? 'translate-x-5' : 'translate-x-0'"></span>
@@ -297,7 +323,7 @@ new #[Layout('layouts.app')] class extends Component
                                     {{ __('Cancel') }}
                                 </button>
                                 <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition cursor-pointer">
-                                    {{ $isEditing ? __('Save Changes') : __('Create Sport') }}
+                                    {{ $isEditing ? __('Save Changes') : __('Link Sport') }}
                                 </button>
                             </div>
                         </form>
@@ -324,10 +350,10 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                             <div>
                                 <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                    {{ __('Delete Sport') }}
+                                    {{ __('Remove Sport Linkage') }}
                                 </h3>
                                 <p class="text-xs text-gray-400 mt-1">
-                                    {{ __('Are you sure you want to permanently delete this sport configuration? This will remove the sport linkage and cannot be undone.') }}
+                                    {{ __('Are you sure you want to remove this sport from this turf? This cannot be undone.') }}
                                 </p>
                             </div>
                         </div>
@@ -337,7 +363,7 @@ new #[Layout('layouts.app')] class extends Component
                                 {{ __('Cancel') }}
                             </button>
                             <button type="button" wire:click="performDelete" class="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md shadow-red-500/20 transition cursor-pointer">
-                                {{ __('Delete') }}
+                                {{ __('Remove') }}
                             </button>
                         </div>
                     </div>
