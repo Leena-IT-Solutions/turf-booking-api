@@ -508,7 +508,7 @@ new #[Layout('layouts.app')] class extends Component
                     <button 
                         type="button" 
                         @click="@this.call('resetForm')" 
-                        class="px-4 py-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-750 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl border border-gray-200/50 dark:border-gray-600 cursor-pointer"
+                        class="px-4 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
                     >
                         {{ __('Cancel') }}
                     </button>
@@ -573,7 +573,7 @@ new #[Layout('layouts.app')] class extends Component
                 <button 
                     type="button" 
                     @click="@this.call('cancelDelete')" 
-                    class="px-4 py-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-750 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl border border-gray-200/50 dark:border-gray-600 cursor-pointer"
+                    class="px-4 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
                 >
                     {{ __('Cancel') }}
                 </button>
