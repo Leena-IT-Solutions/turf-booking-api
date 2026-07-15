@@ -27,6 +27,8 @@ class DatabaseSeeder extends Seeder
         ]);
         $sandeep->assignRole('saas-admin');
         $sandeep->assignRole('turf-admin');
+        $sandeep->assignRole('manager');
+        $sandeep->assignRole('customer');
 
         $leena = User::create([
             'name' => 'Leena Adam',
@@ -34,7 +36,9 @@ class DatabaseSeeder extends Seeder
             'mobile' => '9769409405',
             'password' => Hash::make('password'),
         ]);
+        $leena->assignRole('saas-admin');
         $leena->assignRole('turf-admin');
         $leena->assignRole('manager');
+        $leena->assignRole('customer');
     }
 }
