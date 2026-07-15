@@ -38,16 +38,16 @@ class Turf extends Model
 
     public function facilities()
     {
-        return $this->hasMany(TurfFacility::class);
+        return $this->belongsToMany(Facility::class);
     }
 
     public function turfEquipments()
     {
-        return $this->hasMany(TurfEquipment::class);
+        return $this->belongsToMany(Equipment::class, 'equipment_turf', 'turf_id', 'equipment_id');
     }
 
     public function sports()
     {
-        return $this->hasMany(TurfSport::class);
+        return $this->belongsToMany(Sport::class);
     }
 }

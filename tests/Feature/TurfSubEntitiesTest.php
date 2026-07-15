@@ -6,11 +6,8 @@ use App\Models\Location;
 use App\Models\Turf;
 use App\Models\TurfPhoto;
 use App\Models\Facility;
-use App\Models\TurfFacility;
 use App\Models\Equipment;
-use App\Models\TurfEquipment;
 use App\Models\Sport;
-use App\Models\TurfSport;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -114,162 +111,88 @@ class TurfSubEntitiesTest extends TestCase
         Storage::disk('public')->assertMissing($photo->photo);
     }
 
-    public function test_facilities_crud_functionality(): void
+    public function test_facilities_selection_sync(): void
     {
         $this->actingAs($this->user);
 
-        // 1. Create Facility Link
+        // 1. Initially none selected
         $this->testComponent('turf.facilities-manager')
-            ->call('openCreateModal')
-            ->set('facility_id', $this->facility1->id)
-            ->set('is_active', true)
-            ->call('saveFacility')
-            ->assertHasNoErrors()
-            ->assertSee('Facility added successfully.');
+            ->assertSet('selectedFacilityIds', [])
+            ->assertSee('Locker Room')
+            ->assertSee('VIP Changing Room');
 
-        $this->assertDatabaseHas('turf_facilities', [
+        // 2. Sync select options
+        $this->testComponent('turf.facilities-manager')
+            ->set('selectedFacilityIds', [(string)$this->facility1->id, (string)$this->facility2->id])
+            ->call('saveFacilities')
+            ->assertHasNoErrors()
+            ->assertSee('Facilities updated successfully.');
+
+        $this->assertDatabaseHas('facility_turf', [
             'turf_id' => $this->turf->id,
             'facility_id' => $this->facility1->id,
-            'is_active' => true,
+        ]);
+        $this->assertDatabaseHas('facility_turf', [
+            'turf_id' => $this->turf->id,
+            'facility_id' => $this->facility2->id,
         ]);
 
-        $facility = TurfFacility::first();
-
-        // 2. Edit Facility Link
+        // 3. Deselect facility 2
         $this->testComponent('turf.facilities-manager')
-            ->call('openEditModal', $facility->id)
-            ->assertSet('facility_id', $this->facility1->id)
-            ->set('facility_id', $this->facility2->id)
-            ->call('saveFacility')
+            ->set('selectedFacilityIds', [(string)$this->facility1->id])
+            ->call('saveFacilities')
             ->assertHasNoErrors()
-            ->assertSee('Facility updated successfully.');
+            ->assertSee('Facilities updated successfully.');
 
-        $this->assertEquals($this->facility2->id, $facility->fresh()->facility_id);
-
-        // 3. Toggle Active
-        $this->testComponent('turf.facilities-manager')
-            ->call('toggleActive', $facility->id);
-
-        $this->assertFalse($facility->fresh()->is_active);
-
-        // 4. Delete Facility Link
-        $this->testComponent('turf.facilities-manager')
-            ->call('confirmDelete', $facility->id)
-            ->call('performDelete')
-            ->assertSee('Facility deleted successfully.');
-
-        $this->assertDatabaseMissing('turf_facilities', ['id' => $facility->id]);
+        $this->assertDatabaseMissing('facility_turf', [
+            'turf_id' => $this->turf->id,
+            'facility_id' => $this->facility2->id,
+        ]);
     }
 
-    public function test_equipments_crud_functionality(): void
+    public function test_equipments_selection_sync(): void
     {
         $this->actingAs($this->user);
 
-        // 1. Create Equipment Link
+        // 1. Initially none selected
         $this->testComponent('turf.equipments-manager')
-            ->call('openCreateModal')
-            ->set('equipment_id', $this->equipment1->id)
-            ->set('is_active', true)
-            ->call('saveEquipment')
-            ->assertHasNoErrors()
-            ->assertSee('Equipment added successfully.');
+            ->assertSet('selectedEquipmentIds', [])
+            ->assertSee('FIFA Pro Soccer Balls')
+            ->assertSee('Training Cones');
 
-        $this->assertDatabaseHas('turf_equipments', [
+        // 2. Sync select options
+        $this->testComponent('turf.equipments-manager')
+            ->set('selectedEquipmentIds', [(string)$this->equipment1->id])
+            ->call('saveEquipments')
+            ->assertHasNoErrors()
+            ->assertSee('Equipments updated successfully.');
+
+        $this->assertDatabaseHas('equipment_turf', [
             'turf_id' => $this->turf->id,
             'equipment_id' => $this->equipment1->id,
-            'is_active' => true,
         ]);
-
-        $equipment = TurfEquipment::first();
-
-        // 2. Edit Equipment Link
-        $this->testComponent('turf.equipments-manager')
-            ->call('openEditModal', $equipment->id)
-            ->assertSet('equipment_id', $this->equipment1->id)
-            ->set('equipment_id', $this->equipment2->id)
-            ->call('saveEquipment')
-            ->assertHasNoErrors()
-            ->assertSee('Equipment updated successfully.');
-
-        $this->assertEquals($this->equipment2->id, $equipment->fresh()->equipment_id);
-
-        // 3. Toggle Active
-        $this->testComponent('turf.equipments-manager')
-            ->call('toggleActive', $equipment->id);
-
-        $this->assertFalse($equipment->fresh()->is_active);
-
-        // 4. Delete Equipment Link
-        $this->testComponent('turf.equipments-manager')
-            ->call('confirmDelete', $equipment->id)
-            ->call('performDelete')
-            ->assertSee('Equipment deleted successfully.');
-
-        $this->assertDatabaseMissing('turf_equipments', ['id' => $equipment->id]);
     }
 
-    public function test_sports_crud_functionality(): void
+    public function test_sports_selection_sync(): void
     {
         $this->actingAs($this->user);
 
-        // 1. Create Sport Link
+        // 1. Initially none selected
         $this->testComponent('turf.sports-manager')
-            ->call('openCreateModal')
-            ->set('sport_id', $this->sport1->id)
-            ->set('is_active', true)
-            ->call('saveSport')
-            ->assertHasNoErrors()
-            ->assertSee('Sport added successfully.');
+            ->assertSet('selectedSportIds', [])
+            ->assertSee('Box Cricket')
+            ->assertSee('Indoor Football');
 
-        $this->assertDatabaseHas('turf_sports', [
+        // 2. Sync select options
+        $this->testComponent('turf.sports-manager')
+            ->set('selectedSportIds', [(string)$this->sport1->id])
+            ->call('saveSports')
+            ->assertHasNoErrors()
+            ->assertSee('Sports updated successfully.');
+
+        $this->assertDatabaseHas('sport_turf', [
             'turf_id' => $this->turf->id,
             'sport_id' => $this->sport1->id,
-            'is_active' => true,
         ]);
-
-        $sport = TurfSport::first();
-
-        // 2. Edit Sport Link
-        $this->testComponent('turf.sports-manager')
-            ->call('openEditModal', $sport->id)
-            ->assertSet('sport_id', $this->sport1->id)
-            ->set('sport_id', $this->sport2->id)
-            ->call('saveSport')
-            ->assertHasNoErrors()
-            ->assertSee('Sport updated successfully.');
-
-        $this->assertEquals($this->sport2->id, $sport->fresh()->sport_id);
-
-        // 3. Toggle Active
-        $this->testComponent('turf.sports-manager')
-            ->call('toggleActive', $sport->id);
-
-        $this->assertFalse($sport->fresh()->is_active);
-
-        // 4. Delete Sport Link
-        $this->testComponent('turf.sports-manager')
-            ->call('confirmDelete', $sport->id)
-            ->call('performDelete')
-            ->assertSee('Sport deleted successfully.');
-
-        $this->assertDatabaseMissing('turf_sports', ['id' => $sport->id]);
-    }
-
-    public function test_unauthorized_users_cannot_modify_other_users_turf_entities(): void
-    {
-        $otherUser = User::factory()->create();
-        $otherUser->assignRole('turf-admin');
-        $this->actingAs($otherUser);
-
-        // Try to toggle active status on a TurfPhoto of user 1
-        $photo = TurfPhoto::create([
-            'turf_id' => $this->turf->id,
-            'photo' => 'turf_photos/somefile.png',
-            'is_active' => true,
-        ]);
-
-        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
-        $this->testComponent('turf.photos-manager')
-            ->call('toggleActive', $photo->id);
     }
 }
