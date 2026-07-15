@@ -71,6 +71,7 @@ class LocationManagerTest extends TestCase
         $component->assertHasNoErrors();
 
         $this->assertDatabaseHas('locations', [
+            'user_id' => $admin->id,
             'name' => 'Bandra Turf',
             'address' => 'Bandra BKC Complex, Mumbai',
             'latitude' => 19.0682,
@@ -112,6 +113,7 @@ class LocationManagerTest extends TestCase
         $this->actingAs($admin);
 
         $location = Location::create([
+            'user_id' => $admin->id,
             'name' => 'Old Arena',
             'address' => 'Old Address',
             'latitude' => 15.0,
@@ -149,6 +151,7 @@ class LocationManagerTest extends TestCase
         $this->actingAs($admin);
 
         $location = Location::create([
+            'user_id' => $admin->id,
             'name' => 'To Be Deleted',
             'address' => 'Temp Address',
         ]);

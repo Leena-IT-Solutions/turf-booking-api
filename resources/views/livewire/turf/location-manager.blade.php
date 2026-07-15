@@ -69,7 +69,7 @@ new #[Layout('layouts.app')] class extends Component
     public function editLocation($id)
     {
         $this->resetForm();
-        $location = Location::findOrFail($id);
+        $location = Location::where('user_id', auth()->id())->findOrFail($id);
         $this->editingId = $location->id;
         $this->name = $location->name;
         $this->address = $location->address;
@@ -108,6 +108,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->validate($rules);
 
         $data = [
+            'user_id' => auth()->id(),
             'name' => $this->name,
             'address' => $this->address,
             'latitude' => $this->latitude ? (float) $this->latitude : null,
@@ -117,7 +118,7 @@ new #[Layout('layouts.app')] class extends Component
         ];
 
         if ($this->editingId) {
-            $location = Location::findOrFail($this->editingId);
+            $location = Location::where('user_id', auth()->id())->findOrFail($this->editingId);
             $location->update($data);
             session()->flash('status', 'Location updated successfully.');
         } else {
@@ -136,14 +137,14 @@ new #[Layout('layouts.app')] class extends Component
 
     public function deleteLocation($id)
     {
-        $location = Location::findOrFail($id);
+        $location = Location::where('user_id', auth()->id())->findOrFail($id);
         $location->delete();
         session()->flash('status', 'Location deleted successfully.');
     }
 
     public function with()
     {
-        $query = Location::query();
+        $query = Location::where('user_id', auth()->id());
 
         if ($this->search) {
             $query->where(function ($q) {

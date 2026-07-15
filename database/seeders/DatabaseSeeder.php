@@ -21,7 +21,6 @@ class DatabaseSeeder extends Seeder
         $this->call(SlotCategorySeeder::class);
         $this->call(SlotSeeder::class);
         $this->call(SaasSettingSeeder::class);
-        $this->call(LocationSeeder::class);
 
         $sandeep = User::firstOrCreate([
             'email' => 'sandeep198558@gmail.com',
@@ -46,5 +45,7 @@ class DatabaseSeeder extends Seeder
         $leena->roles()->sync(
             \App\Models\Role::whereIn('name', ['saas-admin', 'turf-admin', 'manager', 'customer'])->pluck('id')->toArray()
         );
+
+        $this->call(LocationSeeder::class);
     }
 }

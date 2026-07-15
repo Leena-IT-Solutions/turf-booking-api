@@ -31,7 +31,10 @@ class LocationSeeder extends Seeder
             ],
         ];
 
+        $user = \App\Models\User::first() ?: \App\Models\User::factory()->create();
+
         foreach ($locations as $data) {
+            $data['user_id'] = $user->id;
             Location::firstOrCreate(
                 ['name' => $data['name']],
                 $data
