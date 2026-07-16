@@ -155,6 +155,7 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/40">
                     @forelse ($contacts as $contact)
                         <button 
+                            wire:key="contact-{{ $contact->id }}"
                             wire:click="selectCustomer({{ $contact->id }})"
                             class="w-full p-4 flex items-start gap-3 transition text-left hover:bg-gray-50 dark:hover:bg-gray-800/30 {{ $activeCustomerId === $contact->id ? 'bg-indigo-50/50 dark:bg-indigo-950/10' : '' }}"
                         >
@@ -216,27 +217,29 @@ new #[Layout('layouts.app')] class extends Component
                         class="flex-1 min-h-0 p-6 overflow-y-auto space-y-4 bg-gray-50/10 dark:bg-gray-900/5"
                     >
                         @foreach ($messages as $msg)
-                            @if ($msg->sender_id === $activeCustomer->id)
-                                <!-- Left Bubble (Customer) -->
-                                <div class="flex items-end gap-2 max-w-[80%]">
-                                    <div class="bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 rounded-3xl rounded-bl-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
-                                        {{ $msg->message }}
-                                        <span class="block text-[8px] text-gray-400 dark:text-gray-500 text-right mt-1 font-mono">
-                                            {{ $msg->created_at->format('h:i A') }}
-                                        </span>
+                            <div wire:key="msg-{{ $msg->id }}" class="flex w-full">
+                                @if ($msg->sender_id === $activeCustomer->id)
+                                    <!-- Left Bubble (Customer) -->
+                                    <div class="flex items-end gap-2 max-w-[80%]">
+                                        <div class="bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 rounded-3xl rounded-bl-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
+                                            {{ $msg->message }}
+                                            <span class="block text-[8px] text-gray-400 dark:text-gray-500 text-right mt-1 font-mono">
+                                                {{ $msg->created_at->format('h:i A') }}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            @else
-                                <!-- Right Bubble (Staff Reply) -->
-                                <div class="flex items-end gap-2 max-w-[80%] ml-auto justify-end">
-                                    <div class="bg-indigo-600 text-white rounded-3xl rounded-br-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
-                                        {{ $msg->message }}
-                                        <span class="block text-[8px] text-indigo-200 text-right mt-1 font-mono">
-                                            {{ $msg->created_at->format('h:i A') }}
-                                        </span>
+                                @else
+                                    <!-- Right Bubble (Staff Reply) -->
+                                    <div class="flex items-end gap-2 max-w-[80%] ml-auto justify-end">
+                                        <div class="bg-indigo-600 text-white rounded-3xl rounded-br-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
+                                            {{ $msg->message }}
+                                            <span class="block text-[8px] text-indigo-200 text-right mt-1 font-mono">
+                                                {{ $msg->created_at->format('h:i A') }}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            @endif
+                                @endif
+                            </div>
                         @endforeach
                     </div>
 
