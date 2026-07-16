@@ -25,9 +25,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $activeTurfId = session('active_turf_id');
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
 
             if ($turf) {
                 $this->selectedEquipmentIds = $turf->turfEquipments->pluck('id')->map(fn($id) => (string)$id)->toArray();
@@ -46,9 +44,7 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        $turf = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($activeTurfId);
+        $turf = Turf::manageable()->findOrFail($activeTurfId);
 
         // Filter selected IDs to ensure they are valid active equipment options
         $validIds = Equipment::where('is_active', true)
@@ -67,9 +63,7 @@ new #[Layout('layouts.app')] class extends Component
         $turf = null;
 
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
         }
 
         // Fetch all active global master equipments

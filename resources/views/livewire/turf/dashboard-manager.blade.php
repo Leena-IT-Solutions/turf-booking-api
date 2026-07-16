@@ -18,12 +18,12 @@ new #[Layout('layouts.app')] class extends Component
         $userId = auth()->id();
 
         // 1. Locations
-        $locations = Location::where('user_id', $userId)->get();
+        $locations = Location::manageable()->get();
         $locationsCount = $locations->count();
         $locationIds = $locations->pluck('id');
 
         // 2. Turfs
-        $turfs = Turf::whereIn('location_id', $locationIds)->get();
+        $turfs = Turf::manageable()->get();
         $turfsCount = $turfs->count();
         $turfIds = $turfs->pluck('id');
 

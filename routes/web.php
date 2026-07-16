@@ -13,7 +13,7 @@ Route::get('dashboard', function () {
     if ($user->hasRole('saas-admin')) {
         return redirect()->route('saas.administrator');
     }
-    if ($user->hasRole('turf-admin')) {
+    if ($user->hasRole('turf-admin') || $user->hasRole('manager') || $user->hasRole('admin')) {
         return redirect()->route('turf.dashboard');
     }
     return view('dashboard');
@@ -53,43 +53,43 @@ Route::middleware(['auth'])->group(function () {
         ->name('saas.administrator');
 
     Volt::route('turf/dashboard', 'turf.dashboard-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.dashboard');
     Volt::route('turf/bookings', 'turf.booking-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.bookings');
     Volt::route('turf/settings', 'turf.settings-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.settings');
     Volt::route('turf/offers', 'turf.offer-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.offers');
     Volt::route('turf/locations', 'turf.location-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.locations');
     Volt::route('turf/turfs', 'turf.turf-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.turfs');
     Volt::route('turf/photos', 'turf.photos-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.photos');
     Volt::route('turf/facilities', 'turf.facilities-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.facilities');
     Volt::route('turf/equipments', 'turf.equipments-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.equipments');
     Volt::route('turf/sports', 'turf.sports-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.sports');
     Volt::route('turf/slots', 'turf.slots-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.slots');
     Volt::route('turf/pricing', 'turf.pricing-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.pricing');
     Volt::route('turf/staff', 'turf.staff-manager')
-        ->middleware('role:turf-admin')
+        ->middleware('role:turf-admin|manager|admin')
         ->name('turf.staff');
     Route::get('/git-info', function () {
         try {

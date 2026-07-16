@@ -19,7 +19,7 @@ new class extends Component
     #[On('turfs-updated')]
     public function initializeContext()
     {
-        $locations = Location::where('user_id', auth()->id())->orderBy('name', 'asc')->get();
+        $locations = Location::manageable()->orderBy('name', 'asc')->get();
 
         if ($locations->isEmpty()) {
             $this->selectedLocationId = null;
@@ -38,7 +38,7 @@ new class extends Component
         }
 
         // 2. Resolve Turf ID
-        $turfs = Turf::where('location_id', $this->selectedLocationId)->orderBy('name', 'asc')->get();
+        $turfs = Turf::manageable()->where('location_id', $this->selectedLocationId)->orderBy('name', 'asc')->get();
         if ($turfs->isEmpty()) {
             $this->selectedTurfId = null;
             session()->forget('active_turf_id');
@@ -58,7 +58,7 @@ new class extends Component
     {
         session(['active_location_id' => $value]);
         
-        $firstTurf = Turf::where('location_id', $value)->orderBy('name', 'asc')->first();
+        $firstTurf = Turf::manageable()->where('location_id', $value)->orderBy('name', 'asc')->first();
         if ($firstTurf) {
             $this->selectedTurfId = $firstTurf->id;
             session(['active_turf_id' => $firstTurf->id]);
@@ -78,9 +78,9 @@ new class extends Component
 
     public function with()
     {
-        $locations = Location::where('user_id', auth()->id())->orderBy('name', 'asc')->get();
+        $locations = Location::manageable()->orderBy('name', 'asc')->get();
         $turfs = $this->selectedLocationId 
-            ? Turf::where('location_id', $this->selectedLocationId)->orderBy('name', 'asc')->get() 
+            ? Turf::manageable()->where('location_id', $this->selectedLocationId)->orderBy('name', 'asc')->get() 
             : collect();
 
         return [

@@ -50,9 +50,7 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         // Verify user owns the turf
-        $turf = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($activeTurfId);
+        $turf = Turf::manageable()->findOrFail($activeTurfId);
 
         $path = $this->photoFile->store('turf_photos', 'public');
 
@@ -114,9 +112,7 @@ new #[Layout('layouts.app')] class extends Component
         $photos = collect();
 
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
 
             if ($turf) {
                 $photos = TurfPhoto::where('turf_id', $turf->id)->orderBy('created_at', 'desc')->get();

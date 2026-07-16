@@ -49,15 +49,15 @@ class TurfAdminPagesTest extends TestCase
         $this->actingAs($admin)->get('/turf/offers')->assertOk();
     }
 
-    public function test_manager_cannot_access_turf_pages(): void
+    public function test_manager_can_access_turf_pages(): void
     {
         $manager = User::factory()->create();
         $manager->assignRole('manager');
 
-        $this->actingAs($manager)->get('/turf/dashboard')->assertStatus(403);
-        $this->actingAs($manager)->get('/turf/bookings')->assertStatus(403);
-        $this->actingAs($manager)->get('/turf/offers')->assertStatus(403);
-        $this->actingAs($manager)->get('/turf/settings')->assertStatus(403);
+        $this->actingAs($manager)->get('/turf/dashboard')->assertOk();
+        $this->actingAs($manager)->get('/turf/bookings')->assertOk();
+        $this->actingAs($manager)->get('/turf/offers')->assertOk();
+        $this->actingAs($manager)->get('/turf/settings')->assertOk();
     }
 
     public function test_turf_admin_dashboard_shows_statistics(): void

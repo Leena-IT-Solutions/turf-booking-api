@@ -39,13 +39,13 @@ class BlankPagesTest extends TestCase
             $response = $this->get(route($page));
             $response->assertStatus(403);
 
-            // Manager forbidden
+            // Manager allowed
             $manager = User::factory()->create();
             $manager->assignRole('manager');
             $this->actingAs($manager);
 
             $response = $this->get(route($page));
-            $response->assertStatus(403);
+            $response->assertOk();
 
             // Log out
             auth()->logout();

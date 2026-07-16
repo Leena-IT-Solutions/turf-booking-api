@@ -26,9 +26,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $activeTurfId = session('active_turf_id');
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
 
             if ($turf) {
                 $this->selectedSlotIds = $turf->slots()
@@ -51,9 +49,7 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        $turf = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($activeTurfId);
+        $turf = Turf::manageable()->findOrFail($activeTurfId);
 
         // Fetch all active global master slots
         $allActiveSlots = Slot::where('is_active', true)->get();
@@ -116,9 +112,7 @@ new #[Layout('layouts.app')] class extends Component
         $turf = null;
 
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
         }
 
         $allSlots = Slot::where('is_active', true)->orderBy('from_time', 'asc')->get();

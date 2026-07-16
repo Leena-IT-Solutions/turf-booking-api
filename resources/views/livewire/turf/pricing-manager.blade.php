@@ -38,9 +38,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $activeTurfId = session('active_turf_id');
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
 
             if ($turf && $turf->pricing_wizard_data) {
                 $data = $turf->pricing_wizard_data;
@@ -156,9 +154,7 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        $turf = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($activeTurfId);
+        $turf = Turf::manageable()->findOrFail($activeTurfId);
 
         // Save wizard parameters to turf model
         $turf->update([
@@ -267,9 +263,7 @@ new #[Layout('layouts.app')] class extends Component
         $availableCategories = collect();
 
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
 
             if ($turf) {
                 $slots = $turf->slots()

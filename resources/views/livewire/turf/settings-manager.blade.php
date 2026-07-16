@@ -41,9 +41,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $activeTurfId = session('active_turf_id');
         if ($activeTurfId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->find($activeTurfId);
+            $turf = Turf::manageable()->find($activeTurfId);
 
             if ($turf) {
                 $this->turfId = $turf->id;
@@ -73,9 +71,7 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        $turf = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($this->turfId);
+        $turf = Turf::manageable()->findOrFail($this->turfId);
 
         $rules = [
             'is_online_payment_active' => 'required|boolean',

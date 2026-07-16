@@ -66,7 +66,7 @@ new #[Layout('layouts.app')] class extends Component
     public function openCreateModal()
     {
         $this->resetForm();
-        $this->location_id = session('active_location_id') ?: (Location::where('user_id', auth()->id())->first()->id ?? '');
+        $this->location_id = session('active_location_id') ?: (Location::manageable()->first()->id ?? '');
         $this->showModal = true;
     }
 
@@ -80,9 +80,7 @@ new #[Layout('layouts.app')] class extends Component
     public function editTurf($id)
     {
         $this->resetForm();
-        $turf = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($id);
+        $turf = Turf::manageable()->findOrFail($id);
 
         $this->editingId = $turf->id;
         $this->location_id = $turf->location_id;
@@ -101,7 +99,7 @@ new #[Layout('layouts.app')] class extends Component
             'location_id' => [
                 'required',
                 Rule::exists('locations', 'id')->where(function ($query) {
-                    $query->where('user_id', auth()->id());
+                    $query->whereIn('id', auth()->user()->manageableLocations()->pluck('locations.id'));
                 })
             ],
             'name' => 'required|string|max:150',
@@ -121,7 +119,7 @@ new #[Layout('layouts.app')] class extends Component
             'location_id' => [
                 'required',
                 Rule::exists('locations', 'id')->where(function ($query) {
-                    $query->where('user_id', auth()->id());
+                    $query->whereIn('id', auth()->user()->manageableLocations()->pluck('locations.id'));
                 })
             ],
             'name' => 'required|string|max:150',
@@ -145,9 +143,7 @@ new #[Layout('layouts.app')] class extends Component
         ];
 
         if ($this->editingId) {
-            $turf = Turf::whereHas('location', function ($q) {
-                $q->where('user_id', auth()->id());
-            })->findOrFail($this->editingId);
+            $turf = Turf::manageable()->findOrFail($this->editingId);
             $turf->update($data);
             session()->flash('status', 'Turf updated successfully.');
         } else {
@@ -161,9 +157,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function deleteTurf($id)
     {
-        $turf = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        })->findOrFail($id);
+        $turf = Turf::manageable()->findOrFail($id);
         
         $turf->delete();
         session()->flash('status', 'Turf deleted successfully.');
@@ -172,9 +166,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function with()
     {
-        $query = Turf::whereHas('location', function ($q) {
-            $q->where('user_id', auth()->id());
-        });
+        $query = Turf::manageable();
 
         if (session('active_location_id')) {
             $query->where('location_id', session('active_location_id'));
@@ -194,7 +186,7 @@ new #[Layout('layouts.app')] class extends Component
 
         return [
             'turfs' => $query->orderBy('name', 'asc')->paginate(8),
-            'availableLocations' => Location::where('user_id', auth()->id())->orderBy('name', 'asc')->get(),
+            'availableLocations' => Location::manageable()->orderBy('name', 'asc')->get(),
         ];
     }
 }; ?>

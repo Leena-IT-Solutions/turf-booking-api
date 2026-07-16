@@ -2,6 +2,9 @@
 
 use App\Models\User;
 use App\Models\StaffMember;
+use App\Models\Location;
+use App\Models\Turf;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -15,6 +18,11 @@ new #[Layout('layouts.app')] class extends Component
         'turf-admin' => false,
     ];
 
+    // Turf assignments configuration
+    public $selectedStaffId = null;
+    public $selectedTurfs = [];
+    public $showAssignModal = false;
+
     // UI feedback
     public $message = '';
     public $messageType = 'success'; // 'success' or 'error'
@@ -23,6 +31,13 @@ new #[Layout('layouts.app')] class extends Component
     protected $rules = [
         'searchQuery' => 'required|string',
     ];
+
+    public function mount()
+    {
+        if (!auth()->user()->hasRole('turf-admin')) {
+            abort(403, 'Unauthorized action.');
+        }
+    }
 
     public function search()
     {
@@ -115,6 +130,63 @@ new #[Layout('layouts.app')] class extends Component
         ];
     }
 
+    public function openAssignModal($userId)
+    {
+        $this->selectedStaffId = $userId;
+        $user = User::findOrFail($userId);
+        
+        $this->selectedTurfs = DB::table('staff_turf')
+            ->where('user_id', $userId)
+            ->where('turf_admin_id', auth()->id())
+            ->pluck('turf_id')
+            ->map(fn($id) => (string)$id)
+            ->toArray();
+
+        $this->showAssignModal = true;
+    }
+
+    public function closeAssignModal()
+    {
+        $this->selectedStaffId = null;
+        $this->selectedTurfs = [];
+        $this->showAssignModal = false;
+    }
+
+    public function saveTurfAssignments()
+    {
+        if (!$this->selectedStaffId) {
+            return;
+        }
+
+        // Delete existing turf assignments under this turf admin
+        DB::table('staff_turf')
+            ->where('user_id', $this->selectedStaffId)
+            ->where('turf_admin_id', auth()->id())
+            ->delete();
+
+        // Save new turf assignments
+        $inserts = [];
+        foreach ($this->selectedTurfs as $turfId) {
+            if ($turfId) {
+                $inserts[] = [
+                    'user_id' => $this->selectedStaffId,
+                    'turf_id' => (int)$turfId,
+                    'turf_admin_id' => auth()->id(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
+        if (!empty($inserts)) {
+            DB::table('staff_turf')->insert($inserts);
+        }
+
+        $this->message = __('Turf assignments updated successfully.');
+        $this->messageType = 'success';
+        $this->closeAssignModal();
+    }
+
     public function revokeStaff($assignmentId)
     {
         $assignment = StaffMember::where('turf_admin_id', auth()->id())
@@ -135,6 +207,18 @@ new #[Layout('layouts.app')] class extends Component
             // No other assignments found, remove global role
             $user = User::findOrFail($userId);
             $user->retractRole($role);
+        }
+
+        // Also clean up turf assignments under this turf admin
+        // Note: if user is revoked entirely as staff, we delete all staff_turf assignments
+        $stillStaff = StaffMember::where('turf_admin_id', auth()->id())
+            ->where('user_id', $userId)
+            ->exists();
+        if (!$stillStaff) {
+            DB::table('staff_turf')
+                ->where('user_id', $userId)
+                ->where('turf_admin_id', auth()->id())
+                ->delete();
         }
 
         $this->message = __('Selected staff privilege revoked successfully.');
@@ -162,6 +246,12 @@ new #[Layout('layouts.app')] class extends Component
             }
         }
 
+        // Clean up turf assignments
+        DB::table('staff_turf')
+            ->where('user_id', $userId)
+            ->where('turf_admin_id', auth()->id())
+            ->delete();
+
         $this->message = __('All staff privileges revoked from this user.');
         $this->messageType = 'success';
     }
@@ -170,12 +260,20 @@ new #[Layout('layouts.app')] class extends Component
     {
         // Load active staff members for this Turf Admin, grouped by user
         $staffGrouped = StaffMember::where('turf_admin_id', auth()->id())
-            ->with('user')
+            ->with(['user.assignedTurfs' => function ($q) {
+                $q->where('staff_turf.turf_admin_id', auth()->id());
+            }])
             ->get()
             ->groupBy('user_id');
 
+        $ownedLocations = Location::where('user_id', auth()->id())
+            ->with('turfs')
+            ->orderBy('name', 'asc')
+            ->get();
+
         return [
             'staffGrouped' => $staffGrouped,
+            'ownedLocations' => $ownedLocations,
         ];
     }
 }; ?>
@@ -186,6 +284,7 @@ new #[Layout('layouts.app')] class extends Component
     confirmMessage: '',
     confirmAction: null,
     confirmId: null,
+    assignOpen: @entangle('showAssignModal'),
     triggerConfirm(title, message, action, id) {
         this.confirmTitle = title;
         this.confirmMessage = message;
@@ -322,6 +421,7 @@ new #[Layout('layouts.app')] class extends Component
                         @foreach ($staffGrouped as $userId => $group)
                             @php
                                 $user = $group->first()->user;
+                                $assignedTurfNames = $user->assignedTurfs->where('pivot.turf_admin_id', auth()->id())->pluck('name')->join(', ');
                             @endphp
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition hover:shadow-md relative overflow-hidden group">
                                 <div class="flex items-center gap-4">
@@ -353,10 +453,19 @@ new #[Layout('layouts.app')] class extends Component
                                                 📞 {{ $user->mobile }}
                                             </span>
                                         </div>
+                                        
+                                        <!-- Assigned turfs list visualizer -->
+                                        <div class="mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
+                                            <span class="text-[10px] font-black uppercase text-indigo-500 dark:text-indigo-400 mr-1.5 tracking-wider">{{ __('Assigned Turfs:') }}</span>
+                                            {{ $assignedTurfNames ?: __('None (no access to any turf)') }}
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="flex justify-end shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-gray-850/50 pt-3 sm:pt-0">
+                                <div class="flex items-center gap-4 justify-end shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-gray-800 pt-3 sm:pt-0">
+                                    <button @click.prevent="assignOpen = true; $wire.openAssignModal({{ $user->id }})" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 cursor-pointer flex items-center gap-1.5 transition">
+                                        ⚙️ {{ __('Assign Turfs') }}
+                                    </button>
                                     <button @click.prevent="triggerConfirm('{{ __('Revoke All Roles') }}', '{{ __('Are you sure you want to revoke all staff privileges from this user?') }}', 'revokeAllStaff', {{ $user->id }})" class="text-xs font-semibold text-red-500 hover:text-red-650 cursor-pointer flex items-center gap-1.5 transition">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -418,6 +527,76 @@ new #[Layout('layouts.app')] class extends Component
                     {{ __('Revoke Staff') }}
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Assign Turfs Modal -->
+    <div x-show="assignOpen" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+         style="display: none;">
+        
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" @click="assignOpen = false; $wire.closeAssignModal()"></div>
+
+        <!-- Modal Content -->
+        <div x-show="assignOpen"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             class="relative bg-white dark:bg-gray-800 rounded-3xl max-w-lg w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700/50 space-y-6 z-10">
+            
+            <div>
+                <h3 class="text-base font-extrabold text-gray-900 dark:text-gray-100">
+                    {{ __('Assign Turfs') }}
+                </h3>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    {{ __('Select which turfs this staff member is allowed to manage.') }}
+                </p>
+            </div>
+
+            <form wire:submit.prevent="saveTurfAssignments" class="space-y-4">
+                <div class="max-h-[300px] overflow-y-auto space-y-4 pr-2">
+                    @foreach ($ownedLocations as $loc)
+                        <div class="space-y-2">
+                            <div class="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-wider">
+                                📍 {{ $loc->name }}
+                            </div>
+                            @if ($loc->turfs->isEmpty())
+                                <div class="text-xs italic text-gray-400 dark:text-gray-500 pl-4">
+                                    {{ __('No turfs registered at this location.') }}
+                                </div>
+                            @else
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2">
+                                    @foreach ($loc->turfs as $trf)
+                                        <label class="flex items-center gap-2.5 p-3 rounded-2xl border border-gray-150 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition">
+                                            <input type="checkbox" wire:model="selectedTurfs" value="{{ $trf->id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 ml-2">{{ $trf->name }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
+                    <button type="button" @click="assignOpen = false; $wire.closeAssignModal()" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition cursor-pointer">
+                        {{ __('Cancel') }}
+                    </button>
+                    <button type="submit" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transition cursor-pointer">
+                        {{ __('Save Assignments') }}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

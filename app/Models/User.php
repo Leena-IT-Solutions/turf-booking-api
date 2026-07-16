@@ -96,4 +96,55 @@ class User extends Authenticatable
     {
         return $this->hasMany(StaffMember::class, 'user_id');
     }
+
+    /**
+     * Get the turfs explicitly assigned to this staff member.
+     */
+    public function assignedTurfs()
+    {
+        return $this->belongsToMany(Turf::class, 'staff_turf', 'user_id', 'turf_id')
+                    ->withPivot('turf_admin_id')
+                    ->withTimestamps();
+    }
+
+    /**
+     * Get the Turf Admin's ID if the user is staff, or their own ID if they are Turf Admin.
+     */
+    public function getOwnerId()
+    {
+        if ($this->hasRole('turf-admin')) {
+            return $this->id;
+        }
+
+        $assignment = $this->staffAssignments()->first();
+        return $assignment ? $assignment->turf_admin_id : $this->id;
+    }
+
+    /**
+     * Get a query builder of manageable locations for this user.
+     */
+    public function manageableLocations()
+    {
+        if ($this->hasRole('turf-admin')) {
+            return Location::where('user_id', $this->id);
+        }
+
+        return Location::whereHas('turfs', function ($query) {
+            $query->whereIn('id', $this->assignedTurfs()->pluck('turfs.id'));
+        });
+    }
+
+    /**
+     * Get a query builder of manageable turfs for this user.
+     */
+    public function manageableTurfs()
+    {
+        if ($this->hasRole('turf-admin')) {
+            return Turf::whereHas('location', function ($query) {
+                $query->where('user_id', $this->id);
+            });
+        }
+
+        return Turf::whereIn('id', $this->assignedTurfs()->pluck('turfs.id'));
+    }
 }
