@@ -92,12 +92,10 @@ class Turf extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->hasRole('turf-admin')) {
-            return $query->whereHas('location', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            });
-        }
-
-        return $query->whereIn('id', $user->assignedTurfs()->pluck('turfs.id'));
+        return $query->where(function ($q) use ($user) {
+            $q->whereHas('location', function ($lq) use ($user) {
+                $lq->where('user_id', $user->id);
+            })->orWhereIn('turfs.id', $user->assignedTurfs()->pluck('turfs.id'));
+        });
     }
 }

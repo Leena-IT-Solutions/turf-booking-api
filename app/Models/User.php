@@ -125,12 +125,11 @@ class User extends Authenticatable
      */
     public function manageableLocations()
     {
-        if ($this->hasRole('turf-admin')) {
-            return Location::where('user_id', $this->id);
-        }
-
-        return Location::whereHas('turfs', function ($query) {
-            $query->whereIn('id', $this->assignedTurfs()->pluck('turfs.id'));
+        return Location::where(function ($query) {
+            $query->where('user_id', $this->id)
+                ->orWhereHas('turfs', function ($q) {
+                    $q->whereIn('turfs.id', $this->assignedTurfs()->pluck('turfs.id'));
+                });
         });
     }
 
@@ -139,12 +138,10 @@ class User extends Authenticatable
      */
     public function manageableTurfs()
     {
-        if ($this->hasRole('turf-admin')) {
-            return Turf::whereHas('location', function ($query) {
-                $query->where('user_id', $this->id);
-            });
-        }
-
-        return Turf::whereIn('id', $this->assignedTurfs()->pluck('turfs.id'));
+        return Turf::where(function ($query) {
+            $query->whereHas('location', function ($q) {
+                $q->where('user_id', $this->id);
+            })->orWhereIn('turfs.id', $this->assignedTurfs()->pluck('turfs.id'));
+        });
     }
 }

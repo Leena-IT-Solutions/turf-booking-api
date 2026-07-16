@@ -63,12 +63,11 @@ class Location extends Model
             return $query->whereRaw('1 = 0');
         }
 
-        if ($user->hasRole('turf-admin')) {
-            return $query->where('user_id', $user->id);
-        }
-
-        return $query->whereHas('turfs', function ($q) use ($user) {
-            $q->whereIn('id', $user->assignedTurfs()->pluck('turfs.id'));
+        return $query->where(function ($q) use ($user) {
+            $q->where('user_id', $user->id)
+              ->orWhereHas('turfs', function ($sq) use ($user) {
+                  $sq->whereIn('turfs.id', $user->assignedTurfs()->pluck('turfs.id'));
+              });
         });
     }
 }

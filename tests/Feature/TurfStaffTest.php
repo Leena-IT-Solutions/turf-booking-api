@@ -232,4 +232,57 @@ class TurfStaffTest extends TestCase
             'role' => 'manager',
         ]);
     }
+
+    public function test_staff_member_with_turf_admin_role_can_manage_only_assigned_turfs(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('turf-admin');
+
+        $staffUser = User::factory()->create();
+        $staffUser->assignRole('turf-admin'); // Also has turf-admin role, e.g. assigned by Sandeep
+
+        // Admin owns a location and 2 turfs
+        $location = \App\Models\Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Owner Location',
+            'address' => 'Andheri West',
+            'description' => 'Great turf place',
+            'latitude' => '19.1136',
+            'longitude' => '72.8697',
+        ]);
+
+        $turf1 = \App\Models\Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Assigned Turf A',
+            'type' => 'Synthetic',
+            'width' => 20,
+            'length' => 40,
+        ]);
+
+        $turf2 = \App\Models\Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Unassigned Turf B',
+            'type' => 'Synthetic',
+            'width' => 20,
+            'length' => 40,
+        ]);
+
+        // Assign only turf1 to staffUser
+        \DB::table('staff_turf')->insert([
+            'user_id' => $staffUser->id,
+            'turf_id' => $turf1->id,
+            'turf_admin_id' => $admin->id,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        // Assert manageableLocations contains Owner Location for staffUser
+        $this->actingAs($staffUser);
+        $this->assertCount(1, $staffUser->manageableLocations()->get());
+        $this->assertEquals('Owner Location', $staffUser->manageableLocations()->first()->name);
+
+        // Assert manageableTurfs contains only Assigned Turf A
+        $this->assertCount(1, $staffUser->manageableTurfs()->get());
+        $this->assertEquals('Assigned Turf A', $staffUser->manageableTurfs()->first()->name);
+    }
 }
