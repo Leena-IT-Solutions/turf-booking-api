@@ -110,6 +110,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
+<div class="flex-1 flex min-h-0 bg-white dark:bg-gray-800 overflow-hidden" wire:poll.5s>
 <style>
     /* Constrain the content area wrapper to viewport height */
     div.lg\:ps-64 {
@@ -128,8 +129,6 @@ new #[Layout('layouts.app')] class extends Component
         min-height: 0 !important;
     }
 </style>
-
-<div class="flex-1 flex min-h-0 bg-white dark:bg-gray-800 overflow-hidden" wire:poll.5s>
             
             <!-- Left Sidebar (Contacts List) -->
             <div class="w-80 border-r border-gray-100 dark:border-gray-700/50 flex flex-col h-full min-h-0 bg-gray-50/30 dark:bg-gray-900/10">
