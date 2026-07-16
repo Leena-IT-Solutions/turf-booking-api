@@ -65,6 +65,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('turf/settings', 'turf.settings-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.settings');
+    Volt::route('turf/support', 'turf.chat-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.support');
     Volt::route('turf/locations', 'turf.location-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.locations');
