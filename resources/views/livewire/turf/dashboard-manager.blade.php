@@ -3,7 +3,6 @@
 use App\Models\Location;
 use App\Models\Turf;
 use App\Models\Slot;
-use App\Models\Coupon;
 use App\Models\Facility;
 use App\Models\Equipment;
 use App\Models\Sport;
@@ -34,15 +33,6 @@ new #[Layout('layouts.app')] class extends Component
             ->distinct('slot_id')
             ->count();
 
-        // 4. Active Coupons
-        $activeCouponsCount = Coupon::where('is_active', true)
-            ->where('starts_at', '<=', now())
-            ->where(function ($q) {
-                $q->whereNull('expires_at')
-                  ->orWhere('expires_at', '>', now());
-            })
-            ->count();
-
         // 5. Facilities
         $facilitiesCount = DB::table('facility_turf')
             ->whereIn('turf_id', $turfIds)
@@ -65,7 +55,6 @@ new #[Layout('layouts.app')] class extends Component
             'locationsCount' => $locationsCount,
             'turfsCount' => $turfsCount,
             'activeSlotsCount' => $activeSlotsCount,
-            'activeCouponsCount' => $activeCouponsCount,
             'facilitiesCount' => $facilitiesCount,
             'equipmentsCount' => $equipmentsCount,
             'sportsCount' => $sportsCount,
@@ -128,19 +117,6 @@ new #[Layout('layouts.app')] class extends Component
                 <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-4">{{ __('Scheduled Slots') }}</h3>
                 <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{{ __('Active booking slots') }}</p>
             </a>
-
-            <!-- Active Coupons Card -->
-            <a href="{{ route('turf.offers') }}" class="block bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm transition hover:shadow-md hover:scale-[1.01] group">
-                <div class="flex items-center justify-between">
-                    <span class="text-2xl shrink-0 p-3 rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 group-hover:scale-110 transition">
-                        🎟️
-                    </span>
-                    <span class="text-2xl font-black text-gray-900 dark:text-gray-100 font-mono">{{ $activeCouponsCount }}</span>
-                </div>
-                <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-4">{{ __('Active Coupons') }}</h3>
-                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{{ __('Discounts & campaigns') }}</p>
-            </a>
-
         </div>
 
         <!-- Secondary Amenities Stats Grid -->

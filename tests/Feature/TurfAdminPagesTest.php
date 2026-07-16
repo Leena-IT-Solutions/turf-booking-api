@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use App\Models\Coupon;
 use Livewire\Volt\Volt;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +23,6 @@ class TurfAdminPagesTest extends TestCase
         $this->get('/turf/dashboard')->assertRedirect('/login');
         $this->get('/turf/bookings')->assertRedirect('/login');
         $this->get('/turf/settings')->assertRedirect('/login');
-        $this->get('/turf/offers')->assertRedirect('/login');
     }
 
     public function test_non_turf_admin_cannot_access_turf_pages(): void
@@ -35,7 +33,6 @@ class TurfAdminPagesTest extends TestCase
         $this->actingAs($user)->get('/turf/dashboard')->assertStatus(403);
         $this->actingAs($user)->get('/turf/bookings')->assertStatus(403);
         $this->actingAs($user)->get('/turf/settings')->assertStatus(403);
-        $this->actingAs($user)->get('/turf/offers')->assertStatus(403);
     }
 
     public function test_turf_admin_can_access_turf_pages(): void
@@ -46,7 +43,6 @@ class TurfAdminPagesTest extends TestCase
         $this->actingAs($admin)->get('/turf/dashboard')->assertOk();
         $this->actingAs($admin)->get('/turf/bookings')->assertOk();
         $this->actingAs($admin)->get('/turf/settings')->assertOk();
-        $this->actingAs($admin)->get('/turf/offers')->assertOk();
     }
 
     public function test_manager_can_access_turf_pages(): void
@@ -56,7 +52,6 @@ class TurfAdminPagesTest extends TestCase
 
         $this->actingAs($manager)->get('/turf/dashboard')->assertOk();
         $this->actingAs($manager)->get('/turf/bookings')->assertOk();
-        $this->actingAs($manager)->get('/turf/offers')->assertOk();
         $this->actingAs($manager)->get('/turf/settings')->assertOk();
     }
 
@@ -84,17 +79,8 @@ class TurfAdminPagesTest extends TestCase
             'length' => 40,
         ]);
 
-        Coupon::create([
-            'code' => 'DASHBOARD50',
-            'discount_type' => 'percentage',
-            'discount_value' => 50,
-            'starts_at' => now(),
-            'expires_at' => now()->addMonth(),
-        ]);
-
         Volt::test('turf.dashboard-manager')
             ->assertSee('Mumbai Sports Complex')
-            ->assertSee('Football Turf A')
-            ->assertSee('Active Coupons');
+            ->assertSee('Football Turf A');
     }
 }
