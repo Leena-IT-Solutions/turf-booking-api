@@ -110,9 +110,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6 h-[calc(100vh-100px)]" wire:poll.5s>
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 h-full">
-        <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden flex h-full">
+<div class="h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)] flex -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 bg-white dark:bg-gray-800 overflow-hidden" wire:poll.5s>
             
             <!-- Left Sidebar (Contacts List) -->
             <div class="w-80 border-r border-gray-100 dark:border-gray-700/50 flex flex-col h-full bg-gray-50/30 dark:bg-gray-900/10">
@@ -248,9 +246,6 @@ new #[Layout('layouts.app')] class extends Component
                 @endif
 
             </div>
-
-        </div>
-    </div>
 </div>
 
 <script>
