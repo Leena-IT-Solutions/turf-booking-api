@@ -243,26 +243,33 @@ new #[Layout('layouts.app')] class extends Component
                         </p>
                     </div>
                 @else
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-4">
                         @foreach ($staff as $member)
-                            <div class="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col justify-between gap-4 transition hover:shadow-md relative overflow-hidden group">
-                                <div class="flex items-start justify-between gap-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr from-gray-100 to-gray-50 dark:from-gray-900 dark:to-gray-850 border border-gray-200/50 dark:border-gray-800 text-gray-700 dark:text-gray-300 flex items-center justify-center font-bold text-sm">
-                                            {{ collect(explode(' ', $member->user->name))->map(fn($n) => mb_substr($n, 0, 1))->take(2)->join('') }}
-                                        </div>
-                                        <div class="min-w-0">
+                            <div class="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition hover:shadow-md relative overflow-hidden group">
+                                <div class="flex items-center gap-4">
+                                    <div class="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-50 to-indigo-100/50 dark:from-indigo-950/20 dark:to-indigo-900/10 border border-indigo-100/30 dark:border-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-extrabold text-base shadow-sm">
+                                        {{ collect(explode(' ', $member->user->name))->map(fn($n) => mb_substr($n, 0, 1))->take(2)->join('') }}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="flex items-center gap-2">
                                             <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{{ $member->user->name }}</h4>
-                                            <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ $member->user->email }}</p>
-                                            <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ $member->user->mobile }}</p>
+                                            <span class="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md {{ $member->role === 'turf-admin' ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-950' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-950' }}">
+                                                {{ $member->role === 'turf-admin' ? __('Admin') : __('Manager') }}
+                                            </span>
+                                        </div>
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                                            <span class="flex items-center gap-1">
+                                                ✉️ {{ $member->user->email }}
+                                            </span>
+                                            <span class="hidden sm:inline text-gray-300 dark:text-gray-700">•</span>
+                                            <span class="flex items-center gap-1">
+                                                📞 {{ $member->user->mobile }}
+                                            </span>
                                         </div>
                                     </div>
-                                    <span class="px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg {{ $member->role === 'turf-admin' ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-950' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-950' }}">
-                                        {{ $member->role === 'turf-admin' ? __('Admin') : __('Manager') }}
-                                    </span>
                                 </div>
 
-                                <div class="flex justify-end border-t border-gray-50 dark:border-gray-850 pt-3">
+                                <div class="flex justify-end shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-gray-850/50 pt-3 sm:pt-0">
                                     <button wire:click="revokeStaff({{ $member->id }})" wire:confirm="{{ __('Are you sure you want to revoke staff privileges from this user?') }}" class="text-xs font-semibold text-red-500 hover:text-red-650 cursor-pointer flex items-center gap-1.5 transition">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
