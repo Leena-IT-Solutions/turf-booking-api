@@ -51,15 +51,14 @@ class AdministratorPageTest extends TestCase
         $response->assertSee('Initially kept blank.');
     }
 
-    public function test_user_with_customer_and_saas_admin_role_stays_on_dashboard(): void
+    public function test_user_with_customer_and_saas_admin_role_is_redirected_to_saas_dashboard(): void
     {
         $user = User::factory()->create();
         $user->assignRole('customer');
         $user->assignRole('saas-admin');
 
         $response = $this->actingAs($user)->get('/dashboard');
-        $response->assertOk();
-        $response->assertSee('Initially kept blank.');
+        $response->assertRedirect('/saas/administrator');
     }
 
     public function test_guest_cannot_access_administrator_route(): void

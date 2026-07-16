@@ -8,14 +8,17 @@ Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 
 Route::get('dashboard', function () {
     $user = auth()->user();
-    if ($user->hasRole('customer')) {
-        return view('dashboard');
-    }
     if ($user->hasRole('saas-admin')) {
         return redirect()->route('saas.administrator');
     }
-    if ($user->hasRole('turf-admin') || $user->hasRole('manager') || $user->hasRole('admin')) {
+    if ($user->hasRole('turf-admin') || $user->hasRole('admin')) {
         return redirect()->route('turf.dashboard');
+    }
+    if ($user->hasRole('manager')) {
+        return redirect()->route('turf.dashboard');
+    }
+    if ($user->hasRole('customer')) {
+        return view('dashboard');
     }
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');

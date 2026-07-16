@@ -60,4 +60,35 @@ class CustomerTurfPromptTest extends TestCase
         $response = $this->actingAs($user)->get('/dashboard');
         $response->assertRedirect(route('turf.dashboard'));
     }
+
+    public function test_user_with_customer_and_turf_admin_roles_is_redirected_to_turf_dashboard(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        $user->assignRole('turf-admin');
+
+        $response = $this->actingAs($user)->get('/dashboard');
+        $response->assertRedirect(route('turf.dashboard'));
+    }
+
+    public function test_user_with_customer_and_manager_roles_is_redirected_to_turf_dashboard(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        $user->assignRole('manager');
+
+        $response = $this->actingAs($user)->get('/dashboard');
+        $response->assertRedirect(route('turf.dashboard'));
+    }
+
+    public function test_user_with_customer_manager_and_saas_admin_roles_is_redirected_to_saas_dashboard(): void
+    {
+        $user = User::factory()->create();
+        $user->assignRole('customer');
+        $user->assignRole('manager');
+        $user->assignRole('saas-admin');
+
+        $response = $this->actingAs($user)->get('/dashboard');
+        $response->assertRedirect(route('saas.administrator'));
+    }
 }
