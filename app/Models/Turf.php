@@ -18,11 +18,33 @@ class Turf extends Model
         'is_active',
         'equipments',
         'pricing_wizard_data',
+        'is_online_payment_active',
+        'is_part_payment_active',
+        'is_pay_at_location_active',
+        'part_payment_type',
+        'part_payment_value',
+        'is_booking_open',
+        'booking_open_days',
+        'is_manager_booking_active',
+        'is_cancellation_active',
+        'cancellation_hours',
+        'cancellation_fee',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'pricing_wizard_data' => 'array',
+        'is_online_payment_active' => 'boolean',
+        'is_part_payment_active' => 'boolean',
+        'is_pay_at_location_active' => 'boolean',
+        'part_payment_type' => 'string',
+        'part_payment_value' => 'decimal:2',
+        'is_booking_open' => 'boolean',
+        'booking_open_days' => 'integer',
+        'is_manager_booking_active' => 'boolean',
+        'is_cancellation_active' => 'boolean',
+        'cancellation_hours' => 'integer',
+        'cancellation_fee' => 'decimal:2',
     ];
 
     /**
