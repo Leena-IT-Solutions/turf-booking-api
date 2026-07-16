@@ -31,10 +31,18 @@ class BlankPagesTest extends TestCase
             $response = $this->get(route($page));
             $response->assertRedirect(route('login'));
 
-            // Customer forbidden/redirected (role middleware throws an exception or aborts)
+            // Customer forbidden
             $customer = User::factory()->create();
             $customer->assignRole('customer');
             $this->actingAs($customer);
+
+            $response = $this->get(route($page));
+            $response->assertStatus(403);
+
+            // Manager forbidden
+            $manager = User::factory()->create();
+            $manager->assignRole('manager');
+            $this->actingAs($manager);
 
             $response = $this->get(route($page));
             $response->assertStatus(403);
@@ -44,7 +52,7 @@ class BlankPagesTest extends TestCase
         }
     }
 
-    public function test_turf_admin_and_managers_can_access_blank_pages(): void
+    public function test_turf_admin_can_access_blank_pages(): void
     {
         $pages = [
             'turf.photos',
@@ -53,19 +61,13 @@ class BlankPagesTest extends TestCase
             'turf.sports',
         ];
 
-        $roles = ['turf-admin', 'manager'];
+        $user = User::factory()->create();
+        $user->assignRole('turf-admin');
+        $this->actingAs($user);
 
-        foreach ($roles as $role) {
-            $user = User::factory()->create();
-            $user->assignRole($role);
-            $this->actingAs($user);
-
-            foreach ($pages as $page) {
-                $response = $this->get(route($page));
-                $response->assertOk();
-            }
-
-            auth()->logout();
+        foreach ($pages as $page) {
+            $response = $this->get(route($page));
+            $response->assertOk();
         }
     }
 }

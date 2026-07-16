@@ -49,7 +49,7 @@ class LocationManagerTest extends TestCase
         $user->assignRole('manager');
 
         $response = $this->actingAs($user)->get('/turf/locations');
-        $response->assertOk();
+        $response->assertStatus(403);
     }
 
     public function test_user_can_create_location(): void

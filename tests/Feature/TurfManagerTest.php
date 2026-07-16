@@ -50,7 +50,7 @@ class TurfManagerTest extends TestCase
         $user->assignRole('manager');
 
         $response = $this->actingAs($user)->get('/turf/turfs');
-        $response->assertOk();
+        $response->assertStatus(403);
     }
 
     public function test_user_can_create_turf(): void
