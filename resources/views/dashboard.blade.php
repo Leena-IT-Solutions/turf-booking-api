@@ -11,6 +11,10 @@
                 <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ __("Welcome, ") . auth()->user()->name }}!</h3>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Initially kept blank. Your bookings and history will appear here.') }}</p>
             </div>
+
+            @if(!(auth()->user()->hasRole('turf-admin') && auth()->user()->hasRole('manager')))
+                <livewire:dashboard.turf-prompter />
+            @endif
         </div>
     </div>
 </x-app-layout>

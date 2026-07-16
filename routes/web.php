@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::view('/', 'welcome');
+Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 
 Route::get('dashboard', function () {
     $user = auth()->user();
