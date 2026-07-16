@@ -17,6 +17,7 @@ class SaasSetting extends Model
         'logo_path',
         'is_maintenance_mode',
         'gemini_api_key',
+        'google_maps_api_key',
         'razorpay_key',
         'razorpay_secret',
         'mailgun_domain',

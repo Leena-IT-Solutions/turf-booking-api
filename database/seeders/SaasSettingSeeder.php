@@ -52,6 +52,7 @@ class SaasSettingSeeder extends Seeder
             'logo_path' => $logoPath,
             'is_maintenance_mode' => false,
             'gemini_api_key' => null,
+            'google_maps_api_key' => null,
             'razorpay_key' => null,
             'razorpay_secret' => null,
             'mailgun_domain' => null,

@@ -23,6 +23,7 @@ new #[Layout('layouts.app')] class extends Component
     public $mailgun_secret = '';
     public $mailgun_endpoint = 'api.mailgun.net';
     public $turf_search_km = 5;
+    public $google_maps_api_key = '';
     
     // File inputs
     public $new_logo;
@@ -46,6 +47,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->is_maintenance_mode = $setting->is_maintenance_mode;
         $this->current_logo_path = $setting->logo_path;
         $this->gemini_api_key = $setting->gemini_api_key;
+        $this->google_maps_api_key = $setting->google_maps_api_key;
         $this->razorpay_key = $setting->razorpay_key;
         $this->razorpay_secret = $setting->razorpay_secret;
         $this->mailgun_domain = $setting->mailgun_domain;
@@ -64,6 +66,7 @@ new #[Layout('layouts.app')] class extends Component
             'new_logo' => 'nullable|image|max:2048', // 2MB max
             'is_maintenance_mode' => 'boolean',
             'gemini_api_key' => 'nullable|string|max:255',
+            'google_maps_api_key' => 'nullable|string|max:255',
             'razorpay_key' => 'nullable|string|max:255',
             'razorpay_secret' => 'nullable|string|max:255',
             'mailgun_domain' => 'nullable|string|max:255',
@@ -85,6 +88,7 @@ new #[Layout('layouts.app')] class extends Component
             'new_logo' => 'nullable|image|max:2048',
             'is_maintenance_mode' => 'boolean',
             'gemini_api_key' => 'nullable|string|max:255',
+            'google_maps_api_key' => 'nullable|string|max:255',
             'razorpay_key' => 'nullable|string|max:255',
             'razorpay_secret' => 'nullable|string|max:255',
             'mailgun_domain' => 'nullable|string|max:255',
@@ -104,6 +108,7 @@ new #[Layout('layouts.app')] class extends Component
             'address' => $this->address,
             'is_maintenance_mode' => $this->is_maintenance_mode,
             'gemini_api_key' => $this->gemini_api_key,
+            'google_maps_api_key' => $this->google_maps_api_key,
             'razorpay_key' => $this->razorpay_key,
             'razorpay_secret' => $this->razorpay_secret,
             'mailgun_domain' => $this->mailgun_domain,
@@ -272,6 +277,27 @@ new #[Layout('layouts.app')] class extends Component
                             {{ __('Get your API Key from the Google AI Studio console.') }}
                         </span>
                         <x-input-error :messages="$errors->get('gemini_api_key')" class="mt-2" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Google Maps Setup Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+                <div class="max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Google Maps Integration') }}</h3>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                            {{ __('Provide a Google Maps API Key to enable map pickers, search locations, and coordinate selection features within the mobile application.') }}
+                        </p>
+                    </div>
+
+                    <div class="pt-2">
+                        <x-input-label for="googleMapsApiKey" :value="__('Google Maps API Key')" />
+                        <x-text-input wire:model.live.debounce.250ms="google_maps_api_key" id="googleMapsApiKey" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="AIzaSy..." />
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            {{ __('Ensure that the Geocoding API, Maps SDK for Android, and Maps SDK for iOS are enabled on this key in Google Cloud Console.') }}
+                        </span>
+                        <x-input-error :messages="$errors->get('google_maps_api_key')" class="mt-2" />
                     </div>
                 </div>
             </div>

@@ -11,6 +11,14 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/slider-images', [\App\Http\Controllers\Api\SliderImageController::class, 'index']);
+Route::get('/config', function () {
+    $setting = \App\Models\SaasSetting::first();
+    return response()->json([
+        'app_name' => $setting?->app_name ?? 'TurfBooking',
+        'google_maps_api_key' => $setting?->google_maps_api_key,
+        'turf_search_km' => $setting?->turf_search_km ?? 5,
+    ]);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
