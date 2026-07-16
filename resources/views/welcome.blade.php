@@ -9,6 +9,10 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700,900&display=swap" rel="stylesheet" />
 
+        <!-- Favicon -->
+        <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+
         <!-- Styles -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -23,9 +27,7 @@
         <!-- Header -->
         <header class="relative z-10 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
             <a href="{{ url('/') }}" class="flex items-center gap-2.5">
-                <div class="h-10 w-10 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-black text-xl shadow-sm dark:shadow-lg dark:shadow-emerald-500/5">
-                    T
-                </div>
+                <img src="{{ asset('images/logo.png') }}" class="h-10 w-10 rounded-2xl object-cover border border-emerald-100/50 dark:border-emerald-500/20 shadow-sm dark:shadow-lg" alt="Logo" />
                 <span class="font-extrabold text-xl tracking-tight text-slate-950 dark:text-white">{{ config('app.name', 'TurfBooking') }}</span>
             </a>
 
