@@ -225,6 +225,7 @@ new #[Layout('layouts.app')] class extends Component
                     <div class="p-4 border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-800">
                         <form wire:submit.prevent="sendReply" class="flex gap-3">
                             <input 
+                                id="reply-input-field"
                                 wire:model="replyMessage"
                                 type="text" 
                                 placeholder="Type a message..." 
@@ -267,6 +268,10 @@ new #[Layout('layouts.app')] class extends Component
         // Scroll on events
         Livewire.on('scroll-to-bottom', () => {
             setTimeout(scrollToBottom, 50);
+            setTimeout(() => {
+                const input = document.getElementById('reply-input-field');
+                if (input) input.focus();
+            }, 100);
         });
     });
 </script>
