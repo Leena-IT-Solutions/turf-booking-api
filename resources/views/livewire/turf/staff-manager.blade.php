@@ -10,7 +10,10 @@ new #[Layout('layouts.app')] class extends Component
     // Search properties
     public $searchQuery = '';
     public $foundUser = null;
-    public $selectedRole = 'manager'; // Default role
+    public $selectedRoles = [
+        'manager' => true,
+        'turf-admin' => false,
+    ];
 
     // UI feedback
     public $message = '';
@@ -60,37 +63,56 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $userId = $this->foundUser['id'];
-        $role = $this->selectedRole;
 
-        // Check if already assigned under this Turf Admin
-        $exists = StaffMember::where('turf_admin_id', auth()->id())
-            ->where('user_id', $userId)
-            ->where('role', $role)
-            ->exists();
+        $rolesToAssign = collect($this->selectedRoles)
+            ->filter(fn($val) => (bool)$val)
+            ->keys();
 
-        if ($exists) {
-            $this->message = __('This user is already added to your staff list with this role.');
+        if ($rolesToAssign->isEmpty()) {
+            $this->message = __('Please select at least one role.');
             $this->messageType = 'error';
             return;
         }
 
-        // Create assignment
-        StaffMember::create([
-            'turf_admin_id' => auth()->id(),
-            'user_id' => $userId,
-            'role' => $role,
-        ]);
-
-        // Assign global Spatie role
+        $assignedCount = 0;
         $user = User::findOrFail($userId);
-        $user->assignRole($role);
 
-        $this->message = __('Staff member added successfully.');
-        $this->messageType = 'success';
-        
+        foreach ($rolesToAssign as $role) {
+            // Check if already assigned under this Turf Admin
+            $exists = StaffMember::where('turf_admin_id', auth()->id())
+                ->where('user_id', $userId)
+                ->where('role', $role)
+                ->exists();
+
+            if (!$exists) {
+                // Create assignment
+                StaffMember::create([
+                    'turf_admin_id' => auth()->id(),
+                    'user_id' => $userId,
+                    'role' => $role,
+                ]);
+
+                // Assign global Spatie role
+                $user->assignRole($role);
+                $assignedCount++;
+            }
+        }
+
+        if ($assignedCount > 0) {
+            $this->message = __('Staff member appointed with the selected roles successfully.');
+            $this->messageType = 'success';
+        } else {
+            $this->message = __('This user already has all the selected roles on your staff list.');
+            $this->messageType = 'error';
+        }
+
         // Reset search states
         $this->foundUser = null;
         $this->searchQuery = '';
+        $this->selectedRoles = [
+            'manager' => true,
+            'turf-admin' => false,
+        ];
     }
 
     public function revokeStaff($assignmentId)
@@ -115,19 +137,45 @@ new #[Layout('layouts.app')] class extends Component
             $user->retractRole($role);
         }
 
-        $this->message = __('Staff privileges revoked successfully.');
+        $this->message = __('Selected staff privilege revoked successfully.');
+        $this->messageType = 'success';
+    }
+
+    public function revokeAllStaff($userId)
+    {
+        $assignments = StaffMember::where('turf_admin_id', auth()->id())
+            ->where('user_id', $userId)
+            ->get();
+
+        foreach ($assignments as $assignment) {
+            $role = $assignment->role;
+            $assignment->delete();
+
+            // Check other assignments
+            $other = StaffMember::where('user_id', $userId)
+                ->where('role', $role)
+                ->exists();
+
+            if (!$other) {
+                $user = User::findOrFail($userId);
+                $user->retractRole($role);
+            }
+        }
+
+        $this->message = __('All staff privileges revoked from this user.');
         $this->messageType = 'success';
     }
 
     public function with()
     {
-        // Load active staff members for this Turf Admin
-        $staff = StaffMember::where('turf_admin_id', auth()->id())
+        // Load active staff members for this Turf Admin, grouped by user
+        $staffGrouped = StaffMember::where('turf_admin_id', auth()->id())
             ->with('user')
-            ->get();
+            ->get()
+            ->groupBy('user_id');
 
         return [
-            'staff' => $staff,
+            'staffGrouped' => $staffGrouped,
         ];
     }
 }; ?>
@@ -207,11 +255,17 @@ new #[Layout('layouts.app')] class extends Component
 
                         <div class="space-y-3">
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">{{ __('Select Role') }}</label>
-                                <select wire:model="selectedRole" class="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition">
-                                    <option value="manager">{{ __('Manager') }}</option>
-                                    <option value="turf-admin">{{ __('Admin') }}</option>
-                                </select>
+                                <label class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('Select Roles') }}</label>
+                                <div class="space-y-2.5">
+                                    <label class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                                        <input type="checkbox" wire:model="selectedRoles.manager" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                        <span class="font-medium">{{ __('Manager') }}</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                                        <input type="checkbox" wire:model="selectedRoles.turf-admin" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                        <span class="font-medium">{{ __('Admin') }}</span>
+                                    </label>
+                                </div>
                             </div>
 
                             <button wire:click="addStaff" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 active:scale-[0.98] transition cursor-pointer">
@@ -230,11 +284,11 @@ new #[Layout('layouts.app')] class extends Component
                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ __('List of admins and managers managing your venue.') }}</p>
                     </div>
                     <span class="px-2.5 py-1 text-xs font-bold bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                        {{ $staff->count() }} {{ trans_choice('Member|Members', $staff->count()) }}
+                        {{ $staffGrouped->count() }} {{ trans_choice('Member|Members', $staffGrouped->count()) }}
                     </span>
                 </div>
 
-                @if ($staff->isEmpty())
+                @if ($staffGrouped->isEmpty())
                     <div class="bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 p-12 rounded-3xl flex flex-col items-center justify-center text-center">
                         <span class="text-4xl">👥</span>
                         <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 mt-4">{{ __('No Staff Appointed') }}</h4>
@@ -244,37 +298,49 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 @else
                     <div class="space-y-4">
-                        @foreach ($staff as $member)
+                        @foreach ($staffGrouped as $userId => $group)
+                            @php
+                                $user = $group->first()->user;
+                            @endphp
                             <div class="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition hover:shadow-md relative overflow-hidden group">
                                 <div class="flex items-center gap-4">
                                     <div class="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-50 to-indigo-100/50 dark:from-indigo-950/20 dark:to-indigo-900/10 border border-indigo-100/30 dark:border-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-extrabold text-base shadow-sm">
-                                        {{ collect(explode(' ', $member->user->name))->map(fn($n) => mb_substr($n, 0, 1))->take(2)->join('') }}
+                                        {{ collect(explode(' ', $user->name))->map(fn($n) => mb_substr($n, 0, 1))->take(2)->join('') }}
                                     </div>
                                     <div class="min-w-0">
-                                        <div class="flex items-center gap-2">
-                                            <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{{ $member->user->name }}</h4>
-                                            <span class="px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md {{ $member->role === 'turf-admin' ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-950' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-950' }}">
-                                                {{ $member->role === 'turf-admin' ? __('Admin') : __('Manager') }}
-                                            </span>
+                                        <div class="flex items-center flex-wrap gap-2">
+                                            <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{{ $user->name }}</h4>
+                                            
+                                            <!-- Grouped roles list inside user card -->
+                                            <div class="flex flex-wrap gap-1">
+                                                @foreach ($group as $member)
+                                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md {{ $member->role === 'turf-admin' ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-950' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-950' }}">
+                                                        {{ $member->role === 'turf-admin' ? __('Admin') : __('Manager') }}
+                                                        <button wire:click="revokeStaff({{ $member->id }})" wire:confirm="{{ __('Revoke this specific role from this user?') }}" title="{{ __('Revoke role') }}" class="ms-1 hover:text-red-500 font-bold transition cursor-pointer">
+                                                            ✕
+                                                        </button>
+                                                    </span>
+                                                @endforeach
+                                            </div>
                                         </div>
                                         <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 text-[11px] text-gray-400 dark:text-gray-500">
                                             <span class="flex items-center gap-1">
-                                                ✉️ {{ $member->user->email }}
+                                                ✉️ {{ $user->email }}
                                             </span>
                                             <span class="hidden sm:inline text-gray-300 dark:text-gray-700">•</span>
                                             <span class="flex items-center gap-1">
-                                                📞 {{ $member->user->mobile }}
+                                                📞 {{ $user->mobile }}
                                             </span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="flex justify-end shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-gray-850/50 pt-3 sm:pt-0">
-                                    <button wire:click="revokeStaff({{ $member->id }})" wire:confirm="{{ __('Are you sure you want to revoke staff privileges from this user?') }}" class="text-xs font-semibold text-red-500 hover:text-red-650 cursor-pointer flex items-center gap-1.5 transition">
+                                    <button wire:click="revokeAllStaff({{ $user->id }})" wire:confirm="{{ __('Are you sure you want to revoke all staff privileges from this user?') }}" class="text-xs font-semibold text-red-500 hover:text-red-650 cursor-pointer flex items-center gap-1.5 transition">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
-                                        {{ __('Revoke Staff') }}
+                                        {{ __('Revoke All') }}
                                     </button>
                                 </div>
                             </div>

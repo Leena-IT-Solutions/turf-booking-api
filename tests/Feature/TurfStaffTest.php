@@ -91,7 +91,7 @@ class TurfStaffTest extends TestCase
             ->assertSet('messageType', 'error');
     }
 
-    public function test_turf_admin_can_appoint_and_revoke_staff_members(): void
+    public function test_turf_admin_can_appoint_multiple_roles_and_revoke_individually(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('turf-admin');
@@ -101,33 +101,94 @@ class TurfStaffTest extends TestCase
             'email' => 'staffmember@example.com',
         ]);
 
-        // Appoint as manager
+        // Appoint as both manager and turf-admin
         Volt::test('turf.staff-manager')
             ->set('searchQuery', 'staffmember@example.com')
             ->call('search')
-            ->set('selectedRole', 'manager')
+            ->set('selectedRoles', [
+                'manager' => true,
+                'turf-admin' => true,
+            ])
             ->call('addStaff')
             ->assertSet('messageType', 'success');
 
         $this->assertTrue($targetUser->hasRole('manager'));
+        $this->assertTrue($targetUser->hasRole('turf-admin'));
+
         $this->assertDatabaseHas('staff_members', [
             'turf_admin_id' => $admin->id,
             'user_id' => $targetUser->id,
             'role' => 'manager',
         ]);
+        $this->assertDatabaseHas('staff_members', [
+            'turf_admin_id' => $admin->id,
+            'user_id' => $targetUser->id,
+            'role' => 'turf-admin',
+        ]);
 
-        $assignment = StaffMember::where('turf_admin_id', $admin->id)
+        $managerAssignment = StaffMember::where('turf_admin_id', $admin->id)
             ->where('user_id', $targetUser->id)
+            ->where('role', 'manager')
             ->firstOrFail();
 
-        // Revoke staff privileges
+        $adminAssignment = StaffMember::where('turf_admin_id', $admin->id)
+            ->where('user_id', $targetUser->id)
+            ->where('role', 'turf-admin')
+            ->firstOrFail();
+
+        // Revoke only manager role
         Volt::test('turf.staff-manager')
-            ->call('revokeStaff', $assignment->id)
+            ->call('revokeStaff', $managerAssignment->id)
             ->assertSet('messageType', 'success');
 
         $this->assertFalse($targetUser->fresh()->hasRole('manager'));
+        $this->assertTrue($targetUser->fresh()->hasRole('turf-admin'));
+        $this->assertDatabaseMissing('staff_members', ['id' => $managerAssignment->id]);
+        $this->assertDatabaseHas('staff_members', ['id' => $adminAssignment->id]);
+
+        // Revoke admin role as well
+        Volt::test('turf.staff-manager')
+            ->call('revokeStaff', $adminAssignment->id)
+            ->assertSet('messageType', 'success');
+
+        $this->assertFalse($targetUser->fresh()->hasRole('turf-admin'));
+        $this->assertDatabaseMissing('staff_members', ['id' => $adminAssignment->id]);
+    }
+
+    public function test_turf_admin_can_revoke_all_roles_at_once(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('turf-admin');
+        $this->actingAs($admin);
+
+        $targetUser = User::factory()->create([
+            'email' => 'staffmember@example.com',
+        ]);
+
+        // Appoint as both manager and turf-admin
+        Volt::test('turf.staff-manager')
+            ->set('searchQuery', 'staffmember@example.com')
+            ->call('search')
+            ->set('selectedRoles', [
+                'manager' => true,
+                'turf-admin' => true,
+            ])
+            ->call('addStaff')
+            ->assertSet('messageType', 'success');
+
+        $this->assertTrue($targetUser->hasRole('manager'));
+        $this->assertTrue($targetUser->hasRole('turf-admin'));
+
+        // Revoke all roles
+        Volt::test('turf.staff-manager')
+            ->call('revokeAllStaff', $targetUser->id)
+            ->assertSet('messageType', 'success');
+
+        $this->assertFalse($targetUser->fresh()->hasRole('manager'));
+        $this->assertFalse($targetUser->fresh()->hasRole('turf-admin'));
         $this->assertDatabaseMissing('staff_members', [
-            'id' => $assignment->id,
+            'turf_admin_id' => $admin->id,
+            'user_id' => $targetUser->id,
         ]);
     }
 
@@ -163,7 +224,8 @@ class TurfStaffTest extends TestCase
             ->call('revokeStaff', $assignment2->id);
 
         // Assert staffUser still has the manager role because of assignment under Admin1
-        $this->assertTrue($staffUser->fresh()->hasRole('manager'));
+        $this->freshFixture = $staffUser->fresh();
+        $this->assertTrue($this->freshFixture->hasRole('manager'));
         $this->assertDatabaseHas('staff_members', [
             'turf_admin_id' => $admin1->id,
             'user_id' => $staffUser->id,
