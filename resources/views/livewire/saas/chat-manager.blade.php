@@ -214,6 +214,9 @@ new #[Layout('layouts.app')] class extends Component
                     <!-- Chat Messages Stream -->
                     <div 
                         id="chat-messages-container"
+                        x-data
+                        x-init="$nextTick(() => { $el.scrollTop = $el.scrollHeight; })"
+                        @scroll-to-bottom.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight; })"
                         class="flex-1 min-h-0 p-6 overflow-y-auto space-y-4 bg-gray-50/10 dark:bg-gray-900/5"
                     >
                         @foreach ($messages as $msg)
@@ -249,6 +252,8 @@ new #[Layout('layouts.app')] class extends Component
                             <input 
                                 id="reply-input-field"
                                 wire:model="replyMessage"
+                                x-data
+                                x-init="$nextTick(() => { $el.focus(); })"
                                 type="text" 
                                 placeholder="Type a message..." 
                                 class="flex-1 text-xs rounded-2xl bg-gray-50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 px-4 py-3"
@@ -275,25 +280,4 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 </div>
 
-<script>
-    document.addEventListener('livewire:initialized', () => {
-        const scrollToBottom = () => {
-            const container = document.getElementById('chat-messages-container');
-            if (container) {
-                container.scrollTop = container.scrollHeight;
-            }
-        };
 
-        // Scroll on load
-        setTimeout(scrollToBottom, 100);
-
-        // Scroll on events
-        Livewire.on('scroll-to-bottom', () => {
-            setTimeout(scrollToBottom, 50);
-            setTimeout(() => {
-                const input = document.getElementById('reply-input-field');
-                if (input) input.focus();
-            }, 100);
-        });
-    });
-</script>
