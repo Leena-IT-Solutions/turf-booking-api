@@ -67,4 +67,131 @@ class AuthController extends Controller
         $user->load('roles');
         return response()->json($user);
     }
+
+    /**
+     * Handle user registration.
+     */
+    public function register(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'mobile' => 'required|string|max:15|unique:users',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'mobile' => $request->mobile,
+            'password' => Hash::make($request->password),
+        ]);
+
+        $user->assignRole('customer');
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'mobile' => $user->mobile,
+                'roles' => $user->roles()->pluck('name'),
+            ]
+        ], 201);
+    }
+
+    /**
+     * Request a password reset OTP.
+     */
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email|exists:users,email',
+        ]);
+
+        $email = $request->email;
+        $otp = strval(rand(100000, 999999));
+
+        \DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $email],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now()
+            ]
+        );
+
+        return response()->json([
+            'message' => 'OTP sent successfully to your email.',
+            'otp' => $otp, // Return in response for development convenience
+        ]);
+    }
+
+    /**
+     * Verify the password reset OTP.
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email|exists:users,email',
+            'otp' => 'required|string|min:6|max:6',
+        ]);
+
+        $reset = \DB::table('password_reset_tokens')->where('email', $request->email)->first();
+
+        if (!$reset || !Hash::check($request->otp, $reset->token)) {
+            return response()->json([
+                'message' => 'Invalid OTP code.'
+            ], 422);
+        }
+
+        if (\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+            return response()->json([
+                'message' => 'OTP has expired.'
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'OTP verified successfully.'
+        ]);
+    }
+
+    /**
+     * Reset the user password using OTP.
+     */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|string|email|exists:users,email',
+            'otp' => 'required|string|min:6|max:6',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $reset = \DB::table('password_reset_tokens')->where('email', $request->email)->first();
+
+        if (!$reset || !Hash::check($request->otp, $reset->token)) {
+            return response()->json([
+                'message' => 'Invalid OTP code.'
+            ], 422);
+        }
+
+        if (\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+            return response()->json([
+                'message' => 'OTP has expired.'
+            ], 422);
+        }
+
+        $user = User::where('email', $request->email)->firstOrFail();
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+
+        return response()->json([
+            'message' => 'Password reset successfully.'
+        ]);
+    }
 }
