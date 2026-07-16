@@ -113,7 +113,7 @@ new #[Layout('layouts.app')] class extends Component
 <div class="h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)] flex -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 bg-white dark:bg-gray-800 overflow-hidden" wire:poll.5s>
             
             <!-- Left Sidebar (Contacts List) -->
-            <div class="w-80 border-r border-gray-100 dark:border-gray-700/50 flex flex-col h-full bg-gray-50/30 dark:bg-gray-900/10">
+            <div class="w-80 border-r border-gray-100 dark:border-gray-700/50 flex flex-col h-full min-h-0 bg-gray-50/30 dark:bg-gray-900/10">
                 <!-- Search Bar -->
                 <div class="p-4 border-b border-gray-100 dark:border-gray-700/50">
                     <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-3">{{ __('Conversations') }}</h3>
@@ -176,7 +176,7 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- Right Chat Window -->
-            <div class="flex-1 flex flex-col h-full bg-white dark:bg-gray-800">
+            <div class="flex-1 flex flex-col h-full min-h-0 bg-white dark:bg-gray-800">
                 @if ($activeCustomer)
                     <!-- Chat Header -->
                     <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700/50 flex items-center justify-between">
@@ -194,7 +194,7 @@ new #[Layout('layouts.app')] class extends Component
                     <!-- Chat Messages Stream -->
                     <div 
                         id="chat-messages-container"
-                        class="flex-1 p-6 overflow-y-auto space-y-4 bg-gray-50/10 dark:bg-gray-900/5"
+                        class="flex-1 min-h-0 p-6 overflow-y-auto space-y-4 bg-gray-50/10 dark:bg-gray-900/5"
                     >
                         @foreach ($messages as $msg)
                             @if ($msg->sender_id === $activeCustomer->id)
