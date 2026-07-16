@@ -15,5 +15,8 @@ Route::get('/offers', [OfferController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::put('/user/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/user/password', [AuthController::class, 'changePassword']);
+    Route::delete('/user', [AuthController::class, 'deleteAccount']);
     Route::post('/coupons/validate', [OfferController::class, 'validateCoupon']);
 });
