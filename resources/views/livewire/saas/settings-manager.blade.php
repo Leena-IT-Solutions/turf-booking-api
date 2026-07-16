@@ -238,17 +238,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-error :messages="$errors->get('contact_mobile')" class="mt-2" />
                             </div>
 
-                            <!-- Turf Search Km -->
-                            <div>
-                                <x-input-label for="turfSearchKm" :value="__('Turf Search Km')" />
-                                <x-text-input wire:model.live.debounce.250ms="turf_search_km" id="turfSearchKm" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="5" />
-                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
-                                    {{ __('Radius (in kilometers) to search for nearby turfs.') }}
-                                </span>
-                                <x-input-error :messages="$errors->get('turf_search_km')" class="mt-2" />
                             </div>
-
-                        </div>
 
                         <!-- Address -->
                         <div>
@@ -256,6 +246,27 @@ new #[Layout('layouts.app')] class extends Component
                             <textarea wire:model.live.debounce.250ms="address" id="companyAddress" rows="3" class="mt-1.5 block w-full rounded-2xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm text-xs p-4" placeholder="123 Sport Complex St, Mumbai, India"></textarea>
                             <x-input-error :messages="$errors->get('address')" class="mt-2" />
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Application Settings Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+                <div class="max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Application Settings') }}</h3>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                            {{ __('Configure general application preferences and settings.') }}
+                        </p>
+                    </div>
+
+                    <div class="pt-2 max-w-xs">
+                        <x-input-label for="turfSearchKm" :value="__('Turf Search Km')" />
+                        <x-text-input wire:model.live.debounce.250ms="turf_search_km" id="turfSearchKm" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="5" />
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            {{ __('Radius (in kilometers) to search for nearby turfs.') }}
+                        </span>
+                        <x-input-error :messages="$errors->get('turf_search_km')" class="mt-2" />
                     </div>
                 </div>
             </div>
