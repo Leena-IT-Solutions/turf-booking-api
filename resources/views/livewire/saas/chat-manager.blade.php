@@ -110,7 +110,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="h-[calc(100vh-64px)] lg:h-[calc(100vh-64px)] flex -mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 bg-white dark:bg-gray-800 overflow-hidden" wire:poll.5s>
+<div class="fixed top-16 lg:top-0 bottom-0 left-0 lg:left-64 right-0 flex bg-white dark:bg-gray-850 overflow-hidden" wire:poll.5s>
             
             <!-- Left Sidebar (Contacts List) -->
             <div class="w-80 border-r border-gray-100 dark:border-gray-700/50 flex flex-col h-full min-h-0 bg-gray-50/30 dark:bg-gray-900/10">
