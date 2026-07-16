@@ -180,7 +180,28 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
+<div x-data="{
+    confirmOpen: false,
+    confirmTitle: '',
+    confirmMessage: '',
+    confirmAction: null,
+    confirmId: null,
+    triggerConfirm(title, message, action, id) {
+        this.confirmTitle = title;
+        this.confirmMessage = message;
+        this.confirmAction = action;
+        this.confirmId = id;
+        this.confirmOpen = true;
+    },
+    executeAction() {
+        this.confirmOpen = false;
+        if (this.confirmAction === 'revokeStaff') {
+            $wire.revokeStaff(this.confirmId);
+        } else if (this.confirmAction === 'revokeAllStaff') {
+            $wire.revokeAllStaff(this.confirmId);
+        }
+    }
+}" class="py-6">
     <div class="sm:px-6 lg:px-8 space-y-6">
         
         <!-- Header Banner -->
@@ -316,7 +337,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 @foreach ($group as $member)
                                                     <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md {{ $member->role === 'turf-admin' ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-950' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-950' }}">
                                                         {{ $member->role === 'turf-admin' ? __('Admin') : __('Manager') }}
-                                                        <button wire:click="revokeStaff({{ $member->id }})" wire:confirm="{{ __('Revoke this specific role from this user?') }}" title="{{ __('Revoke role') }}" class="ms-1 hover:text-red-500 font-bold transition cursor-pointer">
+                                                        <button @click.prevent="triggerConfirm('{{ __('Revoke Role') }}', '{{ __('Are you sure you want to revoke this specific role from this user?') }}', 'revokeStaff', {{ $member->id }})" title="{{ __('Revoke role') }}" class="ms-1 hover:text-red-500 font-bold transition cursor-pointer">
                                                             ✕
                                                         </button>
                                                     </span>
@@ -336,7 +357,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
 
                                 <div class="flex justify-end shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-gray-850/50 pt-3 sm:pt-0">
-                                    <button wire:click="revokeAllStaff({{ $user->id }})" wire:confirm="{{ __('Are you sure you want to revoke all staff privileges from this user?') }}" class="text-xs font-semibold text-red-500 hover:text-red-650 cursor-pointer flex items-center gap-1.5 transition">
+                                    <button @click.prevent="triggerConfirm('{{ __('Revoke All Roles') }}', '{{ __('Are you sure you want to revoke all staff privileges from this user?') }}', 'revokeAllStaff', {{ $user->id }})" class="text-xs font-semibold text-red-500 hover:text-red-650 cursor-pointer flex items-center gap-1.5 transition">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                         </svg>
@@ -351,5 +372,52 @@ new #[Layout('layouts.app')] class extends Component
 
         </div>
 
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div x-show="confirmOpen" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+         style="display: none;">
+        
+        <!-- Backdrop -->
+        <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" @click="confirmOpen = false"></div>
+
+        <!-- Modal Content -->
+        <div x-show="confirmOpen"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+             class="relative bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700/50 space-y-6 z-10 text-center sm:text-left">
+            
+            <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <div class="h-12 w-12 rounded-2xl bg-red-50 dark:bg-red-950/30 text-red-500 flex items-center justify-center shrink-0 border border-red-100 dark:border-red-900/30">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div class="space-y-2 min-w-0 flex-1">
+                    <h3 class="text-base font-extrabold text-gray-900 dark:text-gray-100" x-text="confirmTitle"></h3>
+                    <p class="text-xs text-gray-400 dark:text-gray-500 leading-relaxed" x-text="confirmMessage"></p>
+                </div>
+            </div>
+
+            <div class="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
+                <button type="button" @click="confirmOpen = false" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition cursor-pointer">
+                    {{ __('Cancel') }}
+                </button>
+                <button type="button" @click="executeAction" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-md shadow-red-500/10 hover:shadow-red-500/20 transition cursor-pointer">
+                    {{ __('Revoke Staff') }}
+                </button>
+            </div>
+        </div>
     </div>
 </div>
