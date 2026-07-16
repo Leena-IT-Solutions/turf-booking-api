@@ -118,13 +118,17 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="p-4 border-b border-gray-100 dark:border-gray-700/50">
                     <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-3">{{ __('Conversations') }}</h3>
                     <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
                         <input 
                             wire:model.live="search"
                             type="text" 
                             placeholder="Search customer..." 
-                            class="w-full text-xs rounded-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 pl-8 pr-4 py-2"
+                            class="w-full text-xs rounded-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 pl-10 pr-4 py-2.5 focus:outline-none"
                         />
-                        <span class="absolute left-2.5 top-2.5 text-gray-400 dark:text-gray-500 text-xs">🔍</span>
                     </div>
                 </div>
 
