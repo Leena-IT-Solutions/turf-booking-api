@@ -110,7 +110,26 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="fixed top-16 lg:top-0 bottom-0 left-0 lg:left-64 right-0 flex bg-white dark:bg-gray-850 overflow-hidden" wire:poll.5s>
+<style>
+    /* Constrain the content area wrapper to viewport height */
+    div.lg\:ps-64 {
+        height: 100vh !important;
+        max-height: 100vh !important;
+        overflow: hidden !important;
+    }
+    
+    /* Make main occupy the exact remaining height without padding */
+    main {
+        padding: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        flex-grow: 1 !important;
+        min-height: 0 !important;
+    }
+</style>
+
+<div class="flex-1 flex min-h-0 bg-white dark:bg-gray-800 overflow-hidden" wire:poll.5s>
             
             <!-- Left Sidebar (Contacts List) -->
             <div class="w-80 border-r border-gray-100 dark:border-gray-700/50 flex flex-col h-full min-h-0 bg-gray-50/30 dark:bg-gray-900/10">
