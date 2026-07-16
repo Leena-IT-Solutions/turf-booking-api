@@ -80,4 +80,20 @@ class User extends Authenticatable
 
         $this->roles()->detach($role->id);
     }
+
+    /**
+     * Get the staff members assigned by this user (if Turf Admin).
+     */
+    public function staffMembers()
+    {
+        return $this->hasMany(StaffMember::class, 'turf_admin_id');
+    }
+
+    /**
+     * Get the staff roles assigned to this user.
+     */
+    public function staffAssignments()
+    {
+        return $this->hasMany(StaffMember::class, 'user_id');
+    }
 }
