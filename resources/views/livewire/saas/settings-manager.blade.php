@@ -22,6 +22,7 @@ new #[Layout('layouts.app')] class extends Component
     public $mailgun_domain = '';
     public $mailgun_secret = '';
     public $mailgun_endpoint = 'api.mailgun.net';
+    public $turf_search_km = 5;
     
     // File inputs
     public $new_logo;
@@ -35,6 +36,7 @@ new #[Layout('layouts.app')] class extends Component
             'contact_mobile' => '9664588677',
             'address' => 'Mumbai, India',
             'is_maintenance_mode' => false,
+            'turf_search_km' => 5,
         ]);
 
         $this->app_name = $setting->app_name;
@@ -49,6 +51,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->mailgun_domain = $setting->mailgun_domain;
         $this->mailgun_secret = $setting->mailgun_secret;
         $this->mailgun_endpoint = $setting->mailgun_endpoint ?: 'api.mailgun.net';
+        $this->turf_search_km = $setting->turf_search_km ?? 5;
     }
 
     public function updated($propertyName)
@@ -66,6 +69,7 @@ new #[Layout('layouts.app')] class extends Component
             'mailgun_domain' => 'nullable|string|max:255',
             'mailgun_secret' => 'nullable|string|max:255',
             'mailgun_endpoint' => 'nullable|string|max:255',
+            'turf_search_km' => 'required|integer|min:1|max:100',
         ];
 
         $this->validateOnly($propertyName, $rules);
@@ -86,6 +90,7 @@ new #[Layout('layouts.app')] class extends Component
             'mailgun_domain' => 'nullable|string|max:255',
             'mailgun_secret' => 'nullable|string|max:255',
             'mailgun_endpoint' => 'nullable|string|max:255',
+            'turf_search_km' => 'required|integer|min:1|max:100',
         ];
 
         $this->validate($rules);
@@ -104,6 +109,7 @@ new #[Layout('layouts.app')] class extends Component
             'mailgun_domain' => $this->mailgun_domain,
             'mailgun_secret' => $this->mailgun_secret,
             'mailgun_endpoint' => $this->mailgun_endpoint,
+            'turf_search_km' => $this->turf_search_km,
         ];
 
         if ($this->new_logo) {
@@ -225,6 +231,16 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-label for="contactMobile" :value="__('Contact Mobile')" />
                                 <x-text-input wire:model.live.debounce.250ms="contact_mobile" id="contactMobile" type="text" class="mt-1.5 block w-full" placeholder="9876543210" />
                                 <x-input-error :messages="$errors->get('contact_mobile')" class="mt-2" />
+                            </div>
+
+                            <!-- Turf Search Km -->
+                            <div>
+                                <x-input-label for="turfSearchKm" :value="__('Turf Search Km')" />
+                                <x-text-input wire:model.live.debounce.250ms="turf_search_km" id="turfSearchKm" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="5" />
+                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                    {{ __('Radius (in kilometers) to search for nearby turfs.') }}
+                                </span>
+                                <x-input-error :messages="$errors->get('turf_search_km')" class="mt-2" />
                             </div>
 
                         </div>

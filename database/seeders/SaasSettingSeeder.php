@@ -57,6 +57,7 @@ class SaasSettingSeeder extends Seeder
             'mailgun_domain' => null,
             'mailgun_secret' => null,
             'mailgun_endpoint' => 'api.mailgun.net',
+            'turf_search_km' => 5,
         ]);
     }
 }

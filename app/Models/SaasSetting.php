@@ -22,9 +22,11 @@ class SaasSetting extends Model
         'mailgun_domain',
         'mailgun_secret',
         'mailgun_endpoint',
+        'turf_search_km',
     ];
 
     protected $casts = [
         'is_maintenance_mode' => 'boolean',
+        'turf_search_km' => 'integer',
     ];
 }
