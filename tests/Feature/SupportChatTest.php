@@ -21,7 +21,7 @@ class SupportChatTest extends TestCase
 
     public function test_guest_is_redirected_from_chat_manager(): void
     {
-        $this->get('/turf/support')->assertRedirect('/login');
+        $this->get('/saas/support')->assertRedirect('/login');
     }
 
     public function test_customer_cannot_access_chat_manager(): void
@@ -29,13 +29,13 @@ class SupportChatTest extends TestCase
         $customer = User::factory()->create();
         $customer->assignRole('customer');
 
-        $this->actingAs($customer)->get('/turf/support')->assertStatus(403);
+        $this->actingAs($customer)->get('/saas/support')->assertStatus(403);
     }
 
     public function test_admin_can_access_chat_manager_and_see_chat_elements(): void
     {
         $admin = User::factory()->create();
-        $admin->assignRole('turf-admin');
+        $admin->assignRole('saas-admin');
 
         $customer = User::factory()->create();
         $customer->assignRole('customer');
@@ -49,9 +49,9 @@ class SupportChatTest extends TestCase
             'is_read_by_admin' => false,
         ]);
 
-        $this->actingAs($admin)->get('/turf/support')->assertOk();
+        $this->actingAs($admin)->get('/saas/support')->assertOk();
 
-        Volt::test('turf.chat-manager')
+        Volt::test('saas.chat-manager')
             ->assertSee($customer->name)
             ->assertSee('Please reply ASAP');
     }
@@ -59,7 +59,7 @@ class SupportChatTest extends TestCase
     public function test_admin_can_reply_to_customer_messages(): void
     {
         $admin = User::factory()->create();
-        $admin->assignRole('turf-admin');
+        $admin->assignRole('saas-admin');
 
         $customer = User::factory()->create();
         $customer->assignRole('customer');
@@ -74,7 +74,7 @@ class SupportChatTest extends TestCase
         ]);
 
         Volt::actingAs($admin)
-            ->test('turf.chat-manager')
+            ->test('saas.chat-manager')
             ->call('selectCustomer', $customer->id)
             ->set('replyMessage', 'Here is my reply')
             ->call('sendReply')
