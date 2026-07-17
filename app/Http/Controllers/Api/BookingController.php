@@ -91,6 +91,7 @@ class BookingController extends Controller
 
         // Format all turf slots
         $slots = $turf->slots()
+            ->with('category')
             ->wherePivot('is_active', true)
             ->get()
             ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $getRateForTime) {
@@ -113,6 +114,7 @@ class BookingController extends Controller
                     'time_label' => "$fromFormatted - $toFormatted",
                     'price' => $price,
                     'is_booked' => in_array($slot->id, $occupiedSlotIds),
+                    'category' => $slot->category?->name ?? 'Other',
                 ];
             })
             ->sortBy('from_time')
