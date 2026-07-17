@@ -388,13 +388,13 @@ new #[Layout('layouts.app')] class extends Component
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <!-- Flat Rate Option -->
                                             <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'yes' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700/60 dark:hover:bg-gray-800/30' }}">
-                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-105">{{ __('Yes, flat rate all day') }}</span>
+                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('Yes, flat rate all day') }}</span>
                                                 <input type="radio" wire:model.live="sameRateThroughoutDayAll" value="yes" class="h-4 w-4 text-indigo-600 border-gray-300">
                                             </label>
 
                                             <!-- Dynamic Rates Option -->
                                             <label class="relative p-4 rounded-xl border transition duration-150 cursor-pointer flex items-center justify-between {{ $sameRateThroughoutDayAll === 'no' ? 'bg-indigo-50/30 border-indigo-600 dark:bg-indigo-950/20 dark:border-indigo-500 ring-2 ring-indigo-600/10' : 'bg-transparent border-gray-200 hover:bg-gray-50/50 dark:border-gray-700/60 dark:hover:bg-gray-800/30' }}">
-                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-105">{{ __('No, dynamic rates') }}</span>
+                                                <span class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ __('No, dynamic rates') }}</span>
                                                 <input type="radio" wire:model.live="sameRateThroughoutDayAll" value="no" class="h-4 w-4 text-indigo-600 border-gray-300">
                                             </label>
                                         </div>
