@@ -422,7 +422,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Facilities, Equipments, Sports -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="space-y-4">
                             <!-- Facilities -->
                             <div class="space-y-2">
                                 <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Facilities') }}</h4>
