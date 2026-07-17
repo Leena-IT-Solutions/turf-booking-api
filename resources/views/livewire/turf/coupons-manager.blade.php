@@ -276,94 +276,94 @@ new #[Layout('layouts.app')] class extends Component
                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5 leading-relaxed">{{ __('No discount coupons match your search or exist for this turf yet.') }}</p>
                     </div>
                 @else
-                    <div class="p-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            @foreach ($coupons as $coupon)
-                                <div class="bg-gray-50 dark:bg-gray-900 rounded-3xl border border-gray-150 dark:border-gray-750/50 overflow-hidden relative flex flex-col justify-between shadow-xs transition hover:shadow-md">
-                                    
-                                    <!-- Ticket Top Info -->
-                                    <div class="p-5.5 space-y-4">
-                                        
-                                        <!-- Header: Code and Toggle Status -->
-                                        <div class="flex items-start justify-between gap-3">
-                                            <div>
-                                                <div class="inline-flex items-center px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 text-xs font-black rounded-lg border border-indigo-100/50 dark:border-indigo-900/30 font-mono tracking-wider uppercase">
-                                                    {{ $coupon->code }}
-                                                </div>
-                                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1.5 uppercase font-bold tracking-wider">
-                                                    {{ $coupon->discount_type === 'percentage' ? __('Percentage Coupon') : __('Flat Discount Coupon') }}
-                                                </p>
-                                            </div>
-                                            
-                                            <!-- Toggle status -->
-                                            <button type="button" wire:click="toggleStatus({{ $coupon->id }})" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $coupon->is_active ? 'bg-indigo-600' : 'bg-gray-250 dark:bg-gray-700' }}">
-                                                <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $coupon->is_active ? 'translate-x-4' : 'translate-x-0' }}"></span>
-                                            </button>
-                                        </div>
+                    <div class="p-6 space-y-4">
+                        @foreach ($coupons as $coupon)
+                            {{-- Full-width horizontal ticket / voucher --}}
+                            <div class="w-full flex rounded-2xl overflow-hidden border {{ $coupon->is_active ? 'border-indigo-100 dark:border-indigo-900/40' : 'border-gray-150 dark:border-gray-750/40 opacity-70' }} bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
 
-                                        <!-- Discount Display -->
-                                        <div class="flex items-baseline gap-1">
-                                            <span class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
-                                                {{ $coupon->discount_type === 'percentage' ? $coupon->discount_value . '%' : '₹' . $coupon->discount_value }}
-                                            </span>
-                                            <span class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide">
-                                                {{ __('OFF') }}
-                                            </span>
-                                            @if ($coupon->discount_type === 'percentage' && $coupon->max_discount_amount)
-                                                <span class="text-[10px] bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-lg border border-amber-100/40 dark:border-amber-900/30 font-medium ml-2">
-                                                    {{ __('Max ₹:amount', ['amount' => $coupon->max_discount_amount]) }}
+                                {{-- LEFT: coloured discount panel --}}
+                                <div class="{{ $coupon->is_active ? 'bg-indigo-600' : 'bg-gray-400 dark:bg-gray-600' }} flex flex-col items-center justify-center px-6 py-5 min-w-[130px] relative select-none">
+                                    {{-- top notch --}}
+                                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-10"></div>
+                                    {{-- bottom notch --}}
+                                    <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-10"></div>
+
+                                    <span class="text-white/70 text-[9px] font-black uppercase tracking-widest mb-1">
+                                        {{ $coupon->discount_type === 'percentage' ? __('SAVE') : __('FLAT') }}
+                                    </span>
+                                    <span class="text-white text-3xl font-black leading-none tracking-tight">
+                                        {{ $coupon->discount_type === 'percentage' ? $coupon->discount_value . '%' : '₹' . $coupon->discount_value }}
+                                    </span>
+                                    <span class="text-white/70 text-[10px] font-black uppercase tracking-widest mt-1">
+                                        {{ __('OFF') }}
+                                    </span>
+                                    @if ($coupon->discount_type === 'percentage' && $coupon->max_discount_amount)
+                                        <span class="mt-2 text-[8px] font-bold text-white/60 uppercase text-center leading-tight">
+                                            {{ __('Max ₹') }}{{ $coupon->max_discount_amount }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                {{-- Perforated vertical divider --}}
+                                <div class="flex flex-col items-center justify-center px-1 py-4 bg-white dark:bg-gray-800">
+                                    <div class="w-px h-full border-l-2 border-dashed border-gray-200 dark:border-gray-700"></div>
+                                </div>
+
+                                {{-- RIGHT: coupon details --}}
+                                <div class="flex-1 flex flex-col justify-between py-4 pr-5 pl-4 min-w-0">
+                                    {{-- Top row: code + type + toggle --}}
+                                    <div class="flex items-start justify-between gap-4 flex-wrap">
+                                        <div class="min-w-0">
+                                            <div class="flex items-center gap-2.5 flex-wrap">
+                                                <span class="inline-flex items-center px-3 py-1 {{ $coupon->is_active ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-100/50 dark:border-indigo-900/30' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600' }} text-xs font-black rounded-lg border font-mono tracking-wider uppercase">
+                                                    {{ $coupon->code }}
                                                 </span>
+                                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
+                                                    {{ $coupon->discount_type === 'percentage' ? __('Percentage Coupon') : __('Flat Discount') }}
+                                                </span>
+                                            </div>
+                                            @if ($coupon->description)
+                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-1">{{ $coupon->description }}</p>
                                             @endif
                                         </div>
+                                        {{-- Active toggle --}}
+                                        <button type="button" wire:click="toggleStatus({{ $coupon->id }})" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $coupon->is_active ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600' }}">
+                                            <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $coupon->is_active ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                                        </button>
+                                    </div>
 
-                                        <!-- Description -->
-                                        @if ($coupon->description)
-                                            <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">
-                                                {{ $coupon->description }}
-                                            </p>
-                                        @endif
-
-                                        <!-- Dashed divider style to mimic cut-out voucher coupon -->
-                                        <div class="relative py-2">
-                                            <div class="absolute inset-y-0 -left-7 w-3 h-6 bg-white dark:bg-gray-800 rounded-r-full border-r border-y border-gray-150 dark:border-gray-700/50"></div>
-                                            <div class="border-t-2 border-dashed border-gray-200 dark:border-gray-700/50 w-full"></div>
-                                            <div class="absolute inset-y-0 -right-7 w-3 h-6 bg-white dark:bg-gray-800 rounded-l-full border-l border-y border-gray-150 dark:border-gray-700/50"></div>
+                                    {{-- Middle: stats row --}}
+                                    <div class="mt-3 flex items-center gap-6 flex-wrap">
+                                        {{-- Min slots --}}
+                                        <div>
+                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500">{{ __('Min Slots') }}</span>
+                                            <span class="block text-xs font-black text-gray-700 dark:text-gray-200 mt-0.5">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</span>
                                         </div>
-
-                                        <!-- Details Grid -->
-                                        <div class="grid grid-cols-2 gap-4 text-[10px] uppercase font-bold tracking-wider text-gray-400 dark:text-gray-500">
-                                            <div>
-                                                <span class="block text-gray-400 dark:text-gray-500 font-black">{{ __('Min Slots Required') }}</span>
-                                                <span class="block mt-0.5 text-gray-700 dark:text-gray-300 font-black text-xs">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</span>
-                                            </div>
-                                            <div>
-                                                <span class="block text-gray-400 dark:text-gray-500 font-black">{{ __('Total Max Usage') }}</span>
-                                                <span class="block mt-0.5 text-gray-700 dark:text-gray-300 font-black text-xs">
-                                                    {{ $coupon->used_count }} / {{ $coupon->usage_limit ?: '∞' }}
-                                                </span>
-                                            </div>
+                                        {{-- Usage --}}
+                                        <div>
+                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500">{{ __('Usage') }}</span>
+                                            <span class="block text-xs font-black text-gray-700 dark:text-gray-200 mt-0.5">{{ $coupon->used_count }} / {{ $coupon->usage_limit ?: '∞' }}</span>
                                         </div>
-
-                                        <!-- Validity period -->
-                                        <div class="bg-gray-100/50 dark:bg-gray-900/50 p-2.5 rounded-xl flex items-center justify-between text-[10px] font-bold text-gray-500 dark:text-gray-400">
-                                            <span class="uppercase tracking-wider font-black">{{ __('Validity') }}:</span>
-                                            <span class="text-gray-700 dark:text-gray-200">
+                                        {{-- Validity --}}
+                                        <div>
+                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500">{{ __('Validity') }}</span>
+                                            <span class="block text-xs font-black text-gray-700 dark:text-gray-200 mt-0.5">
                                                 @if ($coupon->starts_at || $coupon->expires_at)
-                                                    {{ $coupon->starts_at ? $coupon->starts_at->format('M d') : 'Now' }} - 
-                                                    {{ $coupon->expires_at ? $coupon->expires_at->format('M d, Y') : 'Never' }}
+                                                    {{ $coupon->starts_at ? $coupon->starts_at->format('d M Y') : 'Now' }}
+                                                    &rarr;
+                                                    {{ $coupon->expires_at ? $coupon->expires_at->format('d M Y') : 'Never' }}
                                                 @else
                                                     {{ __('Always Valid') }}
                                                 @endif
                                             </span>
                                         </div>
-
-                                        <!-- Active Days circles -->
+                                        {{-- Active Days --}}
                                         <div>
-                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500 mb-1.5">{{ __('Active Days') }}</span>
-                                            <div class="flex items-center gap-1.5">
+                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500 mb-1">{{ __('Days') }}</span>
+                                            <div class="flex items-center gap-1">
                                                 @php $days = ['mon' => 'M', 'tue' => 'T', 'wed' => 'W', 'thu' => 'T', 'fri' => 'F', 'sat' => 'S', 'sun' => 'S']; @endphp
                                                 @foreach ($days as $field => $label)
-                                                    <span class="text-[9px] w-5.5 h-5.5 rounded-full flex items-center justify-center font-bold {{ $coupon->{$field} ? 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/40 dark:border-indigo-900/30' : 'bg-gray-100 dark:bg-gray-900 text-gray-300 dark:text-gray-550' }}">
+                                                    <span class="text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-black {{ $coupon->{$field} ? 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-600' }}">
                                                         {{ $label }}
                                                     </span>
                                                 @endforeach
@@ -371,15 +371,15 @@ new #[Layout('layouts.app')] class extends Component
                                         </div>
                                     </div>
 
-                                    <!-- Actions Footer -->
-                                    <div class="px-5.5 py-3.5 bg-gray-100/30 dark:bg-gray-900/30 border-t border-gray-150 dark:border-gray-800/40 flex items-center justify-end gap-2.5">
-                                        <button type="button" wire:click="editCoupon({{ $coupon->id }})" class="px-3.5 py-2 bg-white dark:bg-gray-800 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/20 dark:hover:text-indigo-400 border border-gray-250 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition cursor-pointer flex items-center gap-1.5">
+                                    {{-- Bottom: action buttons --}}
+                                    <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-end gap-2">
+                                        <button type="button" wire:click="editCoupon({{ $coupon->id }})" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-150 dark:border-gray-600/50 transition cursor-pointer">
                                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                             </svg>
                                             {{ __('Edit') }}
                                         </button>
-                                        <button type="button" wire:click="deleteCoupon({{ $coupon->id }})" wire:confirm="Are you sure you want to permanently delete this discount coupon?" class="px-3.5 py-2 bg-white dark:bg-gray-800 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 dark:hover:text-red-400 border border-gray-250 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-[10px] font-black uppercase rounded-lg transition cursor-pointer flex items-center gap-1.5">
+                                        <button type="button" wire:click="deleteCoupon({{ $coupon->id }})" wire:confirm="Are you sure you want to permanently delete this coupon?" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 border border-gray-150 dark:border-gray-600/50 transition cursor-pointer">
                                             <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>
@@ -387,8 +387,8 @@ new #[Layout('layouts.app')] class extends Component
                                         </button>
                                     </div>
                                 </div>
-                            @endforeach
-                        </div>
+                            </div>
+                        @endforeach
                     </div>
                 @endif
             </div>
