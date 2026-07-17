@@ -228,7 +228,7 @@ new #[Layout('layouts.app')] class extends Component
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
-                <h3 class="text-sm font-bold text-gray-750 dark:text-gray-250 uppercase tracking-wider">{{ __('No Turf Selected') }}</h3>
+                <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('No Turf Selected') }}</h3>
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-sm mx-auto leading-relaxed">{{ __('Please add a Location and Turf first, or choose one from the selector in the top bar to configure coupons.') }}</p>
             </div>
         @else
@@ -238,7 +238,7 @@ new #[Layout('layouts.app')] class extends Component
                     <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Discount Coupons for') }} <span class="text-indigo-600 dark:text-indigo-400">{{ $turf->name }}</span></h2>
                     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ __('Manage promotional offers, flat discounts, and slot-based coupons for your customers.') }}</p>
                 </div>
-                <button type="button" wire:click="createCoupon" class="px-5 py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition flex items-center justify-center gap-2 cursor-pointer shrink-0">
+                <button type="button" wire:click="createCoupon" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition flex items-center justify-center gap-2 cursor-pointer shrink-0">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                     </svg>
@@ -250,33 +250,33 @@ new #[Layout('layouts.app')] class extends Component
             <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden">
                 <div class="p-6 border-b border-gray-100 dark:border-gray-700/50">
                     <div class="relative max-w-md">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400 dark:text-gray-500">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
-                        </span>
-                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search coupon code..." class="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700/30 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700/50 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                        </div>
+                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search coupon code..." class="block w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-750 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 ease-in-out">
                     </div>
                 </div>
 
                 @if ($coupons->isEmpty())
-                    <div class="p-16 text-center">
-                        <div class="h-14 w-14 rounded-2xl bg-gray-50 dark:bg-gray-750 text-gray-400 flex items-center justify-center mx-auto mb-4 border border-gray-100/50 dark:border-gray-700/50">
-                            <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <div class="p-16 text-center flex flex-col items-center justify-center">
+                        <div class="h-16 w-16 rounded-2xl bg-gray-50 dark:bg-gray-900 text-gray-400 dark:text-gray-550 flex items-center justify-center mb-4 border border-gray-150 dark:border-gray-750/50">
+                            <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </div>
-                        <h3 class="text-sm font-bold text-gray-750 dark:text-gray-200 uppercase tracking-wider">{{ __('No Coupons Found') }}</h3>
-                        <p class="text-xs text-gray-450 mt-1.5 leading-relaxed">{{ __('No discount coupons match your search or exist for this turf yet.') }}</p>
+                        <h3 class="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-wider">{{ __('No Coupons Found') }}</h3>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5 leading-relaxed">{{ __('No discount coupons match your search or exist for this turf yet.') }}</p>
                     </div>
                 @else
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-700/50">
-                            <thead class="bg-gray-50 dark:bg-gray-750/30">
+                            <thead class="bg-gray-50 dark:bg-gray-900/30">
                                 <tr>
                                     <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Code') }}</th>
                                     <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Discount') }}</th>
-                                    <th scope="col" class="px-6 py-4 class-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Min Slots') }}</th>
+                                    <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Min Slots') }}</th>
                                     <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Days Active') }}</th>
                                     <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Usage Limit') }}</th>
                                     <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Validity') }}</th>
@@ -284,9 +284,9 @@ new #[Layout('layouts.app')] class extends Component
                                     <th scope="col" class="px-6 py-4 text-right text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Actions') }}</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-750/30 bg-white dark:bg-gray-800">
+                            <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50 bg-white dark:bg-gray-800">
                                 @foreach ($coupons as $coupon)
-                                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-750/10 transition duration-150">
+                                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/20 transition duration-150">
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <div class="flex items-center gap-2.5">
                                                 <div class="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400 text-xs font-black rounded-lg border border-indigo-100/50 dark:border-indigo-900/30 font-mono tracking-wide">
@@ -316,7 +316,7 @@ new #[Layout('layouts.app')] class extends Component
                                             <div class="flex items-center gap-1">
                                                 @php $days = ['mon' => 'M', 'tue' => 'T', 'wed' => 'W', 'thu' => 'T', 'fri' => 'F', 'sat' => 'S', 'sun' => 'S']; @endphp
                                                 @foreach ($days as $field => $label)
-                                                    <span class="text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold {{ $coupon->{$field} ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40' : 'bg-gray-50 dark:bg-gray-750 text-gray-300 dark:text-gray-650' }}">
+                                                    <span class="text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold {{ $coupon->{$field} ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40' : 'bg-gray-50 dark:bg-gray-700 text-gray-300 dark:text-gray-550' }}">
                                                         {{ $label }}
                                                     </span>
                                                 @endforeach
@@ -343,12 +343,12 @@ new #[Layout('layouts.app')] class extends Component
                                             </button>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-medium space-x-1">
-                                            <button type="button" wire:click="editCoupon({{ $coupon->id }})" class="p-2 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-650 dark:bg-gray-750 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-400 text-gray-600 dark:text-gray-400 rounded-lg transition cursor-pointer inline-flex items-center">
+                                            <button type="button" wire:click="editCoupon({{ $coupon->id }})" class="p-2 bg-gray-50 hover:bg-indigo-50 hover:text-indigo-600 dark:bg-gray-700/50 dark:hover:bg-indigo-950/40 dark:hover:text-indigo-400 text-gray-600 dark:text-gray-400 rounded-lg transition cursor-pointer inline-flex items-center">
                                                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                                 </svg>
                                             </button>
-                                            <button type="button" wire:click="deleteCoupon({{ $coupon->id }})" wire:confirm="Are you sure you want to permanently delete this discount coupon?" class="p-2 bg-gray-50 hover:bg-red-50 hover:text-red-650 dark:bg-gray-750 dark:hover:bg-red-950/30 dark:hover:text-red-400 text-gray-600 dark:text-gray-400 rounded-lg transition cursor-pointer inline-flex items-center">
+                                            <button type="button" wire:click="deleteCoupon({{ $coupon->id }})" wire:confirm="Are you sure you want to permanently delete this discount coupon?" class="p-2 bg-gray-50 hover:bg-red-50 hover:text-red-650 dark:bg-gray-700/50 dark:hover:bg-red-950/40 dark:hover:text-red-400 text-gray-600 dark:text-gray-400 rounded-lg transition cursor-pointer inline-flex items-center">
                                                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
@@ -474,7 +474,7 @@ new #[Layout('layouts.app')] class extends Component
                             <div class="flex flex-wrap gap-3">
                                 @foreach (['mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday'] as $field => $label)
                                     <label class="inline-flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700">
-                                        <input type="checkbox" wire:model="{{ $field }}" class="h-4 w-4 text-indigo-650 border-gray-300 rounded focus:ring-indigo-500">
+                                        <input type="checkbox" wire:model="{{ $field }}" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
                                         <span class="text-xs text-gray-700 dark:text-gray-300 ml-1">{{ __($label) }}</span>
                                     </label>
                                 @endforeach
@@ -482,7 +482,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Active status toggle -->
-                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-150 dark:border-gray-750/50">
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-150 dark:border-gray-700/50">
                             <div>
                                 <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Coupon Active Status') }}</h4>
                                 <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ __('Control if customers can check out using this coupon.') }}</p>
