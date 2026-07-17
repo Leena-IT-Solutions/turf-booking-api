@@ -128,149 +128,145 @@ new #[Layout('layouts.app')] class extends Component
             />
         </div>
 
-        <!-- Turfs List -->
-        <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-100 dark:divide-gray-700/50">
-                    <thead class="bg-gray-50 dark:bg-gray-900/30">
-                        <tr>
-                            <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Turf Info') }}</th>
-                            <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Location & Address') }}</th>
-                            <th scope="col" class="px-6 py-4 text-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Owner Details') }}</th>
-                            <th scope="col" class="px-6 py-4 class-left text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Current Status') }}</th>
-                            <th scope="col" class="px-6 py-4 text-right text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">{{ __('Actions') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/40">
-                        @forelse ($turfs as $turf)
-                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/10 transition">
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center gap-3">
-                                        <div class="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
-                                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-bold text-gray-900 dark:text-white">{{ $turf->name }}</div>
-                                            <div class="flex items-center gap-1.5 mt-0.5">
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider {{
-                                                    $turf->type === 'Synthetic' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
-                                                    $turf->type === 'Hard' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
-                                                    'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400')
-                                                }}">
-                                                    {{ $turf->type }}
-                                                </span>
-                                                @if($turf->area)
-                                                    <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold">{{ $turf->area }}</span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ $turf->location->name }}</div>
-                                    <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1 truncate max-w-[200px]">{{ $turf->location->address }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ $turf->location->user->name }}</div>
-                                    <div class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5">{{ $turf->location->user->email }}</div>
-                                    <div class="text-[9px] text-indigo-500 dark:text-indigo-400 font-bold mt-0.5">{{ $turf->location->user->mobile }}</div>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider {{
-                                        $turf->status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
-                                        $turf->status === 'Pending' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : (
-                                        $turf->status === 'Review' ? 'bg-indigo-100 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400' : (
-                                        $turf->status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : (
-                                        $turf->status === 'Hold' ? 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400' :
-                                        'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'))))
-                                    }}">
-                                        {{ __($turf->status ?: 'Draft') }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-xs font-bold">
-                                    <div class="flex items-center justify-end gap-1.5">
-                                        <!-- Approve Button -->
-                                        @if($turf->status !== 'Approved')
-                                            <button 
-                                                type="button" 
-                                                wire:click="updateStatus({{ $turf->id }}, 'Approved')" 
-                                                title="{{ __('Approve') }}"
-                                                class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl transition border border-emerald-100/50 dark:border-emerald-900/30 flex items-center gap-1.5 cursor-pointer"
-                                            >
-                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                                <span class="text-[9px] uppercase tracking-wider font-extrabold">{{ __('Approve') }}</span>
-                                            </button>
-                                        @endif
-
-                                        <!-- Review Button -->
-                                        @if($turf->status !== 'Review')
-                                            <button 
-                                                type="button" 
-                                                wire:click="updateStatus({{ $turf->id }}, 'Review')" 
-                                                title="{{ __('Needs Review') }}"
-                                                class="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl transition border border-indigo-100/50 dark:border-indigo-900/30 flex items-center gap-1.5 cursor-pointer"
-                                            >
-                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                                </svg>
-                                                <span class="text-[9px] uppercase tracking-wider font-extrabold">{{ __('Review') }}</span>
-                                            </button>
-                                        @endif
-
-                                        <!-- Hold Button -->
-                                        @if($turf->status !== 'Hold')
-                                            <button 
-                                                type="button" 
-                                                wire:click="updateStatus({{ $turf->id }}, 'Hold')" 
-                                                title="{{ __('Put on Hold') }}"
-                                                class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl transition border border-slate-200/50 dark:border-slate-700/30 flex items-center gap-1.5 cursor-pointer"
-                                            >
-                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span class="text-[9px] uppercase tracking-wider font-extrabold">{{ __('Hold') }}</span>
-                                            </button>
-                                        @endif
-
-                                        <!-- Reject Button -->
-                                        @if($turf->status !== 'Rejected')
-                                            <button 
-                                                type="button" 
-                                                wire:click="updateStatus({{ $turf->id }}, 'Rejected')" 
-                                                title="{{ __('Reject') }}"
-                                                class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-450 rounded-xl transition border border-red-100/50 dark:border-red-900/30 flex items-center gap-1.5 cursor-pointer"
-                                            >
-                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                                <span class="text-[9px] uppercase tracking-wider font-extrabold">{{ __('Reject') }}</span>
-                                            </button>
+        <!-- Turfs Card Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            @forelse ($turfs as $turf)
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative group">
+                    <div>
+                        <!-- Turf Info Header -->
+                        <div class="flex items-start justify-between gap-4 min-w-0 w-full">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white flex items-center justify-center shadow-md">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                                    </svg>
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
+                                        {{ $turf->name }}
+                                    </h3>
+                                    <div class="flex items-center gap-1.5 mt-1">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider {{
+                                            $turf->type === 'Synthetic' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
+                                            $turf->type === 'Hard' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                                            'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400')
+                                        }}">
+                                            {{ $turf->type }}
+                                        </span>
+                                        @if($turf->area)
+                                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold">{{ $turf->area }}</span>
                                         @endif
                                     </div>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                                    {{ __('No turfs found matching criteria.') }}
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
+                                </div>
+                            </div>
 
-            <!-- Pagination Links -->
-            @if ($turfs->hasPages())
-                <div class="px-6 py-4 border-t border-gray-100 dark:border-gray-700/40">
-                    {{ $turfs->links() }}
+                            <!-- Current Status Badge -->
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider {{
+                                $turf->status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
+                                $turf->status === 'Pending' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : (
+                                $turf->status === 'Review' ? 'bg-indigo-100 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400' : (
+                                $turf->status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : (
+                                $turf->status === 'Hold' ? 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400' :
+                                'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'))))
+                            }}">
+                                {{ __($turf->status ?: 'Draft') }}
+                            </span>
+                        </div>
+
+                        <!-- Location Section -->
+                        <div class="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/40 space-y-1">
+                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block">{{ __('Location & Address') }}</span>
+                            <div class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ $turf->location->name }}</div>
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed font-semibold">{{ $turf->location->address }}</div>
+                        </div>
+
+                        <!-- Owner Section -->
+                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-gray-700/40 space-y-1">
+                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block">{{ __('Owner Details') }}</span>
+                            <div class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ $turf->location->user->name }}</div>
+                            <div class="text-[10px] text-gray-550 dark:text-gray-400 font-semibold flex flex-col gap-0.5">
+                                <span>{{ $turf->location->user->email }}</span>
+                                <span class="text-indigo-500 dark:text-indigo-400 font-bold">{{ $turf->location->user->mobile }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions Footer -->
+                    <div class="mt-6 pt-4 border-t border-gray-50 dark:border-gray-700/40">
+                        <div class="grid grid-cols-2 gap-2">
+                            <!-- Approve Button -->
+                            @if($turf->status !== 'Approved')
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $turf->id }}, 'Approved')" 
+                                    class="px-2 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl transition border border-emerald-100/50 dark:border-emerald-900/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    {{ __('Approve') }}
+                                </button>
+                            @endif
+
+                            <!-- Review Button -->
+                            @if($turf->status !== 'Review')
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $turf->id }}, 'Review')" 
+                                    class="px-2 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl transition border border-indigo-100/50 dark:border-indigo-900/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    {{ __('Review') }}
+                                </button>
+                            @endif
+
+                            <!-- Hold Button -->
+                            @if($turf->status !== 'Hold')
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $turf->id }}, 'Hold')" 
+                                    class="px-2 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl transition border border-slate-200/50 dark:border-slate-700/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    {{ __('Hold') }}
+                                </button>
+                            @endif
+
+                            <!-- Reject Button -->
+                            @if($turf->status !== 'Rejected')
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $turf->id }}, 'Rejected')" 
+                                    class="px-2 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-450 rounded-xl transition border border-red-100/50 dark:border-red-900/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    {{ __('Reject') }}
+                                </button>
+                            @endif
+                        </div>
+                    </div>
                 </div>
-            @endif
+            @empty
+                <div class="md:col-span-2 xl:col-span-3 bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-100 dark:border-gray-700/50 text-center">
+                    <p class="text-xs font-semibold text-gray-450 dark:text-gray-500 uppercase tracking-wider">
+                        {{ __('No turfs found matching criteria.') }}
+                    </p>
+                </div>
+            @endforelse
         </div>
+
+        <!-- Pagination Links -->
+        @if ($turfs->hasPages())
+            <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+                {{ $turfs->links() }}
+            </div>
+        @endif
 
     </div>
 </div>
