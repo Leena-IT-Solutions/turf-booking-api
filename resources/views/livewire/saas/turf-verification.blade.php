@@ -391,7 +391,7 @@ new #[Layout('layouts.app')] class extends Component
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 @forelse($activeModalTurf->photos as $photo)
                                     <div class="relative rounded-2xl overflow-hidden aspect-video border border-gray-150 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
-                                        <img src="{{ Storage::url($photo->photo_path) }}" class="w-full h-full object-cover">
+                                        <img src="{{ Storage::url($photo->photo) }}" class="w-full h-full object-cover">
                                     </div>
                                 @empty
                                     <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold col-span-3">{{ __('No photos uploaded.') }}</p>
