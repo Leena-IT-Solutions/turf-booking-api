@@ -98,6 +98,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('turf/pricing', 'turf.pricing-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.pricing');
+    Volt::route('turf/coupons', 'turf.coupons-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.coupons');
     Volt::route('turf/staff', 'turf.staff-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.staff');

@@ -120,4 +120,9 @@ class Turf extends Model
             })->orWhereIn('turfs.id', $user->assignedTurfs()->pluck('turfs.id'));
         });
     }
+
+    public function coupons(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Coupon::class);
+    }
 }
