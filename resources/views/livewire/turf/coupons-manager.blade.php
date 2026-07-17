@@ -319,7 +319,7 @@ new #[Layout('layouts.app')] class extends Component
                                                     <span class="text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold {{ $coupon->{$field} ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40' : 'bg-gray-50 dark:bg-gray-750 text-gray-300 dark:text-gray-650' }}">
                                                         {{ $label }}
                                                     </span>
-                                                @endphp
+                                                @endforeach
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
