@@ -321,6 +321,24 @@ new #[Layout('layouts.app')] class extends Component
                 class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl md:h-[85vh] h-[90vh] overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-3"
             >
                 @if($activeModalTurf)
+                    @php
+                        $turfTiming = 'Not Available';
+                        if ($activeModalTurf->slots && $activeModalTurf->slots->isNotEmpty()) {
+                            $minTime = $activeModalTurf->slots->min('from_time');
+                            $maxTime = $activeModalTurf->slots->max('to_time');
+                            
+                            $minHour = (int)substr($minTime, 0, 2);
+                            $maxHour = (int)substr($maxTime, 0, 2);
+                            
+                            if (($minHour === 0 && $maxHour === 23) || $activeModalTurf->slots->count() >= 24) {
+                                $turfTiming = '24 Hours';
+                            } else {
+                                $formattedMin = \Carbon\Carbon::parse($minTime)->format('h:i A');
+                                $formattedMax = \Carbon\Carbon::parse($maxTime)->format('h:i A');
+                                $turfTiming = "{$formattedMin} to {$formattedMax}";
+                            }
+                        }
+                    @endphp
                     <!-- Left Panel: Details Display (Scrollable) -->
                     <div class="md:col-span-2 p-6 md:p-8 md:h-full md:overflow-y-auto space-y-6 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                         <div>
@@ -358,21 +376,25 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="space-y-2">
                             <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Turf Configuration') }}</h4>
                             <div class="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-2xl space-y-4">
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                                     <div>
                                         <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Dimensions') }}</span>
                                         <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->area ?: '-' }}</p>
                                     </div>
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Booking Open Config') }}</span>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Timing') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $turfTiming }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Booking Open') }}</span>
                                         <p class="font-semibold text-gray-800 dark:text-gray-200">
-                                            {{ $activeModalTurf->is_booking_open ? __('Open (Next :days Days)', ['days' => $activeModalTurf->booking_open_days]) : __('Closed') }}
+                                            {{ $activeModalTurf->is_booking_open ? __('Next :days Days', ['days' => $activeModalTurf->booking_open_days]) : __('Closed') }}
                                         </p>
                                     </div>
                                     <div>
                                         <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Cancellation Policy') }}</span>
                                         <p class="font-semibold text-gray-800 dark:text-gray-200">
-                                            {{ $activeModalTurf->is_cancellation_active ? __('Active (:hours Hours / Fee: ₹:fee)', ['hours' => $activeModalTurf->cancellation_hours, 'fee' => $activeModalTurf->cancellation_fee]) : __('No Cancellation') }}
+                                            {{ $activeModalTurf->is_cancellation_active ? __('Active (:hours Hrs / Fee: ₹:fee)', ['hours' => $activeModalTurf->cancellation_hours, 'fee' => $activeModalTurf->cancellation_fee]) : __('No Cancellation') }}
                                         </p>
                                     </div>
                                 </div>
@@ -450,31 +472,38 @@ new #[Layout('layouts.app')] class extends Component
                         <!-- Slots & Pricing Section -->
                         <div class="space-y-2">
                             <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Slots & Pricing') }}</h4>
-                            <div class="grid grid-cols-1 gap-3">
-                                @forelse($activeModalTurf->slots as $slot)
-                                    <div class="p-3 bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-2xl space-y-1.5">
-                                        <div class="flex items-center justify-between text-xs font-bold">
-                                            <span class="text-gray-800 dark:text-gray-200">{{ $slot->time_label ?: sprintf('%02d:00 - %02d:00', $slot->start_hour, $slot->end_hour) }}</span>
-                                            <span class="text-[9px] uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg">{{ $slot->category?->name }}</span>
-                                        </div>
-                                        <div class="grid grid-cols-7 gap-1 text-[8px] font-black text-center text-gray-400 dark:text-gray-500 uppercase tracking-widest pt-1.5 border-t border-gray-200/30 dark:border-gray-700/20">
-                                            <div>Mon<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->mon ?: '0' }}</div></div>
-                                            <div>Tue<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->tue ?: '0' }}</div></div>
-                                            <div>Wed<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->wed ?: '0' }}</div></div>
-                                            <div>Thu<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->thu ?: '0' }}</div></div>
-                                            <div>Fri<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->fri ?: '0' }}</div></div>
-                                            <div>Sat<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->sat ?: '0' }}</div></div>
-                                            <div>Sun<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->sun ?: '0' }}</div></div>
-                                        </div>
-                                    </div>
-                                @empty
-                                    <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('No time slots configured.') }}</p>
-                                @endforelse
+                            @php
+                                $groupedSlots = [];
+                                if ($activeModalTurf && $activeModalTurf->slots) {
+                                    $groupedSlots = $activeModalTurf->slots->groupBy(function($slot) {
+                                        return $slot->category?->name ?? 'Uncategorized';
+                                    })->map(function($categorySlots) {
+                                        return $categorySlots->map(function($slot) {
+                                            return [
+                                                'time' => substr($slot->from_time, 0, 5) . ' - ' . substr($slot->to_time, 0, 5),
+                                                'pricing' => [
+                                                    'Mon' => (float)($slot->pivot->mon ?: 0),
+                                                    'Tue' => (float)($slot->pivot->tue ?: 0),
+                                                    'Wed' => (float)($slot->pivot->wed ?: 0),
+                                                    'Thu' => (float)($slot->pivot->thu ?: 0),
+                                                    'Fri' => (float)($slot->pivot->fri ?: 0),
+                                                    'Sat' => (float)($slot->pivot->sat ?: 0),
+                                                    'Sun' => (float)($slot->pivot->sun ?: 0),
+                                                ]
+                                            ];
+                                        });
+                                    });
+                                }
+                            @endphp
+
+                            <div class="text-xs">
+                                <pre class="text-[10px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar font-mono">{{ json_encode($groupedSlots, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
                             </div>
+                            
                             @if($activeModalTurf->pricing_wizard_data)
                                 <div class="text-xs pt-2">
                                     <span class="text-gray-400 dark:text-gray-500 font-medium block mb-1">{{ __('Pricing Wizard Config:') }}</span>
-                                    <pre class="text-[10px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-650 dark:text-gray-350 overflow-x-auto">{{ json_encode($activeModalTurf->pricing_wizard_data, JSON_PRETTY_PRINT) }}</pre>
+                                    <pre class="text-[10px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-650 dark:text-gray-350 overflow-x-auto font-mono">{{ json_encode($activeModalTurf->pricing_wizard_data, JSON_PRETTY_PRINT) }}</pre>
                                 </div>
                             @endif
                         </div>
