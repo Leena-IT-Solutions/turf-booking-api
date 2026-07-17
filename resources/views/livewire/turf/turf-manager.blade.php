@@ -395,11 +395,11 @@ new #[Layout('layouts.app')] class extends Component
                         @endphp
 
                         @if(!empty($lacking) && ($turf->status ?: 'Draft') !== 'Approved')
-                            <div class="flex flex-col gap-1.5 bg-rose-50 dark:bg-rose-950/10 p-2.5 rounded-2xl border border-rose-100/50 dark:border-rose-900/20 mt-1">
-                                <span class="text-[8px] font-black uppercase tracking-wider text-rose-500 dark:text-rose-400">{{ __('Lacking Verification Points:') }}</span>
+                            <div class="flex flex-col gap-1.5 bg-red-50 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 p-2.5 rounded-2xl mt-1">
+                                <span class="text-[8px] font-black uppercase tracking-wider text-red-600 dark:text-red-400">{{ __('Lacking Verification Points:') }}</span>
                                 <div class="flex flex-wrap gap-1">
                                     @foreach($lacking as $item)
-                                        <span class="px-2 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-extrabold text-[9px] uppercase tracking-wide border border-rose-200/20">{{ $item }}</span>
+                                        <span class="px-2 py-0.5 rounded-lg text-red-600 dark:text-red-400 font-extrabold text-[9px] uppercase tracking-wide" style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.25);">{{ $item }}</span>
                                     @endforeach
                                 </div>
                             </div>
