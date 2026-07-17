@@ -12,6 +12,18 @@ new #[Layout('layouts.app')] class extends Component
     public $search = '';
     public $statusFilter = 'All';
 
+    // Modal verification states
+    public $selectedTurfId = null;
+    public $showVerifyModal = false;
+    public $isLocationVerified = false;
+    public $isDetailsVerified = false;
+    public $isPhotosVerified = false;
+    public $isFacilitiesVerified = false;
+    public $isEquipmentsVerified = false;
+    public $isSportsVerified = false;
+    public $isSlotsVerified = false;
+    public $isPricingVerified = false;
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -27,6 +39,54 @@ new #[Layout('layouts.app')] class extends Component
         $turf = Turf::findOrFail($turfId);
         $turf->update(['status' => $status]);
         session()->flash('status', __('Turf status updated to :status successfully.', ['status' => $status]));
+        if ($this->selectedTurfId == $turfId) {
+            $this->showVerifyModal = false;
+        }
+    }
+
+    public function openVerifyModal($turfId)
+    {
+        $turf = Turf::findOrFail($turfId);
+        $this->selectedTurfId = $turf->id;
+        $this->isLocationVerified = (bool)$turf->is_location_verified;
+        $this->isDetailsVerified = (bool)$turf->is_details_verified;
+        $this->isPhotosVerified = (bool)$turf->is_photos_verified;
+        $this->isFacilitiesVerified = (bool)$turf->is_facilities_verified;
+        $this->isEquipmentsVerified = (bool)$turf->is_equipments_verified;
+        $this->isSportsVerified = (bool)$turf->is_sports_verified;
+        $this->isSlotsVerified = (bool)$turf->is_slots_verified;
+        $this->isPricingVerified = (bool)$turf->is_pricing_verified;
+        $this->showVerifyModal = true;
+    }
+
+    public function saveVerification()
+    {
+        $turf = Turf::findOrFail($this->selectedTurfId);
+        $allChecked = $this->isLocationVerified && 
+                      $this->isDetailsVerified && 
+                      $this->isPhotosVerified && 
+                      $this->isFacilitiesVerified && 
+                      $this->isEquipmentsVerified && 
+                      $this->isSportsVerified && 
+                      $this->isSlotsVerified && 
+                      $this->isPricingVerified;
+
+        $status = $allChecked ? 'Approved' : 'Review';
+
+        $turf->update([
+            'is_location_verified' => $this->isLocationVerified,
+            'is_details_verified' => $this->isDetailsVerified,
+            'is_photos_verified' => $this->isPhotosVerified,
+            'is_facilities_verified' => $this->isFacilitiesVerified,
+            'is_equipments_verified' => $this->isEquipmentsVerified,
+            'is_sports_verified' => $this->isSportsVerified,
+            'is_slots_verified' => $this->isSlotsVerified,
+            'is_pricing_verified' => $this->isPricingVerified,
+            'status' => $status
+        ]);
+
+        $this->showVerifyModal = false;
+        session()->flash('status', __('Verification saved. Status updated to :status.', ['status' => $status]));
     }
 
     public function with()
@@ -64,14 +124,20 @@ new #[Layout('layouts.app')] class extends Component
             'Hold' => Turf::where('status', 'Hold')->count(),
         ];
 
+        // Active turf for the modal details
+        $activeModalTurf = $this->selectedTurfId 
+            ? Turf::with(['location.user', 'photos', 'facilities', 'turfEquipments', 'sports', 'slots.category'])->find($this->selectedTurfId)
+            : null;
+
         return [
             'turfs' => $query->latest()->paginate(10),
             'counts' => $counts,
+            'activeModalTurf' => $activeModalTurf,
         ];
     }
 }; ?>
 
-<div class="py-6">
+<div class="py-6" x-data="{ verifyModal: @entangle('showVerifyModal') }">
     <div class="sm:px-6 lg:px-8 space-y-6">
         
         <!-- Header Section -->
@@ -97,7 +163,7 @@ new #[Layout('layouts.app')] class extends Component
                     wire:click="$set('statusFilter', '{{ $filter }}')" 
                     class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl border transition-all cursor-pointer flex items-center gap-2 {{
                         $statusFilter === $filter 
-                            ? 'bg-indigo-650 border-indigo-600 text-white shadow-md shadow-indigo-500/10' 
+                            ? 'bg-indigo-600 border-indigo-650 text-white shadow-md shadow-indigo-500/10' 
                             : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-705'
                     }}"
                 >
@@ -184,7 +250,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="mt-3 pt-3 border-t border-gray-50 dark:border-gray-700/40 space-y-1">
                             <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block">{{ __('Owner Details') }}</span>
                             <div class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ $turf->location->user->name }}</div>
-                            <div class="text-[10px] text-gray-550 dark:text-gray-400 font-semibold flex flex-col gap-0.5">
+                            <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold flex flex-col gap-0.5">
                                 <span>{{ $turf->location->user->email }}</span>
                                 <span class="text-indigo-500 dark:text-indigo-400 font-bold">{{ $turf->location->user->mobile }}</span>
                             </div>
@@ -192,69 +258,73 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Actions Footer -->
-                    <div class="mt-6 pt-4 border-t border-gray-50 dark:border-gray-700/40">
+                    <div class="mt-6 pt-4 border-t border-gray-50 dark:border-gray-700/40 flex flex-col gap-3">
                         <div class="grid grid-cols-2 gap-2">
                             <!-- Approve Button -->
-                            @if($turf->status !== 'Approved')
-                                <button 
-                                    type="button" 
-                                    wire:click="updateStatus({{ $turf->id }}, 'Approved')" 
-                                    class="px-2 py-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl transition border border-emerald-100/50 dark:border-emerald-900/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                                >
-                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    {{ __('Approve') }}
-                                </button>
-                            @endif
+                            <button 
+                                type="button" 
+                                wire:click="updateStatus({{ $turf->id }}, 'Approved')" 
+                                class="px-2 py-2 {{ $turf->status === 'Approved' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                            >
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                                {{ __('Approve') }}
+                            </button>
 
                             <!-- Review Button -->
-                            @if($turf->status !== 'Review')
-                                <button 
-                                    type="button" 
-                                    wire:click="updateStatus({{ $turf->id }}, 'Review')" 
-                                    class="px-2 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl transition border border-indigo-100/50 dark:border-indigo-900/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                                >
-                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                    {{ __('Review') }}
-                                </button>
-                            @endif
+                            <button 
+                                type="button" 
+                                wire:click="updateStatus({{ $turf->id }}, 'Review')" 
+                                class="px-2 py-2 {{ $turf->status === 'Review' ? 'bg-indigo-600 text-white border-indigo-650' : 'bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-100/50 dark:border-indigo-900/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                            >
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                {{ __('Review') }}
+                            </button>
 
                             <!-- Hold Button -->
-                            @if($turf->status !== 'Hold')
-                                <button 
-                                    type="button" 
-                                    wire:click="updateStatus({{ $turf->id }}, 'Hold')" 
-                                    class="px-2 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl transition border border-slate-200/50 dark:border-slate-700/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                                >
-                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    {{ __('Hold') }}
-                                </button>
-                            @endif
+                            <button 
+                                type="button" 
+                                wire:click="updateStatus({{ $turf->id }}, 'Hold')" 
+                                class="px-2 py-2 {{ $turf->status === 'Hold' ? 'bg-slate-600 text-white border-slate-600' : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200/50 dark:border-slate-700/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                            >
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {{ __('Hold') }}
+                            </button>
 
                             <!-- Reject Button -->
-                            @if($turf->status !== 'Rejected')
-                                <button 
-                                    type="button" 
-                                    wire:click="updateStatus({{ $turf->id }}, 'Rejected')" 
-                                    class="px-2 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-600 dark:text-red-450 rounded-xl transition border border-red-100/50 dark:border-red-900/30 flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                                >
-                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    {{ __('Reject') }}
-                                </button>
-                            @endif
+                            <button 
+                                type="button" 
+                                wire:click="updateStatus({{ $turf->id }}, 'Rejected')" 
+                                class="px-2 py-2 {{ $turf->status === 'Rejected' ? 'bg-red-655 text-white border-red-655' : 'bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-650 dark:text-red-450 border-red-100/50 dark:border-red-900/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                            >
+                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                {{ __('Reject') }}
+                            </button>
                         </div>
+
+                        <!-- Verify Details Trigger -->
+                        <button 
+                            type="button" 
+                            wire:click="openVerifyModal({{ $turf->id }})" 
+                            class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-bold rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            {{ __('Verify Details') }}
+                        </button>
                     </div>
                 </div>
             @empty
                 <div class="md:col-span-2 xl:col-span-3 bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-100 dark:border-gray-700/50 text-center">
-                    <p class="text-xs font-semibold text-gray-450 dark:text-gray-500 uppercase tracking-wider">
+                    <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                         {{ __('No turfs found matching criteria.') }}
                     </p>
                 </div>
@@ -268,5 +338,353 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @endif
 
+    </div>
+
+    <!-- Verify Details Modal Dialog -->
+    <div 
+        x-show="verifyModal" 
+        class="fixed inset-0 z-50 overflow-y-auto" 
+        style="display: none;"
+    >
+        <!-- Backdrop -->
+        <div 
+            x-show="verifyModal"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-sm"
+            @click="verifyModal = false"
+        ></div>
+
+        <!-- Modal Wrapper -->
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div 
+                x-show="verifyModal"
+                x-transition:enter="ease-out duration-300"
+                x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave="ease-in duration-200"
+                x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative bg-white dark:bg-gray-850 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700/50 w-full max-w-6xl flex flex-col md:flex-row h-[85vh]"
+            >
+                @if($activeModalTurf)
+                    <!-- Left Panel: Details Display (Scrollable) -->
+                    <div class="flex-1 p-6 md:p-8 overflow-y-auto space-y-6 border-r border-gray-100 dark:border-gray-800">
+                        <div>
+                            <span class="text-[9px] bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">{{ $activeModalTurf->type }}</span>
+                            <h3 class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">{{ $activeModalTurf->name }}</h3>
+                            <p class="text-xs text-gray-500 mt-1">{{ __('Location: ') }}<span class="font-bold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->name }}</span></p>
+                        </div>
+
+                        <!-- Location & Coordinates Section -->
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Location & Contacts') }}</h4>
+                            <div class="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-2xl space-y-2">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Address') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->address }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Coordinates') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->latitude }}, {{ $activeModalTurf->location->longitude }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Contact Number') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->contact_number ?: '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Contact Email') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->email ?: '-' }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Turf Details Section -->
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Turf Configuration') }}</h4>
+                            <div class="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-2xl space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Dimensions') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->area ?: '-' }}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Booking Open Config') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">
+                                            {{ $activeModalTurf->is_booking_open ? __('Open (Next :days Days)', ['days' => $activeModalTurf->booking_open_days]) : __('Closed') }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Cancellation Policy') }}</span>
+                                        <p class="font-semibold text-gray-800 dark:text-gray-200">
+                                            {{ $activeModalTurf->is_cancellation_active ? __('Active (:hours Hours / Fee: ₹:fee)', ['hours' => $activeModalTurf->cancellation_hours, 'fee' => $activeModalTurf->cancellation_fee]) : __('No Cancellation') }}
+                                        </p>
+                                    </div>
+                                </div>
+                                @if($activeModalTurf->description)
+                                    <div class="text-xs pt-1 border-t border-gray-200/40 dark:border-gray-700/40">
+                                        <span class="text-gray-400 dark:text-gray-500 block mb-1">{{ __('Description') }}</span>
+                                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed font-semibold">{{ $activeModalTurf->description }}</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Photos Section -->
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Uploaded Photos') }}</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                @forelse($activeModalTurf->photos as $photo)
+                                    <div class="relative rounded-2xl overflow-hidden aspect-video border border-gray-150 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+                                        <img src="{{ Storage::url($photo->photo_path) }}" class="w-full h-full object-cover">
+                                    </div>
+                                @empty
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold col-span-3">{{ __('No photos uploaded.') }}</p>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <!-- Facilities, Equipments, Sports -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <!-- Facilities -->
+                            <div class="space-y-2">
+                                <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Facilities') }}</h4>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @forelse($activeModalTurf->facilities as $fac)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800">
+                                            {{ $fac->name }}
+                                        </span>
+                                    @empty
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('None.') }}</p>
+                                    @endforelse
+                                </div>
+                            </div>
+
+                            <!-- Equipments -->
+                            <div class="space-y-2">
+                                <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Equipments') }}</h4>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @forelse($activeModalTurf->turfEquipments as $eq)
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800">
+                                            {{ $eq->name }}
+                                        </span>
+                                    @empty
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('None.') }}</p>
+                                    @endforelse
+                                </div>
+                            </div>
+
+                            <!-- Sports -->
+                            <div class="space-y-2">
+                                <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Sports') }}</h4>
+                                <div class="flex flex-wrap gap-1.5">
+                                    @forelse($activeModalTurf->sports as $sp)
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800">
+                                            @if($sp->icon)
+                                                <span class="h-3 w-3 shrink-0 flex items-center justify-center text-indigo-500">{!! $sp->icon !!}</span>
+                                            @endif
+                                            {{ $sp->name }}
+                                        </span>
+                                    @empty
+                                        <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('None.') }}</p>
+                                    @endforelse
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slots & Pricing Section -->
+                        <div class="space-y-2">
+                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Slots & Pricing') }}</h4>
+                            <div class="grid grid-cols-1 gap-3">
+                                @forelse($activeModalTurf->slots as $slot)
+                                    <div class="p-3 bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-2xl space-y-1.5">
+                                        <div class="flex items-center justify-between text-xs font-bold">
+                                            <span class="text-gray-800 dark:text-gray-200">{{ $slot->time_label ?: sprintf('%02d:00 - %02d:00', $slot->start_hour, $slot->end_hour) }}</span>
+                                            <span class="text-[9px] uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg">{{ $slot->category?->name }}</span>
+                                        </div>
+                                        <div class="grid grid-cols-7 gap-1 text-[8px] font-black text-center text-gray-400 dark:text-gray-500 uppercase tracking-widest pt-1.5 border-t border-gray-200/30 dark:border-gray-700/20">
+                                            <div>Mon<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->mon ?: '0' }}</div></div>
+                                            <div>Tue<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->tue ?: '0' }}</div></div>
+                                            <div>Wed<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->wed ?: '0' }}</div></div>
+                                            <div>Thu<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->thu ?: '0' }}</div></div>
+                                            <div>Fri<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->fri ?: '0' }}</div></div>
+                                            <div>Sat<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->sat ?: '0' }}</div></div>
+                                            <div>Sun<div class="text-gray-700 dark:text-gray-300 font-extrabold mt-0.5">₹{{ $slot->pivot->sun ?: '0' }}</div></div>
+                                        </div>
+                                    </div>
+                                @empty
+                                    <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('No time slots configured.') }}</p>
+                                @endforelse
+                            </div>
+                            @if($activeModalTurf->pricing_wizard_data)
+                                <div class="text-xs pt-2">
+                                    <span class="text-gray-400 dark:text-gray-500 font-medium block mb-1">{{ __('Pricing Wizard Config:') }}</span>
+                                    <pre class="text-[10px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-650 dark:text-gray-350 overflow-x-auto">{{ json_encode($activeModalTurf->pricing_wizard_data, JSON_PRETTY_PRINT) }}</pre>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- Right Panel: Checklist & Verification Controls -->
+                    <div class="w-full md:w-96 p-6 md:p-8 flex flex-col justify-between h-full bg-gray-50 dark:bg-gray-900/20">
+                        <div class="space-y-6">
+                            <div>
+                                <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">{{ __('Verification Checklist') }}</h3>
+                                <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1">{{ __('Mark all specifications as verified and correct. Unchecked items indicate review feedback.') }}</p>
+                            </div>
+
+                            <!-- Checkboxes List -->
+                            <div class="space-y-3">
+                                <!-- Location -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isLocationVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Location') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify ground coordinates, address and contact details.') }}</p>
+                                    </div>
+                                </label>
+
+                                <!-- Turf Details -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isDetailsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Turf Details') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify turf name, surface type, dimensions and policy details.') }}</p>
+                                    </div>
+                                </label>
+
+                                <!-- Photos -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isPhotosVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Photos') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify photo attachments are appropriate and realistic.') }}</p>
+                                    </div>
+                                </label>
+
+                                <!-- Facilities -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isFacilitiesVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Facilities') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify listed ground amenities and amenities configurations.') }}</p>
+                                    </div>
+                                </label>
+
+                                <!-- Equipments -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isEquipmentsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Equipments') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify inventory checklist and configurations.') }}</p>
+                                    </div>
+                                </label>
+
+                                <!-- Sports -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isSportsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Sports') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify assigned game configurations matches coordinates.') }}</p>
+                                    </div>
+                                </label>
+
+                                <!-- Slots -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isSlotsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Slots') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify time slots allocations and duration values.') }}</p>
+                                    </div>
+                                </label>
+
+                                <!-- Pricing -->
+                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                    <input type="checkbox" wire:model="isPricingVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Pricing') }}</span>
+                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify weekday pricing rates, part-payments settings.') }}</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Buttons & Controls -->
+                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                            <!-- Direct Status Actions -->
+                            <div class="grid grid-cols-2 gap-2">
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $activeModalTurf->id }}, 'Approved')" 
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    {{ __('Approve') }}
+                                </button>
+
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $activeModalTurf->id }}, 'Review')" 
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Review' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    {{ __('Review') }}
+                                </button>
+
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $activeModalTurf->id }}, 'Hold')" 
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Hold' ? 'bg-slate-600 text-white' : 'bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    {{ __('Hold') }}
+                                </button>
+
+                                <button 
+                                    type="button" 
+                                    wire:click="updateStatus({{ $activeModalTurf->id }}, 'Rejected')" 
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Rejected' ? 'bg-red-600 text-white' : 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-100/50 dark:border-red-900/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                >
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    {{ __('Reject') }}
+                                </button>
+                            </div>
+
+                            <!-- Submit Verification Checklist -->
+                            <div class="flex items-center gap-2">
+                                <button 
+                                    type="button" 
+                                    @click="verifyModal = false" 
+                                    class="flex-1 px-4 py-2.5 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer"
+                                >
+                                    {{ __('Close') }}
+                                </button>
+                                <button 
+                                    type="button" 
+                                    wire:click="saveVerification" 
+                                    class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-755 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 transition flex items-center justify-center cursor-pointer"
+                                >
+                                    {{ __('Save Checklist') }}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
 </div>
