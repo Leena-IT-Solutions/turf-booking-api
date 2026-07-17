@@ -318,11 +318,11 @@ new #[Layout('layouts.app')] class extends Component
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative bg-white dark:bg-gray-850 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700/50 w-full max-w-6xl flex flex-col md:flex-row h-[85vh]"
+                class="relative bg-white dark:bg-gray-850 rounded-3xl shadow-xl overflow-hidden border border-gray-100 dark:border-gray-700/50 w-full max-w-6xl flex flex-col md:flex-row md:h-[85vh] h-[90vh]"
             >
                 @if($activeModalTurf)
                     <!-- Left Panel: Details Display (Scrollable) -->
-                    <div class="flex-1 p-6 md:p-8 overflow-y-auto space-y-6 border-r border-gray-100 dark:border-gray-800">
+                    <div class="flex-1 p-6 md:p-8 overflow-y-auto space-y-6 border-b md:border-b-0 md:border-r border-gray-150 dark:border-gray-800">
                         <div>
                             <span class="text-[9px] bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">{{ $activeModalTurf->type }}</span>
                             <h3 class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">{{ $activeModalTurf->name }}</h3>
@@ -481,7 +481,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Right Panel: Checklist & Verification Controls -->
-                    <div class="w-full md:w-96 p-6 md:p-8 flex flex-col justify-between h-full bg-gray-50 dark:bg-gray-900/20">
+                    <div class="w-full md:w-96 p-6 md:p-8 flex flex-col justify-between md:h-full bg-gray-50 dark:bg-gray-900/20 shrink-0 md:overflow-y-auto">
                         <div class="space-y-6">
                             <div>
                                 <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">{{ __('Verification Checklist') }}</h3>
