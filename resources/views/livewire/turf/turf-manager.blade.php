@@ -38,6 +38,10 @@ new #[Layout('layouts.app')] class extends Component
     public $deletingId = null;
     public $showDeleteConfirm = false;
 
+    // Publish confirmation state
+    public $publishingId = null;
+    public $showPublishConfirm = false;
+
     public function confirmDelete($id)
     {
         $this->deletingId = $id;
@@ -56,6 +60,26 @@ new #[Layout('layouts.app')] class extends Component
             $this->deleteTurf($this->deletingId);
         }
         $this->cancelDelete();
+    }
+
+    public function confirmPublish($id)
+    {
+        $this->publishingId = $id;
+        $this->showPublishConfirm = true;
+    }
+
+    public function cancelPublish()
+    {
+        $this->publishingId = null;
+        $this->showPublishConfirm = false;
+    }
+
+    public function performPublish()
+    {
+        if ($this->publishingId) {
+            $this->publishTurf($this->publishingId);
+        }
+        $this->cancelPublish();
     }
 
     public function updatingSearch()
@@ -357,6 +381,29 @@ new #[Layout('layouts.app')] class extends Component
                                 {{ __($turf->status ?: 'Draft') }}
                             </span>
                         </div>
+
+                        @php
+                            $lacking = [];
+                            if (!$turf->is_location_verified) $lacking[] = __('Location');
+                            if (!$turf->is_details_verified) $lacking[] = __('Turf Details');
+                            if (!$turf->is_photos_verified) $lacking[] = __('Photos');
+                            if (!$turf->is_facilities_verified) $lacking[] = __('Facilities');
+                            if (!$turf->is_equipments_verified) $lacking[] = __('Equipments');
+                            if (!$turf->is_sports_verified) $lacking[] = __('Sports');
+                            if (!$turf->is_slots_verified) $lacking[] = __('Slots');
+                            if (!$turf->is_pricing_verified) $lacking[] = __('Pricing');
+                        @endphp
+
+                        @if(!empty($lacking) && ($turf->status ?: 'Draft') !== 'Approved')
+                            <div class="flex flex-col gap-1.5 bg-rose-50 dark:bg-rose-950/10 p-2.5 rounded-2xl border border-rose-100/50 dark:border-rose-900/20 mt-1">
+                                <span class="text-[8px] font-black uppercase tracking-wider text-rose-500 dark:text-rose-400">{{ __('Lacking Verification Points:') }}</span>
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach($lacking as $item)
+                                        <span class="px-2 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 font-extrabold text-[9px] uppercase tracking-wide border border-rose-200/20">{{ $item }}</span>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endif
                         
                         <div class="flex items-center justify-between">
                             <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
@@ -371,7 +418,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         @if (in_array($turf->status ?: 'Draft', ['Draft', 'Review', 'Rejected']))
-                            <button type="button" wire:click="publishTurf({{ $turf->id }})" class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2 cursor-pointer mt-1">
+                            <button type="button" wire:click="confirmPublish({{ $turf->id }})" class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2 cursor-pointer mt-1">
                                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
                                 </svg>
@@ -619,6 +666,71 @@ new #[Layout('layouts.app')] class extends Component
                     class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow cursor-pointer"
                 >
                     {{ __('Confirm Delete') }}
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Alpine.js Publish Confirmation Modal -->
+    <div 
+        x-data="{ open: @entangle('showPublishConfirm') }" 
+        x-show="open" 
+        style="display: none;"
+        class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4"
+    >
+        <!-- Backdrop -->
+        <div 
+            x-show="open" 
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            @click="@this.call('cancelPublish')"
+            class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-sm transition-opacity"
+        ></div>
+
+        <!-- Modal Dialog -->
+        <div 
+            x-show="open" 
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+            x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden w-full max-w-sm border border-gray-100 dark:border-gray-700/50 p-6 z-10 transition-all flex flex-col gap-4 text-center"
+        >
+            <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mx-auto">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
+                </svg>
+            </div>
+            
+            <div>
+                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">
+                    {{ __('Publish Turf') }}
+                </h3>
+                <p class="text-xs text-gray-400 mt-2">
+                    {{ __('Are you sure you want to submit this Turf profile for booking verification? Administrators will review your checklist setups before publishing it live.') }}
+                </p>
+            </div>
+
+            <div class="flex items-center justify-center gap-2.5 pt-2">
+                <button 
+                    type="button" 
+                    @click="@this.call('cancelPublish')" 
+                    class="px-4 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
+                >
+                    {{ __('Cancel') }}
+                </button>
+                <button 
+                    type="button" 
+                    wire:click="performPublish" 
+                    class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[10px] uppercase tracking-wider rounded-xl shadow cursor-pointer"
+                >
+                    {{ __('Confirm Publish') }}
                 </button>
             </div>
         </div>
