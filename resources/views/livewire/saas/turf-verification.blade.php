@@ -318,7 +318,7 @@ new #[Layout('layouts.app')] class extends Component
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl md:h-[85vh] h-[90vh] overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-3"
+                class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl md:h-[85vh] md:max-h-[85vh] h-[90vh] overflow-hidden grid grid-cols-1 md:grid-cols-3"
             >
                 @if($activeModalTurf)
                     @php
@@ -340,7 +340,7 @@ new #[Layout('layouts.app')] class extends Component
                         }
                     @endphp
                     <!-- Left Panel: Details Display (Scrollable) -->
-                    <div class="md:col-span-2 p-6 md:p-8 md:h-full md:overflow-y-auto space-y-6 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                    <div class="md:col-span-2 p-6 md:p-8 h-full overflow-y-auto space-y-6 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                         <div>
                             <span class="text-[9px] bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">{{ $activeModalTurf->type }}</span>
                             <h3 class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">{{ $activeModalTurf->name }}</h3>
@@ -510,15 +510,15 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Right Panel: Checklist & Verification Controls -->
-                    <div class="md:col-span-1 p-6 md:p-8 flex flex-col justify-between md:h-full bg-gray-50 dark:bg-gray-900 border-t md:border-t-0 border-gray-150 dark:border-gray-800 md:overflow-y-auto">
-                        <div class="space-y-6">
+                    <div class="md:col-span-1 p-6 md:p-8 flex flex-col justify-between h-full overflow-hidden bg-gray-50 dark:bg-gray-900 border-t md:border-t-0 border-gray-150 dark:border-gray-800">
+                        <div class="space-y-4 flex flex-col min-h-0">
                             <div>
                                 <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">{{ __('Verification Checklist') }}</h3>
                                 <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1">{{ __('Mark all specifications as verified and correct. Unchecked items indicate review feedback.') }}</p>
                             </div>
 
                             <!-- Checkboxes List -->
-                            <div class="space-y-3">
+                            <div class="space-y-3 overflow-y-auto max-h-[42vh] pr-1.5 custom-scrollbar min-h-0">
                                 <!-- Location -->
                                 <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isLocationVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
