@@ -37,7 +37,31 @@ new #[Layout('layouts.app')] class extends Component
     public function updateStatus($turfId, $status)
     {
         $turf = Turf::findOrFail($turfId);
-        $turf->update(['status' => $status]);
+        
+        // If status is set to Approved, automatically mark all checklist items as verified (true)
+        if ($status === 'Approved') {
+            $this->isLocationVerified = true;
+            $this->isDetailsVerified = true;
+            $this->isPhotosVerified = true;
+            $this->isFacilitiesVerified = true;
+            $this->isEquipmentsVerified = true;
+            $this->isSportsVerified = true;
+            $this->isSlotsVerified = true;
+            $this->isPricingVerified = true;
+        }
+
+        $turf->update([
+            'status' => $status,
+            'is_location_verified' => $this->isLocationVerified,
+            'is_details_verified' => $this->isDetailsVerified,
+            'is_photos_verified' => $this->isPhotosVerified,
+            'is_facilities_verified' => $this->isFacilitiesVerified,
+            'is_equipments_verified' => $this->isEquipmentsVerified,
+            'is_sports_verified' => $this->isSportsVerified,
+            'is_slots_verified' => $this->isSlotsVerified,
+            'is_pricing_verified' => $this->isPricingVerified,
+        ]);
+
         session()->flash('status', __('Turf status updated to :status successfully.', ['status' => $status]));
         if ($this->selectedTurfId == $turfId) {
             $this->showVerifyModal = false;
@@ -48,14 +72,18 @@ new #[Layout('layouts.app')] class extends Component
     {
         $turf = Turf::findOrFail($turfId);
         $this->selectedTurfId = $turf->id;
-        $this->isLocationVerified = (bool)$turf->is_location_verified;
-        $this->isDetailsVerified = (bool)$turf->is_details_verified;
-        $this->isPhotosVerified = (bool)$turf->is_photos_verified;
-        $this->isFacilitiesVerified = (bool)$turf->is_facilities_verified;
-        $this->isEquipmentsVerified = (bool)$turf->is_equipments_verified;
-        $this->isSportsVerified = (bool)$turf->is_sports_verified;
-        $this->isSlotsVerified = (bool)$turf->is_slots_verified;
-        $this->isPricingVerified = (bool)$turf->is_pricing_verified;
+        
+        $isApproved = $turf->status === 'Approved';
+        
+        $this->isLocationVerified = $isApproved ? true : (bool)$turf->is_location_verified;
+        $this->isDetailsVerified = $isApproved ? true : (bool)$turf->is_details_verified;
+        $this->isPhotosVerified = $isApproved ? true : (bool)$turf->is_photos_verified;
+        $this->isFacilitiesVerified = $isApproved ? true : (bool)$turf->is_facilities_verified;
+        $this->isEquipmentsVerified = $isApproved ? true : (bool)$turf->is_equipments_verified;
+        $this->isSportsVerified = $isApproved ? true : (bool)$turf->is_sports_verified;
+        $this->isSlotsVerified = $isApproved ? true : (bool)$turf->is_slots_verified;
+        $this->isPricingVerified = $isApproved ? true : (bool)$turf->is_pricing_verified;
+        
         $this->showVerifyModal = true;
     }
 
