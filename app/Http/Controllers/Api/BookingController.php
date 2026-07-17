@@ -169,10 +169,23 @@ class BookingController extends Controller
 
         sort($indices);
 
-        for ($i = 0; $i < count($indices) - 1; $i++) {
-            if ($indices[$i + 1] !== $indices[$i] + 1) {
+        $segments = [];
+        $currentSegment = [$indices[0]];
+
+        for ($i = 1; $i < count($indices); $i++) {
+            if ($indices[$i] === $indices[$i - 1] + 1) {
+                $currentSegment[] = $indices[$i];
+            } else {
+                $segments[] = $currentSegment;
+                $currentSegment = [$indices[$i]];
+            }
+        }
+        $segments[] = $currentSegment;
+
+        foreach ($segments as $segment) {
+            if (count($segment) < $minSlots) {
                 return response()->json([
-                    'message' => "Selected slots must be consecutive.",
+                    'message' => "Each consecutive block of selected slots must contain at least {$minSlots} slots.",
                 ], 422);
             }
         }
