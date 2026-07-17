@@ -522,8 +522,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isLocationVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Location') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify ground coordinates, address and contact details.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Location') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify ground coordinates, address and contact details.') }}</p>
                                     </div>
                                 </label>
 
@@ -531,8 +531,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isDetailsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Turf Details') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify turf name, surface type, dimensions and policy details.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Turf Details') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify turf name, surface type, dimensions and policy details.') }}</p>
                                     </div>
                                 </label>
 
@@ -540,8 +540,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isPhotosVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Photos') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify photo attachments are appropriate and realistic.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Photos') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify photo attachments are appropriate and realistic.') }}</p>
                                     </div>
                                 </label>
 
@@ -549,8 +549,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isFacilitiesVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Facilities') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify listed ground amenities and amenities configurations.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Facilities') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify listed ground amenities and amenities configurations.') }}</p>
                                     </div>
                                 </label>
 
@@ -558,8 +558,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isEquipmentsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Equipments') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify inventory checklist and configurations.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Equipments') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify inventory checklist and configurations.') }}</p>
                                     </div>
                                 </label>
 
@@ -567,8 +567,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isSportsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Sports') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify assigned game configurations matches coordinates.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Sports') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify assigned game configurations matches coordinates.') }}</p>
                                     </div>
                                 </label>
 
@@ -576,8 +576,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isSlotsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Slots') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify time slots allocations and duration values.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Slots') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify time slots allocations and duration values.') }}</p>
                                     </div>
                                 </label>
 
@@ -585,8 +585,8 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isPricingVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-[10px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Pricing') }}</span>
-                                        <p class="text-[7.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-normal">{{ __('Verify weekday pricing rates, part-payments settings.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Pricing') }}</span>
+                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify weekday pricing rates, part-payments settings.') }}</p>
                                     </div>
                                 </label>
                             </div>
