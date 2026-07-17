@@ -360,153 +360,147 @@ new #[Layout('layouts.app')] class extends Component
                         </table>
                     </div>
                 @endif
-            </div>
-        @endif
-    </div>
+            <    </div>
 
     <!-- Edit/Create Coupon Modal Dialog overlay -->
     @if ($showModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                <!-- Background backdrop shadow -->
-                <div class="fixed inset-0 bg-gray-550 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-80 transition-opacity" wire:click="$set('showModal', false)"></div>
+        <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <!-- Background backdrop shadow -->
+            <div class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-xs transition-opacity" wire:click="resetInputFields"></div>
 
-                <!-- Center modal card -->
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <!-- Center modal card -->
+            <div class="relative bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-2xl sm:w-full border border-gray-100 dark:border-gray-700/50 z-10">
+                <form wire:submit="saveCoupon" class="divide-y divide-gray-150 dark:divide-gray-700/50">
+                    <div class="px-6 py-4.5 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-between">
+                        <h3 class="text-base font-bold text-gray-900 dark:text-gray-100" id="modal-title">
+                            {{ $couponId ? __('Edit Discount Coupon') : __('Add Discount Coupon') }}
+                        </h3>
+                        <button type="button" wire:click="$set('showModal', false)" class="text-gray-400 hover:text-gray-650 dark:hover:text-gray-250 cursor-pointer transition">
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
 
-                <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full border border-gray-100 dark:border-gray-750">
-                    <form wire:submit="saveCoupon" class="divide-y divide-gray-100 dark:divide-gray-700/50">
-                        <div class="px-6 py-4.5 bg-gray-50/50 dark:bg-gray-750/30 flex items-center justify-between">
-                            <h3 class="text-base font-bold text-gray-900 dark:text-gray-100" id="modal-title">
-                                {{ $couponId ? __('Edit Discount Coupon') : __('Add Discount Coupon') }}
-                            </h3>
-                            <button type="button" wire:click="$set('showModal', false)" class="text-gray-400 hover:text-gray-650 dark:hover:text-gray-250 cursor-pointer transition">
-                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        <!-- Form Input Elements -->
-                        <div class="px-6 py-6 space-y-5.5 max-h-[70vh] overflow-y-auto">
-                            <!-- Code and Type -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Coupon Code') }}</label>
-                                    <div class="flex gap-2">
-                                        <input type="text" wire:model="code" placeholder="e.g. SUMMER50" class="flex-1 px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none uppercase font-mono tracking-wider">
-                                        <button type="button" wire:click="generateCode" class="px-3.5 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-750 text-xs font-bold rounded-xl transition cursor-pointer">
-                                            {{ __('Generate') }}
-                                        </button>
-                                    </div>
-                                    @error('code') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                    <!-- Form Input Elements -->
+                    <div class="px-6 py-6 space-y-5.5 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-800">
+                        <!-- Code and Type -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Coupon Code') }}</label>
+                                <div class="flex gap-2">
+                                    <input type="text" wire:model="code" placeholder="e.g. SUMMER50" class="flex-1 px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none uppercase font-mono tracking-wider">
+                                    <button type="button" wire:click="generateCode" class="px-3.5 py-2.5 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-900 text-xs font-bold rounded-xl transition cursor-pointer">
+                                        {{ __('Generate') }}
+                                    </button>
                                 </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Discount Type') }}</label>
-                                    <select wire:model.live="discount_type" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
-                                        <option value="percentage">{{ __('Percentage (%)') }}</option>
-                                        <option value="fixed">{{ __('Fixed Flat Amount (₹)') }}</option>
-                                    </select>
-                                    @error('discount_type') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
+                                @error('code') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
                             </div>
 
-                            <!-- Value and Max Discount -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
-                                        {{ $discount_type === 'percentage' ? __('Percentage Value') : __('Flat Value') }}
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Discount Type') }}</label>
+                                <select wire:model.live="discount_type" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                    <option value="percentage" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{{ __('Percentage (%)') }}</option>
+                                    <option value="fixed" class="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">{{ __('Fixed Flat Amount (₹)') }}</option>
+                                </select>
+                                @error('discount_type') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Value and Max Discount -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
+                                    {{ $discount_type === 'percentage' ? __('Percentage Value') : __('Flat Value') }}
+                                </label>
+                                <input type="number" step="0.01" wire:model="discount_value" placeholder="{{ $discount_type === 'percentage' ? 'e.g. 15' : 'e.g. 200' }}" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                @error('discount_value') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Max Discount Amount') }}</label>
+                                <input type="number" step="0.01" wire:model="max_discount_amount" placeholder="{{ $discount_type === 'percentage' ? 'e.g. 500 (Optional)' : 'N/A' }}" {{ $discount_type === 'fixed' ? 'disabled' : '' }} class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none disabled:bg-gray-50 dark:disabled:bg-gray-900/50 disabled:text-gray-400">
+                                @error('max_discount_amount') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Description') }}</label>
+                            <textarea wire:model="description" rows="2" placeholder="Describe the coupon parameters for display..." class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none"></textarea>
+                        </div>
+
+                        <!-- Min Slots and User Limit -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Minimum Slots Booking Needed') }}</label>
+                                <input type="number" wire:model="minimum_slots_to_be_ordered" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                @error('minimum_slots_to_be_ordered') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Limit Per User') }}</label>
+                                <input type="number" wire:model="usage_limit_per_user" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                @error('usage_limit_per_user') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Usage Limit and Validity -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5.5">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Total Max Usage') }}</label>
+                                <input type="number" wire:model="usage_limit" placeholder="e.g. 100 (Optional)" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                @error('usage_limit') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Starts At') }}</label>
+                                <input type="date" wire:model="starts_at" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                @error('starts_at') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Expires At') }}</label>
+                                <input type="date" wire:model="expires_at" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                @error('expires_at') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
+                            </div>
+                        </div>
+
+                        <!-- Weekdays Active -->
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Active Weekdays') }}</label>
+                            <div class="flex flex-wrap gap-3">
+                                @foreach (['mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday'] as $field => $label)
+                                    <label class="inline-flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-700">
+                                        <input type="checkbox" wire:model="{{ $field }}" class="h-4 w-4 text-indigo-650 border-gray-300 rounded focus:ring-indigo-500">
+                                        <span class="text-xs text-gray-700 dark:text-gray-300 ml-1">{{ __($label) }}</span>
                                     </label>
-                                    <input type="number" step="0.01" wire:model="discount_value" placeholder="{{ $discount_type === 'percentage' ? 'e.g. 15' : 'e.g. 200' }}" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
-                                    @error('discount_value') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Max Discount Amount') }}</label>
-                                    <input type="number" step="0.01" wire:model="max_discount_amount" placeholder="{{ $discount_type === 'percentage' ? __('e.g. 500 (Optional)') : __('N/A') }}" {{ $discount_type === 'fixed' ? 'disabled' : '' }} class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400">
-                                    @error('max_discount_amount') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-
-                            <!-- Description -->
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Description') }}</label>
-                                <textarea wire:model="description" rows="2" placeholder="Describe the coupon parameters for display..." class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none"></textarea>
-                            </div>
-
-                            <!-- Min Slots and User Limit -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Minimum Slots Booking Needed') }}</label>
-                                    <input type="number" wire:model="minimum_slots_to_be_ordered" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
-                                    @error('minimum_slots_to_be_ordered') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Limit Per User') }}</label>
-                                    <input type="number" wire:model="usage_limit_per_user" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
-                                    @error('usage_limit_per_user') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-
-                            <!-- Usage Limit and Validity -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-5.5">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Total Max Usage') }}</label>
-                                    <input type="number" wire:model="usage_limit" placeholder="e.g. 100 (Optional)" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
-                                    @error('usage_limit') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Starts At') }}</label>
-                                    <input type="date" wire:model="starts_at" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
-                                    @error('starts_at') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
-
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Expires At') }}</label>
-                                    <input type="date" wire:model="expires_at" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-700/20 text-gray-800 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
-                                    @error('expires_at') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
-                                </div>
-                            </div>
-
-                            <!-- Weekdays Active -->
-                            <div>
-                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">{{ __('Active Weekdays') }}</label>
-                                <div class="flex flex-wrap gap-3">
-                                    @foreach (['mon' => 'Monday', 'tue' => 'Tuesday', 'wed' => 'Wednesday', 'thu' => 'Thursday', 'fri' => 'Friday', 'sat' => 'Saturday', 'sun' => 'Sunday'] as $field => $label)
-                                        <label class="inline-flex items-center gap-2 cursor-pointer bg-gray-50 dark:bg-gray-750 px-3 py-2 rounded-xl border border-gray-150 dark:border-gray-700">
-                                            <input type="checkbox" wire:model="{{ $field }}" class="h-4 w-4 text-indigo-650 border-gray-300 rounded focus:ring-indigo-500">
-                                            <span class="text-xs text-gray-700 dark:text-gray-350">{{ __($label) }}</span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </div>
-
-                            <!-- Active status toggle -->
-                            <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-750/30 rounded-2xl border border-gray-100 dark:border-gray-700/50">
-                                <div>
-                                    <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Coupon Active Status') }}</h4>
-                                    <p class="text-[10px] text-gray-400 mt-0.5">{{ __('Control if customers can check out using this coupon.') }}</p>
-                                </div>
-                                <button type="button" wire:click="$toggle('is_active')" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_active ? 'bg-indigo-600' : 'bg-gray-250 dark:bg-gray-700' }}">
-                                    <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $is_active ? 'translate-x-5' : 'translate-x-0' }}"></span>
-                                </button>
+                                @endforeach
                             </div>
                         </div>
 
-                        <!-- Footer Actions -->
-                        <div class="px-6 py-4 bg-gray-50/50 dark:bg-gray-750/30 flex items-center justify-end gap-3 rounded-b-3xl">
-                            <button type="button" wire:click="$set('showModal', false)" class="px-5 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-750 dark:border-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition cursor-pointer">
-                                {{ __('Cancel') }}
-                            </button>
-                            <button type="submit" class="px-6 py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition cursor-pointer">
-                                {{ __('Save Coupon') }}
+                        <!-- Active status toggle -->
+                        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-150 dark:border-gray-750/50">
+                            <div>
+                                <h4 class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Coupon Active Status') }}</h4>
+                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">{{ __('Control if customers can check out using this coupon.') }}</p>
+                            </div>
+                            <button type="button" wire:click="$toggle('is_active')" class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_active ? 'bg-indigo-600' : 'bg-gray-250 dark:bg-gray-700' }}">
+                                <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $is_active ? 'translate-x-5' : 'translate-x-0' }}"></span>
                             </button>
                         </div>
-                    </form>
-                </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-end gap-3 rounded-b-3xl">
+                        <button type="button" wire:click="$set('showModal', false)" class="px-5 py-2.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 dark:bg-gray-850 dark:hover:bg-gray-900 dark:border-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition cursor-pointer">
+                            {{ __('Cancel') }}
+                        </button>
+                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition cursor-pointer">
+                            {{ __('Save Coupon') }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif
