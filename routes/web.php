@@ -147,8 +147,8 @@ Route::middleware(['auth'])->group(function () {
         }
         
         $commands = [
-            'git -c safe.directory="' . $basePath . '" reset --hard HEAD 2>&1',
-            'git -c safe.directory="' . $basePath . '" pull origin ' . $branch . ' 2>&1',
+            'git -c safe.directory="' . $basePath . '" fetch origin ' . $branch . ' 2>&1',
+            'git -c safe.directory="' . $basePath . '" reset --hard origin/' . $branch . ' 2>&1',
             'php artisan migrate --force 2>&1',
             'php artisan db:seed --class=SlotCategorySeeder --force 2>&1',
             'php artisan db:seed --class=SlotSeeder --force 2>&1',
