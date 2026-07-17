@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('saas_settings', function (Blueprint $table) {
-            $table->integer('min_slots_booking')->default(1)->after('turf_search_km');
+            $table->integer('min_slots_booking')->default(2)->after('turf_search_km');
         });
     }
 

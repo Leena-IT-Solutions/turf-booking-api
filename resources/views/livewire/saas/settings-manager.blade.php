@@ -22,8 +22,8 @@ new #[Layout('layouts.app')] class extends Component
     public $mailgun_domain = '';
     public $mailgun_secret = '';
     public $mailgun_endpoint = 'api.mailgun.net';
-    public $turf_search_km = 5;
-    public $min_slots_booking = 1;
+    public $turf_search_km = 10;
+    public $min_slots_booking = 2;
     public $google_maps_api_key = '';
     
     // File inputs
@@ -38,8 +38,8 @@ new #[Layout('layouts.app')] class extends Component
             'contact_mobile' => '9664588677',
             'address' => 'Mumbai, India',
             'is_maintenance_mode' => false,
-            'turf_search_km' => 5,
-            'min_slots_booking' => 1,
+            'turf_search_km' => 10,
+            'min_slots_booking' => 2,
         ]);
 
         $this->app_name = $setting->app_name;

@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('saas_settings', function (Blueprint $table) {
-            $table->integer('turf_search_km')->default(5)->after('mailgun_endpoint');
+            $table->integer('turf_search_km')->default(10)->after('mailgun_endpoint');
         });
     }
 

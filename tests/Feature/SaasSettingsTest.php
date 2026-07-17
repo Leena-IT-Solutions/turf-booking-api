@@ -59,7 +59,8 @@ class SaasSettingsTest extends TestCase
             ->assertSet('contact_email', 'sandeep198558@gmail.com')
             ->assertSet('contact_mobile', '9664588677')
             ->assertSet('is_maintenance_mode', false)
-            ->assertSet('min_slots_booking', 1);
+            ->assertSet('turf_search_km', 10)
+            ->assertSet('min_slots_booking', 2);
     }
 
     public function test_contact_email_must_be_valid_email(): void
