@@ -510,91 +510,91 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Right Panel: Checklist & Verification Controls -->
-                    <div class="md:col-span-1 p-6 md:p-8 flex flex-col justify-between h-full overflow-hidden bg-gray-50 dark:bg-gray-900 border-t md:border-t-0 border-gray-150 dark:border-gray-800">
-                        <div class="space-y-4 flex flex-col flex-1 min-h-0">
+                    <div class="md:col-span-1 p-6 md:p-8 flex flex-col justify-between h-full bg-gray-50 dark:bg-gray-900 border-t md:border-t-0 border-gray-150 dark:border-gray-800">
+                        <div>
                             <div>
                                 <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">{{ __('Verification Checklist') }}</h3>
                                 <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1">{{ __('Mark all specifications as verified and correct. Unchecked items indicate review feedback.') }}</p>
                             </div>
 
                             <!-- Checkboxes List -->
-                            <div class="space-y-3 overflow-y-auto flex-1 pr-1.5 custom-scrollbar min-h-0">
+                            <div class="space-y-2.5 overflow-y-auto pr-1.5 custom-scrollbar mt-4" style="max-height: calc(85vh - 370px);">
                                 <!-- Location -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isLocationVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Location') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify ground coordinates, address and contact details.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Location') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify ground coordinates, address and contact details.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Turf Details -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isDetailsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Turf Details') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify turf name, surface type, dimensions and policy details.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Turf Details') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify turf name, surface type, dimensions and policy details.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Photos -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isPhotosVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Photos') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify photo attachments are appropriate and realistic.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Photos') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify photo attachments are appropriate and realistic.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Facilities -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isFacilitiesVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Facilities') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify listed ground amenities and amenities configurations.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Facilities') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify listed ground amenities and amenities configurations.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Equipments -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isEquipmentsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Equipments') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify inventory checklist and configurations.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Equipments') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify inventory checklist and configurations.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Sports -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isSportsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Sports') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify assigned game configurations matches coordinates.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Sports') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify assigned game configurations matches coordinates.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Slots -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isSlotsVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Slots') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify time slots allocations and duration values.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Slots') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify time slots allocations and duration values.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Pricing -->
-                                <label class="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isPricingVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ __('Pricing') }}</span>
-                                        <p class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Verify weekday pricing rates, part-payments settings.') }}</p>
+                                        <span class="text-[11px] font-extrabold text-gray-800 dark:text-gray-200">{{ __('Pricing') }}</span>
+                                        <p class="text-[8.5px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5 leading-relaxed">{{ __('Verify weekday pricing rates, part-payments settings.') }}</p>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
                         <!-- Buttons & Controls -->
-                        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4 shrink-0">
+                        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3.5">
                             <!-- Direct Status Actions -->
                             <div class="grid grid-cols-2 gap-2">
                                 <button 
