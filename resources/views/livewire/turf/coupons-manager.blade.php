@@ -276,118 +276,138 @@ new #[Layout('layouts.app')] class extends Component
                         <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5 leading-relaxed">{{ __('No discount coupons match your search or exist for this turf yet.') }}</p>
                     </div>
                 @else
-                    <div class="p-6 space-y-4">
+                    <div class="p-5 space-y-4">
                         @foreach ($coupons as $coupon)
-                            {{-- Full-width horizontal ticket / voucher --}}
-                            <div class="w-full flex rounded-2xl overflow-hidden border {{ $coupon->is_active ? 'border-indigo-100 dark:border-indigo-900/40' : 'border-gray-150 dark:border-gray-750/40 opacity-70' }} bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow duration-200">
+                        @php
+                            $isActive = $coupon->is_active;
+                            $isPct    = $coupon->discount_type === 'percentage';
+                            $discountLabel = $isPct ? $coupon->discount_value . '%' : '₹' . number_format($coupon->discount_value, 0);
+                        @endphp
 
-                                {{-- LEFT: coloured discount panel --}}
-                                <div class="{{ $coupon->is_active ? 'bg-indigo-600' : 'bg-gray-400 dark:bg-gray-600' }} flex flex-col items-center justify-center px-6 py-5 min-w-[130px] relative select-none">
-                                    {{-- top notch --}}
-                                    <div class="absolute -top-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-10"></div>
-                                    {{-- bottom notch --}}
-                                    <div class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-10"></div>
+                        {{-- Full-width horizontal voucher ticket --}}
+                        <div class="flex items-stretch rounded-2xl border shadow-sm transition-shadow hover:shadow-md overflow-hidden
+                            {{ $isActive ? 'border-indigo-200 dark:border-indigo-900/50' : 'border-gray-200 dark:border-gray-700 opacity-60' }}
+                            bg-white dark:bg-gray-800">
 
-                                    <span class="text-white/70 text-[9px] font-black uppercase tracking-widest mb-1">
-                                        {{ $coupon->discount_type === 'percentage' ? __('SAVE') : __('FLAT') }}
+                            {{-- ===== LEFT: discount badge panel ===== --}}
+                            <div class="flex flex-col items-center justify-center w-28 shrink-0 py-5 gap-0.5
+                                {{ $isActive ? 'bg-indigo-600' : 'bg-gray-500 dark:bg-gray-600' }}">
+                                <span class="text-[9px] font-extrabold tracking-[0.2em] uppercase text-white/60">
+                                    {{ $isPct ? 'SAVE' : 'FLAT' }}
+                                </span>
+                                <span class="text-2xl font-black text-white leading-none">
+                                    {{ $discountLabel }}
+                                </span>
+                                <span class="text-[9px] font-extrabold tracking-[0.2em] uppercase text-white/60">
+                                    OFF
+                                </span>
+                                @if ($isPct && $coupon->max_discount_amount)
+                                    <span class="mt-1 text-[8px] font-bold text-white/50 text-center leading-snug">
+                                        Max ₹{{ $coupon->max_discount_amount }}
                                     </span>
-                                    <span class="text-white text-3xl font-black leading-none tracking-tight">
-                                        {{ $coupon->discount_type === 'percentage' ? $coupon->discount_value . '%' : '₹' . $coupon->discount_value }}
-                                    </span>
-                                    <span class="text-white/70 text-[10px] font-black uppercase tracking-widest mt-1">
-                                        {{ __('OFF') }}
-                                    </span>
-                                    @if ($coupon->discount_type === 'percentage' && $coupon->max_discount_amount)
-                                        <span class="mt-2 text-[8px] font-bold text-white/60 uppercase text-center leading-tight">
-                                            {{ __('Max ₹') }}{{ $coupon->max_discount_amount }}
-                                        </span>
-                                    @endif
-                                </div>
-
-                                {{-- Perforated vertical divider --}}
-                                <div class="flex flex-col items-center justify-center px-1 py-4 bg-white dark:bg-gray-800">
-                                    <div class="w-px h-full border-l-2 border-dashed border-gray-200 dark:border-gray-700"></div>
-                                </div>
-
-                                {{-- RIGHT: coupon details --}}
-                                <div class="flex-1 flex flex-col justify-between py-4 pr-5 pl-4 min-w-0">
-                                    {{-- Top row: code + type + toggle --}}
-                                    <div class="flex items-start justify-between gap-4 flex-wrap">
-                                        <div class="min-w-0">
-                                            <div class="flex items-center gap-2.5 flex-wrap">
-                                                <span class="inline-flex items-center px-3 py-1 {{ $coupon->is_active ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-100/50 dark:border-indigo-900/30' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600' }} text-xs font-black rounded-lg border font-mono tracking-wider uppercase">
-                                                    {{ $coupon->code }}
-                                                </span>
-                                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
-                                                    {{ $coupon->discount_type === 'percentage' ? __('Percentage Coupon') : __('Flat Discount') }}
-                                                </span>
-                                            </div>
-                                            @if ($coupon->description)
-                                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-1">{{ $coupon->description }}</p>
-                                            @endif
-                                        </div>
-                                        {{-- Active toggle --}}
-                                        <button type="button" wire:click="toggleStatus({{ $coupon->id }})" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $coupon->is_active ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600' }}">
-                                            <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $coupon->is_active ? 'translate-x-4' : 'translate-x-0' }}"></span>
-                                        </button>
-                                    </div>
-
-                                    {{-- Middle: stats row --}}
-                                    <div class="mt-3 flex items-center gap-6 flex-wrap">
-                                        {{-- Min slots --}}
-                                        <div>
-                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500">{{ __('Min Slots') }}</span>
-                                            <span class="block text-xs font-black text-gray-700 dark:text-gray-200 mt-0.5">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</span>
-                                        </div>
-                                        {{-- Usage --}}
-                                        <div>
-                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500">{{ __('Usage') }}</span>
-                                            <span class="block text-xs font-black text-gray-700 dark:text-gray-200 mt-0.5">{{ $coupon->used_count }} / {{ $coupon->usage_limit ?: '∞' }}</span>
-                                        </div>
-                                        {{-- Validity --}}
-                                        <div>
-                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500">{{ __('Validity') }}</span>
-                                            <span class="block text-xs font-black text-gray-700 dark:text-gray-200 mt-0.5">
-                                                @if ($coupon->starts_at || $coupon->expires_at)
-                                                    {{ $coupon->starts_at ? $coupon->starts_at->format('d M Y') : 'Now' }}
-                                                    &rarr;
-                                                    {{ $coupon->expires_at ? $coupon->expires_at->format('d M Y') : 'Never' }}
-                                                @else
-                                                    {{ __('Always Valid') }}
-                                                @endif
-                                            </span>
-                                        </div>
-                                        {{-- Active Days --}}
-                                        <div>
-                                            <span class="block text-[9px] uppercase font-black tracking-widest text-gray-400 dark:text-gray-500 mb-1">{{ __('Days') }}</span>
-                                            <div class="flex items-center gap-1">
-                                                @php $days = ['mon' => 'M', 'tue' => 'T', 'wed' => 'W', 'thu' => 'T', 'fri' => 'F', 'sat' => 'S', 'sun' => 'S']; @endphp
-                                                @foreach ($days as $field => $label)
-                                                    <span class="text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-black {{ $coupon->{$field} ? 'bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-600' }}">
-                                                        {{ $label }}
-                                                    </span>
-                                                @endforeach
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- Bottom: action buttons --}}
-                                    <div class="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-end gap-2">
-                                        <button type="button" wire:click="editCoupon({{ $coupon->id }})" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 text-gray-500 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 border border-gray-150 dark:border-gray-600/50 transition cursor-pointer">
-                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                            </svg>
-                                            {{ __('Edit') }}
-                                        </button>
-                                        <button type="button" wire:click="deleteCoupon({{ $coupon->id }})" wire:confirm="Are you sure you want to permanently delete this coupon?" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg bg-gray-50 dark:bg-gray-700/50 hover:bg-red-50 dark:hover:bg-red-950/20 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 border border-gray-150 dark:border-gray-600/50 transition cursor-pointer">
-                                            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            {{ __('Delete') }}
-                                        </button>
-                                    </div>
-                                </div>
+                                @endif
                             </div>
+
+                            {{-- ===== DASHED VERTICAL DIVIDER ===== --}}
+                            <div class="w-px my-4 shrink-0"
+                                style="background: repeating-linear-gradient(to bottom, #d1d5db 0px, #d1d5db 5px, transparent 5px, transparent 9px);">
+                            </div>
+
+                            {{-- ===== RIGHT: coupon info ===== --}}
+                            <div class="flex-1 flex flex-col gap-3 px-5 py-4 min-w-0">
+
+                                {{-- Row 1: code + type label + toggle --}}
+                                <div class="flex items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2.5 min-w-0 flex-wrap">
+                                        <span class="shrink-0 px-2.5 py-1 text-[11px] font-black font-mono rounded-lg border tracking-widest uppercase
+                                            {{ $isActive
+                                                ? 'bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800'
+                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-300 dark:border-gray-600' }}">
+                                            {{ $coupon->code }}
+                                        </span>
+                                        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                                            {{ $isPct ? 'Percentage Coupon' : 'Flat Discount' }}
+                                        </span>
+                                    </div>
+                                    {{-- Status toggle --}}
+                                    <button type="button" wire:click="toggleStatus({{ $coupon->id }})"
+                                        class="relative shrink-0 inline-flex h-5 w-9 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none
+                                            {{ $isActive ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-gray-600' }}">
+                                        <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200
+                                            {{ $isActive ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                                    </button>
+                                </div>
+
+                                {{-- Description --}}
+                                @if ($coupon->description)
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 -mt-1">{{ $coupon->description }}</p>
+                                @endif
+
+                                {{-- Row 2: stats --}}
+                                <div class="flex items-start gap-7 flex-wrap">
+                                    <div>
+                                        <p class="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 dark:text-gray-500">Min Slots</p>
+                                        <p class="text-xs font-bold text-gray-800 dark:text-gray-100 mt-0.5">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 dark:text-gray-500">Usage</p>
+                                        <p class="text-xs font-bold text-gray-800 dark:text-gray-100 mt-0.5">{{ $coupon->used_count }} / {{ $coupon->usage_limit ?: '∞' }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 dark:text-gray-500">Validity</p>
+                                        <p class="text-xs font-bold text-gray-800 dark:text-gray-100 mt-0.5">
+                                            @if ($coupon->starts_at || $coupon->expires_at)
+                                                {{ $coupon->starts_at ? $coupon->starts_at->format('d M Y') : 'Now' }}
+                                                &rarr;
+                                                {{ $coupon->expires_at ? $coupon->expires_at->format('d M Y') : 'Never' }}
+                                            @else
+                                                Always Valid
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-[9px] font-extrabold uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-1">Days</p>
+                                        <div class="flex items-center gap-1">
+                                            @php $days = ['mon'=>'M','tue'=>'T','wed'=>'W','thu'=>'T','fri'=>'F','sat'=>'S','sun'=>'S']; @endphp
+                                            @foreach ($days as $field => $label)
+                                                <span class="text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-black
+                                                    {{ $coupon->{$field}
+                                                        ? 'bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400'
+                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-300 dark:text-gray-600' }}">
+                                                    {{ $label }}
+                                                </span>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {{-- Row 3: action buttons --}}
+                                <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/50">
+                                    <button type="button" wire:click="editCoupon({{ $coupon->id }})"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider
+                                            bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600
+                                            text-gray-500 dark:text-gray-400 hover:text-indigo-600 hover:bg-indigo-50
+                                            dark:hover:text-indigo-400 dark:hover:bg-indigo-950/20 transition cursor-pointer">
+                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        </svg>
+                                        Edit
+                                    </button>
+                                    <button type="button" wire:click="deleteCoupon({{ $coupon->id }})"
+                                        wire:confirm="Are you sure you want to permanently delete this coupon?"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider
+                                            bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600
+                                            text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50
+                                            dark:hover:text-red-400 dark:hover:bg-red-950/20 transition cursor-pointer">
+                                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete
+                                    </button>
+                                </div>
+
+                            </div>{{-- end right --}}
+                        </div>{{-- end coupon ticket --}}
                         @endforeach
                     </div>
                 @endif
