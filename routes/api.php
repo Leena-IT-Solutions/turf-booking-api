@@ -11,6 +11,7 @@ Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/slider-images', [\App\Http\Controllers\Api\SliderImageController::class, 'index']);
+Route::get('/turfs', [\App\Http\Controllers\Api\TurfController::class, 'index']);
 Route::get('/config', function () {
     $setting = \App\Models\SaasSetting::first();
     return response()->json([
