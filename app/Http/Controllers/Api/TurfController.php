@@ -134,6 +134,8 @@ class TurfController extends Controller
                     'area' => $turf->area,
                     'location_name' => $turf->location?->name ?? '',
                     'location_address' => $turf->location?->address ?? '',
+                    'latitude' => $turf->location?->latitude ? (float)$turf->location->latitude : null,
+                    'longitude' => $turf->location?->longitude ? (float)$turf->location->longitude : null,
                     'price_text' => $priceText,
                     'rating' => '4.8', // Default standard mock rating for UI display
                     'image_url' => count($imageUrls) > 0 ? $imageUrls[0] : null,
