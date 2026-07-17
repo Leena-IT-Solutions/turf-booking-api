@@ -318,11 +318,11 @@ new #[Layout('layouts.app')] class extends Component
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative bg-white dark:bg-gray-850 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700/50 w-full max-w-6xl md:h-[85vh] h-[90vh] overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-3"
+                class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl md:h-[85vh] h-[90vh] overflow-y-auto md:overflow-hidden grid grid-cols-1 md:grid-cols-3"
             >
                 @if($activeModalTurf)
                     <!-- Left Panel: Details Display (Scrollable) -->
-                    <div class="md:col-span-2 p-6 md:p-8 md:h-full md:overflow-y-auto space-y-6 border-b md:border-b-0 md:border-r border-gray-150 dark:border-gray-800 bg-white dark:bg-gray-850">
+                    <div class="md:col-span-2 p-6 md:p-8 md:h-full md:overflow-y-auto space-y-6 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                         <div>
                             <span class="text-[9px] bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">{{ $activeModalTurf->type }}</span>
                             <h3 class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">{{ $activeModalTurf->name }}</h3>
