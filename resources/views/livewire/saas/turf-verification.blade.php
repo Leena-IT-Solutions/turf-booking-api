@@ -519,7 +519,7 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
 
                             <!-- Checkboxes List -->
-                            <div class="space-y-2.5 overflow-y-auto pr-1.5 custom-scrollbar mt-4" style="max-height: calc(100% - 200px);">
+                            <div class="space-y-2.5 overflow-y-auto pr-1.5 custom-scrollbar mt-4" style="max-height: calc(100% - 320px);">
                                 <!-- Location -->
                                 <label class="flex items-start gap-2.5 p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isLocationVerified" class="mt-0.5 h-4.5 w-4.5 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
