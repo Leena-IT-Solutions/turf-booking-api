@@ -12,6 +12,33 @@ use Carbon\Carbon;
 class BookingController extends Controller
 {
     /**
+     * Get bookings made by the authenticated user.
+     */
+    public function index(): JsonResponse
+    {
+        $userId = auth()->id();
+        
+        $bookings = Booking::with(['turf', 'slot'])
+            ->where('user_id', $userId)
+            ->orderBy('booking_date', 'desc')
+            ->get()
+            ->map(function ($booking) {
+                return [
+                    'id' => $booking->id,
+                    'turf_name' => $booking->turf->name ?? 'Unknown Turf',
+                    'date' => Carbon::parse($booking->booking_date)->format('F d, Y'),
+                    'time' => ($booking->slot->from_time && $booking->slot->to_time) 
+                        ? date('h:i A', strtotime($booking->slot->from_time)) . ' - ' . date('h:i A', strtotime($booking->slot->to_time))
+                        : 'N/A',
+                    'status' => $booking->status,
+                    'price' => '₹' . number_format($booking->price, 0),
+                ];
+            });
+
+        return response()->json($bookings);
+    }
+
+    /**
      * Get available and occupied slots for a turf on a specific date.
      */
     public function getSlots(Request $request, Turf $turf): JsonResponse

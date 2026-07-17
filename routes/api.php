@@ -34,4 +34,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/support/messages', [SupportController::class, 'store']);
     Route::post('/turfs/{turf}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
     Route::post('/turfs/{turf}/bookings', [\App\Http\Controllers\Api\BookingController::class, 'store']);
+    Route::get('/bookings', [\App\Http\Controllers\Api\BookingController::class, 'index']);
 });
