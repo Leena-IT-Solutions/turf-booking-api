@@ -495,7 +495,7 @@ new #[Layout('layouts.app')] class extends Component
 
                     <!-- Footer Actions -->
                     <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-end gap-3 rounded-b-3xl">
-                        <button type="button" wire:click="$set('showModal', false)" class="px-5 py-2.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 dark:bg-gray-850 dark:hover:bg-gray-900 dark:border-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition cursor-pointer">
+                        <button type="button" wire:click="$set('showModal', false)" class="px-5 py-2.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 dark:bg-gray-800 dark:hover:bg-gray-750 dark:border-gray-750 dark:text-gray-300 text-xs font-bold rounded-xl transition cursor-pointer">
                             {{ __('Cancel') }}
                         </button>
                         <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/20 hover:shadow-lg hover:shadow-indigo-500/30 transition cursor-pointer">
