@@ -139,7 +139,7 @@ class TurfController extends Controller
                     'latitude' => $turf->location?->latitude ? (float)$turf->location->latitude : null,
                     'longitude' => $turf->location?->longitude ? (float)$turf->location->longitude : null,
                     'price_text' => $priceText,
-                    'rating' => $turf->reviews_avg_rating !== null ? number_format($turf->reviews_avg_rating, 1) : '4.8',
+                    'rating' => $turf->reviews_avg_rating !== null ? number_format($turf->reviews_avg_rating, 1) : '0.0',
                     'reviews_count' => $turf->reviews_count,
                     'image_url' => count($imageUrls) > 0 ? $imageUrls[0] : null,
                     'image_urls' => $imageUrls,
