@@ -16,6 +16,7 @@ class Turf extends Model
         'description',
         'area',
         'is_active',
+        'status',
         'equipments',
         'pricing_wizard_data',
         'is_online_payment_active',

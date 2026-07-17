@@ -164,6 +164,14 @@ new #[Layout('layouts.app')] class extends Component
         $this->dispatch('turfs-updated');
     }
 
+    public function publishTurf($id)
+    {
+        $turf = Turf::manageable()->findOrFail($id);
+        $turf->update(['status' => 'Pending']);
+        session()->flash('status', 'Turf submitted for verification successfully.');
+        $this->dispatch('turfs-updated');
+    }
+
     public function with()
     {
         $query = Turf::manageable();
@@ -333,16 +341,43 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Footer Status Indicators -->
-                    <div class="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/40 flex items-center justify-between">
-                        <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
-                            {{ __('Turf status') }}
-                        </span>
-                        <div class="flex items-center gap-1.5">
-                            <span class="h-2 w-2 rounded-full {{ $turf->is_active ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-red-500 shadow-red-500/30' }} shadow-md"></span>
-                            <span class="text-[10px] font-extrabold uppercase tracking-wide {{ $turf->is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400' }}">
-                                {{ $turf->is_active ? __('Active') : __('Inactive') }}
+                    <div class="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/40 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
+                                {{ __('Verification Status') }}
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{
+                                $turf->status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
+                                $turf->status === 'Pending' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : (
+                                $turf->status === 'Review' ? 'bg-indigo-100 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400' : (
+                                $turf->status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : (
+                                $turf->status === 'Hold' ? 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400' :
+                                'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'))))
+                            }}">
+                                {{ __($turf->status ?: 'Draft') }}
                             </span>
                         </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
+                                {{ __('Turf Status') }}
+                            </span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="h-2 w-2 rounded-full {{ $turf->is_active ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-red-500 shadow-red-500/30' }} shadow-md"></span>
+                                <span class="text-[10px] font-extrabold uppercase tracking-wide {{ $turf->is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400' }}">
+                                    {{ $turf->is_active ? __('Active') : __('Inactive') }}
+                                </span>
+                            </div>
+                        </div>
+
+                        @if (in_array($turf->status ?: 'Draft', ['Draft', 'Review', 'Rejected']))
+                            <button type="button" wire:click="publishTurf({{ $turf->id }})" class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2 cursor-pointer mt-1">
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                                {{ __('Publish for Booking') }}
+                            </button>
+                        @endif
                     </div>
                 </div>
             @empty
