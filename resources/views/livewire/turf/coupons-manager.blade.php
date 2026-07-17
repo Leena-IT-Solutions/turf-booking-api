@@ -316,7 +316,7 @@ new #[Layout('layouts.app')] class extends Component
                                             <div class="flex items-center gap-1">
                                                 @php $days = ['mon' => 'M', 'tue' => 'T', 'wed' => 'W', 'thu' => 'T', 'fri' => 'F', 'sat' => 'S', 'sun' => 'S']; @endphp
                                                 @foreach ($days as $field => $label)
-                                                    <span class="text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold {{ $coupon->{$field} ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40' : 'bg-gray-50 dark:bg-gray-750 text-gray-300 dark:text-gray-650' }}">
+                                                    <span class="text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold {{ $coupon->{$field} ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-650 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40' : 'bg-gray-50 dark:bg-gray-750 text-gray-300 dark:text-gray-650' }}">
                                                         {{ $label }}
                                                     </span>
                                                 @endforeach
@@ -373,7 +373,7 @@ new #[Layout('layouts.app')] class extends Component
             <!-- Center modal card -->
             <div class="relative bg-white dark:bg-gray-800 rounded-3xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-2xl sm:w-full border border-gray-100 dark:border-gray-700/50 z-10">
                 <form wire:submit="saveCoupon" class="divide-y divide-gray-150 dark:divide-gray-700/50">
-                    <div class="px-6 py-4.5 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-between">
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900/40 flex items-center justify-between">
                         <h3 class="text-base font-bold text-gray-900 dark:text-gray-100" id="modal-title">
                             {{ $couponId ? __('Edit Discount Coupon') : __('Add Discount Coupon') }}
                         </h3>
@@ -385,9 +385,9 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Form Input Elements -->
-                    <div class="px-6 py-6 space-y-5.5 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-800">
+                    <div class="px-6 py-6 space-y-6 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-800">
                         <!-- Code and Type -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Coupon Code') }}</label>
                                 <div class="flex gap-2">
@@ -410,7 +410,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Value and Max Discount -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">
                                     {{ $discount_type === 'percentage' ? __('Percentage Value') : __('Flat Value') }}
@@ -433,7 +433,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Min Slots and User Limit -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5.5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Minimum Slots Booking Needed') }}</label>
                                 <input type="number" wire:model="minimum_slots_to_be_ordered" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
@@ -448,7 +448,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Usage Limit and Validity -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5.5">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Total Max Usage') }}</label>
                                 <input type="number" wire:model="usage_limit" placeholder="e.g. 100 (Optional)" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
