@@ -141,6 +141,42 @@ class BookingController extends Controller
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
 
+        $settings = \App\Models\SaasSetting::first();
+        $minSlots = $settings?->min_slots_booking ?? 2;
+
+        if (count($slotIds) < $minSlots) {
+            return response()->json([
+                'message' => "You must book a minimum of {$minSlots} slots.",
+            ], 422);
+        }
+
+        $allActiveSlots = $turf->slots()
+            ->wherePivot('is_active', true)
+            ->orderBy('from_time')
+            ->pluck('slots.id')
+            ->toArray();
+
+        $indices = [];
+        foreach ($slotIds as $id) {
+            $idx = array_search($id, $allActiveSlots);
+            if ($idx === false) {
+                return response()->json([
+                    'message' => "Invalid slot selection.",
+                ], 422);
+            }
+            $indices[] = $idx;
+        }
+
+        sort($indices);
+
+        for ($i = 0; $i < count($indices) - 1; $i++) {
+            if ($indices[$i + 1] !== $indices[$i] + 1) {
+                return response()->json([
+                    'message' => "Selected slots must be consecutive.",
+                ], 422);
+            }
+        }
+
         // Get pricing wizard details helper
         $wizard = is_array($turf->pricing_wizard_data) 
             ? $turf->pricing_wizard_data 
