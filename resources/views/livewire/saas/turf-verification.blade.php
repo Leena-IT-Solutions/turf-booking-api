@@ -584,7 +584,7 @@ new #[Layout('layouts.app')] class extends Component
                                                     @if(empty($timeRanges))
                                                         <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
                                                             <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle">{{ $daysText }}</td>
-                                                            <td class="px-3 py-2 text-gray-650 dark:text-gray-350 border-r border-gray-200 dark:border-gray-700">{{ __('Flat Rate / All Day') }}</td>
+                                                            <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">{{ __('Flat Rate / All Day') }}</td>
                                                             <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">₹{{ $group['flatRate'] ?? '0' }}/-</td>
                                                         </tr>
                                                     @else
@@ -599,7 +599,7 @@ new #[Layout('layouts.app')] class extends Component
                                                                         {{ $daysText }}
                                                                     </td>
                                                                 @endif
-                                                                <td class="px-3 py-2 text-gray-650 dark:text-gray-350 border-r border-gray-200 dark:border-gray-700">
+                                                                <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
                                                                     {{ $fromTime }} to {{ $toTime }}
                                                                 </td>
                                                                 <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">
