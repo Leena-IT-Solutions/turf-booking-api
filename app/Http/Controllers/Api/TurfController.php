@@ -82,7 +82,7 @@ class TurfController extends Controller
 
         $turfs = Turf::where('status', 'Approved')
             ->where('is_active', true)
-            ->with(['location', 'slots', 'photos' => function ($q) {
+            ->with(['location', 'slots', 'facilities', 'turfEquipments', 'sports', 'photos' => function ($q) {
                 $q->where('is_active', true);
             }])
             ->get()
@@ -121,24 +121,31 @@ class TurfController extends Controller
                     $priceText = '₹' . number_format($rate) . ' / hr';
                 }
 
-                // Get first photo URL or a placeholder
-                $imageUrl = null;
-                $activePhoto = $turf->photos->first();
-                if ($activePhoto) {
-                    $imageUrl = asset('storage/' . $activePhoto->photo);
-                }
+                // Get all photo URLs
+                $imageUrls = $turf->photos->map(function ($p) {
+                    return asset('storage/' . $p->photo);
+                })->toArray();
 
                 return [
                     'id' => $turf->id,
                     'name' => $turf->name,
                     'type' => $turf->type,
-                    'description' => $turf->description,
+                    'description' => $turf->description ?? 'No description provided.',
                     'area' => $turf->area,
                     'location_name' => $turf->location?->name ?? '',
                     'location_address' => $turf->location?->address ?? '',
                     'price_text' => $priceText,
                     'rating' => '4.8', // Default standard mock rating for UI display
-                    'image_url' => $imageUrl,
+                    'image_url' => count($imageUrls) > 0 ? $imageUrls[0] : null,
+                    'image_urls' => $imageUrls,
+                    'sports' => $turf->sports->pluck('name')->toArray(),
+                    'facilities' => $turf->facilities->pluck('name')->toArray(),
+                    'equipments' => $turf->turfEquipments->pluck('name')->toArray(),
+                    'is_online_payment_active' => $turf->is_online_payment_active,
+                    'is_part_payment_active' => $turf->is_part_payment_active,
+                    'is_pay_at_location_active' => $turf->is_pay_at_location_active,
+                    'cancellation_hours' => $turf->cancellation_hours,
+                    'cancellation_fee' => (float)$turf->cancellation_fee,
                 ];
             });
 
