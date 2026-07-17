@@ -139,7 +139,7 @@ new #[Layout('layouts.app')] class extends Component
 
         $data = array_merge($validatedData, [
             'turf_id' => $activeTurfId,
-            'description' => $this->description,
+            'description' => $this->description ?: null,
             'is_active' => $this->is_active,
             'mon' => $this->mon,
             'tue' => $this->tue,
@@ -149,6 +149,12 @@ new #[Layout('layouts.app')] class extends Component
             'sat' => $this->sat,
             'sun' => $this->sun,
         ]);
+
+        foreach (['max_discount_amount', 'usage_limit', 'starts_at', 'expires_at'] as $field) {
+            if (array_key_exists($field, $data) && $data[$field] === '') {
+                $data[$field] = null;
+            }
+        }
 
         if ($this->couponId) {
             $coupon = Coupon::where('turf_id', $activeTurfId)->findOrFail($this->couponId);
