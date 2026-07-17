@@ -292,7 +292,7 @@ new #[Layout('layouts.app')] class extends Component
     <!-- Verify Details Modal Dialog -->
     <div 
         x-show="verifyModal" 
-        class="fixed inset-0 z-50 overflow-y-auto" 
+        class="fixed inset-0 z-50 overflow-hidden" 
         style="display: none;"
     >
         <!-- Backdrop -->
@@ -309,7 +309,7 @@ new #[Layout('layouts.app')] class extends Component
         ></div>
 
         <!-- Modal Wrapper -->
-        <div class="flex min-h-screen items-center justify-center p-4">
+        <div class="flex h-full w-full items-center justify-center p-4 sm:p-6 md:p-8 overflow-hidden">
             <div 
                 x-show="verifyModal"
                 x-transition:enter="ease-out duration-300"
@@ -318,7 +318,7 @@ new #[Layout('layouts.app')] class extends Component
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl md:h-[85vh] md:max-h-[85vh] h-[90vh] overflow-hidden grid grid-cols-1 md:grid-cols-3"
+                class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl h-[85vh] max-h-[85vh] overflow-hidden grid grid-cols-1 md:grid-cols-3"
             >
                 @if($activeModalTurf)
                     @php
