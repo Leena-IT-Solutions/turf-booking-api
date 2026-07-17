@@ -258,62 +258,11 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Actions Footer -->
-                    <div class="mt-6 pt-4 border-t border-gray-50 dark:border-gray-700/40 flex flex-col gap-3">
-                        <div class="grid grid-cols-2 gap-2">
-                            <!-- Approve Button -->
-                            <button 
-                                type="button" 
-                                wire:click="updateStatus({{ $turf->id }}, 'Approved')" 
-                                class="px-2 py-2 {{ $turf->status === 'Approved' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border-emerald-100/50 dark:border-emerald-900/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                            >
-                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                                </svg>
-                                {{ __('Approve') }}
-                            </button>
-
-                            <!-- Review Button -->
-                            <button 
-                                type="button" 
-                                wire:click="updateStatus({{ $turf->id }}, 'Review')" 
-                                class="px-2 py-2 {{ $turf->status === 'Review' ? 'bg-indigo-600 text-white border-indigo-650' : 'bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border-indigo-100/50 dark:border-indigo-900/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                            >
-                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                </svg>
-                                {{ __('Review') }}
-                            </button>
-
-                            <!-- Hold Button -->
-                            <button 
-                                type="button" 
-                                wire:click="updateStatus({{ $turf->id }}, 'Hold')" 
-                                class="px-2 py-2 {{ $turf->status === 'Hold' ? 'bg-slate-600 text-white border-slate-600' : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-900/40 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200/50 dark:border-slate-700/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                            >
-                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                {{ __('Hold') }}
-                            </button>
-
-                            <!-- Reject Button -->
-                            <button 
-                                type="button" 
-                                wire:click="updateStatus({{ $turf->id }}, 'Rejected')" 
-                                class="px-2 py-2 {{ $turf->status === 'Rejected' ? 'bg-red-655 text-white border-red-655' : 'bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-900/30 text-red-650 dark:text-red-450 border-red-100/50 dark:border-red-900/30' }} rounded-xl transition border flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
-                            >
-                                <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                                {{ __('Reject') }}
-                            </button>
-                        </div>
-
-                        <!-- Verify Details Trigger -->
+                    <div class="mt-6 pt-4 border-t border-gray-50 dark:border-gray-700/40">
                         <button 
                             type="button" 
                             wire:click="openVerifyModal({{ $turf->id }})" 
-                            class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-750 text-white text-[10px] font-bold rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
+                            class="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-xl shadow-md shadow-indigo-500/10 hover:shadow-lg hover:shadow-indigo-500/20 transition flex items-center justify-center gap-2 cursor-pointer"
                         >
                             <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
