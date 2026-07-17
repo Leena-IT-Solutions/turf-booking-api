@@ -56,6 +56,7 @@ new #[Layout('layouts.app')] class extends Component
         // Get status counts for the tabs
         $counts = [
             'All' => Turf::count(),
+            'Draft' => Turf::where('status', 'Draft')->count(),
             'Pending' => Turf::where('status', 'Pending')->count(),
             'Approved' => Turf::where('status', 'Approved')->count(),
             'Review' => Turf::where('status', 'Review')->count(),
@@ -90,7 +91,7 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Filter Tab Buttons -->
         <div class="flex flex-wrap gap-2 pb-1">
-            @foreach(['All', 'Pending', 'Approved', 'Review', 'Rejected', 'Hold'] as $filter)
+            @foreach(['All', 'Draft', 'Pending', 'Approved', 'Review', 'Rejected', 'Hold'] as $filter)
                 <button 
                     type="button" 
                     wire:click="$set('statusFilter', '{{ $filter }}')" 
