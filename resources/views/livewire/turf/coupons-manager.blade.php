@@ -360,7 +360,9 @@ new #[Layout('layouts.app')] class extends Component
                         </table>
                     </div>
                 @endif
-            <    </div>
+            </div>
+        @endif
+    </div>
 
     <!-- Edit/Create Coupon Modal Dialog overlay -->
     @if ($showModal)
