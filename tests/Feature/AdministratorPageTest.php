@@ -89,6 +89,6 @@ class AdministratorPageTest extends TestCase
 
         $response = $this->actingAs($admin)->get('/saas/administrator');
         $response->assertOk();
-        $response->assertSee('System Updates');
+        $response->assertSee('Business Overview & Statistics');
     }
 }
