@@ -12,6 +12,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/slider-images', [\App\Http\Controllers\Api\SliderImageController::class, 'index']);
 Route::get('/turfs', [\App\Http\Controllers\Api\TurfController::class, 'index']);
+Route::get('/turfs/{turf}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
 Route::get('/config', function () {
     $setting = \App\Models\SaasSetting::first();
     return response()->json([
@@ -29,4 +30,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/user', [AuthController::class, 'deleteAccount']);
     Route::get('/support/messages', [SupportController::class, 'index']);
     Route::post('/support/messages', [SupportController::class, 'store']);
+    Route::post('/turfs/{turf}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
 });

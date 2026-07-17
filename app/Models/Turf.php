@@ -99,6 +99,11 @@ class Turf extends Model
             ->withTimestamps();
     }
 
+    public function reviews()
+    {
+        return $this->hasMany(Review::class);
+    }
+
     /**
      * Scope a query to only include manageable turfs for the given or authenticated user.
      */
