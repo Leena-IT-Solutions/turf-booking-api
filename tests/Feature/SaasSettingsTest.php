@@ -58,7 +58,8 @@ class SaasSettingsTest extends TestCase
             ->assertSet('app_name', 'TurfBooking')
             ->assertSet('contact_email', 'sandeep198558@gmail.com')
             ->assertSet('contact_mobile', '9664588677')
-            ->assertSet('is_maintenance_mode', false);
+            ->assertSet('is_maintenance_mode', false)
+            ->assertSet('min_slots_booking', 1);
     }
 
     public function test_contact_email_must_be_valid_email(): void
@@ -91,6 +92,7 @@ class SaasSettingsTest extends TestCase
             ->set('contact_mobile', '9999999999')
             ->set('address', 'New Delhi, India')
             ->set('is_maintenance_mode', true)
+            ->set('min_slots_booking', 3)
             ->set('new_logo', $file)
             ->call('saveSettings')
             ->assertHasNoErrors();
@@ -101,6 +103,7 @@ class SaasSettingsTest extends TestCase
         $this->assertEquals('9999999999', $setting->contact_mobile);
         $this->assertEquals('New Delhi, India', $setting->address);
         $this->assertTrue($setting->is_maintenance_mode);
+        $this->assertEquals(3, $setting->min_slots_booking);
         $this->assertNotNull($setting->logo_path);
 
         Storage::disk('public')->assertExists($setting->logo_path);

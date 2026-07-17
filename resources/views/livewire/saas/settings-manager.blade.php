@@ -23,6 +23,7 @@ new #[Layout('layouts.app')] class extends Component
     public $mailgun_secret = '';
     public $mailgun_endpoint = 'api.mailgun.net';
     public $turf_search_km = 5;
+    public $min_slots_booking = 1;
     public $google_maps_api_key = '';
     
     // File inputs
@@ -38,6 +39,7 @@ new #[Layout('layouts.app')] class extends Component
             'address' => 'Mumbai, India',
             'is_maintenance_mode' => false,
             'turf_search_km' => 5,
+            'min_slots_booking' => 1,
         ]);
 
         $this->app_name = $setting->app_name;
@@ -54,6 +56,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->mailgun_secret = $setting->mailgun_secret;
         $this->mailgun_endpoint = $setting->mailgun_endpoint ?: 'api.mailgun.net';
         $this->turf_search_km = $setting->turf_search_km ?? 5;
+        $this->min_slots_booking = $setting->min_slots_booking ?? 1;
     }
 
     public function updated($propertyName)
@@ -73,6 +76,7 @@ new #[Layout('layouts.app')] class extends Component
             'mailgun_secret' => 'nullable|string|max:255',
             'mailgun_endpoint' => 'nullable|string|max:255',
             'turf_search_km' => 'required|integer|min:1|max:100',
+            'min_slots_booking' => 'required|integer|min:1|max:100',
         ];
 
         $this->validateOnly($propertyName, $rules);
@@ -95,6 +99,7 @@ new #[Layout('layouts.app')] class extends Component
             'mailgun_secret' => 'nullable|string|max:255',
             'mailgun_endpoint' => 'nullable|string|max:255',
             'turf_search_km' => 'required|integer|min:1|max:100',
+            'min_slots_booking' => 'required|integer|min:1|max:100',
         ];
 
         $this->validate($rules);
@@ -115,6 +120,7 @@ new #[Layout('layouts.app')] class extends Component
             'mailgun_secret' => $this->mailgun_secret,
             'mailgun_endpoint' => $this->mailgun_endpoint,
             'turf_search_km' => $this->turf_search_km,
+            'min_slots_booking' => $this->min_slots_booking,
         ];
 
         if ($this->new_logo) {
@@ -216,13 +222,6 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-error :messages="$errors->get('app_name')" class="mt-2" />
                             </div>
 
-                            <!-- Maintenance Mode -->
-                            <div class="flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/60 px-4 py-3 rounded-2xl self-end h-[42px]">
-                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('Maintenance Mode') }}</span>
-                                <button type="button" wire:click="$toggle('is_maintenance_mode')" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_maintenance_mode ? 'bg-amber-600' : 'bg-gray-200 dark:bg-gray-700' }}">
-                                    <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $is_maintenance_mode ? 'translate-x-4' : 'translate-x-0' }}"></span>
-                                </button>
-                            </div>
 
                             <!-- Contact Email -->
                             <div>
@@ -260,13 +259,34 @@ new #[Layout('layouts.app')] class extends Component
                         </p>
                     </div>
 
-                    <div class="pt-2 max-w-xs">
-                        <x-input-label for="turfSearchKm" :value="__('Turf Search Km')" />
-                        <x-text-input wire:model.live.debounce.250ms="turf_search_km" id="turfSearchKm" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="5" />
-                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
-                            {{ __('Radius (in kilometers) to search for nearby turfs.') }}
-                        </span>
-                        <x-input-error :messages="$errors->get('turf_search_km')" class="mt-2" />
+                    <div class="pt-2 grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                        <!-- Turf Search Km -->
+                        <div>
+                            <x-input-label for="turfSearchKm" :value="__('Turf Search Km')" />
+                            <x-text-input wire:model.live.debounce.250ms="turf_search_km" id="turfSearchKm" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="5" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Radius (in kilometers) to search for nearby turfs.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('turf_search_km')" class="mt-2" />
+                        </div>
+
+                        <!-- Minimum Slots Booking Number -->
+                        <div>
+                            <x-input-label for="minSlotsBooking" :value="__('Minimum Slots Booking')" />
+                            <x-text-input wire:model.live.debounce.250ms="min_slots_booking" id="minSlotsBooking" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="1" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Minimum number of slots required for a booking transaction.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('min_slots_booking')" class="mt-2" />
+                        </div>
+
+                        <!-- Maintenance Mode -->
+                        <div class="flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/60 px-4 py-3 rounded-2xl h-[42px] md:col-span-2">
+                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('Maintenance Mode') }}</span>
+                            <button type="button" wire:click="$toggle('is_maintenance_mode')" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_maintenance_mode ? 'bg-amber-600' : 'bg-gray-200 dark:bg-gray-700' }}">
+                                <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $is_maintenance_mode ? 'translate-x-4' : 'translate-x-0' }}"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

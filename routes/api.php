@@ -20,6 +20,7 @@ Route::get('/config', function () {
         'app_name' => $setting?->app_name ?? 'TurfBooking',
         'google_maps_api_key' => $setting?->google_maps_api_key,
         'turf_search_km' => $setting?->turf_search_km ?? 5,
+        'min_slots_booking' => $setting?->min_slots_booking ?? 1,
     ]);
 });
 
