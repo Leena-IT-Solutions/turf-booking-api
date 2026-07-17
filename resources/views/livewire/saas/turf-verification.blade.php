@@ -557,19 +557,60 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                             
                             @if($activeModalTurf->pricing_wizard_data)
-                                <div x-data="{ open: false }" class="pt-2">
-                                    <button 
-                                        type="button" 
-                                        @click="open = !open" 
-                                        class="flex items-center justify-between w-full px-3 py-2 bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/60 rounded-xl border border-gray-150 dark:border-gray-800 transition text-[10px] font-bold text-gray-500 dark:text-gray-400"
-                                    >
-                                        <span>{{ __('View Pricing Wizard Rules') }}</span>
-                                        <svg class="h-3 w-3 transform transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                    </button>
-                                    <div x-show="open" x-collapse class="mt-2" style="display: none;">
-                                        <pre class="text-[9.5px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-650 dark:text-gray-350 overflow-x-auto font-mono custom-scrollbar max-h-[200px] overflow-y-auto">{{ json_encode($activeModalTurf->pricing_wizard_data, JSON_PRETTY_PRINT) }}</pre>
+                                <div class="space-y-2 pt-3">
+                                    <span class="text-gray-400 dark:text-gray-500 font-bold block text-[10px] uppercase tracking-wider">{{ __('Pricing Wizard Config') }}</span>
+                                    <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                                        <table class="w-full border-collapse text-[10px] text-left">
+                                            <thead>
+                                                <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-1/3">{{ __('Day Group') }}</th>
+                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-1/3">{{ __('Time Group') }}</th>
+                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 dark:text-gray-400 w-1/3">{{ __('Price') }}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-gray-150 dark:divide-gray-800">
+                                                @php
+                                                    $wizardData = is_array($activeModalTurf->pricing_wizard_data) 
+                                                        ? $activeModalTurf->pricing_wizard_data 
+                                                        : json_decode($activeModalTurf->pricing_wizard_data, true);
+                                                    $dayGroups = $wizardData['dayGroups'] ?? [];
+                                                @endphp
+                                                @foreach($dayGroups as $group)
+                                                    @php
+                                                        $days = array_map(function($d) { return strtoupper($d); }, $group['days'] ?? []);
+                                                        $daysText = implode(', ', $days);
+                                                        $timeRanges = $group['timeRanges'] ?? [];
+                                                    @endphp
+                                                    @if(empty($timeRanges))
+                                                        <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
+                                                            <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle">{{ $daysText }}</td>
+                                                            <td class="px-3 py-2 text-gray-650 dark:text-gray-350 border-r border-gray-200 dark:border-gray-700">{{ __('Flat Rate / All Day') }}</td>
+                                                            <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">₹{{ $group['flatRate'] ?? '0' }}/-</td>
+                                                        </tr>
+                                                    @else
+                                                        @foreach($timeRanges as $index => $range)
+                                                            @php
+                                                                $fromTime = \Carbon\Carbon::parse($range['from'])->format('h:i A');
+                                                                $toTime = \Carbon\Carbon::parse($range['to'])->format('h:i A');
+                                                            @endphp
+                                                            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
+                                                                @if($index === 0)
+                                                                    <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle" rowspan="{{ count($timeRanges) }}">
+                                                                        {{ $daysText }}
+                                                                    </td>
+                                                                @endif
+                                                                <td class="px-3 py-2 text-gray-650 dark:text-gray-350 border-r border-gray-200 dark:border-gray-700">
+                                                                    {{ $fromTime }} to {{ $toTime }}
+                                                                </td>
+                                                                <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">
+                                                                    ₹{{ $range['rate'] ?? '0' }}/-
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    @endif
+                                                @endforeach
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             @endif
