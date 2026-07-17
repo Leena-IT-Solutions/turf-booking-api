@@ -496,15 +496,81 @@ new #[Layout('layouts.app')] class extends Component
                                     });
                                 }
                             @endphp
+                            <div class="space-y-4">
+                                @forelse($groupedSlots as $categoryName => $slots)
+                                    <div class="space-y-2">
+                                        <!-- Category Header -->
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md border border-indigo-100/50 dark:border-indigo-900/30">{{ $categoryName }}</span>
+                                            <div class="h-[1px] bg-gray-100 dark:bg-gray-800 flex-1"></div>
+                                        </div>
 
-                            <div class="text-xs">
-                                <pre class="text-[10px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-4 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre-wrap max-h-[300px] overflow-y-auto custom-scrollbar font-mono">{{ json_encode($groupedSlots, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) }}</pre>
+                                        <!-- Slots Grid -->
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            @foreach($slots as $slot)
+                                                @php
+                                                    $summarizedPricing = [];
+                                                    $priceGroups = [];
+                                                    foreach ($slot['pricing'] as $day => $price) {
+                                                        $priceGroups[$price][] = $day;
+                                                    }
+                                                    
+                                                    foreach ($priceGroups as $price => $days) {
+                                                        if (count($days) === 7) {
+                                                            $summarizedPricing[] = "All: ₹{$price}";
+                                                        } else {
+                                                            $dayList = implode(', ', $days);
+                                                            if ($dayList === 'Mon, Tue, Wed, Thu, Fri') {
+                                                                $dayLabel = 'Mon-Fri';
+                                                            } elseif ($dayList === 'Sat, Sun') {
+                                                                $dayLabel = 'Sat-Sun';
+                                                            } else {
+                                                                $dayLabel = implode('/', array_map(function($d) { return substr($d, 0, 3); }, $days));
+                                                            }
+                                                            $summarizedPricing[] = "{$dayLabel}: ₹{$price}";
+                                                        }
+                                                    }
+                                                    $priceText = implode(' | ', $summarizedPricing);
+                                                    
+                                                    // Parse time nicely
+                                                    $times = explode(' - ', $slot['time']);
+                                                    $from = \Carbon\Carbon::parse($times[0])->format('h:i A');
+                                                    $to = \Carbon\Carbon::parse($times[1])->format('h:i A');
+                                                @endphp
+                                                <div class="p-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-150 dark:border-gray-700/80 flex items-center justify-between text-[11px] hover:border-indigo-500 dark:hover:border-indigo-500 transition duration-150">
+                                                    <div class="flex items-center gap-1.5 min-w-0">
+                                                        <svg class="h-3.5 w-3.5 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span class="font-extrabold text-gray-800 dark:text-gray-250 truncate">{{ $from }} - {{ $to }}</span>
+                                                    </div>
+                                                    <span class="font-bold text-gray-500 dark:text-gray-400 text-[9px] shrink-0 bg-gray-50 dark:bg-gray-900 px-1.5 py-0.5 rounded-md border border-gray-100 dark:border-gray-800">{{ $priceText }}</span>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @empty
+                                    <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-center text-xs text-gray-400 dark:text-gray-500 font-semibold">
+                                        {{ __('No slots config available.') }}
+                                    </div>
+                                @endforelse
                             </div>
                             
                             @if($activeModalTurf->pricing_wizard_data)
-                                <div class="text-xs pt-2">
-                                    <span class="text-gray-400 dark:text-gray-500 font-medium block mb-1">{{ __('Pricing Wizard Config:') }}</span>
-                                    <pre class="text-[10px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-650 dark:text-gray-350 overflow-x-auto font-mono">{{ json_encode($activeModalTurf->pricing_wizard_data, JSON_PRETTY_PRINT) }}</pre>
+                                <div x-data="{ open: false }" class="pt-2">
+                                    <button 
+                                        type="button" 
+                                        @click="open = !open" 
+                                        class="flex items-center justify-between w-full px-3 py-2 bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/60 rounded-xl border border-gray-150 dark:border-gray-800 transition text-[10px] font-bold text-gray-500 dark:text-gray-400"
+                                    >
+                                        <span>{{ __('View Pricing Wizard Rules') }}</span>
+                                        <svg class="h-3 w-3 transform transition-transform" :class="open ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </button>
+                                    <div x-show="open" x-collapse class="mt-2" style="display: none;">
+                                        <pre class="text-[9.5px] leading-relaxed font-semibold bg-gray-50 dark:bg-gray-900/20 p-3 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-650 dark:text-gray-350 overflow-x-auto font-mono custom-scrollbar max-h-[200px] overflow-y-auto">{{ json_encode($activeModalTurf->pricing_wizard_data, JSON_PRETTY_PRINT) }}</pre>
+                                    </div>
                                 </div>
                             @endif
                         </div>
