@@ -52,36 +52,36 @@ class CustomerTurfPromptTest extends TestCase
         $this->assertTrue($user->hasRole('manager'));
     }
 
-    public function test_user_with_turf_admin_and_manager_roles_is_redirected_from_dashboard_root(): void
+    public function test_user_with_turf_admin_and_manager_roles_can_access_dashboard_root(): void
     {
         $user = User::factory()->create();
         $user->assignRole('turf-admin', 'manager');
 
         $response = $this->actingAs($user)->get('/dashboard');
-        $response->assertRedirect(route('turf.dashboard'));
+        $response->assertOk();
     }
 
-    public function test_user_with_customer_and_turf_admin_roles_is_redirected_to_turf_dashboard(): void
+    public function test_user_with_customer_and_turf_admin_roles_can_access_dashboard(): void
     {
         $user = User::factory()->create();
         $user->assignRole('customer');
         $user->assignRole('turf-admin');
 
         $response = $this->actingAs($user)->get('/dashboard');
-        $response->assertRedirect(route('turf.dashboard'));
+        $response->assertOk();
     }
 
-    public function test_user_with_customer_and_manager_roles_is_redirected_to_turf_dashboard(): void
+    public function test_user_with_customer_and_manager_roles_can_access_dashboard(): void
     {
         $user = User::factory()->create();
         $user->assignRole('customer');
         $user->assignRole('manager');
 
         $response = $this->actingAs($user)->get('/dashboard');
-        $response->assertRedirect(route('turf.dashboard'));
+        $response->assertOk();
     }
 
-    public function test_user_with_customer_manager_and_saas_admin_roles_is_redirected_to_saas_dashboard(): void
+    public function test_user_with_customer_manager_and_saas_admin_roles_can_access_dashboard(): void
     {
         $user = User::factory()->create();
         $user->assignRole('customer');
@@ -89,6 +89,6 @@ class CustomerTurfPromptTest extends TestCase
         $user->assignRole('saas-admin');
 
         $response = $this->actingAs($user)->get('/dashboard');
-        $response->assertRedirect(route('saas.administrator'));
+        $response->assertOk();
     }
 }

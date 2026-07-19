@@ -23,22 +23,22 @@ class AdministratorPageTest extends TestCase
         $response->assertRedirect('/login');
     }
 
-    public function test_saas_admin_is_redirected_to_administrator_page(): void
+    public function test_saas_admin_can_access_dashboard_directly(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('saas-admin');
 
         $response = $this->actingAs($admin)->get('/dashboard');
-        $response->assertRedirect('/saas/administrator');
+        $response->assertOk();
     }
 
-    public function test_turf_admin_is_redirected_to_turf_dashboard(): void
+    public function test_turf_admin_can_access_dashboard_directly(): void
     {
         $turfAdmin = User::factory()->create();
         $turfAdmin->assignRole('turf-admin');
 
         $response = $this->actingAs($turfAdmin)->get('/dashboard');
-        $response->assertRedirect('/turf/dashboard');
+        $response->assertOk();
     }
 
     public function test_customer_stays_on_dashboard(): void
@@ -51,14 +51,14 @@ class AdministratorPageTest extends TestCase
         $response->assertSee('Initially kept blank.');
     }
 
-    public function test_user_with_customer_and_saas_admin_role_is_redirected_to_saas_dashboard(): void
+    public function test_user_with_customer_and_saas_admin_role_can_access_dashboard_directly(): void
     {
         $user = User::factory()->create();
         $user->assignRole('customer');
         $user->assignRole('saas-admin');
 
         $response = $this->actingAs($user)->get('/dashboard');
-        $response->assertRedirect('/saas/administrator');
+        $response->assertOk();
     }
 
     public function test_guest_cannot_access_administrator_route(): void
