@@ -288,13 +288,13 @@ new #[Layout('layouts.app')] class extends Component
                             <div class="flex items-stretch rounded-3xl border border-gray-150 dark:border-gray-750/50 bg-white dark:bg-gray-800 shadow-xs hover:shadow-sm transition-all duration-200 relative {{ $isActive ? '' : 'opacity-60' }}">
                                 
                                 {{-- Punch Hole Top --}}
-                                <div class="absolute -top-3 left-32 -translate-x-1/2 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-20"></div>
+                                <div class="absolute -top-3 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-20" style="left: 120px; transform: translateX(-50%);"></div>
                                 
                                 {{-- Punch Hole Bottom --}}
-                                <div class="absolute -bottom-3 left-32 -translate-x-1/2 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-20"></div>
+                                <div class="absolute -bottom-3 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-20" style="left: 120px; transform: translateX(-50%);"></div>
 
                                 {{-- LEFT: coloured discount panel --}}
-                                <div class="flex flex-col items-center justify-center w-32 shrink-0 py-6 text-center select-none relative {{ $isActive ? 'bg-gradient-to-br from-indigo-500 to-indigo-700' : 'bg-gray-300 dark:bg-gray-600' }} rounded-l-[22px]">
+                                <div class="flex flex-col items-center justify-center py-6 text-center select-none relative {{ $isActive ? 'bg-gradient-to-br from-indigo-500 to-indigo-700' : 'bg-gray-300 dark:bg-gray-600' }} rounded-l-[22px]" style="width: 120px; flex-shrink: 0;">
                                     <span class="text-[9px] font-black uppercase tracking-[0.2em] {{ $isActive ? 'text-indigo-100/90' : 'text-gray-100/80' }}">
                                         {{ $isPct ? __('SAVE') : __('FLAT') }}
                                     </span>
@@ -341,25 +341,25 @@ new #[Layout('layouts.app')] class extends Component
                                         </p>
                                     @endif
 
-                                    {{-- Row 3: details grid --}}
-                                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 text-[10px] uppercase font-bold tracking-wider text-gray-450 dark:text-gray-500">
-                                        <div>
+                                    {{-- Row 3: details row --}}
+                                    <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; margin-bottom: 16px;" class="text-[10px] uppercase font-bold tracking-wider text-gray-450 dark:text-gray-500">
+                                        <div style="flex: 1; min-width: 100px;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Min Slots') }}</span>
                                             <span class="text-xs font-black text-gray-700 dark:text-gray-200">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</span>
                                         </div>
-                                        <div>
+                                        <div style="flex: 1; min-width: 100px;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Total Limit') }}</span>
                                             <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
                                                 {{ $coupon->used_count }} / {{ $coupon->usage_limit ?: '∞' }}
                                             </span>
                                         </div>
-                                        <div>
+                                        <div style="flex: 1; min-width: 100px;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Limit Per User') }}</span>
                                             <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
                                                 {{ $coupon->usage_limit_per_user ?: '∞' }}
                                             </span>
                                         </div>
-                                        <div>
+                                        <div style="flex: 1.5; min-width: 150px;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Validity') }}</span>
                                             <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
                                                 @if ($coupon->starts_at || $coupon->expires_at)
@@ -370,7 +370,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 @endif
                                             </span>
                                         </div>
-                                        <div>
+                                        <div style="flex: 1.5; min-width: 130px;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Active Days') }}</span>
                                             <div class="flex items-center gap-1 mt-0.5">
                                                 @php $days = ['mon' => 'M', 'tue' => 'T', 'wed' => 'W', 'thu' => 'T', 'fri' => 'F', 'sat' => 'S', 'sun' => 'S']; @endphp
