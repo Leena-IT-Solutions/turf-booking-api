@@ -579,7 +579,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 </div>
                                             @endforeach
                                         </div>
-                                    </div></div>
+                                    </div>
                                 @empty
                                     <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-center text-xs text-gray-400 dark:text-gray-500 font-semibold">
                                         {{ __('No slots config available.') }}
