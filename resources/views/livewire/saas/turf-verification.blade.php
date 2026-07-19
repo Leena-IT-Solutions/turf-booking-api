@@ -601,30 +601,30 @@ new #[Layout('layouts.app')] class extends Component
                                                     $wizardData = is_array($activeModalTurf->pricing_wizard_data) 
                                                         ? $activeModalTurf->pricing_wizard_data 
                                                         : json_decode($activeModalTurf->pricing_wizard_data, true);
-                                                    $dayGroups = $wizardData['dayGroups'] ?? [];
+                                                    $sameWeek = $wizardData['sameRateThroughoutWeek'] ?? 'yes';
                                                 @endphp
-                                                @foreach($dayGroups as $group)
+
+                                                @if($sameWeek === 'yes')
                                                     @php
-                                                        $days = array_map(function($d) { return strtoupper($d); }, $group['days'] ?? []);
-                                                        $daysText = implode(', ', $days);
-                                                        $timeRanges = $group['timeRanges'] ?? [];
+                                                        $sameDay = $wizardData['sameRateThroughoutDayAll'] ?? 'yes';
+                                                        $timeRangesAll = $wizardData['timeRangesAll'] ?? [];
                                                     @endphp
-                                                    @if(empty($timeRanges))
+                                                    @if($sameDay === 'yes')
                                                         <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
-                                                            <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle">{{ $daysText }}</td>
+                                                            <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle">{{ __('All Days (Mon-Sun)') }}</td>
                                                             <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">{{ __('Flat Rate / All Day') }}</td>
-                                                            <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">₹{{ $group['flatRate'] ?? '0' }}/-</td>
+                                                            <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">₹{{ $wizardData['flatRateAll'] ?? '0' }}/-</td>
                                                         </tr>
                                                     @else
-                                                        @foreach($timeRanges as $index => $range)
+                                                        @foreach($timeRangesAll as $index => $range)
                                                             @php
-                                                                $fromTime = \Carbon\Carbon::parse($range['from'])->format('h:i A');
-                                                                $toTime = \Carbon\Carbon::parse($range['to'])->format('h:i A');
+                                                                $fromTime = \Carbon\Carbon::parse($range['from'] ?? '00:00')->format('h:i A');
+                                                                $toTime = \Carbon\Carbon::parse($range['to'] ?? '23:59')->format('h:i A');
                                                             @endphp
                                                             <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
                                                                 @if($index === 0)
-                                                                    <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle" rowspan="{{ count($timeRanges) }}">
-                                                                        {{ $daysText }}
+                                                                    <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle" rowspan="{{ count($timeRangesAll) }}">
+                                                                        {{ __('All Days (Mon-Sun)') }}
                                                                     </td>
                                                                 @endif
                                                                 <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
@@ -636,7 +636,45 @@ new #[Layout('layouts.app')] class extends Component
                                                             </tr>
                                                         @endforeach
                                                     @endif
-                                                @endforeach
+                                                @else
+                                                    @php
+                                                        $dayGroups = $wizardData['dayGroups'] ?? [];
+                                                    @endphp
+                                                    @foreach($dayGroups as $group)
+                                                        @php
+                                                            $days = array_map(function($d) { return strtoupper($d); }, $group['days'] ?? []);
+                                                            $daysText = implode(', ', $days);
+                                                            $timeRanges = $group['timeRanges'] ?? [];
+                                                        @endphp
+                                                        @if(empty($timeRanges))
+                                                            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
+                                                                <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle">{{ $daysText }}</td>
+                                                                <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">{{ __('Flat Rate / All Day') }}</td>
+                                                                <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">₹{{ $group['flatRate'] ?? '0' }}/-</td>
+                                                            </tr>
+                                                        @else
+                                                            @foreach($timeRanges as $index => $range)
+                                                                @php
+                                                                    $fromTime = \Carbon\Carbon::parse($range['from'])->format('h:i A');
+                                                                    $toTime = \Carbon\Carbon::parse($range['to'])->format('h:i A');
+                                                                @endphp
+                                                                <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
+                                                                    @if($index === 0)
+                                                                        <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle" rowspan="{{ count($timeRanges) }}">
+                                                                            {{ $daysText }}
+                                                                        </td>
+                                                                    @endif
+                                                                    <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
+                                                                        {{ $fromTime }} to {{ $toTime }}
+                                                                    </td>
+                                                                    <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">
+                                                                        ₹{{ $range['rate'] ?? '0' }}/-
+                                                                    </td>
+                                                                </tr>
+                                                            @endforeach
+                                                        @endif
+                                                    @endforeach
+                                                @endif
                                             </tbody>
                                         </table>
                                     </div>
