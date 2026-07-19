@@ -484,21 +484,6 @@ new #[Layout('layouts.app')] class extends Component
 
             <!-- Form -->
             <form wire:submit="saveTurf" class="space-y-4">
-                <!-- Location ID selection -->
-                <div>
-                    <x-input-label for="location_id" :value="__('Select Location')" />
-                    <select 
-                        id="location_id" 
-                        wire:model="location_id" 
-                        class="w-full mt-1.5 px-4 py-2.5 text-xs font-semibold bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150"
-                    >
-                        @foreach ($availableLocations as $location)
-                            <option value="{{ $location->id }}">{{ $location->name }}</option>
-                        @endforeach
-                    </select>
-                    <x-input-error :messages="$errors->get('location_id')" class="mt-2" />
-                </div>
-
                 <!-- Turf Name -->
                 <div>
                     <x-input-label for="name" :value="__('Turf Name')" />
