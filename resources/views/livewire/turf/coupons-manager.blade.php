@@ -342,20 +342,26 @@ new #[Layout('layouts.app')] class extends Component
                                     @endif
 
                                     {{-- Row 3: details grid --}}
-                                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-[10px] uppercase font-bold tracking-wider text-gray-450 dark:text-gray-500">
+                                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4 text-[10px] uppercase font-bold tracking-wider text-gray-450 dark:text-gray-500">
                                         <div>
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Min Slots') }}</span>
                                             <span class="text-xs font-black text-gray-700 dark:text-gray-200">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</span>
                                         </div>
                                         <div>
-                                            <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Usage Limit') }}</span>
-                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200">
+                                            <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Total Limit') }}</span>
+                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
                                                 {{ $coupon->used_count }} / {{ $coupon->usage_limit ?: '∞' }}
                                             </span>
                                         </div>
                                         <div>
+                                            <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Limit Per User') }}</span>
+                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
+                                                {{ $coupon->usage_limit_per_user ?: '∞' }}
+                                            </span>
+                                        </div>
+                                        <div>
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Validity') }}</span>
-                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200">
+                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
                                                 @if ($coupon->starts_at || $coupon->expires_at)
                                                     {{ $coupon->starts_at ? $coupon->starts_at->format('M d, Y') : 'Now' }} - 
                                                     {{ $coupon->expires_at ? $coupon->expires_at->format('M d, Y') : 'Never' }}
@@ -480,7 +486,7 @@ new #[Layout('layouts.app')] class extends Component
 
                             <div>
                                 <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">{{ __('Limit Per User') }}</label>
-                                <input type="number" wire:model="usage_limit_per_user" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
+                                <input type="number" wire:model="usage_limit_per_user" placeholder="e.g. 1 (Optional)" class="w-full px-3.5 py-2.5 bg-white dark:bg-gray-900 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-700 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition duration-150 outline-none">
                                 @error('usage_limit_per_user') <span class="text-red-500 text-[10px] block mt-1">{{ $message }}</span> @enderror
                             </div>
                         </div>
