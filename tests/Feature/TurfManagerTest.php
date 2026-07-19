@@ -72,7 +72,6 @@ class TurfManagerTest extends TestCase
             ->set('type', 'Synthetic')
             ->set('area', '8,000 sq ft')
             ->set('description', 'Cool description')
-            ->set('equipments', 'Ball, Goals')
             ->call('saveTurf');
 
         $component->assertHasNoErrors();
@@ -83,7 +82,6 @@ class TurfManagerTest extends TestCase
             'type' => 'Synthetic',
             'area' => '8,000 sq ft',
             'description' => 'Cool description',
-            'equipments' => 'Ball, Goals',
             'is_active' => 1,
         ]);
     }

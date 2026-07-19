@@ -28,7 +28,6 @@ new #[Layout('layouts.app')] class extends Component
     public $description = '';
     public $area = '';
     public $is_active = true;
-    public $equipments = '';
 
     // Modal state
     public $editingId = null;
@@ -96,7 +95,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function resetForm()
     {
-        $this->reset(['location_id', 'name', 'type', 'description', 'area', 'is_active', 'equipments', 'editingId']);
+        $this->reset(['location_id', 'name', 'type', 'description', 'area', 'is_active', 'editingId']);
         $this->resetErrorBag();
         $this->showModal = false;
     }
@@ -113,7 +112,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->description = $turf->description;
         $this->area = $turf->area;
         $this->is_active = $turf->is_active;
-        $this->equipments = $turf->equipments;
         $this->showModal = true;
     }
 
@@ -131,7 +129,6 @@ new #[Layout('layouts.app')] class extends Component
             'description' => 'nullable|string|max:1000',
             'area' => 'nullable|string|max:100',
             'is_active' => 'boolean',
-            'equipments' => 'nullable|string|max:500',
         ];
 
         $this->validateOnly($propertyName, $rules);
@@ -151,7 +148,6 @@ new #[Layout('layouts.app')] class extends Component
             'description' => 'nullable|string|max:1000',
             'area' => 'nullable|string|max:100',
             'is_active' => 'boolean',
-            'equipments' => 'nullable|string|max:500',
         ];
 
         $this->validate($rules);
@@ -163,7 +159,6 @@ new #[Layout('layouts.app')] class extends Component
             'description' => $this->description ?: null,
             'area' => $this->area ?: null,
             'is_active' => $this->is_active,
-            'equipments' => $this->equipments ?: null,
         ];
 
         if ($this->editingId) {
@@ -198,7 +193,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function with()
     {
-        $query = Turf::manageable();
+        $query = Turf::manageable()->with('turfEquipments');
 
         if (session('active_location_id')) {
             $query->where('location_id', session('active_location_id'));
@@ -209,7 +204,6 @@ new #[Layout('layouts.app')] class extends Component
                 $q->where('name', 'like', '%' . $this->search . '%')
                   ->orWhere('type', 'like', '%' . $this->search . '%')
                   ->orWhere('area', 'like', '%' . $this->search . '%')
-                  ->orWhere('equipments', 'like', '%' . $this->search . '%')
                   ->orWhereHas('location', function ($l) {
                       $l->where('name', 'like', '%' . $this->search . '%');
                   });
@@ -349,13 +343,13 @@ new #[Layout('layouts.app')] class extends Component
                             @endif
 
                             <!-- Equipments Badge List -->
-                            @if($turf->equipments)
+                            @if($turf->turfEquipments->isNotEmpty())
                                 <div class="pt-1">
                                     <span class="text-gray-400 dark:text-gray-500 font-medium block mb-1.5 text-xs">{{ __('Included Equipments:') }}</span>
                                     <div class="flex flex-wrap gap-1.5">
-                                        @foreach(array_filter(array_map('trim', explode(',', $turf->equipments))) as $equip)
+                                        @foreach($turf->turfEquipments as $equip)
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200/10">
-                                                {{ $equip }}
+                                                {{ $equip->name }}
                                             </span>
                                         @endforeach
                                     </div>
@@ -559,18 +553,7 @@ new #[Layout('layouts.app')] class extends Component
                     <x-input-error :messages="$errors->get('description')" class="mt-2" />
                 </div>
 
-                <!-- Equipments list -->
-                <div>
-                    <x-input-label for="equipments" :value="__('Included Equipments (comma-separated)')" />
-                    <x-text-input 
-                        id="equipments" 
-                        type="text" 
-                        wire:model="equipments" 
-                        placeholder="{{ __('e.g., Football, Goals, Cricket Bat, Stumps') }}" 
-                        class="w-full mt-1.5" 
-                    />
-                    <x-input-error :messages="$errors->get('equipments')" class="mt-2" />
-                </div>
+
 
                 <!-- Active Status Toggle -->
                 <div class="flex items-center gap-3 py-1">

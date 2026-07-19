@@ -20,7 +20,6 @@ return new class extends Migration
             $table->string('area')->nullable();
             $table->boolean('is_active')->default(true);
             $table->string('status')->default('Draft');
-            $table->text('equipments')->nullable();
             $table->json('pricing_wizard_data')->nullable();
 
             // Payment settings

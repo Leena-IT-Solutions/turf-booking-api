@@ -25,7 +25,6 @@ class Turf extends Model
         'is_sports_verified',
         'is_slots_verified',
         'is_pricing_verified',
-        'equipments',
         'pricing_wizard_data',
         'is_online_payment_active',
         'is_part_payment_active',
