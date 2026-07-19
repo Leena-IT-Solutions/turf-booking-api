@@ -35,7 +35,7 @@ class DatabaseSeeder extends Seeder
         ]);
         
         $sandeep->roles()->sync(
-            \App\Models\Role::whereIn('name', ['saas-admin', 'turf-admin', 'manager', 'customer'])->pluck('id')->toArray()
+            \App\Models\Role::whereIn('name', ['saas-admin', 'customer'])->pluck('id')->toArray()
         );
 
         $leena = User::firstOrCreate([
@@ -47,7 +47,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $leena->roles()->sync(
-            \App\Models\Role::whereIn('name', ['saas-admin', 'turf-admin', 'manager', 'customer'])->pluck('id')->toArray()
+            \App\Models\Role::whereIn('name', ['saas-admin', 'customer'])->pluck('id')->toArray()
         );
 
     }
