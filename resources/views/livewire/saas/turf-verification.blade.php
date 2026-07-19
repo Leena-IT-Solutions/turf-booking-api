@@ -504,7 +504,10 @@ new #[Layout('layouts.app')] class extends Component
                             @php
                                 $groupedSlots = [];
                                 if ($activeModalTurf && $activeModalTurf->slots) {
-                                    $groupedSlots = $activeModalTurf->slots->groupBy(function($slot) {
+                                    $activeSlots = $activeModalTurf->slots->filter(function($slot) {
+                                        return (bool)($slot->pivot->is_active ?? false);
+                                    });
+                                    $groupedSlots = $activeSlots->groupBy(function($slot) {
                                         return $slot->category?->name ?? 'Uncategorized';
                                     })->map(function($categorySlots) {
                                         return $categorySlots->map(function($slot) {
@@ -549,11 +552,11 @@ new #[Layout('layouts.app')] class extends Component
                                                         } else {
                                                             $dayList = implode(', ', $days);
                                                             if ($dayList === 'Mon, Tue, Wed, Thu, Fri') {
-                                                                $dayLabel = 'Mon-Fri';
+                                                                 $dayLabel = 'Mon-Fri';
                                                             } elseif ($dayList === 'Sat, Sun') {
-                                                                $dayLabel = 'Sat-Sun';
+                                                                 $dayLabel = 'Sat-Sun';
                                                             } else {
-                                                                $dayLabel = implode('/', array_map(function($d) { return substr($d, 0, 3); }, $days));
+                                                                 $dayLabel = implode('/', array_map(function($d) { return substr($d, 0, 3); }, $days));
                                                             }
                                                             $summarizedPricing[] = "{$dayLabel}: ₹{$price}";
                                                         }
@@ -570,13 +573,13 @@ new #[Layout('layouts.app')] class extends Component
                                                         <svg class="h-3.5 w-3.5 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                        <span class="font-extrabold text-gray-800 dark:text-gray-250 truncate">{{ $from }} - {{ $to }}</span>
+                                                        <span class="font-extrabold text-gray-800 dark:text-gray-200 truncate">{{ $from }} - {{ $to }}</span>
                                                     </div>
                                                     <span class="font-bold text-gray-500 dark:text-gray-400 text-[9px] shrink-0 bg-gray-50 dark:bg-gray-900 px-1.5 py-0.5 rounded-md border border-gray-100 dark:border-gray-800">{{ $priceText }}</span>
                                                 </div>
                                             @endforeach
                                         </div>
-                                    </div>
+                                    </div></div>
                                 @empty
                                     <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-center text-xs text-gray-400 dark:text-gray-500 font-semibold">
                                         {{ __('No slots config available.') }}

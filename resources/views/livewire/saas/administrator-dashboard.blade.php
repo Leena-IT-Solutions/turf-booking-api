@@ -221,14 +221,14 @@ new #[Layout('layouts.app')] class extends Component
                                                     {{ strtoupper(substr($bk['customer_name'], 0, 2)) }}
                                                 </div>
                                                 <div>
-                                                    <span class="text-xs font-bold text-gray-800 dark:text-gray-250 block">{{ $bk['customer_name'] }}</span>
+                                                    <span class="text-xs font-bold text-gray-800 dark:text-gray-200 block">{{ $bk['customer_name'] }}</span>
                                                     <span class="text-[9px] text-gray-400 dark:text-gray-500 block truncate max-w-[120px]">{{ $bk['customer_email'] }}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <!-- Turf / Court -->
                                         <td class="py-3.5 px-2">
-                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-250 block">{{ $bk['turf_name'] }}</span>
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200 block">{{ $bk['turf_name'] }}</span>
                                             <span class="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mt-0.5">{{ $bk['booking_type'] }}</span>
                                         </td>
                                         <!-- Dates -->
@@ -314,7 +314,7 @@ new #[Layout('layouts.app')] class extends Component
                                             {{ $idx + 1 }}
                                         </div>
                                         <div>
-                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-250 block">{{ $t['name'] }}</span>
+                                            <span class="text-xs font-bold text-gray-800 dark:text-gray-200 block">{{ $t['name'] }}</span>
                                             <span class="text-[9px] text-gray-400 dark:text-gray-500 block">{{ $t['location'] }}</span>
                                         </div>
                                     </div>

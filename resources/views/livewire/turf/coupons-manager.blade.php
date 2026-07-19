@@ -410,7 +410,7 @@ new #[Layout('layouts.app')] class extends Component
                         <h3 class="text-base font-bold text-gray-900 dark:text-gray-100" id="modal-title">
                             {{ $couponId ? __('Edit Discount Coupon') : __('Add Discount Coupon') }}
                         </h3>
-                        <button type="button" wire:click="$set('showModal', false)" class="text-gray-400 hover:text-gray-650 dark:hover:text-gray-250 cursor-pointer transition">
+                        <button type="button" wire:click="$set('showModal', false)" class="text-gray-400 hover:text-gray-650 dark:hover:text-gray-200 cursor-pointer transition">
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
