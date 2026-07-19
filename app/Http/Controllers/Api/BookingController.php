@@ -18,24 +18,31 @@ class BookingController extends Controller
     {
         $userId = auth()->id();
         
-        $bookings = Booking::with(['turf', 'slot'])
+        $bookings = Booking::with(['turf', 'bookingDates.bookingSlots.slot'])
             ->where('user_id', $userId)
-            ->orderBy('booking_date', 'desc')
-            ->get()
-            ->map(function ($booking) {
-                return [
-                    'id' => $booking->id,
-                    'turf_name' => $booking->turf->name ?? 'Unknown Turf',
-                    'date' => Carbon::parse($booking->booking_date)->format('F d, Y'),
-                    'time' => ($booking->slot->from_time && $booking->slot->to_time) 
-                        ? date('h:i A', strtotime($booking->slot->from_time)) . ' - ' . date('h:i A', strtotime($booking->slot->to_time))
-                        : 'N/A',
-                    'status' => $booking->status,
-                    'price' => '₹' . number_format($booking->price, 0),
-                ];
-            });
+            ->orderBy('date_of_booking', 'desc')
+            ->get();
+            
+        $formattedBookings = [];
+        foreach ($bookings as $booking) {
+            foreach ($booking->bookingDates as $bDate) {
+                foreach ($bDate->bookingSlots as $bSlot) {
+                    $slot = $bSlot->slot;
+                    $formattedBookings[] = [
+                        'id' => $booking->id,
+                        'turf_name' => $booking->turf->name ?? 'Unknown Turf',
+                        'date' => Carbon::parse($bDate->booking_date)->format('F d, Y'),
+                        'time' => ($slot && $slot->from_time && $slot->to_time) 
+                            ? date('h:i A', strtotime($slot->from_time)) . ' - ' . date('h:i A', strtotime($slot->to_time))
+                            : 'N/A',
+                        'status' => $booking->status,
+                        'price' => '₹' . number_format($bDate->amount / max(1, count($bDate->bookingSlots)), 0),
+                    ];
+                }
+            }
+        }
 
-        return response()->json($bookings);
+        return response()->json($formattedBookings);
     }
 
     /**
@@ -52,11 +59,15 @@ class BookingController extends Controller
         $dayOfWeek = strtolower($date->format('D')); // 'mon', 'tue', etc.
 
         // Get occupied slots on this date
-        $occupiedSlotIds = Booking::where('turf_id', $turf->id)
-            ->whereDate('booking_date', $dateStr)
-            ->where('status', 'Confirmed')
-            ->pluck('slot_id')
-            ->toArray();
+        $occupiedSlotIds = \App\Models\BookingSlot::whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
+            $q->where('booking_date', $dateStr)
+              ->whereHas('booking', function ($bq) use ($turf) {
+                  $bq->where('turf_id', $turf->id)
+                     ->where('status', 'Confirmed');
+              });
+        })
+        ->pluck('slot_id')
+        ->toArray();
 
         // Get pricing wizard details helper
         $wizard = is_array($turf->pricing_wizard_data) 
@@ -226,17 +237,34 @@ class BookingController extends Controller
         \DB::beginTransaction();
 
         try {
-            $createdBookings = [];
+            // Create parent booking record
+            $booking = Booking::create([
+                'user_id' => $userId,
+                'turf_id' => $turf->id,
+                'date_of_booking' => Carbon::now(),
+                'booking_type' => $bookingType,
+                'status' => 'Confirmed',
+                'payment_status' => 'Paid',
+                'additional_discount' => 0.00,
+            ]);
+
             foreach ($dates as $dateStr) {
                 $date = Carbon::parse($dateStr);
                 $dayOfWeek = strtolower($date->format('D'));
+                $dateAmount = 0.00;
 
+                // Validate and calculate price for all slots on this date
+                $slotsToCreate = [];
                 foreach ($slotIds as $slotId) {
                     // Check if slot is already booked
-                    $alreadyBooked = Booking::where('turf_id', $turf->id)
-                        ->whereDate('booking_date', $dateStr)
-                        ->where('slot_id', $slotId)
-                        ->where('status', 'Confirmed')
+                    $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
+                        ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
+                            $q->where('booking_date', $dateStr)
+                              ->whereHas('booking', function ($bq) use ($turf) {
+                                  $bq->where('turf_id', $turf->id)
+                                     ->where('status', 'Confirmed');
+                              });
+                        })
                         ->exists();
 
                     if ($alreadyBooked) {
@@ -287,18 +315,22 @@ class BookingController extends Controller
                         $price = isset($slot->pivot->$dayOfWeek) ? (float)$slot->pivot->$dayOfWeek : 1000.00;
                     }
 
-                    $booking = Booking::create([
-                        'user_id' => $userId,
-                        'turf_id' => $turf->id,
-                        'slot_id' => $slotId,
-                        'booking_date' => $dateStr,
-                        'booking_type' => $bookingType,
-                        'status' => 'Confirmed',
-                        'payment_status' => 'Paid',
-                        'price' => $price,
-                    ]);
+                    $dateAmount += $price;
+                    $slotsToCreate[] = $slotId;
+                }
 
-                    $createdBookings[] = $booking;
+                // Create BookingDate record
+                $bookingDate = $booking->bookingDates()->create([
+                    'booking_date' => $dateStr,
+                    'amount' => $dateAmount,
+                    'additional_discount' => 0.00,
+                ]);
+
+                // Create BookingSlot records
+                foreach ($slotsToCreate as $slotId) {
+                    $bookingDate->bookingSlots()->create([
+                        'slot_id' => $slotId,
+                    ]);
                 }
             }
 
@@ -306,7 +338,7 @@ class BookingController extends Controller
 
             return response()->json([
                 'message' => 'Turf booked successfully!',
-                'bookings' => $createdBookings,
+                'booking' => $booking->load('bookingDates.bookingSlots.slot'),
             ]);
 
         } catch (\Exception $e) {

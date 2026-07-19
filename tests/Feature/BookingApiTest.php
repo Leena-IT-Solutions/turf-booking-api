@@ -65,24 +65,38 @@ class BookingApiTest extends TestCase
         $booking1 = Booking::create([
             'user_id' => $user->id,
             'turf_id' => $turf->id,
-            'slot_id' => $slot1->id,
-            'booking_date' => '2026-07-20',
+            'date_of_booking' => now(),
             'booking_type' => 'day',
             'status' => 'Confirmed',
             'payment_status' => 'Paid',
-            'price' => 1500,
+            'additional_discount' => 0.00,
+        ]);
+        $bDate1 = $booking1->bookingDates()->create([
+            'booking_date' => '2026-07-20',
+            'amount' => 1500,
+            'additional_discount' => 0.00,
+        ]);
+        $bDate1->bookingSlots()->create([
+            'slot_id' => $slot1->id,
         ]);
 
         // Create booking for another user
-        Booking::create([
+        $booking2 = Booking::create([
             'user_id' => $otherUser->id,
             'turf_id' => $turf->id,
-            'slot_id' => $slot2->id,
-            'booking_date' => '2026-07-21',
+            'date_of_booking' => now(),
             'booking_type' => 'day',
             'status' => 'Confirmed',
             'payment_status' => 'Paid',
-            'price' => 2000,
+            'additional_discount' => 0.00,
+        ]);
+        $bDate2 = $booking2->bookingDates()->create([
+            'booking_date' => '2026-07-21',
+            'amount' => 2000,
+            'additional_discount' => 0.00,
+        ]);
+        $bDate2->bookingSlots()->create([
+            'slot_id' => $slot2->id,
         ]);
 
         $response = $this->actingAs($user, 'sanctum')->getJson('/api/bookings');

@@ -12,17 +12,16 @@ class Booking extends Model
     protected $fillable = [
         'user_id',
         'turf_id',
-        'slot_id',
-        'booking_date',
+        'date_of_booking',
         'booking_type',
         'status',
         'payment_status',
-        'price',
+        'additional_discount',
     ];
 
     protected $casts = [
-        'booking_date' => 'date',
-        'price' => 'decimal:2',
+        'date_of_booking' => 'datetime',
+        'additional_discount' => 'decimal:2',
     ];
 
     public function user()
@@ -35,8 +34,8 @@ class Booking extends Model
         return $this->belongsTo(Turf::class);
     }
 
-    public function slot()
+    public function bookingDates()
     {
-        return $this->belongsTo(Slot::class);
+        return $this->hasMany(BookingDate::class);
     }
 }

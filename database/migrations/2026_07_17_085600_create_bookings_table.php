@@ -15,16 +15,12 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('turf_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('slot_id')->constrained()->cascadeOnDelete();
-            $table->date('booking_date');
+            $table->timestamp('date_of_booking');
             $table->string('booking_type')->default('day'); // day, long, scattered
             $table->string('status')->default('Confirmed'); // Confirmed, Cancelled
             $table->string('payment_status')->default('Paid'); // Paid, Unpaid
-            $table->decimal('price', 10, 2)->default(0.00);
+            $table->decimal('additional_discount', 10, 2)->default(0.00);
             $table->timestamps();
-
-            // A turf slot can only be booked once per date
-            $table->unique(['turf_id', 'slot_id', 'booking_date']);
         });
     }
 
