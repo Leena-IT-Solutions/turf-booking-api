@@ -20,7 +20,7 @@ new #[Layout('layouts.app')] class extends Component
     public $max_discount_amount = '';
     public $minimum_slots_to_be_ordered = 1;
     public $usage_limit = '';
-    public $usage_limit_per_user = 1;
+    public $usage_limit_per_user = '';
     public $is_active = true;
     
     // Weekdays
@@ -63,7 +63,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->max_discount_amount = '';
         $this->minimum_slots_to_be_ordered = 1;
         $this->usage_limit = '';
-        $this->usage_limit_per_user = 1;
+        $this->usage_limit_per_user = '';
         $this->is_active = true;
         
         $this->mon = true;
@@ -130,7 +130,7 @@ new #[Layout('layouts.app')] class extends Component
             'max_discount_amount' => 'nullable|numeric|min:0',
             'minimum_slots_to_be_ordered' => 'required|integer|min:1',
             'usage_limit' => 'nullable|integer|min:0',
-            'usage_limit_per_user' => 'required|integer|min:1',
+            'usage_limit_per_user' => 'nullable|integer|min:1',
             'starts_at' => 'nullable|date',
             'expires_at' => 'nullable|date|after_or_equal:starts_at',
         ];
@@ -150,7 +150,7 @@ new #[Layout('layouts.app')] class extends Component
             'sun' => $this->sun,
         ]);
 
-        foreach (['max_discount_amount', 'usage_limit', 'starts_at', 'expires_at'] as $field) {
+        foreach (['max_discount_amount', 'usage_limit', 'usage_limit_per_user', 'starts_at', 'expires_at'] as $field) {
             if (array_key_exists($field, $data) && $data[$field] === '') {
                 $data[$field] = null;
             }

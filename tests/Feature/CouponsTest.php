@@ -73,7 +73,7 @@ class CouponsTest extends TestCase
             ->set('max_discount_amount', '') // Empty string to simulate user input
             ->set('minimum_slots_to_be_ordered', 2)
             ->set('usage_limit', '') // Empty string
-            ->set('usage_limit_per_user', 100)
+            ->set('usage_limit_per_user', '') // Empty string
             ->set('starts_at', '') // Empty string
             ->set('expires_at', '') // Empty string
             ->set('description', '') // Empty string
@@ -88,7 +88,7 @@ class CouponsTest extends TestCase
             'max_discount_amount' => null,
             'minimum_slots_to_be_ordered' => 2,
             'usage_limit' => null,
-            'usage_limit_per_user' => 100,
+            'usage_limit_per_user' => null,
             'starts_at' => null,
             'expires_at' => null,
             'description' => null,
