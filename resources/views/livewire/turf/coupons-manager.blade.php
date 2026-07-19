@@ -282,19 +282,11 @@ new #[Layout('layouts.app')] class extends Component
                                 $isActive = $coupon->is_active;
                                 $isPct    = $coupon->discount_type === 'percentage';
                                 $discountValue = $isPct ? $coupon->discount_value . '%' : '₹' . number_format($coupon->discount_value, 0);
-                            @endphp
-
-                            {{-- Full-width horizontal ticket / voucher --}}
-                            <div class="flex items-stretch rounded-3xl border border-gray-150 dark:border-gray-750/50 bg-white dark:bg-gray-800 shadow-xs hover:shadow-sm transition-all duration-200 relative {{ $isActive ? '' : 'opacity-60' }}">
-                                
-                                {{-- Punch Hole Top --}}
-                                <div class="absolute -top-3 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-20" style="left: 120px; transform: translateX(-50%);"></div>
-                                
-                                {{-- Punch Hole Bottom --}}
-                                <div class="absolute -bottom-3 w-6 h-6 rounded-full bg-gray-50 dark:bg-gray-900 border border-gray-150 dark:border-gray-750/50 z-20" style="left: 120px; transform: translateX(-50%);"></div>
+                            @endphp                            {{-- Full-width horizontal ticket / voucher --}}
+                            <div class="flex items-stretch rounded-3xl border border-gray-150 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xs hover:shadow-sm transition-all duration-200 relative {{ $isActive ? '' : 'opacity-60' }}" style="max-width: 1000px; margin: 0 auto;">
 
                                 {{-- LEFT: coloured discount panel --}}
-                                <div class="flex flex-col items-center justify-center py-6 text-center select-none relative {{ $isActive ? 'bg-gradient-to-br from-indigo-500 to-indigo-700' : 'bg-gray-300 dark:bg-gray-600' }} rounded-l-[22px]" style="width: 120px; flex-shrink: 0;">
+                                <div class="flex flex-col items-center justify-center py-6 text-center select-none relative {{ $isActive ? 'bg-gradient-to-br from-indigo-500 to-indigo-700' : 'bg-gray-300 dark:bg-gray-600' }} rounded-l-[22px]" style="width: 130px; flex-shrink: 0; border-right: 2px dashed rgba(255,255,255,0.25);">
                                     <span class="text-[9px] font-black uppercase tracking-[0.2em] {{ $isActive ? 'text-indigo-100/90' : 'text-gray-100/80' }}">
                                         {{ $isPct ? __('SAVE') : __('FLAT') }}
                                     </span>
@@ -311,11 +303,8 @@ new #[Layout('layouts.app')] class extends Component
                                     @endif
                                 </div>
 
-                                {{-- Perforated vertical divider --}}
-                                <div class="w-px my-4 border-l-2 border-dashed border-gray-150 dark:border-gray-700 shrink-0"></div>
-
                                 {{-- RIGHT: coupon details --}}
-                                <div class="flex-1 flex flex-col justify-between p-6 min-w-0 bg-white dark:bg-gray-800 rounded-r-[22px]">
+                                <div class="flex-grow flex flex-col justify-between p-6 min-w-0 bg-white dark:bg-gray-800 rounded-r-[22px]">
                                     
                                     {{-- Row 1: code + type + active toggle --}}
                                     <div class="flex items-center justify-between gap-4 mb-4">
@@ -342,26 +331,26 @@ new #[Layout('layouts.app')] class extends Component
                                     @endif
 
                                     {{-- Row 3: details row --}}
-                                    <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; margin-bottom: 16px;" class="text-[10px] uppercase font-bold tracking-wider text-gray-450 dark:text-gray-500">
-                                        <div style="flex: 1; min-width: 100px;">
+                                    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 16px;" class="text-[10px] uppercase font-bold tracking-wider text-gray-450 dark:text-gray-500">
+                                        <div style="min-width: 100px; flex: 1;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Min Slots') }}</span>
-                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</span>
+                                            <span class="text-xs font-black text-gray-700 dark:text-gray-205">{{ $coupon->minimum_slots_to_be_ordered }} slot(s)</span>
                                         </div>
-                                        <div style="flex: 1; min-width: 100px;">
+                                        <div style="min-width: 100px; flex: 1;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Total Limit') }}</span>
-                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
+                                            <span class="text-xs font-black text-gray-700 dark:text-gray-205 font-mono">
                                                 {{ $coupon->used_count }} / {{ $coupon->usage_limit ?: '∞' }}
                                             </span>
                                         </div>
-                                        <div style="flex: 1; min-width: 100px;">
+                                        <div style="min-width: 100px; flex: 1;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Limit Per User') }}</span>
-                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
+                                            <span class="text-xs font-black text-gray-700 dark:text-gray-205 font-mono">
                                                 {{ $coupon->usage_limit_per_user ?: '∞' }}
                                             </span>
                                         </div>
-                                        <div style="flex: 1.5; min-width: 150px;">
+                                        <div style="min-width: 150px; flex: 1.5;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Validity') }}</span>
-                                            <span class="text-xs font-black text-gray-700 dark:text-gray-200 font-mono">
+                                            <span class="text-xs font-black text-gray-700 dark:text-gray-205 font-mono">
                                                 @if ($coupon->starts_at || $coupon->expires_at)
                                                     {{ $coupon->starts_at ? $coupon->starts_at->format('M d, Y') : 'Now' }} - 
                                                     {{ $coupon->expires_at ? $coupon->expires_at->format('M d, Y') : 'Never' }}
@@ -370,7 +359,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 @endif
                                             </span>
                                         </div>
-                                        <div style="flex: 1.5; min-width: 130px;">
+                                        <div style="min-width: 130px; flex: 1.5;">
                                             <span class="block font-black mb-1 text-gray-400 dark:text-gray-500">{{ __('Active Days') }}</span>
                                             <div class="flex items-center gap-1 mt-0.5">
                                                 @php $days = ['mon' => 'M', 'tue' => 'T', 'wed' => 'W', 'thu' => 'T', 'fri' => 'F', 'sat' => 'S', 'sun' => 'S']; @endphp
