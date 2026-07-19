@@ -40,7 +40,7 @@ new #[Layout('layouts.app')] class extends Component
     public function uploadPhoto()
     {
         $this->validate([
-            'photoFile' => 'required|image|max:5120', // 5MB max
+            'photoFile' => 'required|image|max:2048', // 2MB max
         ]);
 
         $activeTurfId = session('active_turf_id');
@@ -251,14 +251,21 @@ new #[Layout('layouts.app')] class extends Component
                                 <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-2">
                                     {{ __('Select Field Image') }}
                                 </label>
-                                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed {{ $errors->has('photoFile') ? 'border-red-500 dark:border-red-500 bg-red-50/10 dark:bg-red-950/5' : 'border-gray-300 dark:border-gray-650 bg-gray-50/50 dark:bg-gray-900/10' }} rounded-2xl relative">
+                                <div 
+                                    x-data="{ isUploading: false, progress: 0 }"
+                                    x-on:livewire-upload-start="isUploading = true"
+                                    x-on:livewire-upload-finish="isUploading = false"
+                                    x-on:livewire-upload-error="isUploading = false; alert('Upload failed. Please ensure the file is an image and under 2MB.')"
+                                    x-on:livewire-upload-progress="progress = $event.detail.progress"
+                                    class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed {{ $errors->has('photoFile') ? 'border-red-500 dark:border-red-500 bg-red-50/10 dark:bg-red-950/5' : 'border-gray-300 dark:border-gray-650 bg-gray-50/50 dark:bg-gray-900/10' }} rounded-2xl relative"
+                                >
                                     <!-- Loading Indicator Overlay -->
-                                    <div wire:loading wire:target="photoFile" class="absolute inset-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs flex flex-col items-center justify-center rounded-2xl z-20">
+                                    <div x-show="isUploading" class="absolute inset-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs flex flex-col items-center justify-center rounded-2xl z-20" style="display: none;">
                                         <svg class="animate-spin h-8 w-8 text-indigo-650 dark:text-indigo-400" fill="none" viewBox="0 0 24 24">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300 mt-2">{{ __('Uploading image...') }}</span>
+                                        <span class="text-xs font-bold text-gray-700 dark:text-gray-300 mt-2" x-text="'Uploading image (' + progress + '%)...'"></span>
                                     </div>
 
                                     <div class="space-y-1 text-center">
@@ -273,7 +280,7 @@ new #[Layout('layouts.app')] class extends Component
                                             <p class="pl-1">{{ __('or drag and drop') }}</p>
                                         </div>
                                         <p class="text-[10px] text-gray-400 dark:text-gray-500">
-                                            {{ __('PNG, JPG, JPEG up to 5MB') }}
+                                            {{ __('PNG, JPG, JPEG up to 2MB') }}
                                         </p>
                                     </div>
                                 </div>
