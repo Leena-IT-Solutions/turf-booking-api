@@ -50,9 +50,5 @@ class DatabaseSeeder extends Seeder
             \App\Models\Role::whereIn('name', ['saas-admin', 'turf-admin', 'manager', 'customer'])->pluck('id')->toArray()
         );
 
-        $this->call(LocationSeeder::class);
-        $this->call(TurfSeeder::class);
-        $this->call(TurfPhotoSeeder::class);
-        $this->call(TurfPivotSeeder::class);
     }
 }
