@@ -21,7 +21,7 @@ return new class extends Migration
             $table->decimal('max_discount_amount', 10, 2)->nullable();
             $table->integer('minimum_slots_to_be_ordered')->default(1);
             $table->integer('usage_limit')->nullable();
-            $table->integer('usage_limit_per_user')->default(1);
+            $table->integer('usage_limit_per_user')->nullable()->default(null);
             $table->integer('used_count')->default(0);
             $table->boolean('is_active')->default(true);
             $table->boolean('mon')->default(true);

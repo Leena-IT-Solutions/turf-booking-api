@@ -25,6 +25,9 @@ return new class extends Migration
             $table->string('mailgun_domain')->nullable();
             $table->string('mailgun_secret')->nullable();
             $table->string('mailgun_endpoint')->default('api.mailgun.net');
+            $table->integer('turf_search_km')->default(10);
+            $table->string('google_maps_api_key')->nullable();
+            $table->integer('min_slots_booking')->default(2);
             $table->timestamps();
         });
     }
