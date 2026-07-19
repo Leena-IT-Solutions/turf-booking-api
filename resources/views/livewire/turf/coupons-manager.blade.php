@@ -283,7 +283,7 @@ new #[Layout('layouts.app')] class extends Component
                                 $isPct    = $coupon->discount_type === 'percentage';
                                 $discountValue = $isPct ? $coupon->discount_value . '%' : '₹' . number_format($coupon->discount_value, 0);
                             @endphp                            {{-- Full-width horizontal ticket / voucher --}}
-                            <div class="flex items-stretch rounded-3xl border border-gray-150 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xs hover:shadow-sm transition-all duration-200 relative {{ $isActive ? '' : 'opacity-60' }}" style="max-width: 1000px; margin: 0 auto;">
+                            <div class="w-full flex items-stretch rounded-3xl border border-gray-150 dark:border-gray-800 bg-white dark:bg-gray-800 shadow-xs hover:shadow-sm transition-all duration-200 relative {{ $isActive ? '' : 'opacity-60' }}">
 
                                 {{-- LEFT: coloured discount panel --}}
                                 <div class="flex flex-col items-center justify-center py-6 text-center select-none relative {{ $isActive ? 'bg-gradient-to-br from-indigo-500 to-indigo-700' : 'bg-gray-300 dark:bg-gray-600' }} rounded-l-[22px]" style="width: 130px; flex-shrink: 0; border-right: 2px dashed rgba(255,255,255,0.25);">
