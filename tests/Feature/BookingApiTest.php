@@ -204,4 +204,60 @@ class BookingApiTest extends TestCase
                 'message' => 'Payment recorded successfully.'
             ]);
     }
+
+    public function test_get_slots_with_multiple_dates(): void
+    {
+        $user = User::factory()->create();
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+        $category = SlotCategory::create([
+            'name' => 'Morning',
+            'is_active' => true,
+        ]);
+        $slot = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '06:00:00',
+            'to_time' => '07:00:00',
+            'duration' => 60,
+            'price' => 1000,
+            'is_active' => true,
+        ]);
+        $turf->slots()->attach([$slot->id => ['is_active' => true]]);
+
+        $tomorrow = now()->addDay()->toDateString();
+        $dayAfter = now()->addDays(2)->toDateString();
+
+        $booking = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+            'additional_discount' => 0.00,
+        ]);
+        $bDate = $booking->bookingDates()->create([
+            'booking_date' => $dayAfter,
+            'amount' => 1000,
+            'additional_discount' => 0.00,
+        ]);
+        $bDate->bookingSlots()->create([
+            'slot_id' => $slot->id,
+        ]);
+
+        $response = $this->getJson("/api/turfs/{$turf->id}/slots?dates[]={$tomorrow}&dates[]={$dayAfter}");
+        $response->assertStatus(200);
+        
+        $slots = $response->json();
+        $this->assertNotEmpty($slots);
+        $this->assertTrue($slots[0]['is_booked']);
+    }
 }

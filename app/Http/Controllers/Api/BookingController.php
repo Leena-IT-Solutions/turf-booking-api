@@ -122,16 +122,28 @@ class BookingController extends Controller
     public function getSlots(Request $request, Turf $turf): JsonResponse
     {
         $validated = $request->validate([
-            'date' => 'required|date_format:Y-m-d',
+            'date' => 'nullable|date_format:Y-m-d',
+            'dates' => 'nullable|array',
+            'dates.*' => 'date_format:Y-m-d',
         ]);
 
-        $dateStr = $validated['date'];
-        $date = Carbon::parse($dateStr);
-        $dayOfWeek = strtolower($date->format('D')); // 'mon', 'tue', etc.
+        if (!$request->has('date') && !$request->has('dates')) {
+            return response()->json(['message' => 'The date or dates field is required.'], 422);
+        }
 
-        // Get occupied slots on this date
-        $occupiedSlotIds = \App\Models\BookingSlot::whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
-            $q->where('booking_date', $dateStr)
+        $dates = $request->input('dates');
+        if (!is_array($dates)) {
+            $dates = [$request->input('date')];
+        }
+        $firstDate = Carbon::parse($dates[0]);
+        $dayOfWeek = strtolower($firstDate->format('D'));
+
+        $carbonDates = array_map(function ($d) {
+            return Carbon::parse($d);
+        }, $dates);
+
+        $occupiedSlotIds = \App\Models\BookingSlot::whereHas('bookingDate', function ($q) use ($turf, $carbonDates) {
+            $q->whereIn('booking_date', $carbonDates)
               ->whereHas('booking', function ($bq) use ($turf) {
                   $bq->where('turf_id', $turf->id)
                      ->where('status', 'Confirmed');
