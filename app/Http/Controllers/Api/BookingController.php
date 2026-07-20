@@ -158,12 +158,8 @@ class BookingController extends Controller
         $firstDate = Carbon::parse($dates[0]);
         $dayOfWeek = strtolower($firstDate->format('D'));
 
-        $carbonDates = array_map(function ($d) {
-            return Carbon::parse($d);
-        }, $dates);
-
-        $occupiedSlotIds = \App\Models\BookingSlot::whereHas('bookingDate', function ($q) use ($turf, $carbonDates) {
-            $q->whereIn('booking_date', $carbonDates)
+        $occupiedSlotIds = \App\Models\BookingSlot::whereHas('bookingDate', function ($q) use ($turf, $dates) {
+            $q->whereIn('booking_date', $dates)
               ->whereHas('booking', function ($bq) use ($turf) {
                   $bq->where('turf_id', $turf->id)
                      ->where('status', 'Confirmed');

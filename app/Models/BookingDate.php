@@ -18,7 +18,7 @@ class BookingDate extends Model
     ];
 
     protected $casts = [
-        'booking_date' => 'date',
+        'booking_date' => 'string',
         'amount' => 'decimal:2',
         'additional_discount' => 'decimal:2',
     ];

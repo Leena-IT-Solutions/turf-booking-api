@@ -252,7 +252,6 @@ class BookingApiTest extends TestCase
         $bDate->bookingSlots()->create([
             'slot_id' => $slot->id,
         ]);
-
         $response = $this->getJson("/api/turfs/{$turf->id}/slots?dates[]={$tomorrow}&dates[]={$dayAfter}");
         $response->assertStatus(200);
         
