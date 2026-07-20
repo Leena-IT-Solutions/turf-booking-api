@@ -1225,4 +1225,35 @@ class BookingController extends Controller
             'turfs' => $turfs,
         ]);
     }
+
+    /**
+     * Cancel a booking.
+     */
+    public function cancel(Request $request, \App\Models\Booking $booking): JsonResponse
+    {
+        if ($booking->status === 'Cancelled') {
+            return response()->json(['message' => 'Booking is already cancelled.'], 422);
+        }
+
+        $user = auth()->user();
+        $isStaffOrAdmin = $user->hasAnyRole(['saas-admin', 'turf-admin', 'manager']);
+        
+        if (!$isStaffOrAdmin && $booking->user_id !== $user->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($isStaffOrAdmin && !$user->hasRole('saas-admin')) {
+            $manageableTurfIds = $user->manageableTurfs()->pluck('turfs.id')->toArray();
+            if (!in_array($booking->turf_id, $manageableTurfIds)) {
+                return response()->json(['message' => 'Unauthorized to cancel bookings for this turf.'], 403);
+            }
+        }
+
+        $booking->update(['status' => 'Cancelled']);
+
+        return response()->json([
+            'message' => 'Booking cancelled successfully.',
+            'booking' => $booking
+        ]);
+    }
 }

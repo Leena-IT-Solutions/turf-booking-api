@@ -733,4 +733,44 @@ class BookingApiTest extends TestCase
         $this->assertCount(1, $dataPersonal);
         $this->assertEquals($bDateAdmin->id, $dataPersonal[0]['id']);
     }
+
+    public function test_booking_cancellation(): void
+    {
+        \App\Models\Role::firstOrCreate(['name' => 'saas-admin'], ['display_name' => 'SaaS Admin']);
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $customer1 = User::factory()->create();
+        $customer2 = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        $booking = Booking::create([
+            'user_id' => $customer1->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        $response = $this->actingAs($customer2, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel");
+        $response->assertStatus(403);
+
+        $response = $this->actingAs($customer1, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel");
+        $response->assertStatus(200);
+        $this->assertEquals('Cancelled', $booking->fresh()->status);
+
+        $response = $this->actingAs($customer1, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel");
+        $response->assertStatus(422);
+    }
 }
