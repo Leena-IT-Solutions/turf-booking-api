@@ -28,12 +28,23 @@ class BookingController extends Controller
         $query = BookingDate::with(['booking.turf', 'booking.user', 'bookingSlots.slot', 'payments']);
 
         $personal = $request->query('personal', false);
+        $selectedTurfId = $request->query('turf_id');
 
         if ($isStaffOrAdmin && !$personal) {
             if (!$user->hasRole('saas-admin')) {
                 $manageableTurfIds = $user->manageableTurfs()->pluck('turfs.id')->toArray();
-                $query->whereHas('booking', function ($q) use ($manageableTurfIds) {
-                    $q->whereIn('turf_id', $manageableTurfIds);
+                if ($selectedTurfId && in_array($selectedTurfId, $manageableTurfIds)) {
+                    $query->whereHas('booking', function ($q) use ($selectedTurfId) {
+                        $q->where('turf_id', $selectedTurfId);
+                    });
+                } else {
+                    $query->whereHas('booking', function ($q) use ($manageableTurfIds) {
+                        $q->whereIn('turf_id', $manageableTurfIds);
+                    });
+                }
+            } elseif ($selectedTurfId) {
+                $query->whereHas('booking', function ($q) use ($selectedTurfId) {
+                    $q->where('turf_id', $selectedTurfId);
                 });
             }
         } else {
