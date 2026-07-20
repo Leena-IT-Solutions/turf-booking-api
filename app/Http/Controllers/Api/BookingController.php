@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Turf;
 use App\Models\Booking;
+use App\Models\BookingDate;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
@@ -18,31 +19,53 @@ class BookingController extends Controller
     {
         $userId = auth()->id();
         
-        $bookings = Booking::with(['turf', 'bookingDates.bookingSlots.slot'])
-            ->where('user_id', $userId)
-            ->orderBy('date_of_booking', 'desc')
-            ->get();
+        $bookingDates = BookingDate::with(['booking.turf', 'bookingSlots.slot'])
+            ->whereHas('booking', function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            })
+            ->orderBy('booking_date', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(10);
             
-        $formattedBookings = [];
-        foreach ($bookings as $booking) {
-            foreach ($booking->bookingDates as $bDate) {
-                foreach ($bDate->bookingSlots as $bSlot) {
-                    $slot = $bSlot->slot;
-                    $formattedBookings[] = [
-                        'id' => $booking->id,
-                        'turf_name' => $booking->turf->name ?? 'Unknown Turf',
-                        'date' => Carbon::parse($bDate->booking_date)->format('F d, Y'),
-                        'time' => ($slot && $slot->from_time && $slot->to_time) 
+        $formatted = $bookingDates->through(function ($bDate) {
+            $booking = $bDate->booking;
+            
+            $slots = [];
+            foreach ($bDate->bookingSlots as $bSlot) {
+                $slot = $bSlot->slot;
+                if ($slot) {
+                    $slots[] = [
+                        'id' => $slot->id,
+                        'time_range' => ($slot->from_time && $slot->to_time)
                             ? date('h:i A', strtotime($slot->from_time)) . ' - ' . date('h:i A', strtotime($slot->to_time))
                             : 'N/A',
-                        'status' => $booking->status,
-                        'price' => '₹' . number_format($bDate->amount / max(1, count($bDate->bookingSlots)), 0),
+                        'duration' => $slot->duration,
                     ];
                 }
             }
-        }
 
-        return response()->json($formattedBookings);
+            // Summary of slots for this date
+            $slotCount = count($slots);
+            $summaryText = $slotCount . ' ' . ($slotCount === 1 ? 'slot' : 'slots') . ' booked';
+
+            return [
+                'id' => $bDate->id,
+                'booking_id' => $booking->id ?? null,
+                'turf_name' => $booking->turf->name ?? 'Unknown Turf',
+                'booking_date' => Carbon::parse($bDate->booking_date)->format('F d, Y'),
+                'date_raw' => $bDate->booking_date,
+                'date_of_booking' => $booking ? Carbon::parse($booking->date_of_booking)->format('F d, Y h:i A') : 'N/A',
+                'booking_type' => $booking->booking_type ?? 'N/A',
+                'status' => $booking->status ?? 'Pending',
+                'payment_status' => $booking->payment_status ?? 'Pending',
+                'amount' => (float)$bDate->amount,
+                'price' => '₹' . number_format($bDate->amount, 0),
+                'summary_text' => $summaryText,
+                'slots' => $slots,
+            ];
+        });
+
+        return response()->json($formatted);
     }
 
     /**

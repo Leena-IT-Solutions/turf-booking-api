@@ -101,14 +101,14 @@ class BookingApiTest extends TestCase
 
         $response = $this->actingAs($user, 'sanctum')->getJson('/api/bookings');
 
-        $response->assertStatus(200)
-            ->assertJsonCount(1)
-            ->assertJsonFragment([
-                'turf_name' => 'Legends Turf',
-                'date' => 'July 20, 2026',
-                'time' => '06:00 PM - 07:00 PM',
-                'status' => 'Confirmed',
-                'price' => '₹1,500',
-            ]);
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertEquals('Legends Turf', $data[0]['turf_name']);
+        $this->assertEquals('July 20, 2026', $data[0]['booking_date']);
+        $this->assertEquals('Confirmed', $data[0]['status']);
+        $this->assertEquals('₹1,500', $data[0]['price']);
+        $this->assertCount(1, $data[0]['slots']);
+        $this->assertEquals('06:00 PM - 07:00 PM', $data[0]['slots'][0]['time_range']);
     }
 }
