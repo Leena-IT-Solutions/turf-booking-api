@@ -212,12 +212,16 @@ class BookingController extends Controller
             return null;
         };
 
+        $today = Carbon::today('Asia/Kolkata')->toDateString();
+        $isTodaySelected = in_array($today, $dates);
+        $nowTime = Carbon::now('Asia/Kolkata')->toTimeString();
+
         // Format all turf slots
         $slots = $turf->slots()
             ->with('category')
             ->wherePivot('is_active', true)
             ->get()
-            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard) {
+            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $isTodaySelected, $nowTime) {
                 // Determine slot price
                 $fromTime24 = date('H:i', strtotime($slot->from_time));
                 $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
@@ -237,13 +241,15 @@ class BookingController extends Controller
                 $fromFormatted = date('h:i A', strtotime($slot->from_time));
                 $toFormatted = date('h:i A', strtotime($slot->to_time));
 
+                $isPast = ($isTodaySelected && $slot->from_time < $nowTime);
+
                 return [
                     'id' => $slot->id,
                     'from_time' => $slot->from_time,
                     'to_time' => $slot->to_time,
                     'time_label' => "$fromFormatted - $toFormatted",
                     'price' => $price,
-                    'is_booked' => in_array($slot->id, $occupiedSlotIds),
+                    'is_booked' => in_array($slot->id, $occupiedSlotIds) || $isPast,
                     'category' => $slot->category?->name ?? 'Other',
                 ];
             })
@@ -474,6 +480,18 @@ class BookingController extends Controller
                         return response()->json([
                             'message' => "Invalid slot ID for this turf.",
                         ], 422);
+                    }
+
+                    // Block past slots for today's booking date
+                    $todayStr = Carbon::today('Asia/Kolkata')->toDateString();
+                    if ($dateStr === $todayStr) {
+                        $nowTime = Carbon::now('Asia/Kolkata')->toTimeString();
+                        if ($slot->from_time < $nowTime) {
+                            \DB::rollBack();
+                            return response()->json([
+                                'message' => "Cannot book a past slot.",
+                            ], 422);
+                        }
                     }
 
                     // Price calculation logic

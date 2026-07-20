@@ -333,4 +333,60 @@ class BookingApiTest extends TestCase
         $this->assertEquals(1000, $booking2->payments->sum('amount'));
         $this->assertEquals('Partially Paid', $booking2->payment_status);
     }
+
+    public function test_booking_past_slot_for_today_is_blocked(): void
+    {
+        $user = User::factory()->create();
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+        $category = SlotCategory::create([
+            'name' => 'Morning',
+            'is_active' => true,
+        ]);
+        
+        // Define two slots in the past
+        $pastSlot1 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '00:00:00',
+            'to_time' => '01:00:00',
+            'duration' => 60,
+            'price' => 1000,
+            'is_active' => true,
+        ]);
+        $pastSlot2 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '01:00:00',
+            'to_time' => '02:00:00',
+            'duration' => 60,
+            'price' => 1000,
+            'is_active' => true,
+        ]);
+        $turf->slots()->attach([
+            $pastSlot1->id => ['is_active' => true],
+            $pastSlot2->id => ['is_active' => true],
+        ]);
+
+        $today = \Carbon\Carbon::today('Asia/Kolkata')->toDateString();
+
+        // Acting as user, attempt to book these slots for today
+        $response = $this->actingAs($user, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings", [
+            'slot_ids' => [$pastSlot1->id, $pastSlot2->id],
+            'booking_dates' => [$today],
+            'booking_type' => 'day',
+            'payment_method' => 'App',
+            'payment_option' => 'full',
+            'razorpay_payment_id' => 'pay_past_slot',
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('message', 'Cannot book a past slot.');
+    }
 }
