@@ -42,6 +42,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'mobile' => $user->mobile,
                 'roles' => $user->roles()->pluck('name'),
+                'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
             ]
         ]);
     }
@@ -126,6 +127,7 @@ class AuthController extends Controller
                     'email' => $existingUser->email,
                     'mobile' => $existingUser->mobile,
                     'roles' => $existingUser->roles()->pluck('name'),
+                    'manageable_turf_ids' => $existingUser->manageableTurfs()->pluck('turfs.id')->toArray(),
                 ]
             ], 201);
         }
@@ -157,6 +159,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'mobile' => $user->mobile,
                 'roles' => $user->roles()->pluck('name'),
+                'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
             ]
         ], 201);
     }
@@ -279,6 +282,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'mobile' => $user->mobile,
                 'roles' => $user->roles()->pluck('name'),
+                'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
             ]
         ]);
     }
