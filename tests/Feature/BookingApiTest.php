@@ -552,4 +552,122 @@ class BookingApiTest extends TestCase
             'name' => 'Quick Customer Registered',
         ]);
     }
+
+    public function test_date_filtered_bookings(): void
+    {
+        $admin = User::factory()->create();
+        $role = \App\Models\Role::firstOrCreate(['name' => 'turf-admin'], ['display_name' => 'Turf Admin']);
+        $admin->roles()->sync([$role->id]);
+
+        $location = Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        $bookingToday = Booking::create([
+            'user_id' => $admin->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDateToday = \App\Models\BookingDate::create([
+            'booking_id' => $bookingToday->id,
+            'booking_date' => now()->toDateString(),
+            'amount' => 1000,
+            'payment_status' => 'Paid',
+        ]);
+
+        $bookingTomorrow = Booking::create([
+            'user_id' => $admin->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDateTomorrow = \App\Models\BookingDate::create([
+            'booking_id' => $bookingTomorrow->id,
+            'booking_date' => now()->addDay()->toDateString(),
+            'amount' => 1000,
+            'payment_status' => 'Paid',
+        ]);
+
+        // Fetch bookings for today
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/bookings?date=' . now()->toDateString());
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertEquals($bDateToday->id, $data[0]['id']);
+
+        // Fetch bookings for tomorrow
+        $responseTomorrow = $this->actingAs($admin, 'sanctum')->getJson('/api/bookings?date=' . now()->addDay()->toDateString());
+        $responseTomorrow->assertStatus(200);
+        $dataTomorrow = $responseTomorrow->json('data');
+        $this->assertCount(1, $dataTomorrow);
+        $this->assertEquals($bDateTomorrow->id, $dataTomorrow[0]['id']);
+    }
+
+    public function test_dashboard_stats_endpoint(): void
+    {
+        $admin = User::factory()->create();
+        $role = \App\Models\Role::firstOrCreate(['name' => 'turf-admin'], ['display_name' => 'Turf Admin']);
+        $admin->roles()->sync([$role->id]);
+
+        $location = Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        $bookingToday = Booking::create([
+            'user_id' => $admin->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDateToday = \App\Models\BookingDate::create([
+            'booking_id' => $bookingToday->id,
+            'booking_date' => now()->toDateString(),
+            'amount' => 1000,
+            'payment_status' => 'Paid',
+        ]);
+
+        // Create a successful payment for today
+        \App\Models\Payment::create([
+            'booking_id' => $bookingToday->id,
+            'booking_date_id' => $bDateToday->id,
+            'payment_method' => 'Cash',
+            'amount' => 1000,
+            'status' => 'Success',
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->actingAs($admin, 'sanctum')->getJson('/api/dashboard/stats');
+        $response->assertStatus(200);
+        $response->assertJsonStructure([
+            'total_bookings_today',
+            'total_revenue_today',
+            'active_turfs_count',
+            'active_coupons_count',
+            'recent_bookings',
+        ]);
+        
+        $this->assertEquals(1, $response->json('total_bookings_today'));
+        $this->assertEquals(1000, $response->json('total_revenue_today'));
+    }
 }

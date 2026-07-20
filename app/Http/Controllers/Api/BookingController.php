@@ -40,17 +40,23 @@ class BookingController extends Controller
             });
         }
 
-        if ($filter === 'past') {
-            $query->where('booking_date', '<', $today)
-                  ->orderBy('booking_date', 'desc')
-                  ->orderBy('id', 'desc');
-        } else {
-            // Default to upcoming (today or future)
-            $query->where('booking_date', '>=', $today)
-                  ->orderBy('booking_date', 'asc')
+        $date = $request->query('date');
+        if ($date) {
+            $query->whereDate('booking_date', $date)
                   ->orderBy('id', 'asc');
+        } else {
+            if ($filter === 'past') {
+                $query->where('booking_date', '<', $today)
+                      ->orderBy('booking_date', 'desc')
+                      ->orderBy('id', 'desc');
+            } else {
+                // Default to upcoming (today or future)
+                $query->where('booking_date', '>=', $today)
+                      ->orderBy('booking_date', 'asc')
+                      ->orderBy('id', 'asc');
+            }
         }
-        
+
         $bookingDates = $query->paginate(10);
             
         $formatted = $bookingDates->through(function ($bDate) {
@@ -1102,5 +1108,85 @@ class BookingController extends Controller
             ->get();
 
         return response()->json($coupons);
+    }
+
+    /**
+     * Get statistics for Turf Admin/SaaS Admin Dashboard.
+     */
+    public function getDashboardStats(Request $request): JsonResponse
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['saas-admin', 'turf-admin'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $isSaasAdmin = $user->hasRole('saas-admin');
+        
+        $today = Carbon::today('Asia/Kolkata')->toDateString();
+
+        // Get manageable turfs
+        $turfQuery = Turf::query();
+        if (!$isSaasAdmin) {
+            $turfIds = $user->manageableTurfs()->pluck('turfs.id')->toArray();
+            $turfQuery->whereIn('id', $turfIds);
+        }
+        $manageableTurfIds = $turfQuery->pluck('id')->toArray();
+
+        // 1. Total bookings today
+        $bookingsTodayQuery = BookingDate::whereDate('booking_date', $today);
+        if (!$isSaasAdmin) {
+            $bookingsTodayQuery->whereHas('booking', function ($q) use ($manageableTurfIds) {
+                $q->whereIn('turf_id', $manageableTurfIds);
+            });
+        }
+        $totalBookingsToday = $bookingsTodayQuery->count();
+
+        // 2. Total revenue today (successful payments paid_at is today)
+        $paymentsTodayQuery = Payment::where('status', 'Success')
+            ->whereDate('paid_at', $today);
+        if (!$isSaasAdmin) {
+            $paymentsTodayQuery->whereHas('booking', function ($q) use ($manageableTurfIds) {
+                $q->whereIn('turf_id', $manageableTurfIds);
+            });
+        }
+        $totalRevenueToday = (float)$paymentsTodayQuery->sum('amount');
+
+        // 3. Active turfs count
+        $activeTurfsCount = count($manageableTurfIds);
+
+        // 4. Active coupons count
+        $couponsQuery = \App\Models\Coupon::where('is_active', true);
+        if (!$isSaasAdmin) {
+            $couponsQuery->whereIn('turf_id', $manageableTurfIds);
+        }
+        $activeCouponsCount = $couponsQuery->count();
+
+        // 5. Recent 5 bookings
+        $recentBookingsQuery = BookingDate::with(['booking.turf', 'booking.user', 'payments'])
+            ->orderBy('id', 'desc')
+            ->limit(5);
+        if (!$isSaasAdmin) {
+            $recentBookingsQuery->whereHas('booking', function ($q) use ($manageableTurfIds) {
+                $q->whereIn('turf_id', $manageableTurfIds);
+            });
+        }
+        $recentBookings = $recentBookingsQuery->get()->map(function ($bDate) {
+            return [
+                'id' => $bDate->id,
+                'turf_name' => $bDate->booking->turf->name ?? 'N/A',
+                'customer_name' => $bDate->booking->user->name ?? 'N/A',
+                'date' => $bDate->booking_date,
+                'amount' => (float)$bDate->amount,
+                'payment_status' => $bDate->payment_status,
+            ];
+        });
+
+        return response()->json([
+            'total_bookings_today' => $totalBookingsToday,
+            'total_revenue_today' => $totalRevenueToday,
+            'active_turfs_count' => $activeTurfsCount,
+            'active_coupons_count' => $activeCouponsCount,
+            'recent_bookings' => $recentBookings,
+        ]);
     }
 }
