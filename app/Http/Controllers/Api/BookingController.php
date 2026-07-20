@@ -120,6 +120,14 @@ class BookingController extends Controller
                 'customer_name' => $booking->user->name ?? 'N/A',
                 'customer_email' => $booking->user->email ?? 'N/A',
                 'customer_mobile' => $booking->user->mobile ?? 'N/A',
+                'payments' => $bDate->payments()->where('status', 'Success')->get()->map(function ($payment) {
+                    return [
+                        'id' => $payment->id,
+                        'payment_method' => $payment->payment_method,
+                        'amount' => (float)$payment->amount,
+                        'paid_at' => $payment->paid_at ? Carbon::parse($payment->paid_at)->format('F d, Y h:i A') : 'N/A',
+                    ];
+                }),
             ];
         });
 
