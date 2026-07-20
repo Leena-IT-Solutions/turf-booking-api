@@ -162,6 +162,100 @@ class BookingController extends Controller
     }
 
     /**
+     * Verify a coupon code for booking.
+     */
+    public function verifyCoupon(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string',
+            'turf_id' => 'required|exists:turfs,id',
+            'slot_count' => 'required|integer|min:1',
+            'booking_dates' => 'required|array',
+            'booking_dates.*' => 'required|date_format:Y-m-d',
+        ]);
+
+        $code = $validated['code'];
+        $turfId = $validated['turf_id'];
+        $slotCount = $validated['slot_count'];
+        $dates = $validated['booking_dates'];
+        $userId = auth()->id();
+
+        // Find Coupon
+        $coupon = \App\Models\Coupon::where('turf_id', $turfId)
+            ->where('code', $code)
+            ->first();
+
+        if (!$coupon) {
+            return response()->json([
+                'message' => 'Invalid coupon code for this turf.',
+            ], 422);
+        }
+
+        if (!$coupon->is_active) {
+            return response()->json([
+                'message' => 'This coupon is no longer active.',
+            ], 422);
+        }
+
+        $today = Carbon::today('Asia/Kolkata');
+        if ($coupon->starts_at && Carbon::parse($coupon->starts_at)->gt($today)) {
+            return response()->json([
+                'message' => 'This coupon is not yet active.',
+            ], 422);
+        }
+        if ($coupon->expires_at && Carbon::parse($coupon->expires_at)->lt($today)) {
+            return response()->json([
+                'message' => 'This coupon has expired.',
+            ], 422);
+        }
+
+        if ($slotCount < $coupon->minimum_slots_to_be_ordered) {
+            return response()->json([
+                'message' => "This coupon requires a minimum of {$coupon->minimum_slots_to_be_ordered} slots to be ordered.",
+            ], 422);
+        }
+
+        foreach ($dates as $dateStr) {
+            $date = Carbon::parse($dateStr);
+            $dayName = strtolower($date->format('D'));
+            if (!$coupon->$dayName) {
+                $dayLabel = ucfirst($dayName);
+                return response()->json([
+                    'message' => "This coupon is not valid on {$dayLabel}.",
+                ], 422);
+            }
+        }
+
+        if ($coupon->usage_limit !== null && $coupon->used_count >= $coupon->usage_limit) {
+            return response()->json([
+                'message' => 'This coupon usage limit has been reached.',
+            ], 422);
+        }
+
+        if ($coupon->usage_limit_per_user !== null) {
+            $userUsageCount = \App\Models\CouponUsage::where('coupon_id', $coupon->id)
+                ->where('user_id', $userId)
+                ->count();
+            if ($userUsageCount >= $coupon->usage_limit_per_user) {
+                return response()->json([
+                    'message' => 'You have reached the usage limit for this coupon.',
+                ], 422);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Coupon verified successfully!',
+            'coupon' => [
+                'id' => $coupon->id,
+                'code' => $coupon->code,
+                'discount_type' => $coupon->discount_type,
+                'discount_value' => (float)$coupon->discount_value,
+                'max_discount_amount' => $coupon->max_discount_amount !== null ? (float)$coupon->max_discount_amount : null,
+            ]
+        ]);
+    }
+
+    /**
      * Book one or more slots/dates for a turf.
      */
     public function store(Request $request, Turf $turf): JsonResponse
@@ -172,12 +266,18 @@ class BookingController extends Controller
             'booking_dates' => 'required|array',
             'booking_dates.*' => 'required|date_format:Y-m-d',
             'booking_type' => 'required|string|in:day,long,scattered',
+            'coupon_code' => 'nullable|string',
+            'payment_method' => 'required|string|in:offline,razorpay',
+            'razorpay_payment_id' => 'nullable|string|required_if:payment_method,razorpay',
         ]);
 
         $userId = auth()->id();
         $slotIds = $validated['slot_ids'];
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
+        $couponCode = $validated['coupon_code'] ?? null;
+        $paymentMethod = $validated['payment_method'];
+        $razorpayPaymentId = $validated['razorpay_payment_id'] ?? null;
 
         $settings = \App\Models\SaasSetting::first();
         $minSlots = $settings?->min_slots_booking ?? 2;
@@ -228,6 +328,73 @@ class BookingController extends Controller
             }
         }
 
+        // Verify Coupon if provided
+        $coupon = null;
+        if ($couponCode) {
+            $coupon = \App\Models\Coupon::where('turf_id', $turf->id)
+                ->where('code', $couponCode)
+                ->first();
+
+            if (!$coupon) {
+                return response()->json([
+                    'message' => 'Invalid coupon code for this turf.',
+                ], 422);
+            }
+
+            if (!$coupon->is_active) {
+                return response()->json([
+                    'message' => 'This coupon is no longer active.',
+                ], 422);
+            }
+
+            $today = Carbon::today('Asia/Kolkata');
+            if ($coupon->starts_at && Carbon::parse($coupon->starts_at)->gt($today)) {
+                return response()->json([
+                    'message' => 'This coupon is not yet active.',
+                ], 422);
+            }
+            if ($coupon->expires_at && Carbon::parse($coupon->expires_at)->lt($today)) {
+                return response()->json([
+                    'message' => 'This coupon has expired.',
+                ], 422);
+            }
+
+            $slotCount = count($slotIds);
+            if ($slotCount < $coupon->minimum_slots_to_be_ordered) {
+                return response()->json([
+                    'message' => "This coupon requires a minimum of {$coupon->minimum_slots_to_be_ordered} slots to be ordered.",
+                ], 422);
+            }
+
+            foreach ($dates as $dateStr) {
+                $date = Carbon::parse($dateStr);
+                $dayName = strtolower($date->format('D'));
+                if (!$coupon->$dayName) {
+                    $dayLabel = ucfirst($dayName);
+                    return response()->json([
+                        'message' => "This coupon is not valid on {$dayLabel}.",
+                    ], 422);
+                }
+            }
+
+            if ($coupon->usage_limit !== null && $coupon->used_count >= $coupon->usage_limit) {
+                return response()->json([
+                    'message' => 'This coupon usage limit has been reached.',
+                ], 422);
+            }
+
+            if ($coupon->usage_limit_per_user !== null) {
+                $userUsageCount = \App\Models\CouponUsage::where('coupon_id', $coupon->id)
+                    ->where('user_id', $userId)
+                    ->count();
+                if ($userUsageCount >= $coupon->usage_limit_per_user) {
+                    return response()->json([
+                        'message' => 'You have reached the usage limit for this coupon.',
+                    ], 422);
+                }
+            }
+        }
+
         // Get pricing wizard details helper
         $wizard = is_array($turf->pricing_wizard_data) 
             ? $turf->pricing_wizard_data 
@@ -237,32 +404,22 @@ class BookingController extends Controller
         \DB::beginTransaction();
 
         try {
-            // Create parent booking record
-            $booking = Booking::create([
-                'user_id' => $userId,
-                'turf_id' => $turf->id,
-                'date_of_booking' => Carbon::now(),
-                'booking_type' => $bookingType,
-                'status' => 'Confirmed',
-                'payment_status' => 'Paid',
-                'additional_discount' => 0.00,
-            ]);
+            $totalBookingAmountBeforeDiscount = 0.00;
+            $calculatedDates = [];
 
             foreach ($dates as $dateStr) {
                 $date = Carbon::parse($dateStr);
                 $dayOfWeek = strtolower($date->format('D'));
                 $dateAmount = 0.00;
-
-                // Validate and calculate price for all slots on this date
                 $slotsToCreate = [];
+
                 foreach ($slotIds as $slotId) {
                     // Check if slot is already booked
                     $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
-                        ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
+                        ->whereHas('bookingDate', function ($q) use ($dateStr) {
                             $q->where('booking_date', $dateStr)
-                              ->whereHas('booking', function ($bq) use ($turf) {
-                                  $bq->where('turf_id', $turf->id)
-                                     ->where('status', 'Confirmed');
+                              ->whereHas('booking', function ($bq) {
+                                  $bq->where('status', 'Confirmed');
                               });
                         })
                         ->exists();
@@ -319,19 +476,84 @@ class BookingController extends Controller
                     $slotsToCreate[] = $slotId;
                 }
 
+                $totalBookingAmountBeforeDiscount += $dateAmount;
+                $calculatedDates[] = [
+                    'date_str' => $dateStr,
+                    'subtotal' => $dateAmount,
+                    'slots' => $slotsToCreate,
+                ];
+            }
+
+            // Calculate overall discount
+            $totalDiscountApplied = 0.00;
+            if ($coupon) {
+                if ($coupon->discount_type === 'fixed') {
+                    $totalDiscountApplied = (float)$coupon->discount_value;
+                } else {
+                    $totalDiscountApplied = $totalBookingAmountBeforeDiscount * ($coupon->discount_value / 100);
+                }
+                if ($coupon->max_discount_amount !== null && $totalDiscountApplied > $coupon->max_discount_amount) {
+                    $totalDiscountApplied = (float)$coupon->max_discount_amount;
+                }
+            }
+
+            if ($totalDiscountApplied > $totalBookingAmountBeforeDiscount) {
+                $totalDiscountApplied = $totalBookingAmountBeforeDiscount;
+            }
+
+            // Create parent booking record
+            $booking = Booking::create([
+                'user_id' => $userId,
+                'turf_id' => $turf->id,
+                'date_of_booking' => Carbon::now(),
+                'booking_type' => $bookingType,
+                'status' => 'Confirmed',
+                'payment_status' => $paymentMethod === 'razorpay' ? 'Paid' : 'Pending',
+                'additional_discount' => $totalDiscountApplied,
+            ]);
+
+            // Distribute discount proportionally across booking dates
+            $remainingDiscount = $totalDiscountApplied;
+            $numDates = count($calculatedDates);
+
+            foreach ($calculatedDates as $index => $calcDate) {
+                if ($index === $numDates - 1) {
+                    $dateDiscount = $remainingDiscount;
+                } else {
+                    $dateDiscount = round($totalDiscountApplied * ($calcDate['subtotal'] / $totalBookingAmountBeforeDiscount), 2);
+                    $remainingDiscount -= $dateDiscount;
+                }
+
+                $netAmount = max(0, $calcDate['subtotal'] - $dateDiscount);
+
                 // Create BookingDate record
                 $bookingDate = $booking->bookingDates()->create([
-                    'booking_date' => $dateStr,
-                    'amount' => $dateAmount,
-                    'additional_discount' => 0.00,
+                    'booking_date' => $calcDate['date_str'],
+                    'amount' => $netAmount,
+                    'additional_discount' => $dateDiscount,
                 ]);
 
                 // Create BookingSlot records
-                foreach ($slotsToCreate as $slotId) {
+                foreach ($calcDate['slots'] as $slotId) {
                     $bookingDate->bookingSlots()->create([
                         'slot_id' => $slotId,
                     ]);
                 }
+
+                // Record Coupon Usage
+                if ($coupon && $dateDiscount > 0) {
+                    \App\Models\CouponUsage::create([
+                        'coupon_id' => $coupon->id,
+                        'user_id' => $userId,
+                        'booking_date_id' => $bookingDate->id,
+                        'discount_applied' => $dateDiscount,
+                        'used_at' => Carbon::now(),
+                    ]);
+                }
+            }
+
+            if ($coupon) {
+                $coupon->increment('used_count');
             }
 
             \DB::commit();
