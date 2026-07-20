@@ -752,6 +752,9 @@ class BookingApiTest extends TestCase
             'location_id' => $location->id,
             'name' => 'Legends Turf',
             'type' => 'Synthetic',
+            'is_cancellation_active' => true,
+            'cancellation_hours' => 24,
+            'cancellation_fee' => 50.00,
         ]);
 
         $booking = Booking::create([
@@ -760,6 +763,13 @@ class BookingApiTest extends TestCase
             'date_of_booking' => now(),
             'booking_type' => 'day',
             'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        $bDate = \App\Models\BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => now()->addDays(2)->toDateString(),
+            'amount' => 1000,
             'payment_status' => 'Paid',
         ]);
 
@@ -772,5 +782,41 @@ class BookingApiTest extends TestCase
 
         $response = $this->actingAs($customer1, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel");
         $response->assertStatus(422);
+
+        // 4. If cancellation is deactivated, even admins can't cancel it
+        $booking2 = Booking::create([
+            'user_id' => $customer1->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $turf->update(['is_cancellation_active' => false]);
+        $response = $this->actingAs($admin, 'sanctum')->postJson("/api/bookings/{$booking2->id}/cancel");
+        $response->assertStatus(422);
+
+        // 5. If cancellation is active but too close to start time, customer is blocked, but admin can override
+        $turf->update(['is_cancellation_active' => true, 'cancellation_hours' => 24]);
+        $booking3 = Booking::create([
+            'user_id' => $customer1->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        \App\Models\BookingDate::create([
+            'booking_id' => $booking3->id,
+            'booking_date' => now()->addHours(12)->toDateString(),
+            'amount' => 1000,
+            'payment_status' => 'Paid',
+        ]);
+
+        $response = $this->actingAs($customer1, 'sanctum')->postJson("/api/bookings/{$booking3->id}/cancel");
+        $response->assertStatus(422);
+
+        $response = $this->actingAs($admin, 'sanctum')->postJson("/api/bookings/{$booking3->id}/cancel");
+        $response->assertStatus(200);
     }
 }

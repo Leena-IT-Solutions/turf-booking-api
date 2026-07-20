@@ -1250,10 +1250,53 @@ class BookingController extends Controller
             }
         }
 
+        $turf = $booking->turf;
+        if (!$turf || !$turf->is_cancellation_active) {
+            return response()->json(['message' => 'Cancellation is not allowed for this turf.'], 422);
+        }
+
+        if (!$isStaffOrAdmin) {
+            $cancellationHours = (int)$turf->cancellation_hours;
+            
+            $earliestStart = null;
+            $booking->load(['bookingDates.bookingSlots.slot']);
+            foreach ($booking->bookingDates as $bDate) {
+                $dateStr = $bDate->booking_date;
+                foreach ($bDate->bookingSlots as $bSlot) {
+                    $slot = $bSlot->slot;
+                    if ($slot && $slot->from_time) {
+                        $dt = Carbon::parse($dateStr . ' ' . $slot->from_time, 'Asia/Kolkata');
+                        if ($earliestStart === null || $dt->lt($earliestStart)) {
+                            $earliestStart = $dt;
+                        }
+                    }
+                }
+                if ($earliestStart === null) {
+                    $dt = Carbon::parse($dateStr, 'Asia/Kolkata')->startOfDay();
+                    if ($earliestStart === null || $dt->lt($earliestStart)) {
+                        $earliestStart = $dt;
+                    }
+                }
+            }
+
+            if ($earliestStart) {
+                $now = Carbon::now('Asia/Kolkata');
+                $diffInHours = $now->diffInHours($earliestStart, false);
+                if ($diffInHours < $cancellationHours) {
+                    return response()->json([
+                        'message' => "Cancellation is only allowed up to $cancellationHours hours before the booking starts."
+                    ], 422);
+                }
+            }
+        }
+
         $booking->update(['status' => 'Cancelled']);
 
+        $cancellationFee = (float)$turf->cancellation_fee;
+        $feeMsg = $cancellationFee > 0 ? " A cancellation fee of ₹" . number_format($cancellationFee, 0) . " applies." : "";
+
         return response()->json([
-            'message' => 'Booking cancelled successfully.',
+            'message' => 'Booking cancelled successfully.' . $feeMsg,
             'booking' => $booking
         ]);
     }
