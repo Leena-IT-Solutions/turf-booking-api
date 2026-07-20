@@ -360,6 +360,7 @@ class BookingController extends Controller
             'booking_type' => 'required|string|in:day,long,scattered',
             'coupons' => 'nullable|array', // key: date (YYYY-MM-DD), value: coupon code (string)
             'payment_method' => 'required|string|in:offline,App',
+            'payment_option' => 'nullable|string|in:full,part',
             'amount_received' => 'nullable|numeric|min:0', // for manager
             'customer_id' => 'nullable|exists:users,id', // for manager
             'razorpay_payment_id' => 'nullable|string',
@@ -644,8 +645,10 @@ class BookingController extends Controller
                 // Customer booking:
                 if ($paymentMethod === 'App') {
                     $partPaymentActive = $turf->is_part_payment_active ?? false;
+                    $paymentOption = $validated['payment_option'] ?? 'full';
+                    
                     $paidAmount = $totalAmount;
-                    if ($partPaymentActive) {
+                    if ($partPaymentActive && $paymentOption === 'part') {
                         $partType = $turf->part_payment_type ?? 'percentage';
                         $partVal = (float)($turf->part_payment_value ?? 0.00);
                         if ($partType === 'percentage') {

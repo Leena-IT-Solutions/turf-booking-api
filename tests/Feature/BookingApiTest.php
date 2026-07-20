@@ -260,4 +260,77 @@ class BookingApiTest extends TestCase
         $this->assertNotEmpty($slots);
         $this->assertTrue($slots[0]['is_booked']);
     }
+
+    public function test_booking_with_payment_option_full_on_part_payment_active(): void
+    {
+        $user = User::factory()->create();
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+            'is_part_payment_active' => true,
+            'part_payment_type' => 'percentage',
+            'part_payment_value' => 50,
+        ]);
+        $category = SlotCategory::create([
+            'name' => 'Morning',
+            'is_active' => true,
+        ]);
+        $slot1 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '06:00:00',
+            'to_time' => '07:00:00',
+            'duration' => 60,
+            'price' => 1000,
+            'is_active' => true,
+        ]);
+        $slot2 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '07:00:00',
+            'to_time' => '08:00:00',
+            'duration' => 60,
+            'price' => 800,
+            'is_active' => true,
+        ]);
+        $turf->slots()->attach([
+            $slot1->id => ['is_active' => true],
+            $slot2->id => ['is_active' => true],
+        ]);
+
+        $tomorrow = now()->addDay()->toDateString();
+
+        $response = $this->actingAs($user, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings", [
+            'slot_ids' => [$slot1->id, $slot2->id],
+            'booking_dates' => [$tomorrow],
+            'booking_type' => 'day',
+            'payment_method' => 'App',
+            'payment_option' => 'full',
+            'razorpay_payment_id' => 'pay_12345full',
+        ]);
+
+        $response->assertStatus(200);
+        $booking = Booking::with('payments')->find($response->json('booking.id'));
+        $this->assertEquals(2000, $booking->payments->sum('amount'));
+        $this->assertEquals('Paid', $booking->payment_status);
+
+        $tomorrow2 = now()->addDays(2)->toDateString();
+        $response2 = $this->actingAs($user, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings", [
+            'slot_ids' => [$slot1->id, $slot2->id],
+            'booking_dates' => [$tomorrow2],
+            'booking_type' => 'day',
+            'payment_method' => 'App',
+            'payment_option' => 'part',
+            'razorpay_payment_id' => 'pay_12345part',
+        ]);
+
+        $response2->assertStatus(200);
+        $booking2 = Booking::with('payments')->find($response2->json('booking.id'));
+        $this->assertEquals(1000, $booking2->payments->sum('amount'));
+        $this->assertEquals('Partially Paid', $booking2->payment_status);
+    }
 }
