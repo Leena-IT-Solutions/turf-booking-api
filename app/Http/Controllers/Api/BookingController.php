@@ -98,6 +98,7 @@ class BookingController extends Controller
             return [
                 'id' => $bDate->id,
                 'booking_id' => $booking->id ?? null,
+                'turf_id' => $booking->turf_id ?? null,
                 'turf_name' => $booking->turf->name ?? 'Unknown Turf',
                 'booking_date' => Carbon::parse($bDate->booking_date)->format('F d, Y'),
                 'date_raw' => $bDate->booking_date,
