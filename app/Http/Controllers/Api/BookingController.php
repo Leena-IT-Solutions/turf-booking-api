@@ -1135,17 +1135,25 @@ class BookingController extends Controller
 
         // Get manageable turfs
         $turfQuery = Turf::query();
+        $turfIds = [];
         if (!$isSaasAdmin) {
             $turfIds = $user->manageableTurfs()->pluck('turfs.id')->toArray();
             $turfQuery->whereIn('id', $turfIds);
         }
         $manageableTurfIds = $turfQuery->pluck('id')->toArray();
 
+        $selectedTurfId = $request->input('turf_id');
+        if ($selectedTurfId && (in_array($selectedTurfId, $manageableTurfIds) || $isSaasAdmin)) {
+            $filteredTurfIds = [$selectedTurfId];
+        } else {
+            $filteredTurfIds = $manageableTurfIds;
+        }
+
         // 1. Total bookings today
         $bookingsTodayQuery = BookingDate::whereDate('booking_date', $today);
-        if (!$isSaasAdmin) {
-            $bookingsTodayQuery->whereHas('booking', function ($q) use ($manageableTurfIds) {
-                $q->whereIn('turf_id', $manageableTurfIds);
+        if (!$isSaasAdmin || $selectedTurfId) {
+            $bookingsTodayQuery->whereHas('booking', function ($q) use ($filteredTurfIds) {
+                $q->whereIn('turf_id', $filteredTurfIds);
             });
         }
         $totalBookingsToday = $bookingsTodayQuery->count();
@@ -1153,20 +1161,20 @@ class BookingController extends Controller
         // 2. Total revenue today (successful payments paid_at is today)
         $paymentsTodayQuery = Payment::where('status', 'Success')
             ->whereDate('paid_at', $today);
-        if (!$isSaasAdmin) {
-            $paymentsTodayQuery->whereHas('booking', function ($q) use ($manageableTurfIds) {
-                $q->whereIn('turf_id', $manageableTurfIds);
+        if (!$isSaasAdmin || $selectedTurfId) {
+            $paymentsTodayQuery->whereHas('booking', function ($q) use ($filteredTurfIds) {
+                $q->whereIn('turf_id', $filteredTurfIds);
             });
         }
         $totalRevenueToday = (float)$paymentsTodayQuery->sum('amount');
 
         // 3. Active turfs count
-        $activeTurfsCount = count($manageableTurfIds);
+        $activeTurfsCount = $selectedTurfId ? 1 : count($manageableTurfIds);
 
         // 4. Active coupons count
         $couponsQuery = \App\Models\Coupon::where('is_active', true);
-        if (!$isSaasAdmin) {
-            $couponsQuery->whereIn('turf_id', $manageableTurfIds);
+        if (!$isSaasAdmin || $selectedTurfId) {
+            $couponsQuery->whereIn('turf_id', $filteredTurfIds);
         }
         $activeCouponsCount = $couponsQuery->count();
 
@@ -1174,9 +1182,9 @@ class BookingController extends Controller
         $recentBookingsQuery = BookingDate::with(['booking.turf', 'booking.user', 'payments'])
             ->orderBy('id', 'desc')
             ->limit(5);
-        if (!$isSaasAdmin) {
-            $recentBookingsQuery->whereHas('booking', function ($q) use ($manageableTurfIds) {
-                $q->whereIn('turf_id', $manageableTurfIds);
+        if (!$isSaasAdmin || $selectedTurfId) {
+            $recentBookingsQuery->whereHas('booking', function ($q) use ($filteredTurfIds) {
+                $q->whereIn('turf_id', $filteredTurfIds);
             });
         }
         $recentBookings = $recentBookingsQuery->get()->map(function ($bDate) {
@@ -1190,12 +1198,20 @@ class BookingController extends Controller
             ];
         });
 
+        // Get list of selectable turfs
+        $selectableTurfsQuery = Turf::query();
+        if (!$isSaasAdmin) {
+            $selectableTurfsQuery->whereIn('id', $manageableTurfIds);
+        }
+        $turfs = $selectableTurfsQuery->get(['id', 'name'])->toArray();
+
         return response()->json([
             'total_bookings_today' => $totalBookingsToday,
             'total_revenue_today' => $totalRevenueToday,
             'active_turfs_count' => $activeTurfsCount,
             'active_coupons_count' => $activeCouponsCount,
             'recent_bookings' => $recentBookings,
+            'turfs' => $turfs,
         ]);
     }
 }
