@@ -132,13 +132,20 @@ class BookingController extends Controller
             ->with('category')
             ->wherePivot('is_active', true)
             ->get()
-            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $getRateForTime) {
+            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard) {
                 // Determine slot price
                 $fromTime24 = date('H:i', strtotime($slot->from_time));
-                $price = $getRateForTime($wizard, $dayOfWeek, $fromTime24);
+                $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
+                $duration = intval($slot->duration ?: 30);
 
-                if ($price === null) {
-                    $price = isset($slot->pivot->$dayOfWeek) ? (float)$slot->pivot->$dayOfWeek : 1000.00;
+                if ($hourlyRate !== null) {
+                    $price = ($hourlyRate / 60) * $duration;
+                } else {
+                    if (isset($slot->pivot->$dayOfWeek)) {
+                        $price = (float)$slot->pivot->$dayOfWeek;
+                    } else {
+                        $price = (1000.00 / 60) * $duration;
+                    }
                 }
 
                 // Format time to 12 hour AM/PM
@@ -442,34 +449,17 @@ class BookingController extends Controller
 
                     // Price calculation logic
                     $fromTime24 = date('H:i', strtotime($slot->from_time));
-                    $price = 1000.00;
-                    if ($wizard) {
-                        $sameWeek = $wizard['sameRateThroughoutWeek'] ?? 'yes';
-                        if ($sameWeek === 'yes') {
-                            $sameDay = $wizard['sameRateThroughoutDayAll'] ?? 'yes';
-                            if ($sameDay === 'yes') {
-                                $price = isset($wizard['flatRateAll']) && $wizard['flatRateAll'] !== '' ? (float)$wizard['flatRateAll'] : 1000.00;
-                            } else {
-                                $ranges = $wizard['timeRangesAll'] ?? [];
-                                foreach ($ranges as $range) {
-                                    $from = date('H:i', strtotime($range['from'] ?? '00:00'));
-                                    $to = date('H:i', strtotime($range['to'] ?? '23:59'));
-                                    if ($from > $to) {
-                                        if ($fromTime24 >= $from || $fromTime24 < $to) {
-                                            $price = ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : 1000.00;
-                                            break;
-                                        }
-                                    } else {
-                                        if ($fromTime24 >= $from && $fromTime24 < $to) {
-                                            $price = ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : 1000.00;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
+                    $duration = intval($slot->duration ?: 30);
+
+                    if ($hourlyRate !== null) {
+                        $price = ($hourlyRate / 60) * $duration;
                     } else {
-                        $price = isset($slot->pivot->$dayOfWeek) ? (float)$slot->pivot->$dayOfWeek : 1000.00;
+                        if (isset($slot->pivot->$dayOfWeek)) {
+                            $price = (float)$slot->pivot->$dayOfWeek;
+                        } else {
+                            $price = (1000.00 / 60) * $duration;
+                        }
                     }
 
                     $dateAmount += $price;
@@ -570,5 +560,59 @@ class BookingController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function getRateForTime(?array $wizard, string $day, string $time): ?float
+    {
+        if (!$wizard) return null;
+        $sameWeek = $wizard['sameRateThroughoutWeek'] ?? 'yes';
+        if ($sameWeek === 'yes') {
+            $sameDay = $wizard['sameRateThroughoutDayAll'] ?? 'yes';
+            if ($sameDay === 'yes') {
+                return isset($wizard['flatRateAll']) && $wizard['flatRateAll'] !== '' ? (float)$wizard['flatRateAll'] : null;
+            } else {
+                $ranges = $wizard['timeRangesAll'] ?? [];
+                foreach ($ranges as $range) {
+                    $from = date('H:i', strtotime($range['from'] ?? '00:00'));
+                    $to = date('H:i', strtotime($range['to'] ?? '23:59'));
+                    if ($from > $to) {
+                        if ($time >= $from || $time < $to) {
+                            return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
+                        }
+                    } else {
+                        if ($time >= $from && $time < $to) {
+                            return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
+                        }
+                    }
+                }
+            }
+        } else {
+            $dayGroups = $wizard['dayGroups'] ?? [];
+            foreach ($dayGroups as $group) {
+                $days = array_map('strtolower', $group['days'] ?? []);
+                if (in_array($day, $days)) {
+                    $sameDay = $group['sameRateThroughoutDay'] ?? 'yes';
+                    if ($sameDay === 'yes') {
+                        return isset($group['flatRate']) && $group['flatRate'] !== '' ? (float)$group['flatRate'] : null;
+                    } else {
+                        $ranges = $group['timeRanges'] ?? [];
+                        foreach ($ranges as $range) {
+                            $from = date('H:i', strtotime($range['from'] ?? '00:00'));
+                            $to = date('H:i', strtotime($range['to'] ?? '23:59'));
+                            if ($from > $to) {
+                                if ($time >= $from || $time < $to) {
+                                    return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
+                                }
+                            } else {
+                                if ($time >= $from && $time < $to) {
+                                    return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
     }
 }
