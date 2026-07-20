@@ -73,6 +73,63 @@ class AuthController extends Controller
      */
     public function register(Request $request)
     {
+        $email = $request->input('email');
+        $mobile = $request->input('mobile');
+
+        // Check if a quick created user matches this email or mobile
+        $existingUser = null;
+        if ($email) {
+            $existingUser = User::where('email', $email)->first();
+        }
+        if (!$existingUser && $mobile) {
+            $existingUser = User::where('mobile', $mobile)->first();
+        }
+
+        if ($existingUser && $existingUser->is_quick_created) {
+            // Check if the other field is already taken by a DIFFERENT fully-registered user
+            if ($email && $existingUser->email !== $email) {
+                if (User::where('email', $email)->where('id', '!=', $existingUser->id)->exists()) {
+                    return response()->json(['message' => 'The email has already been taken.'], 422);
+                }
+            }
+            if ($mobile && $existingUser->mobile !== $mobile) {
+                if (User::where('mobile', $mobile)->where('id', '!=', $existingUser->id)->exists()) {
+                    return response()->json(['message' => 'The mobile has already been taken.'], 422);
+                }
+            }
+
+            // Validate without unique rules since we will update this existing record
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255',
+                'mobile' => 'required|string|max:15',
+                'password' => 'required|string|min:6|confirmed',
+            ]);
+
+            // Update user to fully registered state
+            $existingUser->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'mobile' => $request->mobile,
+                'password' => Hash::make($request->password),
+                'is_quick_created' => false,
+            ]);
+
+            $token = $existingUser->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+                'user' => [
+                    'id' => $existingUser->id,
+                    'name' => $existingUser->name,
+                    'email' => $existingUser->email,
+                    'mobile' => $existingUser->mobile,
+                    'roles' => $existingUser->roles()->pluck('name'),
+                ]
+            ], 201);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -292,5 +349,57 @@ class AuthController extends Controller
         ->get(['id', 'name', 'email', 'mobile']);
 
         return response()->json($users);
+    }
+
+    /**
+     * Quick create user by Owner or Manager.
+     */
+    public function quickCreateUser(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['saas-admin', 'turf-admin', 'manager'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'nullable|string|email|max:255',
+            'mobile' => 'nullable|string|max:15',
+        ]);
+
+        $email = $request->input('email');
+        $mobile = $request->input('mobile');
+
+        if (!$email && !$mobile) {
+            return response()->json([
+                'message' => 'Either email or mobile number is required.'
+            ], 422);
+        }
+
+        if ($email && User::where('email', $email)->exists()) {
+            return response()->json(['message' => 'A user with this email already exists.'], 422);
+        }
+
+        if ($mobile && User::where('mobile', $mobile)->exists()) {
+            return response()->json(['message' => 'A user with this mobile number already exists.'], 422);
+        }
+
+        $newUser = User::create([
+            'name' => $request->name,
+            'email' => $email,
+            'mobile' => $mobile,
+            'password' => Hash::make(\Illuminate\Support\Str::random(16)),
+            'is_quick_created' => true,
+        ]);
+
+        $newUser->assignRole('customer');
+
+        return response()->json([
+            'id' => $newUser->id,
+            'name' => $newUser->name,
+            'email' => $newUser->email,
+            'mobile' => $newUser->mobile,
+            'is_quick_created' => true,
+        ], 201);
     }
 }

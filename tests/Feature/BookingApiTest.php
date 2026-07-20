@@ -509,4 +509,47 @@ class BookingApiTest extends TestCase
             'status' => 'Success',
         ]);
     }
+
+    public function test_quick_create_user_and_register_override(): void
+    {
+        $manager = User::factory()->create();
+        $roleManager = \App\Models\Role::firstOrCreate(['name' => 'manager'], ['display_name' => 'Manager']);
+        $manager->roles()->sync([$roleManager->id]);
+
+        $roleCustomer = \App\Models\Role::firstOrCreate(['name' => 'customer'], ['display_name' => 'Customer']);
+
+        // 1. Quick create by manager
+        $response = $this->actingAs($manager, 'sanctum')->postJson("/api/users/quick-create", [
+            'name' => 'Quick Customer',
+            'email' => 'quick@gmail.com',
+            'mobile' => '9876543210',
+        ]);
+
+        $response->assertStatus(201);
+        $response->assertJsonPath('name', 'Quick Customer');
+        $response->assertJsonPath('is_quick_created', true);
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'quick@gmail.com',
+            'mobile' => '9876543210',
+            'is_quick_created' => true,
+        ]);
+
+        // 2. User registers using the same email/mobile
+        $registerResponse = $this->postJson("/api/register", [
+            'name' => 'Quick Customer Registered',
+            'email' => 'quick@gmail.com',
+            'mobile' => '9876543210',
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+        ]);
+
+        $registerResponse->assertStatus(201);
+        $this->assertDatabaseHas('users', [
+            'email' => 'quick@gmail.com',
+            'mobile' => '9876543210',
+            'is_quick_created' => false,
+            'name' => 'Quick Customer Registered',
+        ]);
+    }
 }

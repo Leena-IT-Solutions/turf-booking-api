@@ -40,5 +40,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/coupons/verify', [\App\Http\Controllers\Api\BookingController::class, 'verifyCoupon']);
     Route::get('/bookings', [\App\Http\Controllers\Api\BookingController::class, 'index']);
     Route::get('/users/search', [AuthController::class, 'searchUsers']);
+    Route::post('/users/quick-create', [AuthController::class, 'quickCreateUser']);
     Route::post('/booking-dates/{bookingDate}/payments', [\App\Http\Controllers\Api\BookingController::class, 'recordPayment']);
 });

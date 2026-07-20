@@ -13,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['name', 'email', 'mobile', 'password'])]
+#[Fillable(['name', 'email', 'mobile', 'password', 'is_quick_created'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -30,6 +30,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_quick_created' => 'boolean',
         ];
     }
 
