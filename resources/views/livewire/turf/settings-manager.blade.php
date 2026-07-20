@@ -26,6 +26,9 @@ new #[Layout('layouts.app')] class extends Component
     public $cancellation_hours = 48;
     public $cancellation_fee = 0;
 
+    // Message Sharing settings
+    public $share_message_template = '';
+
     #[On('global-context-updated')]
     public function refreshSettings()
     {
@@ -58,6 +61,7 @@ new #[Layout('layouts.app')] class extends Component
                 $this->is_cancellation_active = (bool)$turf->is_cancellation_active;
                 $this->cancellation_hours = (int)$turf->cancellation_hours;
                 $this->cancellation_fee = $turf->cancellation_fee;
+                $this->share_message_template = $turf->share_message_template ?? "*Booking Confirmed!*\n\n⚽ *Turf:* {turf_name}\n📅 *Date:* {booking_date}\n⏰ *Slots:* {slots}\n\n💳 *Payment Details:*\n• Total Amount: ₹{total_amount}\n• Paid Amount: ₹{paid_amount}\n• Balance Due: ₹{balance_amount}\n\nThank you for booking with us!";
                 return;
             }
         }
@@ -85,6 +89,7 @@ new #[Layout('layouts.app')] class extends Component
             'is_cancellation_active' => 'required|boolean',
             'cancellation_hours' => 'required|integer|min:0',
             'cancellation_fee' => 'required|numeric|min:0',
+            'share_message_template' => 'nullable|string',
         ];
 
         if ($this->is_part_payment_active && $this->part_payment_type === 'percentage') {
@@ -307,6 +312,28 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
                             </div>
                         @endif
+                    </div>
+                </div>
+
+                <!-- 4. Message Sharing Settings Card -->
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-6">
+                    <div class="pb-4 border-b border-gray-50 dark:border-gray-700/40 flex items-center gap-2">
+                        <span class="text-xl">💬</span>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Message Sharing Settings') }}</h3>
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-0.5">{{ __('Configure custom template messages when sharing booking details with clients') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wider mb-2">{{ __('Share Message with booking') }}</label>
+                            <textarea wire:model="share_message_template" rows="8" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-xs text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 font-mono" placeholder="*Booking Confirmed!*..."></textarea>
+                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-semibold block mt-1">
+                                {{ __('Supported variables:') }} <code class="bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded">{customer_name}</code>, <code class="bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded">{turf_name}</code>, <code class="bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded">{booking_date}</code>, <code class="bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded">{slots}</code>, <code class="bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded">{total_amount}</code>, <code class="bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded">{paid_amount}</code>, <code class="bg-gray-100 dark:bg-gray-900 px-1 py-0.5 rounded">{balance_amount}</code>.
+                            </span>
+                            @error('share_message_template') <span class="block text-[10px] text-rose-500 mt-1 font-semibold">{{ $message }}</span> @enderror
+                        </div>
                     </div>
                 </div>
 

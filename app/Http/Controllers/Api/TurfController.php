@@ -153,6 +153,7 @@ class TurfController extends Controller
                     'part_payment_value' => $turf->part_payment_value ? (float)$turf->part_payment_value : null,
                     'cancellation_hours' => $turf->cancellation_hours,
                     'cancellation_fee' => (float)$turf->cancellation_fee,
+                    'share_message_template' => $turf->share_message_template,
                 ];
             });
 

@@ -37,6 +37,7 @@ class Turf extends Model
         'is_cancellation_active',
         'cancellation_hours',
         'cancellation_fee',
+        'share_message_template',
     ];
 
     protected $casts = [

@@ -120,6 +120,7 @@ class BookingController extends Controller
                 'customer_name' => $booking->user->name ?? 'N/A',
                 'customer_email' => $booking->user->email ?? 'N/A',
                 'customer_mobile' => $booking->user->mobile ?? 'N/A',
+                'share_message_template' => $booking->turf->share_message_template ?? null,
                 'payments' => $bDate->payments()->where('status', 'Success')->get()->map(function ($payment) {
                     return [
                         'id' => $payment->id,

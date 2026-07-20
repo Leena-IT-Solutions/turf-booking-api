@@ -80,6 +80,7 @@ class TurfSettingsTest extends TestCase
             ->set('is_cancellation_active', true)
             ->set('cancellation_hours', 12)
             ->set('cancellation_fee', 150.00)
+            ->set('share_message_template', 'Booking customized message template test')
             ->call('save')
             ->assertHasNoErrors();
 
@@ -96,6 +97,7 @@ class TurfSettingsTest extends TestCase
             'is_cancellation_active' => true,
             'cancellation_hours' => 12,
             'cancellation_fee' => 150.00,
+            'share_message_template' => 'Booking customized message template test',
         ]);
     }
 
