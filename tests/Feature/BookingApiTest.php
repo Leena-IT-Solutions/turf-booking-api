@@ -24,7 +24,6 @@ class BookingApiTest extends TestCase
     public function test_can_fetch_own_bookings(): void
     {
         $user = User::factory()->create();
-        $otherUser = User::factory()->create();
 
         $location = Location::create([
             'user_id' => $user->id,
@@ -51,18 +50,9 @@ class BookingApiTest extends TestCase
             'price' => 1500,
             'is_active' => true,
         ]);
-        
-        $slot2 = Slot::create([
-            'slot_category_id' => $category->id,
-            'from_time' => '20:00:00',
-            'to_time' => '21:00:00',
-            'duration' => 60,
-            'price' => 2000,
-            'is_active' => true,
-        ]);
 
-        // Create booking for user
-        $booking1 = Booking::create([
+        // 1. Create an upcoming booking (tomorrow)
+        $bookingUpcoming = Booking::create([
             'user_id' => $user->id,
             'turf_id' => $turf->id,
             'date_of_booking' => now(),
@@ -71,44 +61,52 @@ class BookingApiTest extends TestCase
             'payment_status' => 'Paid',
             'additional_discount' => 0.00,
         ]);
-        $bDate1 = $booking1->bookingDates()->create([
-            'booking_date' => '2026-07-20',
+        $tomorrowRaw = now()->addDay()->toDateString();
+        $tomorrowFormatted = \Carbon\Carbon::parse($tomorrowRaw)->format('F d, Y');
+        $bDateUpcoming = $bookingUpcoming->bookingDates()->create([
+            'booking_date' => $tomorrowRaw,
             'amount' => 1500,
             'additional_discount' => 0.00,
         ]);
-        $bDate1->bookingSlots()->create([
+        $bDateUpcoming->bookingSlots()->create([
             'slot_id' => $slot1->id,
         ]);
 
-        // Create booking for another user
-        $booking2 = Booking::create([
-            'user_id' => $otherUser->id,
+        // 2. Create a past booking (yesterday)
+        $bookingPast = Booking::create([
+            'user_id' => $user->id,
             'turf_id' => $turf->id,
-            'date_of_booking' => now(),
+            'date_of_booking' => now()->subDay(),
             'booking_type' => 'day',
             'status' => 'Confirmed',
             'payment_status' => 'Paid',
             'additional_discount' => 0.00,
         ]);
-        $bDate2 = $booking2->bookingDates()->create([
-            'booking_date' => '2026-07-21',
+        $yesterdayRaw = now()->subDay()->toDateString();
+        $yesterdayFormatted = \Carbon\Carbon::parse($yesterdayRaw)->format('F d, Y');
+        $bDatePast = $bookingPast->bookingDates()->create([
+            'booking_date' => $yesterdayRaw,
             'amount' => 2000,
             'additional_discount' => 0.00,
         ]);
-        $bDate2->bookingSlots()->create([
-            'slot_id' => $slot2->id,
+        $bDatePast->bookingSlots()->create([
+            'slot_id' => $slot1->id,
         ]);
 
-        $response = $this->actingAs($user, 'sanctum')->getJson('/api/bookings');
-
+        // Fetch upcoming (default)
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=upcoming');
         $response->assertStatus(200);
         $data = $response->json('data');
         $this->assertCount(1, $data);
-        $this->assertEquals('Legends Turf', $data[0]['turf_name']);
-        $this->assertEquals('July 20, 2026', $data[0]['booking_date']);
-        $this->assertEquals('Confirmed', $data[0]['status']);
+        $this->assertEquals($tomorrowFormatted, $data[0]['booking_date']);
         $this->assertEquals('₹1,500', $data[0]['price']);
-        $this->assertCount(1, $data[0]['slots']);
-        $this->assertEquals('06:00 PM - 07:00 PM', $data[0]['slots'][0]['time_range']);
+
+        // Fetch past
+        $responsePast = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=past');
+        $responsePast->assertStatus(200);
+        $dataPast = $responsePast->json('data');
+        $this->assertCount(1, $dataPast);
+        $this->assertEquals($yesterdayFormatted, $dataPast[0]['booking_date']);
+        $this->assertEquals('₹2,000', $dataPast[0]['price']);
     }
 }

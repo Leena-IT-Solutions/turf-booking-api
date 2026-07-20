@@ -15,17 +15,29 @@ class BookingController extends Controller
     /**
      * Get bookings made by the authenticated user.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $userId = auth()->id();
+        $filter = $request->query('filter', 'upcoming');
+        $today = Carbon::today('Asia/Kolkata')->toDateString();
         
-        $bookingDates = BookingDate::with(['booking.turf', 'bookingSlots.slot'])
+        $query = BookingDate::with(['booking.turf', 'bookingSlots.slot'])
             ->whereHas('booking', function ($q) use ($userId) {
                 $q->where('user_id', $userId);
-            })
-            ->orderBy('booking_date', 'desc')
-            ->orderBy('id', 'desc')
-            ->paginate(10);
+            });
+
+        if ($filter === 'past') {
+            $query->where('booking_date', '<', $today)
+                  ->orderBy('booking_date', 'desc')
+                  ->orderBy('id', 'desc');
+        } else {
+            // Default to upcoming (today or future)
+            $query->where('booking_date', '>=', $today)
+                  ->orderBy('booking_date', 'asc')
+                  ->orderBy('id', 'asc');
+        }
+        
+        $bookingDates = $query->paginate(10);
             
         $formatted = $bookingDates->through(function ($bDate) {
             $booking = $bDate->booking;
