@@ -267,4 +267,30 @@ class AuthController extends Controller
             'message' => 'Account deleted successfully.'
         ]);
     }
+
+    /**
+     * Search users by Name, Email, or Mobile (restricted to admins/managers).
+     */
+    public function searchUsers(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user->hasAnyRole(['saas-admin', 'turf-admin', 'manager'])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $query = $request->query('query', '');
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        $users = User::where(function ($q) use ($query) {
+            $q->where('name', 'LIKE', "%{$query}%")
+              ->orWhere('email', 'LIKE', "%{$query}%")
+              ->orWhere('mobile', 'LIKE', "%{$query}%");
+        })
+        ->limit(15)
+        ->get(['id', 'name', 'email', 'mobile']);
+
+        return response()->json($users);
+    }
 }

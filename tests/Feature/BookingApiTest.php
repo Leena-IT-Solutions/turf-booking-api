@@ -109,4 +109,99 @@ class BookingApiTest extends TestCase
         $this->assertEquals($yesterdayFormatted, $dataPast[0]['booking_date']);
         $this->assertEquals('₹2,000', $dataPast[0]['price']);
     }
+
+    public function test_booking_preview_and_manager_record_payment(): void
+    {
+        $admin = User::factory()->create();
+        $role = \App\Models\Role::firstOrCreate(['name' => 'turf-admin'], ['display_name' => 'Turf Admin']);
+        $admin->roles()->sync([$role->id]);
+
+        $customer = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        $category = SlotCategory::create([
+            'name' => 'Morning',
+            'is_active' => true,
+        ]);
+        
+        $slot1 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '06:00:00',
+            'to_time' => '07:00:00',
+            'duration' => 60,
+            'price' => 1000,
+            'is_active' => true,
+        ]);
+
+        $slot2 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '07:00:00',
+            'to_time' => '08:00:00',
+            'duration' => 60,
+            'price' => 1200,
+            'is_active' => true,
+        ]);
+
+        $turf->slots()->attach([$slot1->id => ['is_active' => true], $slot2->id => ['is_active' => true]]);
+
+        $dates = [now()->addDay()->toDateString(), now()->addDays(2)->toDateString()];
+
+        // Test preview endpoint
+        $previewResponse = $this->actingAs($customer, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings/preview", [
+            'slot_ids' => [$slot1->id, $slot2->id],
+            'booking_dates' => $dates,
+            'booking_type' => 'long',
+        ]);
+
+        $previewResponse->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'subtotal',
+                'total_amount',
+                'dates'
+            ]);
+
+        // Test Manager booking on behalf of another user
+        $storeResponse = $this->actingAs($admin, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings", [
+            'slot_ids' => [$slot1->id, $slot2->id],
+            'booking_dates' => $dates,
+            'booking_type' => 'long',
+            'payment_method' => 'offline',
+            'amount_received' => 1000,
+            'customer_id' => $customer->id,
+        ]);
+
+        $storeResponse->assertStatus(200);
+
+        // Fetch bookings as admin
+        $bookingsResponse = $this->actingAs($admin, 'sanctum')->getJson('/api/bookings');
+        $bookingsResponse->assertStatus(200);
+        $bookingsData = $bookingsResponse->json('data');
+        
+        $this->assertNotEmpty($bookingsData);
+        $firstBookingDateId = $bookingsData[0]['id'];
+
+        // Test Manager recording daily offline payment
+        $paymentResponse = $this->actingAs($admin, 'sanctum')->postJson("/api/booking-dates/{$firstBookingDateId}/payments", [
+            'payment_method' => 'Cash',
+            'amount' => 500,
+        ]);
+
+        $paymentResponse->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Payment recorded successfully.'
+            ]);
+    }
 }

@@ -14,6 +14,7 @@ class BookingDate extends Model
         'booking_date',
         'amount',
         'additional_discount',
+        'payment_status',
     ];
 
     protected $casts = [
@@ -35,5 +36,10 @@ class BookingDate extends Model
     public function couponUsage()
     {
         return $this->hasOne(CouponUsage::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
     }
 }

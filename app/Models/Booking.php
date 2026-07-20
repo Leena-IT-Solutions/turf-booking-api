@@ -38,4 +38,9 @@ class Booking extends Model
     {
         return $this->hasMany(BookingDate::class);
     }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
 }

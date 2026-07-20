@@ -35,6 +35,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/support/messages', [SupportController::class, 'store']);
     Route::post('/turfs/{turf}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
     Route::post('/turfs/{turf}/bookings', [\App\Http\Controllers\Api\BookingController::class, 'store']);
+    Route::post('/turfs/{turf}/bookings/preview', [\App\Http\Controllers\Api\BookingController::class, 'preview']);
     Route::post('/coupons/verify', [\App\Http\Controllers\Api\BookingController::class, 'verifyCoupon']);
     Route::get('/bookings', [\App\Http\Controllers\Api\BookingController::class, 'index']);
+    Route::get('/users/search', [AuthController::class, 'searchUsers']);
+    Route::post('/booking-dates/{bookingDate}/payments', [\App\Http\Controllers\Api\BookingController::class, 'recordPayment']);
 });
