@@ -1087,4 +1087,20 @@ class BookingController extends Controller
         }
         return null;
     }
+
+    /**
+     * Get active coupons for a turf.
+     */
+    public function getCoupons(Turf $turf): JsonResponse
+    {
+        $coupons = \App\Models\Coupon::where('turf_id', $turf->id)
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                      ->orWhere('expires_at', '>=', Carbon::today('Asia/Kolkata')->toDateString());
+            })
+            ->get();
+
+        return response()->json($coupons);
+    }
 }

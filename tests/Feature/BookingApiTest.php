@@ -389,4 +389,57 @@ class BookingApiTest extends TestCase
         $response->assertStatus(422);
         $response->assertJsonPath('message', 'Cannot book a past slot.');
     }
+
+    public function test_get_coupons_for_turf(): void
+    {
+        $user = User::factory()->create();
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        // Active coupon
+        \App\Models\Coupon::create([
+            'turf_id' => $turf->id,
+            'code' => 'SAVE10',
+            'description' => 'Get 10% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 10,
+            'is_active' => true,
+        ]);
+
+        // Inactive coupon
+        \App\Models\Coupon::create([
+            'turf_id' => $turf->id,
+            'code' => 'SAVE50',
+            'description' => 'Get 50% off',
+            'discount_type' => 'percentage',
+            'discount_value' => 50,
+            'is_active' => false,
+        ]);
+
+        // Expired coupon
+        \App\Models\Coupon::create([
+            'turf_id' => $turf->id,
+            'code' => 'EXPIRED',
+            'description' => 'Expired coupon',
+            'discount_type' => 'percentage',
+            'discount_value' => 20,
+            'is_active' => true,
+            'expires_at' => now()->subDay()->toDateString(),
+        ]);
+
+        $response = $this->getJson("/api/turfs/{$turf->id}/coupons");
+        $response->assertStatus(200);
+
+        $coupons = $response->json();
+        $this->assertCount(1, $coupons);
+        $this->assertEquals('SAVE10', $coupons[0]['code']);
+    }
 }
