@@ -670,4 +670,68 @@ class BookingApiTest extends TestCase
         $this->assertEquals(1, $response->json('total_bookings_today'));
         $this->assertEquals(1000, $response->json('total_revenue_today'));
     }
+
+    public function test_personal_bookings_filter(): void
+    {
+        $admin = User::factory()->create();
+        $role = \App\Models\Role::firstOrCreate(['name' => 'turf-admin'], ['display_name' => 'Turf Admin']);
+        $admin->roles()->sync([$role->id]);
+
+        $customer = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        // Booking 1: By admin for self
+        $bookingAdmin = Booking::create([
+            'user_id' => $admin->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDateAdmin = \App\Models\BookingDate::create([
+            'booking_id' => $bookingAdmin->id,
+            'booking_date' => now()->toDateString(),
+            'amount' => 1000,
+            'payment_status' => 'Paid',
+        ]);
+
+        // Booking 2: By customer
+        $bookingCustomer = Booking::create([
+            'user_id' => $customer->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDateCustomer = \App\Models\BookingDate::create([
+            'booking_id' => $bookingCustomer->id,
+            'booking_date' => now()->toDateString(),
+            'amount' => 1000,
+            'payment_status' => 'Paid',
+        ]);
+
+        // Fetch normal bookings (since admin, sees both)
+        $responseAll = $this->actingAs($admin, 'sanctum')->getJson('/api/bookings');
+        $responseAll->assertStatus(200);
+        $this->assertCount(2, $responseAll->json('data'));
+
+        // Fetch personal bookings (only sees own)
+        $responsePersonal = $this->actingAs($admin, 'sanctum')->getJson('/api/bookings?personal=1');
+        $responsePersonal->assertStatus(200);
+        $dataPersonal = $responsePersonal->json('data');
+        $this->assertCount(1, $dataPersonal);
+        $this->assertEquals($bDateAdmin->id, $dataPersonal[0]['id']);
+    }
 }
