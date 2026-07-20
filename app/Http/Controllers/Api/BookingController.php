@@ -467,12 +467,12 @@ class BookingController extends Controller
                 $slotsToCreate = [];
 
                 foreach ($slotIds as $slotId) {
-                    // Check if slot is already booked
                     $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
-                        ->whereHas('bookingDate', function ($q) use ($dateStr) {
+                        ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
                             $q->where('booking_date', $dateStr)
-                              ->whereHas('booking', function ($bq) {
-                                  $bq->where('status', 'Confirmed');
+                              ->whereHas('booking', function ($bq) use ($turf) {
+                                  $bq->where('turf_id', $turf->id)
+                                     ->where('status', 'Confirmed');
                               });
                         })
                         ->exists();
@@ -805,10 +805,11 @@ class BookingController extends Controller
             
             foreach ($slotIds as $slotId) {
                 $isBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
-                    ->whereHas('bookingDate', function ($q) use ($dateStr) {
+                    ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
                         $q->where('booking_date', $dateStr)
-                          ->whereHas('booking', function ($bq) {
-                              $bq->where('status', 'Confirmed');
+                          ->whereHas('booking', function ($bq) use ($turf) {
+                              $bq->where('turf_id', $turf->id)
+                                 ->where('status', 'Confirmed');
                           });
                     })
                     ->exists();
