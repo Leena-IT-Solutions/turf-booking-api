@@ -149,6 +149,8 @@ class TurfController extends Controller
                     'is_online_payment_active' => $turf->is_online_payment_active,
                     'is_part_payment_active' => $turf->is_part_payment_active,
                     'is_pay_at_location_active' => $turf->is_pay_at_location_active,
+                    'part_payment_type' => $turf->part_payment_type,
+                    'part_payment_value' => $turf->part_payment_value ? (float)$turf->part_payment_value : null,
                     'cancellation_hours' => $turf->cancellation_hours,
                     'cancellation_fee' => (float)$turf->cancellation_fee,
                 ];
