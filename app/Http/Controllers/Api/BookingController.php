@@ -365,7 +365,7 @@ class BookingController extends Controller
             'booking_dates.*' => 'required|date_format:Y-m-d',
             'booking_type' => 'required|string|in:day,long,scattered',
             'coupons' => 'nullable|array', // key: date (YYYY-MM-DD), value: coupon code (string)
-            'payment_method' => 'required|string|in:offline,App',
+            'payment_method' => 'required|string|in:offline,App,Cash,UPI,Other',
             'payment_option' => 'nullable|string|in:full,part',
             'amount_received' => 'nullable|numeric|min:0', // for manager
             'customer_id' => 'nullable|exists:users,id', // for manager

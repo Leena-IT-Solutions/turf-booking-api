@@ -442,4 +442,71 @@ class BookingApiTest extends TestCase
         $this->assertCount(1, $coupons);
         $this->assertEquals('SAVE10', $coupons[0]['code']);
     }
+
+    public function test_manager_booking_on_behalf_with_offline_payment_methods(): void
+    {
+        $manager = User::factory()->create();
+        $role = \App\Models\Role::firstOrCreate(['name' => 'manager'], ['display_name' => 'Manager']);
+        $manager->roles()->sync([$role->id]);
+
+        $customer = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $manager->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+            'hourly_rate' => 1000,
+        ]);
+        $category = SlotCategory::create(['name' => 'General']);
+        $slot1 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '10:00:00',
+            'to_time' => '11:00:00',
+            'duration' => 60,
+            'price' => 500,
+            'is_active' => true,
+        ]);
+        $slot2 = Slot::create([
+            'slot_category_id' => $category->id,
+            'from_time' => '11:00:00',
+            'to_time' => '12:00:00',
+            'duration' => 60,
+            'price' => 500,
+            'is_active' => true,
+        ]);
+        $turf->slots()->attach([
+            $slot1->id => ['is_active' => true],
+            $slot2->id => ['is_active' => true],
+        ]);
+
+        $tomorrow = \Carbon\Carbon::tomorrow('Asia/Kolkata')->toDateString();
+
+        // Perform booking
+        $response = $this->actingAs($manager, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings", [
+            'slot_ids' => [$slot1->id, $slot2->id],
+            'booking_dates' => [$tomorrow],
+            'booking_type' => 'day',
+            'payment_method' => 'Cash',
+            'customer_id' => $customer->id,
+            'amount_received' => 2000,
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertDatabaseHas('bookings', [
+            'user_id' => $customer->id,
+            'payment_status' => 'Paid',
+        ]);
+
+        $this->assertDatabaseHas('payments', [
+            'amount' => 2000,
+            'payment_method' => 'Cash',
+            'status' => 'Success',
+        ]);
+    }
 }
