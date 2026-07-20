@@ -139,12 +139,12 @@ class BookingController extends Controller
                 $duration = intval($slot->duration ?: 30);
 
                 if ($hourlyRate !== null) {
-                    $price = ($hourlyRate / 60) * $duration;
+                    $price = round(($hourlyRate / 60) * $duration, 2);
                 } else {
                     if (isset($slot->pivot->$dayOfWeek)) {
                         $price = (float)$slot->pivot->$dayOfWeek;
                     } else {
-                        $price = (1000.00 / 60) * $duration;
+                        $price = round((1000.00 / 60) * $duration, 2);
                     }
                 }
 
@@ -453,12 +453,12 @@ class BookingController extends Controller
                     $duration = intval($slot->duration ?: 30);
 
                     if ($hourlyRate !== null) {
-                        $price = ($hourlyRate / 60) * $duration;
+                        $price = round(($hourlyRate / 60) * $duration, 2);
                     } else {
                         if (isset($slot->pivot->$dayOfWeek)) {
                             $price = (float)$slot->pivot->$dayOfWeek;
                         } else {
-                            $price = (1000.00 / 60) * $duration;
+                            $price = round((1000.00 / 60) * $duration, 2);
                         }
                     }
 
