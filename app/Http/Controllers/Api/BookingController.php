@@ -134,6 +134,9 @@ class BookingController extends Controller
                 'customer_email' => $booking->user->email ?? 'N/A',
                 'customer_mobile' => $booking->user->mobile ?? 'N/A',
                 'share_message_template' => $booking->turf->share_message_template ?? null,
+                'is_cancellation_active' => $booking->turf ? (bool)$booking->turf->is_cancellation_active : false,
+                'cancellation_hours' => $booking->turf ? (int)$booking->turf->cancellation_hours : 0,
+                'cancellation_fee' => $booking->turf ? (float)$booking->turf->cancellation_fee : 0.00,
                 'payments' => $bDate->payments()->where('status', 'Success')->get()->map(function ($payment) {
                     return [
                         'id' => $payment->id,
