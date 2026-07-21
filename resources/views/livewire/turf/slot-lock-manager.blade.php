@@ -246,11 +246,11 @@ new #[Layout('layouts.app')] class extends Component
 
             <!-- Slots Grid -->
             @php
-                $categories = SlotCategory::with(['slots' => function($q) use ($turf) {
-                    $q->whereHas('turfs', function($tq) use ($turf) {
-                        $tq->where('turfs.id', $turf->id)->where('is_active', true);
-                    })->where('is_active', true);
-                }])->get();
+                $activeTurfSlots = $turf->slots()->wherePivot('is_active', true)->where('slots.is_active', true)->get();
+                $categories = SlotCategory::with('slots')->get()->map(function($cat) use ($activeTurfSlots) {
+                    $cat->setRelation('slots', $activeTurfSlots->where('slot_category_id', $cat->id));
+                    return $cat;
+                });
             @endphp
 
             <div class="space-y-6">

@@ -27,4 +27,11 @@ class Slot extends Model
     {
         return $this->belongsTo(SlotCategory::class, 'slot_category_id');
     }
+
+    public function turfs()
+    {
+        return $this->belongsToMany(Turf::class, 'slot_turf')
+            ->withPivot('is_active', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')
+            ->withTimestamps();
+    }
 }
