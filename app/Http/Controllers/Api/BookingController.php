@@ -1248,16 +1248,21 @@ class BookingController extends Controller
         }
 
         $user = auth()->user();
-        $isStaffOrAdmin = $user->hasAnyRole(['saas-admin', 'turf-admin', 'manager']);
+        $isOwner = ($booking->user_id === $user->id);
         
-        if (!$isStaffOrAdmin && $booking->user_id !== $user->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $isStaffOrAdmin = false;
+        if (!$isOwner) {
+            if ($user->hasRole('saas-admin')) {
+                $isStaffOrAdmin = true;
+            } else if ($user->hasAnyRole(['turf-admin', 'manager'])) {
+                $manageableTurfIds = $user->manageableTurfs()->pluck('turfs.id')->toArray();
+                if (in_array($booking->turf_id, $manageableTurfIds)) {
+                    $isStaffOrAdmin = true;
+                }
+            }
 
-        if ($isStaffOrAdmin && !$user->hasRole('saas-admin')) {
-            $manageableTurfIds = $user->manageableTurfs()->pluck('turfs.id')->toArray();
-            if (!in_array($booking->turf_id, $manageableTurfIds)) {
-                return response()->json(['message' => 'Unauthorized to cancel bookings for this turf.'], 403);
+            if (!$isStaffOrAdmin) {
+                return response()->json(['message' => 'Unauthorized to cancel this booking.'], 403);
             }
         }
 
