@@ -272,25 +272,25 @@ new #[Layout('layouts.app')] class extends Component
                                         $toFormatted = date('h:i A', strtotime($slot->to_time));
                                     @endphp
 
-                                    <label class="relative flex flex-col p-3 rounded-lg border cursor-pointer transition select-none {{ $isLocked ? 'bg-red-50 dark:bg-red-950/40 border-red-300 dark:border-red-800' : ($isSelected ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-500 dark:border-amber-500' : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-gray-300') }}">
-                                        <div class="flex items-center justify-between mb-1">
-                                            <input type="checkbox" value="{{ $slot->id }}" wire:model.live="selectedSlotIds" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+                                    <label class="relative flex flex-col p-3 rounded-xl border cursor-pointer transition select-none {{ $isLocked ? 'bg-red-50 dark:bg-red-950/50 border-red-300 dark:border-red-700/80' : ($isSelected ? 'bg-amber-500/15 dark:bg-amber-500/20 border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/40' : 'bg-white dark:bg-gray-900/90 border-gray-200 dark:border-gray-700/80 hover:border-gray-300 dark:hover:border-gray-600') }}">
+                                        <div class="flex items-center justify-between mb-1.5">
+                                            <input type="checkbox" value="{{ $slot->id }}" wire:model.live="selectedSlotIds" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500 dark:bg-gray-800 dark:border-gray-600">
                                             @if ($isLocked)
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                                                    Locked
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 dark:bg-red-900/80 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700">
+                                                    🔒 Locked
                                                 </span>
                                             @endif
                                         </div>
 
-                                        <span class="text-xs font-bold text-gray-900 dark:text-white">
+                                        <span class="text-xs font-bold {{ $isLocked ? 'text-red-900 dark:text-red-200' : ($isSelected ? 'text-amber-950 dark:text-amber-200' : 'text-gray-800 dark:text-gray-200') }}">
                                             {{ $fromFormatted }} - {{ $toFormatted }}
                                         </span>
 
                                         @if ($isLocked)
-                                            <span class="text-[10px] text-red-600 dark:text-red-400 mt-1 truncate font-medium" title="{{ $reason }}">
+                                            <span class="text-[10px] text-red-600 dark:text-red-300 mt-1 truncate font-medium" title="{{ $reason }}">
                                                 📌 {{ $reason }}
                                             </span>
-                                            <button type="button" wire:click.stop="unlockSingleSlot({{ $slot->id }})" class="mt-2 text-[10px] font-semibold text-emerald-600 hover:underline text-left">
+                                            <button type="button" wire:click.stop="unlockSingleSlot({{ $slot->id }})" class="mt-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline text-left flex items-center gap-1">
                                                 🔓 Unlock
                                             </button>
                                         @endif
