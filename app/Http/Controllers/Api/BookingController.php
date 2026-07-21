@@ -81,6 +81,8 @@ class BookingController extends Controller
                 if ($slot) {
                     $slots[] = [
                         'id' => $slot->id,
+                        'from_time' => $slot->from_time,
+                        'to_time' => $slot->to_time,
                         'time_range' => ($slot->from_time && $slot->to_time)
                             ? date('h:i A', strtotime($slot->from_time)) . ' - ' . date('h:i A', strtotime($slot->to_time))
                             : 'N/A',
@@ -89,9 +91,27 @@ class BookingController extends Controller
                 }
             }
 
-            // Summary of slots for this date
-            $slotCount = count($slots);
-            $summaryText = $slotCount . ' ' . ($slotCount === 1 ? 'slot' : 'slots') . ' booked';
+            usort($slots, function ($a, $b) {
+                return strcmp($a['from_time'] ?? '', $b['from_time'] ?? '');
+            });
+
+            // Summary of slots for this date: Start Time - End Time
+            $summaryText = '';
+            if (!empty($slots)) {
+                $firstSlot = $slots[0];
+                $lastSlot = end($slots);
+
+                $startTime = (!empty($firstSlot['from_time'])) ? date('h:i A', strtotime($firstSlot['from_time'])) : '';
+                $endTime = (!empty($lastSlot['to_time'])) ? date('h:i A', strtotime($lastSlot['to_time'])) : '';
+
+                if ($startTime && $endTime) {
+                    $summaryText = $startTime . ' - ' . $endTime;
+                } else {
+                    $summaryText = $firstSlot['time_range'] ?? 'N/A';
+                }
+            } else {
+                $summaryText = 'N/A';
+            }
 
             // Calculate overall booking payment status metrics
             $totalBookingAmount = 0.00;
