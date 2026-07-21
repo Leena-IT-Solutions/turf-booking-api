@@ -1365,10 +1365,28 @@ class BookingController extends Controller
             if ($gateway && $gateway->gateway_name === 'razorpay' && $gateway->gateway_payment_id) {
                 if ($razorpayKey && $razorpaySecret) {
                     try {
+                        $paymentId = $gateway->gateway_payment_id;
+                        $amountInPaise = (int)round($paymentRefund * 100);
+
+                        $fetchResponse = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                            ->get("https://api.razorpay.com/v1/payments/{$paymentId}");
+
+                        if ($fetchResponse->successful()) {
+                            $pData = $fetchResponse->json();
+                            if (($pData['status'] ?? '') === 'authorized') {
+                                \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                    ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
+                                        'amount' => $amountInPaise,
+                                        'currency' => 'INR',
+                                    ]);
+                            }
+                        }
+
                         $response = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                            ->post("https://api.razorpay.com/v1/payments/{$gateway->gateway_payment_id}/refund", [
-                                'amount' => round($paymentRefund * 100),
+                            ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
+                                'amount' => $amountInPaise,
                             ]);
+
                         if ($response->successful()) {
                             $resData = $response->json();
                             $gateway->update([
@@ -1376,10 +1394,36 @@ class BookingController extends Controller
                                 'refund_response_payload' => $resData,
                             ]);
                         } else {
-                            $paymentRefundStatus = 'Failed';
+                            $errBody = $response->json();
+                            if (isset($errBody['error']['description']) && str_contains(strtolower($errBody['error']['description']), 'authorized')) {
+                                \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                    ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
+                                        'amount' => $amountInPaise,
+                                        'currency' => 'INR',
+                                    ]);
+
+                                $retryRefund = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                    ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
+                                        'amount' => $amountInPaise,
+                                    ]);
+
+                                if ($retryRefund->successful()) {
+                                    $resData = $retryRefund->json();
+                                    $gateway->update([
+                                        'gateway_refund_id' => $resData['id'] ?? null,
+                                        'refund_response_payload' => $resData,
+                                    ]);
+                                } else {
+                                    $gateway->update(['refund_response_payload' => $retryRefund->json()]);
+                                    $paymentRefundStatus = 'Failed';
+                                }
+                            } else {
+                                $gateway->update(['refund_response_payload' => $errBody]);
+                                $paymentRefundStatus = 'Failed';
+                            }
                         }
                     } catch (\Exception $e) {
-                        // Failover gracefully if offline or mock
+                        \Illuminate\Support\Facades\Log::error('Razorpay Refund Exception: ' . $e->getMessage());
                     }
                 }
             }
