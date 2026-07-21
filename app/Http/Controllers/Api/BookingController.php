@@ -776,6 +776,8 @@ class BookingController extends Controller
 
             $this->recalculateBookingPaymentStatus($booking);
 
+            \App\Services\NotificationService::notifyBookingCreated($booking);
+
             \DB::commit();
 
             return response()->json([
@@ -1012,6 +1014,7 @@ class BookingController extends Controller
 
         try {
             $this->distributePaymentToBooking($booking, $amountToPay, $validated['payment_method']);
+            \App\Services\NotificationService::notifyPaymentRecorded($booking, $amountToPay);
             \DB::commit();
 
             return response()->json([
@@ -1544,6 +1547,8 @@ class BookingController extends Controller
 
         $feeMsg = $totalFeeAppliedNow > 0 ? " Cancellation fee of ₹" . number_format($totalFeeAppliedNow, 0) . " applied." : "";
         $refundMsg = $totalRefundProcessedNow > 0 ? " Refund of ₹" . number_format($totalRefundProcessedNow, 0) . " processed to original payment method." : " No refund applicable.";
+
+        \App\Services\NotificationService::notifyBookingCancelled($booking);
 
         return response()->json([
             'message' => "Successfully cancelled $totalDatesCancelledNow booking date(s)." . $feeMsg . $refundMsg,

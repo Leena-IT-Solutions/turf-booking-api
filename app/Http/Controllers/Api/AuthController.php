@@ -406,4 +406,28 @@ class AuthController extends Controller
             'is_quick_created' => true,
         ], 201);
     }
+
+    /**
+     * Store device FCM token for logged in user.
+     */
+    public function storeDeviceToken(Request $request)
+    {
+        $request->validate([
+            'device_token' => 'required|string',
+            'device_type' => 'nullable|string|in:android,ios,web',
+        ]);
+
+        $user = auth()->user();
+
+        \App\Models\DeviceToken::updateOrCreate([
+            'user_id' => $user->id,
+            'device_token' => $request->input('device_token'),
+        ], [
+            'device_type' => $request->input('device_type', 'android'),
+        ]);
+
+        return response()->json([
+            'message' => 'Device token saved successfully.'
+        ]);
+    }
 }
