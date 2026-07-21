@@ -12,15 +12,25 @@ class BookingDate extends Model
     protected $fillable = [
         'booking_id',
         'booking_date',
+        'status',
         'amount',
         'additional_discount',
         'payment_status',
+        'cancelled_at',
+        'cancellation_fee_applied',
+        'refund_amount',
+        'refund_status',
+        'refunded_at',
     ];
 
     protected $casts = [
         'booking_date' => 'string',
         'amount' => 'decimal:2',
         'additional_discount' => 'decimal:2',
+        'cancelled_at' => 'datetime',
+        'cancellation_fee_applied' => 'decimal:2',
+        'refund_amount' => 'decimal:2',
+        'refunded_at' => 'datetime',
     ];
 
     public function booking()

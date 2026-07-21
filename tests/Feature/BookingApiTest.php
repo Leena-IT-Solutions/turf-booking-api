@@ -8,6 +8,8 @@ use App\Models\Turf;
 use App\Models\SlotCategory;
 use App\Models\Slot;
 use App\Models\Booking;
+use App\Models\BookingDate;
+use App\Models\Payment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -830,5 +832,78 @@ class BookingApiTest extends TestCase
 
         $response = $this->actingAs($admin, 'sanctum')->postJson("/api/bookings/{$booking3->id}/cancel");
         $response->assertStatus(200);
+    }
+
+    public function test_itemized_date_cancellation(): void
+    {
+        \App\Models\Role::firstOrCreate(['name' => 'customer'], ['display_name' => 'Customer']);
+        $customer = User::factory()->create();
+        $customer->assignRole('customer');
+
+        $location = Location::create(['user_id' => $customer->id, 'name' => 'Goa', 'address' => 'Calangute']);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Beach Turf',
+            'type' => 'Synthetic',
+            'is_cancellation_active' => true,
+            'cancellation_hours' => 24,
+            'cancellation_fee' => 100.00,
+        ]);
+
+        $booking = Booking::create([
+            'user_id' => $customer->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'scattered',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        $date1 = BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => now()->addDays(3)->toDateString(),
+            'amount' => 500,
+            'payment_status' => 'Paid',
+        ]);
+
+        $date2 = BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => now()->addDays(4)->toDateString(),
+            'amount' => 500,
+            'payment_status' => 'Paid',
+        ]);
+
+        Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $date1->id,
+            'payment_method' => 'App',
+            'amount' => 500.00,
+            'status' => 'Success',
+            'paid_at' => now(),
+        ]);
+
+        Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $date2->id,
+            'payment_method' => 'App',
+            'amount' => 500.00,
+            'status' => 'Success',
+            'paid_at' => now(),
+        ]);
+
+        // Cancel only date1
+        $response = $this->actingAs($customer, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel", [
+            'booking_date_ids' => [$date1->id],
+        ]);
+
+        $response->assertStatus(200);
+
+        $this->assertEquals('Cancelled', $date1->fresh()->status);
+        $this->assertEquals('Confirmed', $date2->fresh()->status);
+
+        $freshBooking = $booking->fresh();
+        $this->assertEquals('Partially Cancelled', $freshBooking->status);
+        $this->assertEquals(100.00, $freshBooking->cancellation_fee_applied);
+        $this->assertEquals(400.00, $freshBooking->refund_amount);
     }
 }

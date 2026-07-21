@@ -116,7 +116,9 @@ class BookingController extends Controller
                 'date_raw' => $bDate->booking_date,
                 'date_of_booking' => $booking ? Carbon::parse($booking->date_of_booking)->format('F d, Y h:i A') : 'N/A',
                 'booking_type' => $booking->booking_type ?? 'N/A',
-                'status' => $booking->status ?? 'Pending',
+                'status' => ($bDate->status === 'Cancelled') ? 'Cancelled' : ($booking->status ?? 'Pending'),
+                'booking_status' => $booking->status ?? 'Pending',
+                'date_status' => $bDate->status ?? 'Confirmed',
                 'payment_status' => $booking->payment_status ?? 'Pending',
                 'date_payment_status' => $bDate->payment_status ?? 'Unpaid',
                 'amount' => (float)$bDate->amount,
@@ -137,11 +139,11 @@ class BookingController extends Controller
                 'is_cancellation_active' => $booking->turf ? (bool)$booking->turf->is_cancellation_active : false,
                 'cancellation_hours' => $booking->turf ? (int)$booking->turf->cancellation_hours : 0,
                 'cancellation_fee' => $booking->turf ? (float)$booking->turf->cancellation_fee : 0.00,
-                'cancelled_at' => $booking->cancelled_at ? Carbon::parse($booking->cancelled_at)->format('F d, Y h:i A') : null,
-                'cancellation_fee_applied' => (float)$booking->cancellation_fee_applied,
-                'refund_amount' => (float)$booking->refund_amount,
-                'refund_status' => $booking->refund_status ?? 'None',
-                'refunded_at' => $booking->refunded_at ? Carbon::parse($booking->refunded_at)->format('F d, Y h:i A') : null,
+                'cancelled_at' => ($bDate->status === 'Cancelled' && $bDate->cancelled_at) ? Carbon::parse($bDate->cancelled_at)->format('F d, Y h:i A') : ($booking->cancelled_at ? Carbon::parse($booking->cancelled_at)->format('F d, Y h:i A') : null),
+                'cancellation_fee_applied' => ($bDate->status === 'Cancelled') ? (float)$bDate->cancellation_fee_applied : (float)$booking->cancellation_fee_applied,
+                'refund_amount' => ($bDate->status === 'Cancelled') ? (float)$bDate->refund_amount : (float)$booking->refund_amount,
+                'refund_status' => ($bDate->status === 'Cancelled') ? ($bDate->refund_status ?? 'None') : ($booking->refund_status ?? 'None'),
+                'refunded_at' => ($bDate->status === 'Cancelled' && $bDate->refunded_at) ? Carbon::parse($bDate->refunded_at)->format('F d, Y h:i A') : ($booking->refunded_at ? Carbon::parse($booking->refunded_at)->format('F d, Y h:i A') : null),
                 'payments' => $bDate->payments()->where('status', 'Success')->get()->map(function ($payment) {
                     return [
                         'id' => $payment->id,
@@ -1271,7 +1273,7 @@ class BookingController extends Controller
     public function cancel(Request $request, \App\Models\Booking $booking): JsonResponse
     {
         if ($booking->status === 'Cancelled') {
-            return response()->json(['message' => 'Booking is already cancelled.'], 422);
+            return response()->json(['message' => 'Booking is already fully cancelled.'], 422);
         }
 
         $user = auth()->user();
@@ -1298,185 +1300,217 @@ class BookingController extends Controller
             return response()->json(['message' => 'Cancellation is not allowed for this turf.'], 422);
         }
 
+        $targetedDateIds = $request->input('booking_date_ids');
+        if (empty($targetedDateIds) && $request->filled('booking_date_id')) {
+            $targetedDateIds = [$request->input('booking_date_id')];
+        }
+
+        $bookingDatesQuery = $booking->bookingDates()->where('status', '!=', 'Cancelled');
+        if (!empty($targetedDateIds) && is_array($targetedDateIds)) {
+            $bookingDatesQuery->whereIn('id', $targetedDateIds);
+        }
+
+        $targetedDates = $bookingDatesQuery->get();
+        if ($targetedDates->isEmpty()) {
+            return response()->json(['message' => 'No active booking dates selected or available for cancellation.'], 422);
+        }
+
+        $cancellationHours = (int)$turf->cancellation_hours;
+        $now = Carbon::now('Asia/Kolkata');
+
         if (!$isStaffOrAdmin) {
-            $cancellationHours = (int)$turf->cancellation_hours;
-            
-            $earliestStart = null;
-            $booking->load(['bookingDates.bookingSlots.slot']);
-            foreach ($booking->bookingDates as $bDate) {
-                $dateStr = $bDate->booking_date;
+            foreach ($targetedDates as $bDate) {
+                $earliestStart = null;
+                $bDate->load(['bookingSlots.slot']);
                 foreach ($bDate->bookingSlots as $bSlot) {
                     $slot = $bSlot->slot;
                     if ($slot && $slot->from_time) {
-                        $dt = Carbon::parse($dateStr . ' ' . $slot->from_time, 'Asia/Kolkata');
+                        $dt = Carbon::parse($bDate->booking_date . ' ' . $slot->from_time, 'Asia/Kolkata');
                         if ($earliestStart === null || $dt->lt($earliestStart)) {
                             $earliestStart = $dt;
                         }
                     }
                 }
                 if ($earliestStart === null) {
-                    $dt = Carbon::parse($dateStr, 'Asia/Kolkata')->startOfDay();
-                    if ($earliestStart === null || $dt->lt($earliestStart)) {
-                        $earliestStart = $dt;
-                    }
+                    $earliestStart = Carbon::parse($bDate->booking_date, 'Asia/Kolkata')->startOfDay();
                 }
-            }
 
-            if ($earliestStart) {
-                $now = Carbon::now('Asia/Kolkata');
                 $diffInHours = $now->diffInHours($earliestStart, false);
                 if ($diffInHours < $cancellationHours) {
                     return response()->json([
-                        'message' => "Cancellation is only allowed up to $cancellationHours hours before the booking starts."
+                        'message' => "Cancellation for date {$bDate->booking_date} is only allowed up to $cancellationHours hours before session start."
                     ], 422);
                 }
             }
         }
 
-        $cancelledAt = Carbon::now('Asia/Kolkata');
+        $cancelledAt = $now;
         $cancellationFeeSetting = (float)$turf->cancellation_fee;
-
-        $successfulPayments = Payment::where('booking_id', $booking->id)
-            ->where('status', 'Success')
-            ->get();
-            
-        $totalPaidAmount = (float)$successfulPayments->sum('amount');
-        
-        $cancellationFeeApplied = 0.00;
-        $totalRefundDue = 0.00;
-
-        if ($totalPaidAmount > 0) {
-            $cancellationFeeApplied = min($totalPaidAmount, $cancellationFeeSetting);
-            $totalRefundDue = max(0.00, $totalPaidAmount - $cancellationFeeApplied);
-        }
-
-        $refundStatus = 'Not Applicable';
-        $refundedAt = null;
-
-        if ($totalPaidAmount > 0) {
-            if ($totalRefundDue > 0) {
-                $refundStatus = 'Refunded';
-                $refundedAt = $cancelledAt;
-            } else {
-                $refundStatus = 'Not Applicable';
-            }
-        }
-
-        $booking->update([
-            'status' => 'Cancelled',
-            'cancelled_at' => $cancelledAt,
-            'cancellation_fee_applied' => $cancellationFeeApplied,
-            'refund_amount' => $totalRefundDue,
-            'refund_status' => $refundStatus,
-            'refunded_at' => $refundedAt,
-        ]);
-
-        $remainingRefundToDistribute = $totalRefundDue;
         $setting = \App\Models\SaasSetting::first();
         $razorpayKey = $setting?->razorpay_key ?: config('services.razorpay.key');
         $razorpaySecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
 
-        foreach ($successfulPayments as $payment) {
-            if ($remainingRefundToDistribute <= 0) {
-                $payment->update([
-                    'refunded_amount' => 0.00,
-                    'refund_status' => 'None',
-                ]);
-                continue;
+        $totalDatesCancelledNow = 0;
+        $totalRefundProcessedNow = 0.00;
+        $totalFeeAppliedNow = 0.00;
+
+        foreach ($targetedDates as $bDate) {
+            $successfulPayments = Payment::where('booking_date_id', $bDate->id)
+                ->where('status', 'Success')
+                ->get();
+
+            $datePaidAmount = (float)$successfulPayments->sum('amount');
+            $dateFeeApplied = 0.00;
+            $dateRefundDue = 0.00;
+
+            if ($datePaidAmount > 0) {
+                $dateFeeApplied = min($datePaidAmount, $cancellationFeeSetting);
+                $dateRefundDue = max(0.00, $datePaidAmount - $dateFeeApplied);
             }
 
-            $paymentRefund = min((float)$payment->amount, $remainingRefundToDistribute);
-            $paymentRefundStatus = 'Refunded';
+            $dateRefundStatus = ($datePaidAmount > 0 && $dateRefundDue > 0) ? 'Refunded' : 'Not Applicable';
+            $dateRefundedAt = ($datePaidAmount > 0 && $dateRefundDue > 0) ? $cancelledAt : null;
 
-            $gateway = \App\Models\PaymentGateway::where('payment_id', $payment->id)->first();
-            if ($gateway && $gateway->gateway_name === 'razorpay' && $gateway->gateway_payment_id) {
-                if ($razorpayKey && $razorpaySecret) {
-                    try {
-                        $paymentId = $gateway->gateway_payment_id;
-                        $refundPaise = (int)round($paymentRefund * 100);
+            $remainingRefundToDistribute = $dateRefundDue;
+            foreach ($successfulPayments as $payment) {
+                if ($remainingRefundToDistribute <= 0) {
+                    $payment->update(['refunded_amount' => 0.00, 'refund_status' => 'None']);
+                    continue;
+                }
 
-                        $fetchResponse = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                            ->get("https://api.razorpay.com/v1/payments/{$paymentId}");
+                $paymentRefund = min((float)$payment->amount, $remainingRefundToDistribute);
+                $paymentRefundStatus = 'Refunded';
 
-                        if ($fetchResponse->successful()) {
-                            $pData = $fetchResponse->json();
-                            $rzpStatus = $pData['status'] ?? '';
-                            $totalPaise = $pData['amount'] ?? (int)round((float)$payment->amount * 100);
+                $gateway = \App\Models\PaymentGateway::where('payment_id', $payment->id)->first();
+                if ($gateway && $gateway->gateway_name === 'razorpay' && $gateway->gateway_payment_id) {
+                    if ($razorpayKey && $razorpaySecret) {
+                        try {
+                            $paymentId = $gateway->gateway_payment_id;
+                            $refundPaise = (int)round($paymentRefund * 100);
 
-                            if ($rzpStatus === 'authorized') {
-                                \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                                    ->asForm()
-                                    ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
-                                        'amount' => $totalPaise,
-                                        'currency' => $pData['currency'] ?? 'INR',
-                                    ]);
+                            $fetchResponse = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                ->get("https://api.razorpay.com/v1/payments/{$paymentId}");
+
+                            if ($fetchResponse->successful()) {
+                                $pData = $fetchResponse->json();
+                                $rzpStatus = $pData['status'] ?? '';
+                                $totalPaise = $pData['amount'] ?? (int)round((float)$payment->amount * 100);
+
+                                if ($rzpStatus === 'authorized') {
+                                    \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                        ->asForm()
+                                        ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
+                                            'amount' => $totalPaise,
+                                            'currency' => $pData['currency'] ?? 'INR',
+                                        ]);
+                                }
                             }
-                        }
 
-                        $response = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                            ->asForm()
-                            ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
-                                'amount' => $refundPaise,
-                            ]);
+                            $response = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                ->asForm()
+                                ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
+                                    'amount' => $refundPaise,
+                                ]);
 
-                        if ($response->successful()) {
-                            $resData = $response->json();
-                            $gateway->update([
-                                'gateway_refund_id' => $resData['id'] ?? null,
-                                'refund_response_payload' => $resData,
-                            ]);
-                        } else {
-                            $errBody = $response->json();
-                            if (isset($errBody['error']['description']) && str_contains(strtolower($errBody['error']['description']), 'authorized')) {
-                                $fullPaise = (int)round((float)$payment->amount * 100);
-                                \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                                    ->asForm()
-                                    ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
-                                        'amount' => $fullPaise,
-                                        'currency' => 'INR',
-                                    ]);
+                            if ($response->successful()) {
+                                $resData = $response->json();
+                                $gateway->update([
+                                    'gateway_refund_id' => $resData['id'] ?? null,
+                                    'refund_response_payload' => $resData,
+                                ]);
+                            } else {
+                                $errBody = $response->json();
+                                if (isset($errBody['error']['description']) && str_contains(strtolower($errBody['error']['description']), 'authorized')) {
+                                    $fullPaise = (int)round((float)$payment->amount * 100);
+                                    \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                        ->asForm()
+                                        ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
+                                            'amount' => $fullPaise,
+                                            'currency' => 'INR',
+                                        ]);
 
-                                $retryRefund = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                                    ->asForm()
-                                    ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
-                                        'amount' => $refundPaise,
-                                    ]);
+                                    $retryRefund = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                        ->asForm()
+                                        ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
+                                            'amount' => $refundPaise,
+                                        ]);
 
-                                if ($retryRefund->successful()) {
-                                    $resData = $retryRefund->json();
-                                    $gateway->update([
-                                        'gateway_refund_id' => $resData['id'] ?? null,
-                                        'refund_response_payload' => $resData,
-                                    ]);
+                                    if ($retryRefund->successful()) {
+                                        $resData = $retryRefund->json();
+                                        $gateway->update([
+                                            'gateway_refund_id' => $resData['id'] ?? null,
+                                            'refund_response_payload' => $resData,
+                                        ]);
+                                    } else {
+                                        $gateway->update(['refund_response_payload' => $retryRefund->json()]);
+                                        $paymentRefundStatus = 'Failed';
+                                    }
                                 } else {
-                                    $gateway->update(['refund_response_payload' => $retryRefund->json()]);
+                                    $gateway->update(['refund_response_payload' => $errBody]);
                                     $paymentRefundStatus = 'Failed';
                                 }
-                            } else {
-                                $gateway->update(['refund_response_payload' => $errBody]);
-                                $paymentRefundStatus = 'Failed';
                             }
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error('Razorpay Refund Exception: ' . $e->getMessage());
                         }
-                    } catch (\Exception $e) {
-                        \Illuminate\Support\Facades\Log::error('Razorpay Refund Exception: ' . $e->getMessage());
                     }
                 }
+
+                $payment->update([
+                    'refunded_amount' => $paymentRefund,
+                    'refund_status' => $paymentRefundStatus,
+                    'refunded_at' => $cancelledAt,
+                ]);
+
+                $remainingRefundToDistribute -= $paymentRefund;
             }
 
-            $payment->update([
-                'refunded_amount' => $paymentRefund,
-                'refund_status' => $paymentRefundStatus,
-                'refunded_at' => $cancelledAt,
+            $bDate->update([
+                'status' => 'Cancelled',
+                'cancelled_at' => $cancelledAt,
+                'cancellation_fee_applied' => $dateFeeApplied,
+                'refund_amount' => $dateRefundDue,
+                'refund_status' => $dateRefundStatus,
+                'refunded_at' => $dateRefundedAt,
             ]);
 
-            $remainingRefundToDistribute -= $paymentRefund;
+            $totalDatesCancelledNow++;
+            $totalRefundProcessedNow += $dateRefundDue;
+            $totalFeeAppliedNow += $dateFeeApplied;
         }
 
-        $feeMsg = $cancellationFeeApplied > 0 ? " Cancellation fee of ₹" . number_format($cancellationFeeApplied, 0) . " applied." : "";
-        $refundMsg = $totalRefundDue > 0 ? " Refund of ₹" . number_format($totalRefundDue, 0) . " processed to original payment method." : " No refund applicable.";
+        $allDates = $booking->bookingDates()->get();
+        $totalDatesCount = $allDates->count();
+        $cancelledDatesCount = $allDates->where('status', 'Cancelled')->count();
+
+        $aggregateFee = (float)$allDates->sum('cancellation_fee_applied');
+        $aggregateRefund = (float)$allDates->sum('refund_amount');
+        $earliestCancelledAt = $allDates->whereNotNull('cancelled_at')->min('cancelled_at');
+        $latestRefundedAt = $allDates->whereNotNull('refunded_at')->max('refunded_at');
+
+        $parentStatus = 'Confirmed';
+        if ($cancelledDatesCount === $totalDatesCount) {
+            $parentStatus = 'Cancelled';
+        } elseif ($cancelledDatesCount > 0) {
+            $parentStatus = 'Partially Cancelled';
+        }
+
+        $parentRefundStatus = ($aggregateRefund > 0) ? 'Refunded' : 'Not Applicable';
+
+        $booking->update([
+            'status' => $parentStatus,
+            'cancelled_at' => $earliestCancelledAt,
+            'cancellation_fee_applied' => $aggregateFee,
+            'refund_amount' => $aggregateRefund,
+            'refund_status' => $parentRefundStatus,
+            'refunded_at' => $latestRefundedAt,
+        ]);
+
+        $feeMsg = $totalFeeAppliedNow > 0 ? " Cancellation fee of ₹" . number_format($totalFeeAppliedNow, 0) . " applied." : "";
+        $refundMsg = $totalRefundProcessedNow > 0 ? " Refund of ₹" . number_format($totalRefundProcessedNow, 0) . " processed to original payment method." : " No refund applicable.";
 
         return response()->json([
-            'message' => 'Booking cancelled successfully.' . $feeMsg . $refundMsg,
+            'message' => "Successfully cancelled $totalDatesCancelledNow booking date(s)." . $feeMsg . $refundMsg,
             'booking' => $booking->fresh(['bookingDates', 'payments.paymentGateway'])
         ]);
     }
