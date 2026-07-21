@@ -696,27 +696,8 @@ class BookingController extends Controller
             if ($isStaffOrAdmin && $customerId) {
                 // Manager/Admin booking for customer:
                 $amountReceived = (float)($validated['amount_received'] ?? 0.00);
-
                 if ($amountReceived > 0) {
-                    $remainingToDistribute = $amountReceived;
-                    foreach ($bookingDatesCreated as $bDate) {
-                        if ($remainingToDistribute <= 0) break;
-
-                        $dateOwed = $bDate->amount;
-                        $paidForDate = min($remainingToDistribute, $dateOwed);
-
-                        if ($paidForDate > 0) {
-                            Payment::create([
-                                'booking_id' => $booking->id,
-                                'booking_date_id' => $bDate->id,
-                                'payment_method' => $paymentMethod, // Cash, UPI, Other
-                                'amount' => $paidForDate,
-                                'status' => 'Success',
-                                'paid_at' => Carbon::now(),
-                            ]);
-                            $remainingToDistribute -= $paidForDate;
-                        }
-                    }
+                    $this->distributePaymentToBooking($booking, $amountReceived, $paymentMethod);
                 }
             } else {
                 // Customer booking:
@@ -763,68 +744,12 @@ class BookingController extends Controller
                             }
                         }
 
-                        $remainingToDistribute = $paidAmount;
-                        foreach ($bookingDatesCreated as $index => $bDate) {
-                            if ($remainingToDistribute <= 0) break;
-
-                            $dateOwed = $bDate->amount;
-                            if ($index === count($bookingDatesCreated) - 1) {
-                                $paidForDate = $remainingToDistribute;
-                            } else {
-                                $paidForDate = round($paidAmount * ($dateOwed / $totalAmount), 2);
-                                $paidForDate = min($paidForDate, $remainingToDistribute);
-                            }
-
-                            if ($paidForDate > 0) {
-                                $payment = Payment::create([
-                                    'booking_id' => $booking->id,
-                                    'booking_date_id' => $bDate->id,
-                                    'payment_method' => 'App',
-                                    'amount' => $paidForDate,
-                                    'status' => 'Success',
-                                    'paid_at' => Carbon::now(),
-                                ]);
-
-                                PaymentGateway::create([
-                                    'payment_id' => $payment->id,
-                                    'gateway_name' => 'razorpay',
-                                    'gateway_payment_id' => $request->input('razorpay_payment_id'),
-                                ]);
-
-                                $remainingToDistribute -= $paidForDate;
-                            }
-                        }
+                        $this->distributePaymentToBooking($booking, $paidAmount, 'App', $request->input('razorpay_payment_id'));
                     }
                 }
             }
 
-            // Recalculate payment status of each date and overall booking
-            $booking->load('bookingDates');
-            $allDatesPaid = true;
-            $anyDatePaid = false;
-
-            foreach ($booking->bookingDates as $bDate) {
-                $datePaidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
-                if ($datePaidSum >= $bDate->amount && $bDate->amount > 0) {
-                    $bDate->update(['payment_status' => 'Paid']);
-                    $anyDatePaid = true;
-                } elseif ($datePaidSum > 0) {
-                    $bDate->update(['payment_status' => 'Partially Paid']);
-                    $allDatesPaid = false;
-                    $anyDatePaid = true;
-                } else {
-                    $bDate->update(['payment_status' => 'Unpaid']);
-                    $allDatesPaid = false;
-                }
-            }
-
-            if ($allDatesPaid && $totalAmount > 0) {
-                $booking->update(['payment_status' => 'Paid']);
-            } elseif ($anyDatePaid) {
-                $booking->update(['payment_status' => 'Partially Paid']);
-            } else {
-                $booking->update(['payment_status' => 'Unpaid']);
-            }
+            $this->recalculateBookingPaymentStatus($booking);
 
             \DB::commit();
 
@@ -1049,60 +974,19 @@ class BookingController extends Controller
             return response()->json(['message' => 'Booking not found'], 404);
         }
 
-        $currentPaid = (float) Payment::where('booking_date_id', $bookingDate->id)->where('status', 'Success')->sum('amount');
-        $remaining = max(0.00, $bookingDate->amount - $currentPaid);
-        $amountToPay = min((float)$validated['amount'], $remaining);
+        $totalAmount = (float) BookingDate::where('booking_id', $booking->id)->where('status', '!=', 'Cancelled')->sum('amount');
+        $totalPaid = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
+        $totalRemaining = max(0.00, $totalAmount - $totalPaid);
+        $amountToPay = min((float)$validated['amount'], $totalRemaining);
 
         if ($amountToPay <= 0) {
-            return response()->json(['message' => 'This date is already fully paid.'], 422);
+            return response()->json(['message' => 'This booking is already fully paid.'], 422);
         }
 
         \DB::beginTransaction();
 
         try {
-            Payment::create([
-                'booking_id' => $booking->id,
-                'booking_date_id' => $bookingDate->id,
-                'payment_method' => $validated['payment_method'],
-                'amount' => $amountToPay,
-                'status' => 'Success',
-                'paid_at' => Carbon::now(),
-            ]);
-
-            $newPaidSum = $currentPaid + $amountToPay;
-            if ($newPaidSum >= $bookingDate->amount) {
-                $bookingDate->update(['payment_status' => 'Paid']);
-            } else {
-                $bookingDate->update(['payment_status' => 'Partially Paid']);
-            }
-
-            $booking->load('bookingDates');
-            $allPaid = true;
-            $anyPaid = false;
-            foreach ($booking->bookingDates as $bd) {
-                $bdPaidSum = (float) Payment::where('booking_date_id', $bd->id)->where('status', 'Success')->sum('amount');
-                if ($bdPaidSum >= $bd->amount) {
-                    $bd->update(['payment_status' => 'Paid']);
-                    $anyPaid = true;
-                } elseif ($bdPaidSum > 0) {
-                    $bd->update(['payment_status' => 'Partially Paid']);
-                    $allPaid = false;
-                    $anyPaid = true;
-                } else {
-                    $bd->update(['payment_status' => 'Unpaid']);
-                    $allPaid = false;
-                }
-            }
-
-            $totalAmount = (float) BookingDate::where('booking_id', $booking->id)->sum('amount');
-            if ($allPaid && $totalAmount > 0) {
-                $booking->update(['payment_status' => 'Paid']);
-            } elseif ($anyPaid) {
-                $booking->update(['payment_status' => 'Partially Paid']);
-            } else {
-                $booking->update(['payment_status' => 'Unpaid']);
-            }
-
+            $this->distributePaymentToBooking($booking, $amountToPay, $validated['payment_method']);
             \DB::commit();
 
             return response()->json([
@@ -1117,6 +1001,113 @@ class BookingController extends Controller
                 'message' => 'An error occurred while recording payment.',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    /**
+     * Distribute a payment amount proportionally across active booking dates based on their remaining balances.
+     */
+    private function distributePaymentToBooking($booking, float $amountToDistribute, string $paymentMethod, ?string $razorpayPaymentId = null): void
+    {
+        if ($amountToDistribute <= 0) {
+            return;
+        }
+
+        $bookingDates = $booking->bookingDates()->where('status', '!=', 'Cancelled')->get();
+        if ($bookingDates->isEmpty()) {
+            $bookingDates = $booking->bookingDates()->get();
+        }
+        if ($bookingDates->isEmpty()) {
+            return;
+        }
+
+        $dateBalances = [];
+        $totalRemainingBalance = 0.00;
+
+        foreach ($bookingDates as $bDate) {
+            $paidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
+            $balance = max(0.00, (float)$bDate->amount - $paidSum);
+            $dateBalances[$bDate->id] = $balance;
+            $totalRemainingBalance += $balance;
+        }
+
+        if ($totalRemainingBalance <= 0) {
+            return;
+        }
+
+        $actualAmountToDistribute = min($amountToDistribute, $totalRemainingBalance);
+        $remainingToDistribute = $actualAmountToDistribute;
+        $unpaidDates = $bookingDates->filter(fn($d) => ($dateBalances[$d->id] ?? 0) > 0)->values();
+        $count = $unpaidDates->count();
+
+        foreach ($unpaidDates as $index => $bDate) {
+            if ($remainingToDistribute <= 0) {
+                break;
+            }
+
+            if ($index === $count - 1) {
+                $paidForDate = round($remainingToDistribute, 2);
+            } else {
+                $ratio = $dateBalances[$bDate->id] / $totalRemainingBalance;
+                $paidForDate = round($actualAmountToDistribute * $ratio, 2);
+                $paidForDate = min($paidForDate, $remainingToDistribute);
+            }
+
+            if ($paidForDate > 0) {
+                $payment = Payment::create([
+                    'booking_id' => $booking->id,
+                    'booking_date_id' => $bDate->id,
+                    'payment_method' => $paymentMethod,
+                    'amount' => $paidForDate,
+                    'status' => 'Success',
+                    'paid_at' => Carbon::now(),
+                ]);
+
+                if ($razorpayPaymentId && $paymentMethod === 'App') {
+                    PaymentGateway::create([
+                        'payment_id' => $payment->id,
+                        'gateway_name' => 'razorpay',
+                        'gateway_payment_id' => $razorpayPaymentId,
+                    ]);
+                }
+
+                $remainingToDistribute -= $paidForDate;
+            }
+        }
+
+        $this->recalculateBookingPaymentStatus($booking);
+    }
+
+    private function recalculateBookingPaymentStatus($booking): void
+    {
+        $booking->load('bookingDates');
+        $allDatesPaid = true;
+        $anyDatePaid = false;
+        $totalBookingAmount = 0.00;
+
+        foreach ($booking->bookingDates as $bDate) {
+            $totalBookingAmount += (float)$bDate->amount;
+            $datePaidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
+
+            if ($bDate->amount > 0 && $datePaidSum >= $bDate->amount) {
+                $bDate->update(['payment_status' => 'Paid']);
+                $anyDatePaid = true;
+            } elseif ($datePaidSum > 0) {
+                $bDate->update(['payment_status' => 'Partially Paid']);
+                $allDatesPaid = false;
+                $anyDatePaid = true;
+            } else {
+                $bDate->update(['payment_status' => 'Unpaid']);
+                $allDatesPaid = false;
+            }
+        }
+
+        if ($allDatesPaid && $totalBookingAmount > 0) {
+            $booking->update(['payment_status' => 'Paid']);
+        } elseif ($anyDatePaid) {
+            $booking->update(['payment_status' => 'Partially Paid']);
+        } else {
+            $booking->update(['payment_status' => 'Unpaid']);
         }
     }
 
