@@ -17,11 +17,20 @@ class Booking extends Model
         'status',
         'payment_status',
         'additional_discount',
+        'cancelled_at',
+        'cancellation_fee_applied',
+        'refund_amount',
+        'refund_status',
+        'refunded_at',
     ];
 
     protected $casts = [
         'date_of_booking' => 'datetime',
         'additional_discount' => 'decimal:2',
+        'cancelled_at' => 'datetime',
+        'cancellation_fee_applied' => 'decimal:2',
+        'refund_amount' => 'decimal:2',
+        'refunded_at' => 'datetime',
     ];
 
     public function user()

@@ -773,12 +773,24 @@ class BookingApiTest extends TestCase
             'payment_status' => 'Paid',
         ]);
 
+        $p = \App\Models\Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $bDate->id,
+            'payment_method' => 'App',
+            'amount' => 1000.00,
+            'status' => 'Success',
+            'paid_at' => now(),
+        ]);
+
         $response = $this->actingAs($customer2, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel");
         $response->assertStatus(403);
 
         $response = $this->actingAs($customer1, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel");
         $response->assertStatus(200);
-        $this->assertEquals('Cancelled', $booking->fresh()->status);
+        $freshBk1 = $booking->fresh();
+        $this->assertEquals('Cancelled', $freshBk1->status);
+        $this->assertNotNull($freshBk1->cancelled_at);
+        $this->assertEquals(50.00, $freshBk1->cancellation_fee_applied);
 
         $response = $this->actingAs($customer1, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel");
         $response->assertStatus(422);
