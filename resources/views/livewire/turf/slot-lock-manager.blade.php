@@ -272,25 +272,25 @@ new #[Layout('layouts.app')] class extends Component
                                         $toFormatted = date('h:i A', strtotime($slot->to_time));
                                     @endphp
 
-                                    <label class="relative flex flex-col p-3 rounded-xl border cursor-pointer transition select-none {{ $isLocked ? 'bg-red-50 dark:bg-red-950/50 border-red-300 dark:border-red-700/80' : ($isSelected ? 'bg-amber-500/15 dark:bg-amber-500/20 border-amber-500 dark:border-amber-400 ring-2 ring-amber-500/40' : 'bg-white dark:bg-gray-900/90 border-gray-200 dark:border-gray-700/80 hover:border-gray-300 dark:hover:border-gray-600') }}">
-                                        <div class="flex items-center justify-between mb-1.5">
-                                            <input type="checkbox" value="{{ $slot->id }}" wire:model.live="selectedSlotIds" class="rounded border-gray-300 text-amber-600 focus:ring-amber-500 dark:bg-gray-800 dark:border-gray-600">
+                                    <label class="relative flex flex-col p-3.5 rounded-xl border cursor-pointer transition select-none shadow-sm {{ $isLocked ? 'bg-red-600 border-red-700 text-white ring-2 ring-red-400/50' : ($isSelected ? 'bg-amber-500 border-amber-600 text-white ring-2 ring-amber-400/50' : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-500') }}">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <input type="checkbox" value="{{ $slot->id }}" wire:model.live="selectedSlotIds" class="rounded border-gray-300 dark:border-gray-600 {{ $isLocked || $isSelected ? 'text-gray-900 focus:ring-white bg-white/20' : 'text-amber-600 focus:ring-amber-500 dark:bg-gray-800' }}">
                                             @if ($isLocked)
-                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 dark:bg-red-900/80 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-700">
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-white/20 text-white border border-white/30 backdrop-blur-xs">
                                                     🔒 Locked
                                                 </span>
                                             @endif
                                         </div>
 
-                                        <span class="text-xs font-bold {{ $isLocked ? 'text-red-900 dark:text-red-200' : ($isSelected ? 'text-amber-950 dark:text-amber-200' : 'text-gray-800 dark:text-gray-200') }}">
+                                        <span class="text-xs font-bold {{ $isLocked || $isSelected ? 'text-white' : 'text-gray-900 dark:text-white' }}">
                                             {{ $fromFormatted }} - {{ $toFormatted }}
                                         </span>
 
                                         @if ($isLocked)
-                                            <span class="text-[10px] text-red-600 dark:text-red-300 mt-1 truncate font-medium" title="{{ $reason }}">
+                                            <span class="text-[10px] text-white/90 mt-1 truncate font-medium" title="{{ $reason }}">
                                                 📌 {{ $reason }}
                                             </span>
-                                            <button type="button" wire:click.stop="unlockSingleSlot({{ $slot->id }})" class="mt-2 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline text-left flex items-center gap-1">
+                                            <button type="button" wire:click.stop="unlockSingleSlot({{ $slot->id }})" class="mt-2 text-[10px] font-bold text-white underline hover:text-red-100 text-left flex items-center gap-1">
                                                 🔓 Unlock
                                             </button>
                                         @endif
