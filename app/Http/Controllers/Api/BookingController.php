@@ -714,6 +714,33 @@ class BookingController extends Controller
                     }
 
                     if ($paidAmount > 0) {
+                        if ($request->filled('razorpay_payment_id')) {
+                            $rzpId = $request->input('razorpay_payment_id');
+                            $setting = \App\Models\SaasSetting::first();
+                            $rzpKey = $setting?->razorpay_key ?: config('services.razorpay.key');
+                            $rzpSecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
+
+                            if ($rzpKey && $rzpSecret) {
+                                try {
+                                    $fetch = \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
+                                        ->get("https://api.razorpay.com/v1/payments/{$rzpId}");
+                                    if ($fetch->successful()) {
+                                        $pData = $fetch->json();
+                                        if (($pData['status'] ?? '') === 'authorized') {
+                                            \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
+                                                ->asForm()
+                                                ->post("https://api.razorpay.com/v1/payments/{$rzpId}/capture", [
+                                                    'amount' => $pData['amount'],
+                                                    'currency' => $pData['currency'] ?? 'INR',
+                                                ]);
+                                        }
+                                    }
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::error('Razorpay auto-capture error on store: ' . $e->getMessage());
+                                }
+                            }
+                        }
+
                         $remainingToDistribute = $paidAmount;
                         foreach ($bookingDatesCreated as $index => $bDate) {
                             if ($remainingToDistribute <= 0) break;
@@ -1366,25 +1393,30 @@ class BookingController extends Controller
                 if ($razorpayKey && $razorpaySecret) {
                     try {
                         $paymentId = $gateway->gateway_payment_id;
-                        $amountInPaise = (int)round($paymentRefund * 100);
+                        $refundPaise = (int)round($paymentRefund * 100);
 
                         $fetchResponse = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
                             ->get("https://api.razorpay.com/v1/payments/{$paymentId}");
 
                         if ($fetchResponse->successful()) {
                             $pData = $fetchResponse->json();
-                            if (($pData['status'] ?? '') === 'authorized') {
+                            $rzpStatus = $pData['status'] ?? '';
+                            $totalPaise = $pData['amount'] ?? (int)round((float)$payment->amount * 100);
+
+                            if ($rzpStatus === 'authorized') {
                                 \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                    ->asForm()
                                     ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
-                                        'amount' => $amountInPaise,
-                                        'currency' => 'INR',
+                                        'amount' => $totalPaise,
+                                        'currency' => $pData['currency'] ?? 'INR',
                                     ]);
                             }
                         }
 
                         $response = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                            ->asForm()
                             ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
-                                'amount' => $amountInPaise,
+                                'amount' => $refundPaise,
                             ]);
 
                         if ($response->successful()) {
@@ -1396,15 +1428,18 @@ class BookingController extends Controller
                         } else {
                             $errBody = $response->json();
                             if (isset($errBody['error']['description']) && str_contains(strtolower($errBody['error']['description']), 'authorized')) {
+                                $fullPaise = (int)round((float)$payment->amount * 100);
                                 \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                    ->asForm()
                                     ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
-                                        'amount' => $amountInPaise,
+                                        'amount' => $fullPaise,
                                         'currency' => 'INR',
                                     ]);
 
                                 $retryRefund = \Illuminate\Support\Facades\Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                                    ->asForm()
                                     ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
-                                        'amount' => $amountInPaise,
+                                        'amount' => $refundPaise,
                                     ]);
 
                                 if ($retryRefund->successful()) {
