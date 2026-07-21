@@ -94,6 +94,15 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('turf/staff', 'turf.staff-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.staff');
+    Volt::route('turf/reports', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports');
+    Route::get('/turf/reports/export-bookings', [\App\Http\Controllers\ReportController::class, 'exportBookings'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-bookings');
+    Route::get('/turf/reports/export-revenue', [\App\Http\Controllers\ReportController::class, 'exportRevenue'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-revenue');
     Route::get('/git-info', function () {
         try {
             $basePath = base_path();
