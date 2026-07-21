@@ -213,6 +213,14 @@ class BookingController extends Controller
         ->pluck('slot_id')
         ->toArray();
 
+        $slotLocks = \App\Models\SlotLock::where('turf_id', $turf->id)
+            ->whereIn('lock_date', $dates)
+            ->get();
+        $lockedSlotMap = [];
+        foreach ($slotLocks as $lock) {
+            $lockedSlotMap[$lock->slot_id] = $lock->reason ?: 'Locked for maintenance';
+        }
+
         // Get pricing wizard details helper
         $wizard = is_array($turf->pricing_wizard_data) 
             ? $turf->pricing_wizard_data 
@@ -280,7 +288,7 @@ class BookingController extends Controller
             ->with('category')
             ->wherePivot('is_active', true)
             ->get()
-            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $isTodaySelected, $nowTime) {
+            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $isTodaySelected, $nowTime, $lockedSlotMap) {
                 // Determine slot price
                 $fromTime24 = date('H:i', strtotime($slot->from_time));
                 $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
@@ -301,6 +309,8 @@ class BookingController extends Controller
                 $toFormatted = date('h:i A', strtotime($slot->to_time));
 
                 $isPast = ($isTodaySelected && $slot->from_time < $nowTime);
+                $isLocked = isset($lockedSlotMap[$slot->id]);
+                $lockReason = $lockedSlotMap[$slot->id] ?? null;
 
                 return [
                     'id' => $slot->id,
@@ -308,7 +318,9 @@ class BookingController extends Controller
                     'to_time' => $slot->to_time,
                     'time_label' => "$fromFormatted - $toFormatted",
                     'price' => $price,
-                    'is_booked' => in_array($slot->id, $occupiedSlotIds) || $isPast,
+                    'is_booked' => in_array($slot->id, $occupiedSlotIds) || $isPast || $isLocked,
+                    'is_locked' => $isLocked,
+                    'lock_reason' => $lockReason,
                     'category' => $slot->category?->name ?? 'Other',
                 ];
             })
@@ -512,6 +524,19 @@ class BookingController extends Controller
                 $slotsToCreate = [];
 
                 foreach ($slotIds as $slotId) {
+                    $isLocked = \App\Models\SlotLock::where('turf_id', $turf->id)
+                        ->where('slot_id', $slotId)
+                        ->where('lock_date', $dateStr)
+                        ->first();
+
+                    if ($isLocked) {
+                        \DB::rollBack();
+                        $reason = $isLocked->reason ? " ({$isLocked->reason})" : "";
+                        return response()->json([
+                            'message' => "Selected slot is locked for date: $dateStr{$reason}.",
+                        ], 422);
+                    }
+
                     $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
                         ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
                             $q->where('booking_date', $dateStr)
