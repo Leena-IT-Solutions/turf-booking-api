@@ -943,10 +943,6 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @endif
     @endif
-                </div>
-            </div>
-        @endif
-    @endif
 
     <!-- RECORD PAYMENT MODAL -->
     @if ($showPaymentModal)
