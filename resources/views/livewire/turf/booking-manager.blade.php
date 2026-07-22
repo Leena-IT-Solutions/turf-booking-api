@@ -597,14 +597,11 @@ new #[Layout('layouts.app')] class extends Component
                     <table class="w-full text-left text-xs">
                         <thead class="bg-gray-50 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold border-b border-gray-100 dark:border-gray-700/80">
                             <tr>
-                                <th class="px-4 py-3.5">Ref / Customer</th>
-                                <th class="px-4 py-3.5">Turf</th>
-                                <th class="px-4 py-3.5">Type & Dates</th>
-                                <th class="px-4 py-3.5">Time Slots</th>
-                                <th class="px-4 py-3.5">Amount & Paid</th>
-                                <th class="px-4 py-3.5">Payment Status</th>
-                                <th class="px-4 py-3.5">Status</th>
-                                <th class="px-4 py-3.5 text-right">Actions</th>
+                                <th class="px-5 py-4">Customer</th>
+                                <th class="px-5 py-4">Turf</th>
+                                <th class="px-5 py-4">Date of Booking</th>
+                                <th class="px-5 py-4">Status</th>
+                                <th class="px-5 py-4 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 text-gray-700 dark:text-gray-300">
@@ -615,139 +612,96 @@ new #[Layout('layouts.app')] class extends Component
                                     $paidSum = (float)$b->payments->where('status', 'Success')->sum('amount');
                                     $balance = max(0.00, $totalAmount - $paidSum);
 
-                                    // Time slots label summary
-                                    $slotLabels = [];
-                                    foreach ($b->bookingDates as $bd) {
-                                        foreach ($bd->bookingSlots as $bs) {
-                                            if ($bs->slot) {
-                                                $from = date('h:i A', strtotime($bs->slot->from_time));
-                                                $to = date('h:i A', strtotime($bs->slot->to_time));
-                                                $slotLabels[] = "$from - $to";
-                                            }
-                                        }
-                                    }
-                                    $firstSlot = $slotLabels[0] ?? '';
-                                    $lastSlot = count($slotLabels) > 1 ? end($slotLabels) : '';
-                                    $timeRangeStr = (count($slotLabels) > 1 && $firstSlot && $lastSlot)
-                                        ? (explode(' - ', $firstSlot)[0] . ' - ' . explode(' - ', $lastSlot)[1])
-                                        : ($firstSlot ?: 'N/A');
+                                    $dateList = $b->bookingDates->pluck('booking_date')->toArray();
+                                    $dateDisplay = count($dateList) > 1 
+                                        ? ($dateList[0] . ' to ' . end($dateList) . ' (' . count($dateList) . ' days)')
+                                        : ($dateList[0] ?? 'N/A');
                                 @endphp
 
                                 <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition">
                                     <!-- Customer Info -->
-                                    <td class="px-4 py-3.5">
-                                        <div class="font-bold text-gray-900 dark:text-white">
-                                            {{ $b->booking_reference ?? ('#' . $b->id) }}
-                                        </div>
-                                        <div class="text-xs font-semibold text-gray-700 dark:text-gray-300 mt-0.5">
-                                            {{ $b->user?->name ?? 'Manual / Guest' }}
-                                        </div>
-                                        <div class="text-[11px] text-gray-500 dark:text-gray-400">
-                                            {{ $b->user?->mobile ?? $b->user?->email ?? '' }}
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-sm border border-indigo-100 dark:border-indigo-800 shrink-0">
+                                                {{ strtoupper(substr($b->user?->name ?? 'G', 0, 1)) }}
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-gray-900 dark:text-white text-sm">
+                                                    {{ $b->user?->name ?? 'Manual / Guest' }}
+                                                </div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-0.5">
+                                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
+                                                    <span>•</span>
+                                                    <span>{{ $b->user?->mobile ?? $b->user?->email ?? 'No contact' }}</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </td>
 
                                     <!-- Turf -->
-                                    <td class="px-4 py-3.5">
-                                        <span class="font-semibold text-gray-800 dark:text-gray-200">{{ $b->turf?->name ?? 'N/A' }}</span>
-                                    </td>
-
-                                    <!-- Type & Dates -->
-                                    <td class="px-4 py-3.5">
-                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 uppercase">
-                                            {{ $b->booking_type ?? 'day' }}
+                                    <td class="px-5 py-4">
+                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                            {{ $b->turf?->name ?? 'N/A' }}
+                                        </div>
+                                        <span class="inline-block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mt-0.5">
+                                            {{ $b->booking_type ?? 'day' }} session
                                         </span>
-                                        <div class="text-xs font-bold text-gray-900 dark:text-gray-100 mt-1">
-                                            {{ $b->bookingDates->pluck('booking_date')->implode(', ') }}
+                                    </td>
+
+                                    <!-- Date of Booking -->
+                                    <td class="px-5 py-4">
+                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                            📅 {{ $dateDisplay }}
                                         </div>
                                     </td>
 
-                                    <!-- Time Slots -->
-                                    <td class="px-4 py-3.5">
-                                        <div class="font-bold text-gray-900 dark:text-gray-100">
-                                            ⏱️ {{ $timeRangeStr }}
-                                        </div>
-                                        <div class="text-[10px] text-gray-400 mt-0.5">
-                                            {{ count($slotLabels) }} slot(s) total
-                                        </div>
-                                    </td>
-
-                                    <!-- Amount & Paid -->
-                                    <td class="px-4 py-3.5">
-                                        <div class="font-bold text-gray-900 dark:text-white">₹{{ number_format($totalAmount, 2) }}</div>
-                                        <div class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Paid: ₹{{ number_format($paidSum, 2) }}</div>
-                                        @if ($balance > 0)
-                                            <div class="text-[11px] font-bold text-amber-600 dark:text-amber-400">Bal: ₹{{ number_format($balance, 2) }}</div>
-                                        @endif
-                                    </td>
-
-                                    <!-- Payment Status -->
-                                    <td class="px-4 py-3.5">
-                                        @if ($b->payment_status === 'Paid')
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                                                Paid
-                                            </span>
-                                        @elseif ($b->payment_status === 'Partially Paid')
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                                                Partially Paid
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700">
-                                                Unpaid
-                                            </span>
-                                        @endif
-                                    </td>
-
-                                    <!-- Booking Status -->
-                                    <td class="px-4 py-3.5">
-                                        @if ($b->status === 'Confirmed')
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
-                                                Confirmed
-                                            </span>
-                                        @elseif ($b->status === 'Partially Cancelled')
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-700">
-                                                Partially Cancelled
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-extrabold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
-                                                Cancelled
-                                            </span>
-                                        @endif
-                                    </td>
-
-                                    <!-- Actions -->
-                                    <td class="px-4 py-3.5 text-right">
-                                        <div class="flex items-center justify-end gap-1.5">
-                                            <!-- View Details Button -->
-                                            <button wire:click="viewDetails({{ $b->id }})" type="button" 
-                                                class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1">
-                                                <span>Details</span>
-                                            </button>
-
-                                            <!-- Record Payment Button -->
-                                            @if ($balance > 0 && $b->status !== 'Cancelled')
-                                                @php $firstUnpaidDate = $b->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
-                                                @if ($firstUnpaidDate)
-                                                    <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" type="button" 
-                                                        class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-xs">
-                                                        <span>+ Pay</span>
-                                                    </button>
-                                                @endif
+                                    <!-- Status -->
+                                    <td class="px-5 py-4">
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <!-- Booking Status -->
+                                            @if ($b->status === 'Confirmed')
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+                                                    Confirmed
+                                                </span>
+                                            @elseif ($b->status === 'Partially Cancelled')
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-700">
+                                                    Partially Cancelled
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
+                                                    Cancelled
+                                                </span>
                                             @endif
 
-                                            <!-- Cancel Button -->
-                                            @if ($b->status !== 'Cancelled')
-                                                <button wire:click="openCancelModal({{ $b->id }})" type="button" 
-                                                    class="p-1 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg text-[11px] font-bold transition">
-                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                </button>
+                                            <!-- Payment Status -->
+                                            @if ($b->payment_status === 'Paid')
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                                                    Paid
+                                                </span>
+                                            @elseif ($b->payment_status === 'Partially Paid')
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                                                    Partially Paid
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700">
+                                                    Unpaid
+                                                </span>
                                             @endif
                                         </div>
+                                    </td>
+
+                                    <!-- Action -->
+                                    <td class="px-5 py-4 text-right">
+                                        <button wire:click="viewDetails({{ $b->id }})" type="button" 
+                                            class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 ml-auto shadow-xs cursor-pointer">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                            Details
+                                        </button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                         <div class="max-w-xs mx-auto space-y-2">
                                             <span class="text-3xl">🔍</span>
                                             <p class="font-bold text-gray-700 dark:text-gray-300">No bookings matched your search or filters.</p>
@@ -868,6 +822,31 @@ new #[Layout('layouts.app')] class extends Component
                             </button>
                         </div>
 
+                        <!-- Financial Summary Box -->
+                        @php
+                            $dActiveDates = $bDetail->bookingDates->where('status', '!=', 'Cancelled');
+                            $dTotalAmount = (float)$dActiveDates->sum('amount');
+                            $dPaidSum = (float)$bDetail->payments->where('status', 'Success')->sum('amount');
+                            $dBalance = max(0.00, $dTotalAmount - $dPaidSum);
+                        @endphp
+
+                        <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/80 space-y-3">
+                            <div class="grid grid-cols-3 gap-2 text-center">
+                                <div class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
+                                    <p class="text-sm font-black text-gray-900 dark:text-white mt-0.5">₹{{ number_format($dTotalAmount, 2) }}</p>
+                                </div>
+                                <div class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                    <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Paid</span>
+                                    <p class="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">₹{{ number_format($dPaidSum, 2) }}</p>
+                                </div>
+                                <div class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                    <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">Balance</span>
+                                    <p class="text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">₹{{ number_format($dBalance, 2) }}</p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Customer & Turf Overview -->
                         <div class="grid grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/80">
                             <div>
@@ -940,11 +919,30 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Drawer Footer Actions -->
-                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex gap-2">
-                        <button wire:click="closeDetails" class="w-full py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition">
+                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                        @if ($dBalance > 0 && $bDetail->status !== 'Cancelled')
+                            @php $firstUnpaidDate = $bDetail->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
+                            @if ($firstUnpaidDate)
+                                <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs">
+                                    + Record Pay
+                                </button>
+                            @endif
+                        @endif
+
+                        @if ($bDetail->status !== 'Cancelled')
+                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2.5 px-4 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold transition">
+                                Cancel
+                            </button>
+                        @endif
+
+                        <button wire:click="closeDetails" class="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition">
                             Close
                         </button>
                     </div>
+                </div>
+            </div>
+        @endif
+    @endif
                 </div>
             </div>
         @endif
