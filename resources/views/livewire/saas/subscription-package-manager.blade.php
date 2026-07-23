@@ -314,17 +314,17 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="space-y-1.5 mb-3">
                             <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Percentages Breakdown</span>
                             <div class="grid grid-cols-3 gap-2">
-                                <div class="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 text-center">
-                                    <span class="text-[9px] font-extrabold text-gray-500 dark:text-gray-400 block uppercase">Total</span>
-                                    <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">{{ $pkg->total_percentage }}%</span>
+                                <div class="p-2.5 rounded-2xl bg-indigo-50/80 dark:bg-indigo-950/60 border border-indigo-200/80 dark:border-indigo-900/60 text-center">
+                                    <span class="text-[9px] font-extrabold text-indigo-600 dark:text-indigo-400 block uppercase">Total</span>
+                                    <span class="text-xs font-black text-indigo-700 dark:text-indigo-300">{{ $pkg->total_percentage }}%</span>
                                 </div>
-                                <div class="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 text-center">
-                                    <span class="text-[9px] font-extrabold text-gray-500 dark:text-gray-400 block uppercase">Gateway</span>
-                                    <span class="text-xs font-black text-emerald-600 dark:text-emerald-400">{{ $pkg->payment_gateway_percentage }}%</span>
+                                <div class="p-2.5 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-900/60 text-center">
+                                    <span class="text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400 block uppercase">Gateway</span>
+                                    <span class="text-xs font-black text-emerald-700 dark:text-emerald-300">{{ $pkg->payment_gateway_percentage }}%</span>
                                 </div>
-                                <div class="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 text-center">
-                                    <span class="text-[9px] font-extrabold text-gray-500 dark:text-gray-400 block uppercase">Comm.</span>
-                                    <span class="text-xs font-black text-amber-600 dark:text-amber-400">{{ $pkg->commission_percentage }}%</span>
+                                <div class="p-2.5 rounded-2xl bg-amber-50/80 dark:bg-amber-950/60 border border-amber-200/80 dark:border-amber-900/60 text-center">
+                                    <span class="text-[9px] font-extrabold text-amber-600 dark:text-amber-400 block uppercase">Comm.</span>
+                                    <span class="text-xs font-black text-amber-700 dark:text-amber-300">{{ $pkg->commission_percentage }}%</span>
                                 </div>
                             </div>
                         </div>
@@ -354,14 +354,14 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Card Actions Footer -->
-                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700/60 flex items-center gap-2">
                         <button wire:click="openEditModal({{ $pkg->id }})" type="button" 
-                            class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            class="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700/80 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-gray-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit
                         </button>
                         <button wire:click="confirmDelete({{ $pkg->id }})" type="button" 
-                            class="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
+                            class="px-3.5 py-2.5 bg-red-50 dark:bg-red-950/60 hover:bg-red-100 dark:hover:bg-red-900/80 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/80 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </div>
