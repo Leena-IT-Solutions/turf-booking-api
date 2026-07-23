@@ -171,14 +171,14 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+<div class="py-6 w-full">
+    <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
 
         <!-- Top Header & Action Controls -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 dark:shadow-none">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/30 dark:shadow-none shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                         </svg>
@@ -208,10 +208,10 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @endif
 
-        <!-- Filter & Search Bar -->
-        <div class="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-5 shadow-xs border border-gray-100 dark:border-gray-700/60 flex flex-col md:flex-row items-center justify-between gap-4">
+        <!-- Filter & Search Bar (Full Width) -->
+        <div class="bg-white dark:bg-gray-800 rounded-3xl p-4 sm:p-5 shadow-xs border border-gray-200 dark:border-gray-700/80 flex flex-col md:flex-row items-center justify-between gap-4 w-full">
             <!-- Search input -->
-            <div class="relative w-full md:w-80">
+            <div class="relative w-full md:w-96">
                 <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search package name or details..." 
                     class="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
                 <svg class="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -267,31 +267,31 @@ new #[Layout('layouts.app')] class extends Component
             $packages = $query->get();
         @endphp
 
-        <!-- PACKAGES CARD LIST GRID -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- PACKAGES CARD LIST GRID (Full Width Responsive Grid) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
             @forelse ($packages as $pkg)
-                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700/60 p-6 shadow-sm flex flex-col justify-between relative transition hover:border-indigo-300 dark:hover:border-indigo-500/50 hover:shadow-md group">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col justify-between relative transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md group">
                     
                     <!-- Card Top Header -->
                     <div>
                         <div class="flex items-start justify-between gap-2 mb-3">
-                            <h3 class="text-xl font-black text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                            <h3 class="text-lg font-black text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition leading-snug">
                                 {{ $pkg->name }}
                             </h3>
 
                             <!-- Active / Inactive Status Switch -->
                             <button wire:click="toggleActive({{ $pkg->id }})" type="button" 
                                 title="Click to toggle status"
-                                class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition cursor-pointer {{ $pkg->is_active ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 border border-gray-300 dark:border-gray-600' }}">
+                                class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase transition cursor-pointer shrink-0 {{ $pkg->is_active ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-300 dark:border-gray-600' }}">
                                 {{ $pkg->is_active ? '● Active' : '○ Inactive' }}
                             </button>
                         </div>
 
                         <!-- Price & Duration Box -->
-                        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-700/50 my-4 flex items-baseline justify-between">
+                        <div class="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 my-3 flex items-baseline justify-between">
                             <div>
-                                <span class="text-3xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->amount, 2) }}</span>
-                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">/ {{ $pkg->days }} Days</span>
+                                <span class="text-2xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->amount, 2) }}</span>
+                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 block sm:inline">/ {{ $pkg->days }} Days</span>
                             </div>
                             <div class="text-right">
                                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Duration</span>
@@ -303,47 +303,47 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Description -->
                         @if ($pkg->description)
-                            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+                            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-3 line-clamp-2">
                                 {{ $pkg->description }}
                             </p>
                         @endif
 
                         <!-- Percentage Breakdown Chips -->
-                        <div class="space-y-2 mb-4">
+                        <div class="space-y-1.5 mb-3">
                             <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Percentages Breakdown</span>
                             <div class="grid grid-cols-3 gap-2">
-                                <div class="p-2 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-center">
-                                    <span class="text-[9px] font-extrabold text-indigo-500 dark:text-indigo-400 block uppercase">Total</span>
-                                    <span class="text-xs font-black text-indigo-700 dark:text-indigo-300">{{ $pkg->total_percentage }}%</span>
+                                <div class="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 text-center">
+                                    <span class="text-[9px] font-extrabold text-gray-500 dark:text-gray-400 block uppercase">Total</span>
+                                    <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">{{ $pkg->total_percentage }}%</span>
                                 </div>
-                                <div class="p-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
-                                    <span class="text-[9px] font-extrabold text-emerald-500 dark:text-emerald-400 block uppercase">Gateway</span>
-                                    <span class="text-xs font-black text-emerald-700 dark:text-emerald-300">{{ $pkg->payment_gateway_percentage }}%</span>
+                                <div class="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 text-center">
+                                    <span class="text-[9px] font-extrabold text-gray-500 dark:text-gray-400 block uppercase">Gateway</span>
+                                    <span class="text-xs font-black text-emerald-600 dark:text-emerald-400">{{ $pkg->payment_gateway_percentage }}%</span>
                                 </div>
-                                <div class="p-2 rounded-xl bg-amber-50/50 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/40 text-center">
-                                    <span class="text-[9px] font-extrabold text-amber-500 dark:text-amber-400 block uppercase">Commission</span>
-                                    <span class="text-xs font-black text-amber-700 dark:text-amber-300">{{ $pkg->commission_percentage }}%</span>
+                                <div class="p-2 rounded-xl bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 text-center">
+                                    <span class="text-[9px] font-extrabold text-gray-500 dark:text-gray-400 block uppercase">Comm.</span>
+                                    <span class="text-xs font-black text-amber-600 dark:text-amber-400">{{ $pkg->commission_percentage }}%</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Date Range Validity -->
                         @if ($pkg->from_date || $pkg->to_date)
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-4 py-2 border-t border-gray-100 dark:border-gray-700/50">
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-3 py-2 border-t border-gray-100 dark:border-gray-700/60">
                                 <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                <span>Valid: <strong>{{ $pkg->from_date ? $pkg->from_date->format('d M Y') : 'Start' }}</strong> to <strong>{{ $pkg->to_date ? $pkg->to_date->format('d M Y') : 'Ongoing' }}</strong></span>
+                                <span class="truncate">Valid: <strong>{{ $pkg->from_date ? $pkg->from_date->format('d M Y') : 'Start' }}</strong> - <strong>{{ $pkg->to_date ? $pkg->to_date->format('d M Y') : 'Ongoing' }}</strong></span>
                             </div>
                         @endif
 
                         <!-- Feature Bullet Points -->
                         @if (is_array($pkg->features) && count($pkg->features) > 0)
-                            <div class="space-y-1.5 mb-6">
-                                <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Key Features</span>
+                            <div class="space-y-1.5 mb-4">
+                                <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Features</span>
                                 <ul class="space-y-1">
                                     @foreach ($pkg->features as $feat)
                                         <li class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-2">
                                             <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            <span>{{ $feat }}</span>
+                                            <span class="truncate">{{ $feat }}</span>
                                         </li>
                                     @endforeach
                                 </ul>
@@ -352,20 +352,20 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Card Actions Footer -->
-                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700/60 flex items-center gap-2">
+                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2">
                         <button wire:click="openEditModal({{ $pkg->id }})" type="button" 
                             class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit
                         </button>
                         <button wire:click="confirmDelete({{ $pkg->id }})" type="button" 
-                            class="px-3 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
+                            class="px-3.5 py-2.5 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </div>
                 </div>
             @empty
-                <div class="col-span-full bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-100 dark:border-gray-700/60 text-center text-gray-500 dark:text-gray-400 space-y-3">
+                <div class="col-span-full bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400 space-y-3">
                     <span class="text-4xl block">📦</span>
                     <p class="font-bold text-gray-800 dark:text-gray-200">No subscription packages found.</p>
                     <button wire:click="openCreateModal" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold">
@@ -379,8 +379,8 @@ new #[Layout('layouts.app')] class extends Component
 
     <!-- CREATE / EDIT PACKAGE MODAL -->
     @if ($showFormModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-gray-100 dark:border-gray-700">
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
                     <div>
                         <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">SAAS Package Configuration</span>
@@ -396,7 +396,7 @@ new #[Layout('layouts.app')] class extends Component
                     <div>
                         <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Package Name *</label>
                         <input type="text" wire:model="name" placeholder="e.g. Pro Monthly Plan" 
-                            class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
+                            class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
                         @error('name') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
@@ -405,42 +405,42 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Amount (₹) *</label>
                             <input type="number" step="0.01" wire:model="amount" placeholder="2999.00" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white font-bold text-indigo-600">
+                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold">
                             @error('amount') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Validity Days *</label>
                             <input type="number" wire:model="days" placeholder="30" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white font-bold">
+                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold">
                             @error('days') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Display Sort Order</label>
                             <input type="number" wire:model="sort_order" placeholder="0" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
                         </div>
                     </div>
 
-                    <!-- Percentage Breakdown Grid -->
-                    <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-700/60 space-y-3">
-                        <span class="text-xs font-extrabold text-gray-800 dark:text-gray-200 block">Percentages Breakdown</span>
+                    <!-- Percentage Breakdown Box (Clean Dark Theme Compatible Box) -->
+                    <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/90 border border-gray-200 dark:border-gray-700 space-y-3">
+                        <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">Percentages Breakdown</span>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Gateway Percentage (%) *</label>
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Gateway Percentage (%) *</label>
                                 <input type="number" step="0.01" wire:model.live="payment_gateway_percentage" placeholder="2.00" 
-                                    class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                    class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold">
                                 @error('payment_gateway_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Commission Percentage (%) *</label>
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Commission Percentage (%) *</label>
                                 <input type="number" step="0.01" wire:model.live="commission_percentage" placeholder="3.00" 
-                                    class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                    class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold">
                                 @error('commission_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Total Percentage (%) *</label>
+                                <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Total Percentage (%) *</label>
                                 <input type="number" step="0.01" wire:model="total_percentage" placeholder="5.00" 
-                                    class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-indigo-600 font-bold">
+                                    class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 font-bold">
                                 @error('total_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                             </div>
                         </div>
@@ -451,12 +451,12 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">From Date</label>
                             <input type="date" wire:model="from_date" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">To Date</label>
                             <input type="date" wire:model="to_date" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
                             @error('to_date') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                         </div>
                     </div>
@@ -465,7 +465,7 @@ new #[Layout('layouts.app')] class extends Component
                     <div>
                         <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Description</label>
                         <textarea wire:model="description" rows="2" placeholder="Brief package description..." 
-                            class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white"></textarea>
+                            class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"></textarea>
                     </div>
 
                     <!-- Is Active Toggle -->
@@ -479,7 +479,7 @@ new #[Layout('layouts.app')] class extends Component
                     <!-- Modal Actions -->
                     <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                         <button type="button" wire:click="$set('showFormModal', false)" class="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold">Cancel</button>
-                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20">
+                        <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-500/20 cursor-pointer">
                             {{ $editingId ? 'Save Changes' : 'Create Package' }}
                         </button>
                     </div>
@@ -490,8 +490,8 @@ new #[Layout('layouts.app')] class extends Component
 
     <!-- DELETE CONFIRMATION MODAL -->
     @if ($showDeleteModal)
-        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-2xl space-y-4 border border-gray-100 dark:border-gray-700">
+        <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-2xl space-y-4 border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center gap-3 text-red-600 dark:text-red-400">
                     <div class="w-10 h-10 rounded-2xl bg-red-100 dark:bg-red-950/60 flex items-center justify-center shrink-0">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -504,7 +504,7 @@ new #[Layout('layouts.app')] class extends Component
 
                 <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
                     <button wire:click="$set('showDeleteModal', false)" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold">Cancel</button>
-                    <button wire:click="deletePackage" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs">
+                    <button wire:click="deletePackage" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer">
                         Confirm Delete
                     </button>
                 </div>
