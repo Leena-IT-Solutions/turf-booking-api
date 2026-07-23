@@ -45,6 +45,9 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/turf-verification', 'saas.turf-verification')
         ->middleware('role:saas-admin')
         ->name('saas.turf-verification');
+    Volt::route('saas/subscription-packages', 'saas.subscription-package-manager')
+        ->middleware('role:saas-admin')
+        ->name('saas.subscription-packages');
     Volt::route('saas/administrator', 'saas.administrator-dashboard')
         ->middleware('role:saas-admin')
         ->name('saas.administrator');
