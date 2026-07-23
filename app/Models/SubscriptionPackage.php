@@ -20,9 +20,6 @@ class SubscriptionPackage extends Model
         'is_active',
         'from_date',
         'to_date',
-        'badge',
-        'max_turfs',
-        'max_managers',
         'sort_order',
         'features',
     ];
@@ -36,8 +33,6 @@ class SubscriptionPackage extends Model
         'from_date' => 'date:Y-m-d',
         'to_date' => 'date:Y-m-d',
         'days' => 'integer',
-        'max_turfs' => 'integer',
-        'max_managers' => 'integer',
         'sort_order' => 'integer',
         'features' => 'array',
     ];

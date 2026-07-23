@@ -21,13 +21,9 @@ class SubscriptionPackageSeeder extends Seeder
                 'is_active' => true,
                 'from_date' => now()->toDateString(),
                 'to_date' => now()->addYear()->toDateString(),
-                'badge' => 'Starter',
-                'max_turfs' => 1,
-                'max_managers' => 2,
                 'sort_order' => 1,
                 'features' => [
                     'Single Turf Management',
-                    'Up to 2 Manager Accounts',
                     'Mobile & Web Bookings',
                     '24/7 Standard Support'
                 ],
@@ -44,13 +40,8 @@ class SubscriptionPackageSeeder extends Seeder
                 'is_active' => true,
                 'from_date' => now()->toDateString(),
                 'to_date' => now()->addYear()->toDateString(),
-                'badge' => 'Most Popular',
-                'max_turfs' => 3,
-                'max_managers' => 5,
                 'sort_order' => 2,
                 'features' => [
-                    'Up to 3 Turfs / Venues',
-                    '5 Manager Accounts',
                     'Custom Coupon & Slot Locks',
                     'CSV Revenue Export Reports',
                     'Push Notifications Enabled'
@@ -68,13 +59,8 @@ class SubscriptionPackageSeeder extends Seeder
                 'is_active' => true,
                 'from_date' => now()->toDateString(),
                 'to_date' => now()->addYears(2)->toDateString(),
-                'badge' => 'Best Value',
-                'max_turfs' => 10,
-                'max_managers' => 15,
                 'sort_order' => 3,
                 'features' => [
-                    'Up to 10 Turfs & Locations',
-                    '15 Manager Accounts',
                     'Lowest Gateway Fee (1.5%)',
                     'Dedicated Account Manager',
                     'Priority 24/7 Phone Support'

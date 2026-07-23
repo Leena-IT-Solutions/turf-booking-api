@@ -23,14 +23,8 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->date('from_date')->nullable();
             $table->date('to_date')->nullable();
-            
-            // Suggested fields
-            $table->string('badge')->nullable();
-            $table->integer('max_turfs')->nullable()->default(1);
-            $table->integer('max_managers')->nullable()->default(3);
             $table->integer('sort_order')->default(0);
             $table->json('features')->nullable();
-
             $table->timestamps();
         });
     }

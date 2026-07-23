@@ -29,9 +29,6 @@ new #[Layout('layouts.app')] class extends Component
     public bool $is_active = true;
     public string $from_date = '';
     public string $to_date = '';
-    public string $badge = '';
-    public ?int $max_turfs = 1;
-    public ?int $max_managers = 3;
     public int $sort_order = 0;
     public string $features_text = '';
 
@@ -76,9 +73,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->is_active = (bool) $pkg->is_active;
         $this->from_date = $pkg->from_date ? $pkg->from_date->format('Y-m-d') : '';
         $this->to_date = $pkg->to_date ? $pkg->to_date->format('Y-m-d') : '';
-        $this->badge = $pkg->badge ?? '';
-        $this->max_turfs = $pkg->max_turfs;
-        $this->max_managers = $pkg->max_managers;
         $this->sort_order = (int) $pkg->sort_order;
         $this->features_text = is_array($pkg->features) ? implode("\n", $pkg->features) : '';
 
@@ -98,9 +92,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->is_active = true;
         $this->from_date = '';
         $this->to_date = '';
-        $this->badge = '';
-        $this->max_turfs = 1;
-        $this->max_managers = 3;
         $this->sort_order = 0;
         $this->features_text = '';
     }
@@ -117,9 +108,6 @@ new #[Layout('layouts.app')] class extends Component
             'is_active' => 'boolean',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date',
-            'badge' => 'nullable|string|max:50',
-            'max_turfs' => 'nullable|integer|min:1',
-            'max_managers' => 'nullable|integer|min:1',
             'sort_order' => 'integer|min:0',
         ]);
 
@@ -136,9 +124,6 @@ new #[Layout('layouts.app')] class extends Component
             'is_active' => $this->is_active,
             'from_date' => $this->from_date ?: null,
             'to_date' => $this->to_date ?: null,
-            'badge' => $this->badge ?: null,
-            'max_turfs' => $this->max_turfs,
-            'max_managers' => $this->max_managers,
             'sort_order' => (int) $this->sort_order,
             'features' => $featuresArray,
         ];
@@ -201,7 +186,7 @@ new #[Layout('layouts.app')] class extends Component
                     Subscription Packages
                 </h1>
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Manage vendor subscription tiers, pricing days, platform commissions, and gateway percentage splits.
+                    Manage subscription packages, pricing amounts, validity days, platform commission, and payment gateway percentages.
                 </p>
             </div>
 
@@ -257,8 +242,7 @@ new #[Layout('layouts.app')] class extends Component
                 $s = trim($this->search);
                 $query->where(function($q) use ($s) {
                     $q->where('name', 'LIKE', "%{$s}%")
-                      ->orWhere('description', 'LIKE', "%{$s}%")
-                      ->orWhere('badge', 'LIKE', "%{$s}%");
+                      ->orWhere('description', 'LIKE', "%{$s}%");
                 });
             }
 
@@ -291,16 +275,9 @@ new #[Layout('layouts.app')] class extends Component
                     <!-- Card Top Header -->
                     <div>
                         <div class="flex items-start justify-between gap-2 mb-3">
-                            <div>
-                                @if ($pkg->badge)
-                                    <span class="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 mb-2">
-                                        {{ $pkg->badge }}
-                                    </span>
-                                @endif
-                                <h3 class="text-xl font-black text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
-                                    {{ $pkg->name }}
-                                </h3>
-                            </div>
+                            <h3 class="text-xl font-black text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                                {{ $pkg->name }}
+                            </h3>
 
                             <!-- Active / Inactive Status Switch -->
                             <button wire:click="toggleActive({{ $pkg->id }})" type="button" 
@@ -317,9 +294,9 @@ new #[Layout('layouts.app')] class extends Component
                                 <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">/ {{ $pkg->days }} Days</span>
                             </div>
                             <div class="text-right">
-                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Validity</span>
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Duration</span>
                                 <span class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
-                                    {{ round($pkg->days / 30, 1) }} Month(s)
+                                    {{ $pkg->days }} Days
                                 </span>
                             </div>
                         </div>
@@ -333,10 +310,10 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Percentage Breakdown Chips -->
                         <div class="space-y-2 mb-4">
-                            <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Revenue & Fee Percentages</span>
+                            <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Percentages Breakdown</span>
                             <div class="grid grid-cols-3 gap-2">
                                 <div class="p-2 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-center">
-                                    <span class="text-[9px] font-extrabold text-indigo-500 dark:text-indigo-400 block uppercase">Total Share</span>
+                                    <span class="text-[9px] font-extrabold text-indigo-500 dark:text-indigo-400 block uppercase">Total</span>
                                     <span class="text-xs font-black text-indigo-700 dark:text-indigo-300">{{ $pkg->total_percentage }}%</span>
                                 </div>
                                 <div class="p-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 text-center">
@@ -350,30 +327,18 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                         </div>
 
-                        <!-- Key Specs & Quotas -->
-                        <div class="py-3 border-y border-gray-100 dark:border-gray-700/60 flex items-center justify-between text-xs my-4">
-                            <div class="flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
-                                <span>🏟️ Max Turfs:</span>
-                                <span class="font-black text-gray-900 dark:text-white">{{ $pkg->max_turfs ?? 'Unlimited' }}</span>
-                            </div>
-                            <div class="flex items-center gap-1.5 text-gray-600 dark:text-gray-300">
-                                <span>👥 Max Staff:</span>
-                                <span class="font-black text-gray-900 dark:text-white">{{ $pkg->max_managers ?? 'Unlimited' }}</span>
-                            </div>
-                        </div>
-
                         <!-- Date Range Validity -->
                         @if ($pkg->from_date || $pkg->to_date)
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-4">
+                            <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-4 py-2 border-t border-gray-100 dark:border-gray-700/50">
                                 <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                <span>Active Window: <strong>{{ $pkg->from_date ? $pkg->from_date->format('d M Y') : 'Start' }}</strong> to <strong>{{ $pkg->to_date ? $pkg->to_date->format('d M Y') : 'Ongoing' }}</strong></span>
+                                <span>Valid: <strong>{{ $pkg->from_date ? $pkg->from_date->format('d M Y') : 'Start' }}</strong> to <strong>{{ $pkg->to_date ? $pkg->to_date->format('d M Y') : 'Ongoing' }}</strong></span>
                             </div>
                         @endif
 
                         <!-- Feature Bullet Points -->
                         @if (is_array($pkg->features) && count($pkg->features) > 0)
                             <div class="space-y-1.5 mb-6">
-                                <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Features Included</span>
+                                <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Key Features</span>
                                 <ul class="space-y-1">
                                     @foreach ($pkg->features as $feat)
                                         <li class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-2">
@@ -418,7 +383,7 @@ new #[Layout('layouts.app')] class extends Component
             <div class="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 border border-gray-100 dark:border-gray-700">
                 <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
                     <div>
-                        <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">SAAS Admin Configuration</span>
+                        <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">SAAS Package Configuration</span>
                         <h2 class="text-xl font-black text-gray-900 dark:text-white mt-0.5">
                             {{ $editingId ? 'Edit Subscription Package' : 'Create New Subscription Package' }}
                         </h2>
@@ -427,22 +392,15 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
 
                 <form wire:submit.prevent="savePackage" class="space-y-4">
-                    <!-- Name & Badge -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div class="sm:col-span-2">
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Package Name *</label>
-                            <input type="text" wire:model="name" placeholder="e.g. Pro Monthly Partner" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
-                            @error('name') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Badge Tag</label>
-                            <input type="text" wire:model="badge" placeholder="e.g. Most Popular" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
-                        </div>
+                    <!-- Name -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Package Name *</label>
+                        <input type="text" wire:model="name" placeholder="e.g. Pro Monthly Plan" 
+                            class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('name') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Amount & Days -->
+                    <!-- Amount, Days, Sort Order -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Amount (₹) *</label>
@@ -451,7 +409,7 @@ new #[Layout('layouts.app')] class extends Component
                             @error('amount') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Validity (Days) *</label>
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Validity Days *</label>
                             <input type="number" wire:model="days" placeholder="30" 
                                 class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white font-bold">
                             @error('days') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
@@ -465,40 +423,26 @@ new #[Layout('layouts.app')] class extends Component
 
                     <!-- Percentage Breakdown Grid -->
                     <div class="p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-700/60 space-y-3">
-                        <span class="text-xs font-extrabold text-gray-800 dark:text-gray-200 block">Revenue Share & Gateway Fee Percentages</span>
+                        <span class="text-xs font-extrabold text-gray-800 dark:text-gray-200 block">Percentages Breakdown</span>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Gateway Fee (%) *</label>
+                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Gateway Percentage (%) *</label>
                                 <input type="number" step="0.01" wire:model.live="payment_gateway_percentage" placeholder="2.00" 
                                     class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
                                 @error('payment_gateway_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Commission (%) *</label>
+                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Commission Percentage (%) *</label>
                                 <input type="number" step="0.01" wire:model.live="commission_percentage" placeholder="3.00" 
                                     class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
                                 @error('commission_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                             </div>
                             <div>
-                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Total Fee (%) *</label>
+                                <label class="block text-[11px] font-semibold text-gray-600 dark:text-gray-400 mb-1">Total Percentage (%) *</label>
                                 <input type="number" step="0.01" wire:model="total_percentage" placeholder="5.00" 
                                     class="w-full p-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 text-indigo-600 font-bold">
                                 @error('total_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Quotas & Limits -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Max Turfs Allowed</label>
-                            <input type="number" wire:model="max_turfs" placeholder="1 (Leave blank for unlimited)" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Max Managers Allowed</label>
-                            <input type="number" wire:model="max_managers" placeholder="3 (Leave blank for unlimited)" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
                         </div>
                     </div>
 
@@ -519,23 +463,16 @@ new #[Layout('layouts.app')] class extends Component
 
                     <!-- Description -->
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Package Description</label>
-                        <textarea wire:model="description" rows="2" placeholder="Brief summary of package benefits..." 
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                        <textarea wire:model="description" rows="2" placeholder="Brief package description..." 
                             class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white"></textarea>
-                    </div>
-
-                    <!-- Feature Bullet Points -->
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Features (One per line)</label>
-                        <textarea wire:model="features_text" rows="3" placeholder="Single Turf Management&#10;Up to 2 Manager Accounts&#10;24/7 Standard Support" 
-                            class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white font-mono"></textarea>
                     </div>
 
                     <!-- Is Active Toggle -->
                     <div class="flex items-center gap-2 pt-2">
                         <input type="checkbox" id="is_active_check" wire:model="is_active" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                         <label for="is_active_check" class="text-xs font-bold text-gray-800 dark:text-gray-200 cursor-pointer">
-                            Package is Active & Visible to Vendors
+                            Is Active
                         </label>
                     </div>
 
