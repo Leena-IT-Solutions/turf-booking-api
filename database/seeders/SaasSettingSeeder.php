@@ -60,6 +60,7 @@ class SaasSettingSeeder extends Seeder
             'mailgun_endpoint' => 'api.mailgun.net',
             'turf_search_km' => 10,
             'min_slots_booking' => 2,
+            'commission_percentage' => 7.00,
         ]);
     }
 }
