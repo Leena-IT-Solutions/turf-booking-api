@@ -25,11 +25,13 @@ class SaasSetting extends Model
         'mailgun_endpoint',
         'turf_search_km',
         'min_slots_booking',
+        'commission_percentage',
     ];
 
     protected $casts = [
         'is_maintenance_mode' => 'boolean',
         'turf_search_km' => 'integer',
         'min_slots_booking' => 'integer',
+        'commission_percentage' => 'float',
     ];
 }
