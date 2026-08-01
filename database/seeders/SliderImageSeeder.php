@@ -58,34 +58,17 @@ class SliderImageSeeder extends Seeder
         SliderImage::truncate();
 
         foreach ($slides as $slideData) {
-            $imagePath = 'sliders/' . $slideData['filename'];
+            $filename = $slideData['filename'];
+            $targetPath = 'sliders/' . $filename;
+            $sourcePath = base_path('images/' . $filename);
 
-            if (!$publicDisk->exists($imagePath)) {
-                // Programmatically generate a placeholder image if custom image doesn't exist
-                if (extension_loaded('gd')) {
-                    $im = imagecreatetruecolor(1200, 400);
-                    $bg = imagecolorallocate($im, $slideData['color'][0], $slideData['color'][1], $slideData['color'][2]);
-                    imagefill($im, 0, 0, $bg);
-
-                    $lineColor = imagecolorallocatealpha($im, 255, 255, 255, 110);
-                    for ($i = 0; $i < 1200; $i += 40) {
-                        imageline($im, $i, 0, $i - 400, 400, $lineColor);
-                    }
-
-                    ob_start();
-                    imagepng($im);
-                    $imageData = ob_get_clean();
-                    imagedestroy($im);
-                    
-                    $publicDisk->put($imagePath, $imageData);
-                } else {
-                    $publicDisk->put($imagePath, 'dummy image content');
-                }
+            if (file_exists($sourcePath)) {
+                $publicDisk->put($targetPath, file_get_contents($sourcePath));
             }
 
             SliderImage::create([
                 'title' => $slideData['title'],
-                'image_path' => $imagePath,
+                'image_path' => $targetPath,
                 'link_url' => $slideData['link_url'],
                 'order' => $slideData['order'],
                 'is_active' => true,
