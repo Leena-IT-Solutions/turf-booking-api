@@ -48,7 +48,7 @@ class AdministratorPageTest extends TestCase
 
         $response = $this->actingAs($customer)->get('/dashboard');
         $response->assertOk();
-        $response->assertSee('Initially kept blank.');
+        $response->assertSee('Do you own or manage a Turf?');
     }
 
     public function test_user_with_customer_and_saas_admin_role_can_access_dashboard_directly(): void
