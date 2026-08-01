@@ -152,14 +152,15 @@ class SliderManagerTest extends TestCase
 
         $this->seed(\Database\Seeders\SliderImageSeeder::class);
 
-        $this->assertDatabaseCount('slider_images', 3);
+        $this->assertDatabaseCount('slider_images', 4);
         $this->assertDatabaseHas('slider_images', [
-            'title' => 'Unleash Your Game - Premium Turf Booking',
-            'image_path' => 'sliders/slide_1.png',
+            'title' => 'Own a Sports Turf? List & Grow With Us!',
+            'image_path' => 'sliders/list_your_turf.png',
             'order' => 1,
             'is_active' => 1,
         ]);
 
+        Storage::disk('public')->assertExists('sliders/list_your_turf.png');
         Storage::disk('public')->assertExists('sliders/slide_1.png');
         Storage::disk('public')->assertExists('sliders/slide_2.png');
         Storage::disk('public')->assertExists('sliders/slide_3.png');
