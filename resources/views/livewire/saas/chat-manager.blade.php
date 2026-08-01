@@ -220,22 +220,22 @@ new #[Layout('layouts.app')] class extends Component
                     >
                         @foreach ($messages as $msg)
                             <div wire:key="msg-{{ $msg->id }}" class="flex w-full">
-                                @if ($msg->sender_id === $activeCustomer->id)
-                                    <!-- Left Bubble (Customer) -->
-                                    <div class="flex items-end gap-2 max-w-[80%]">
-                                        <div class="bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 rounded-3xl rounded-bl-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
+                                @if ($msg->sender_id === auth()->id())
+                                    <!-- Right Bubble (My Sent Message) -->
+                                    <div class="flex items-end gap-2 max-w-[80%] ml-auto justify-end">
+                                        <div class="bg-indigo-600 text-white rounded-3xl rounded-br-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
                                             {{ $msg->message }}
-                                            <span class="block text-[8px] text-gray-400 dark:text-gray-500 text-right mt-1 font-mono">
+                                            <span class="block text-[8px] text-indigo-200 text-right mt-1 font-mono">
                                                 {{ $msg->created_at->format('h:i A') }}
                                             </span>
                                         </div>
                                     </div>
                                 @else
-                                    <!-- Right Bubble (Staff Reply) -->
-                                    <div class="flex items-end gap-2 max-w-[80%] ml-auto justify-end">
-                                        <div class="bg-indigo-600 text-white rounded-3xl rounded-br-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
+                                    <!-- Left Bubble (Received Message) -->
+                                    <div class="flex items-end gap-2 max-w-[80%]">
+                                        <div class="bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 rounded-3xl rounded-bl-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
                                             {{ $msg->message }}
-                                            <span class="block text-[8px] text-indigo-200 text-right mt-1 font-mono">
+                                            <span class="block text-[8px] text-gray-400 dark:text-gray-500 text-right mt-1 font-mono">
                                                 {{ $msg->created_at->format('h:i A') }}
                                             </span>
                                         </div>
