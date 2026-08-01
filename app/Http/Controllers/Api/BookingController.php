@@ -530,11 +530,14 @@ class BookingController extends Controller
                         ->first();
 
                     if ($isLocked) {
-                        \DB::rollBack();
-                        $reason = $isLocked->reason ? " ({$isLocked->reason})" : "";
-                        return response()->json([
-                            'message' => "Selected slot is locked for date: $dateStr{$reason}.",
-                        ], 422);
+                        if ($bookingType === 'day') {
+                            \DB::rollBack();
+                            $reason = $isLocked->reason ? " ({$isLocked->reason})" : "";
+                            return response()->json([
+                                'message' => "Selected slot is locked for date: $dateStr{$reason}.",
+                            ], 422);
+                        }
+                        continue;
                     }
 
                     $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
@@ -828,7 +831,7 @@ class BookingController extends Controller
             $slotsData = [];
             
             foreach ($slotIds as $slotId) {
-                $isBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
+                $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
                     ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
                         $q->where('booking_date', $dateStr)
                           ->whereHas('booking', function ($bq) use ($turf) {
@@ -837,6 +840,13 @@ class BookingController extends Controller
                           });
                     })
                     ->exists();
+
+                $isLocked = \App\Models\SlotLock::where('turf_id', $turf->id)
+                    ->where('slot_id', $slotId)
+                    ->where('lock_date', $dateStr)
+                    ->exists();
+
+                $isUnavailable = $alreadyBooked || $isLocked;
 
                 $slot = $turf->slots()->where('slots.id', $slotId)->first();
                 if (!$slot) {
@@ -857,7 +867,7 @@ class BookingController extends Controller
                     }
                 }
 
-                if (!$isBooked) {
+                if (!$isUnavailable) {
                     $dateSubtotal += $price;
                 }
 
@@ -865,7 +875,7 @@ class BookingController extends Controller
                     'id' => $slotId,
                     'time_label' => date('h:i A', strtotime($slot->from_time)) . ' - ' . date('h:i A', strtotime($slot->to_time)),
                     'price' => $price,
-                    'status' => $isBooked ? 'booked' : 'available',
+                    'status' => $isUnavailable ? 'booked' : 'available',
                 ];
             }
 
