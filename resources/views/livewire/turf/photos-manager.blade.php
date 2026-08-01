@@ -255,7 +255,12 @@ new #[Layout('layouts.app')] class extends Component
                                     x-data="{ isDragging: false, isUploading: false, progress: 0 }"
                                     x-on:dragover.prevent="isDragging = true"
                                     x-on:dragleave.prevent="isDragging = false"
-                                    x-on:drop.prevent="isDragging = false"
+                                    x-on:drop.prevent="
+                                        isDragging = false;
+                                        if ($event.dataTransfer.files.length > 0) {
+                                            $wire.upload('photoFile', $event.dataTransfer.files[0]);
+                                        }
+                                    "
                                     x-on:livewire-upload-start="isUploading = true"
                                     x-on:livewire-upload-finish="isUploading = false"
                                     x-on:livewire-upload-error="isUploading = false; alert('Upload failed. Please ensure the file is an image and under 2MB.')"
@@ -269,6 +274,11 @@ new #[Layout('layouts.app')] class extends Component
                                         type="file" 
                                         wire:model="photoFile" 
                                         accept="image/*"
+                                        x-on:change="
+                                            if ($event.target.files.length > 0) {
+                                                $wire.upload('photoFile', $event.target.files[0]);
+                                            }
+                                        "
                                         class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     >
 

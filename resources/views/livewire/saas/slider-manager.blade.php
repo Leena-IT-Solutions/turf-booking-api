@@ -379,7 +379,12 @@ new #[Layout('layouts.app')] class extends Component
                                     x-data="{ isDragging: false }"
                                     x-on:dragover.prevent="isDragging = true"
                                     x-on:dragleave.prevent="isDragging = false"
-                                    x-on:drop.prevent="isDragging = false"
+                                    x-on:drop.prevent="
+                                        isDragging = false;
+                                        if ($event.dataTransfer.files.length > 0) {
+                                            $wire.upload('image', $event.dataTransfer.files[0]);
+                                        }
+                                    "
                                 >
                                     <label 
                                         :class="isDragging ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/30 scale-[1.01]' : ''"
@@ -401,7 +406,18 @@ new #[Layout('layouts.app')] class extends Component
                                             </div>
                                         @endif
 
-                                        <input type="file" wire:model="image" id="image" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/*" />
+                                        <input 
+                                            type="file" 
+                                            wire:model="image" 
+                                            id="image" 
+                                            accept="image/*"
+                                            x-on:change="
+                                                if ($event.target.files.length > 0) {
+                                                    $wire.upload('image', $event.target.files[0]);
+                                                }
+                                            "
+                                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                                        />
                                     </label>
                                 </div>
                                 <x-input-error :messages="$errors->get('image')" class="mt-2" />
