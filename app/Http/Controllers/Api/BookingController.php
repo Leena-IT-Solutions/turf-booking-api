@@ -54,23 +54,34 @@ class BookingController extends Controller
         }
 
         $date = $request->query('date');
+
         if ($date) {
-            $query->whereDate('booking_date', $date)
-                  ->orderBy('id', 'asc');
+            if ($filter === 'past') {
+                if ($date > $today) {
+                    $query->whereRaw('1 = 0');
+                } else {
+                    $query->whereDate('booking_date', $date);
+                }
+            } else {
+                // Default to upcoming
+                if ($date < $today) {
+                    $query->whereRaw('1 = 0');
+                } else {
+                    $query->whereDate('booking_date', $date);
+                }
+            }
         } else {
             if ($filter === 'past') {
                 $query->where('booking_date', '<', $today)
-                      ->orderBy('booking_date', 'desc')
-                      ->orderBy('id', 'desc');
+                      ->orderBy('booking_date', 'desc');
             } else {
-                // Default to upcoming (today or future)
+                // Default to upcoming
                 $query->where('booking_date', '>=', $today)
-                      ->orderBy('booking_date', 'asc')
-                      ->orderBy('id', 'asc');
+                      ->orderBy('booking_date', 'asc');
             }
         }
 
-        $bookingDates = $query->paginate(10);
+        $bookingDates = $query->paginate(50);
             
         $formatted = $bookingDates->through(function ($bDate) {
             $booking = $bDate->booking;
@@ -178,7 +189,16 @@ class BookingController extends Controller
             ];
         });
 
-        return response()->json($formatted);
+        $dataArr = $formatted->toArray();
+        usort($dataArr['data'], function ($a, $b) {
+            $slotsA = $a['slots'] ?? [];
+            $slotsB = $b['slots'] ?? [];
+            $timeA = !empty($slotsA) ? ($slotsA[0]['from_time'] ?? '') : '';
+            $timeB = !empty($slotsB) ? ($slotsB[0]['from_time'] ?? '') : '';
+            return strcmp($timeA, $timeB);
+        });
+
+        return response()->json($dataArr);
     }
 
     /**
