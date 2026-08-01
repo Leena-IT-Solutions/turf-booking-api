@@ -62,22 +62,26 @@ class BookingController extends Controller
                 } else {
                     $query->whereDate('booking_date', $date);
                 }
-            } else {
-                // Default to upcoming
+            } elseif ($filter === 'upcoming') {
                 if ($date < $today) {
                     $query->whereRaw('1 = 0');
                 } else {
                     $query->whereDate('booking_date', $date);
                 }
+            } else {
+                // 'all' filter
+                $query->whereDate('booking_date', $date);
             }
         } else {
             if ($filter === 'past') {
-                $query->where('booking_date', '<', $today)
+                $query->where('booking_date', '<=', $today)
                       ->orderBy('booking_date', 'desc');
-            } else {
-                // Default to upcoming
+            } elseif ($filter === 'upcoming') {
                 $query->where('booking_date', '>=', $today)
                       ->orderBy('booking_date', 'asc');
+            } else {
+                // 'all'
+                $query->orderBy('booking_date', 'desc');
             }
         }
 
