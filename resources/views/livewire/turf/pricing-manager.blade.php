@@ -423,7 +423,7 @@ new #[Layout('layouts.app')] class extends Component
                                                     </button>
                                                 </div>
 
-                                                <div class="space-y-3 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
+                                                <div class="space-y-3">
                                                     @foreach ($timeRangesAll as $idx => $range)
                                                         <div wire:key="time-range-all-{{ $idx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/40 dark:border-gray-800/60 shadow-sm relative">
                                                             <!-- From Time -->
@@ -470,7 +470,7 @@ new #[Layout('layouts.app')] class extends Component
                                             </button>
                                         </div>
 
-                                         <div class="space-y-6 max-h-[480px] overflow-y-auto custom-scrollbar pr-1.5 pb-2">
+                                         <div class="space-y-6 pb-2">
                                              @foreach ($dayGroups as $gIndex => $group)
                                                  <div wire:key="day-group-{{ $gIndex }}" class="p-5 bg-gray-50/40 dark:bg-gray-900/30 border border-gray-200/60 dark:border-gray-700/40 rounded-3xl space-y-4 relative">
                                                      <!-- Remove Group button -->
@@ -537,7 +537,7 @@ new #[Layout('layouts.app')] class extends Component
                                                                  </button>
                                                              </div>
 
-                                                             <div class="space-y-3 max-h-[220px] overflow-y-auto custom-scrollbar pr-1">
+                                                             <div class="space-y-3">
                                                                  @foreach ($group['timeRanges'] as $tIdx => $range)
                                                                      <div wire:key="time-range-{{ $gIndex }}-{{ $tIdx }}" class="flex flex-col sm:flex-row items-center gap-3 bg-white dark:bg-gray-900 p-3 rounded-xl border border-gray-200/40 dark:border-gray-800/60 shadow-sm relative">
                                                                          <div class="w-full">
