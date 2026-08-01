@@ -89,6 +89,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zm0 0H3m9 9V3" />
         </svg>
         @break
+    @case('volleyball')
+    @case('volleyball-ball')
+        <svg class="{{ $class }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="9" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3a9 9 0 0 0 0 18" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.2 8.4A9 9 0 0 0 19.8 15.6" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4.2 15.6A9 9 0 0 0 19.8 8.4" />
+        </svg>
+        @break
     @case('sun')
     @case('morning')
     @case('afternoon')
