@@ -436,6 +436,7 @@ class BookingController extends Controller
             'booking_dates.*' => 'required|date_format:Y-m-d',
             'booking_type' => 'required|string|in:day,long,scattered',
             'coupons' => 'nullable|array', // key: date (YYYY-MM-DD), value: coupon code (string)
+            'additional_discount' => 'nullable|numeric|min:0',
             'payment_method' => 'required|string|in:offline,App,Cash,UPI,Other',
             'payment_option' => 'nullable|string|in:full,part',
             'amount_received' => 'nullable|numeric|min:0', // for manager
@@ -453,6 +454,7 @@ class BookingController extends Controller
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
         $dateCoupons = $validated['coupons'] ?? [];
+        $manualDiscount = ($isStaffOrAdmin && isset($validated['additional_discount'])) ? (float)$validated['additional_discount'] : 0.00;
         $paymentMethod = $validated['payment_method'];
 
         $settings = \App\Models\SaasSetting::first();
@@ -514,7 +516,7 @@ class BookingController extends Controller
 
         try {
             $totalSubtotal = 0.00;
-            $totalDiscount = 0.00;
+            $totalCouponDiscount = 0.00;
             $calculatedDates = [];
 
             foreach ($dates as $dateStr) {
@@ -663,21 +665,39 @@ class BookingController extends Controller
                     $couponDiscount = min($couponDiscount, $dateSubtotal);
                 }
 
-                $dateNet = max(0.00, $dateSubtotal - $couponDiscount);
                 $totalSubtotal += $dateSubtotal;
-                $totalDiscount += $couponDiscount;
+                $totalCouponDiscount += $couponDiscount;
 
                 $calculatedDates[] = [
                     'date_str' => $dateStr,
                     'subtotal' => $dateSubtotal,
-                    'discount' => $couponDiscount,
-                    'net_amount' => $dateNet,
+                    'coupon_discount' => $couponDiscount,
+                    'after_coupon' => max(0.00, $dateSubtotal - $couponDiscount),
                     'slots' => $slotsToCreate,
                     'coupon' => $coupon,
                 ];
             }
 
-            $totalAmount = max(0.00, $totalSubtotal - $totalDiscount);
+            // Distribute manual additional discount proportionally across dates
+            $sumAfterCoupon = array_sum(array_column($calculatedDates, 'after_coupon'));
+            $dateCount = count($calculatedDates);
+
+            foreach ($calculatedDates as $idx => &$calcDate) {
+                if ($manualDiscount > 0) {
+                    if ($sumAfterCoupon > 0) {
+                        $dateAddDiscount = round($manualDiscount * ($calcDate['after_coupon'] / $sumAfterCoupon), 2);
+                    } else {
+                        $dateAddDiscount = round($manualDiscount / $dateCount, 2);
+                    }
+                } else {
+                    $dateAddDiscount = 0.00;
+                }
+                $calcDate['additional_discount'] = min($dateAddDiscount, $calcDate['after_coupon']);
+                $calcDate['net_amount'] = max(0.00, $calcDate['after_coupon'] - $calcDate['additional_discount']);
+            }
+            unset($calcDate);
+
+            $totalAmount = max(0.00, $totalSubtotal - $totalCouponDiscount - $manualDiscount);
 
             // Create parent booking record
             $booking = Booking::create([
@@ -687,7 +707,8 @@ class BookingController extends Controller
                 'booking_type' => $bookingType,
                 'status' => 'Confirmed',
                 'payment_status' => 'Pending',
-                'additional_discount' => $totalDiscount,
+                'coupon_discount' => $totalCouponDiscount,
+                'additional_discount' => $manualDiscount,
             ]);
 
             // Save booking dates
@@ -696,7 +717,8 @@ class BookingController extends Controller
                 $bookingDate = $booking->bookingDates()->create([
                     'booking_date' => $calcDate['date_str'],
                     'amount' => $calcDate['net_amount'],
-                    'additional_discount' => $calcDate['discount'],
+                    'coupon_discount' => $calcDate['coupon_discount'],
+                    'additional_discount' => $calcDate['additional_discount'],
                     'payment_status' => 'Unpaid',
                 ]);
 
@@ -706,12 +728,12 @@ class BookingController extends Controller
                     ]);
                 }
 
-                if ($calcDate['coupon'] && $calcDate['discount'] > 0) {
+                if ($calcDate['coupon'] && $calcDate['coupon_discount'] > 0) {
                     \App\Models\CouponUsage::create([
                         'coupon_id' => $calcDate['coupon']->id,
                         'user_id' => $targetUserId,
                         'booking_date_id' => $bookingDate->id,
-                        'discount_applied' => $calcDate['discount'],
+                        'discount_applied' => $calcDate['coupon_discount'],
                         'used_at' => Carbon::now(),
                     ]);
                     $calcDate['coupon']->increment('used_count');
@@ -809,19 +831,22 @@ class BookingController extends Controller
             'booking_dates.*' => 'required|date_format:Y-m-d',
             'booking_type' => 'required|string|in:day,long,scattered',
             'coupons' => 'nullable|array', // key is date (YYYY-MM-DD), value is coupon code (string)
+            'additional_discount' => 'nullable|numeric|min:0',
         ]);
 
+        $isStaffOrAdmin = auth()->user()->hasAnyRole(['saas-admin', 'turf-admin', 'manager']);
         $slotIds = $validated['slot_ids'];
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
         $dateCoupons = $validated['coupons'] ?? [];
+        $manualDiscount = ($isStaffOrAdmin && isset($validated['additional_discount'])) ? (float)$validated['additional_discount'] : 0.00;
 
         $wizard = is_array($turf->pricing_wizard_data) 
             ? $turf->pricing_wizard_data 
             : json_decode($turf->pricing_wizard_data, true);
 
         $totalSubtotal = 0.00;
-        $totalDiscount = 0.00;
+        $totalCouponDiscount = 0.00;
         $formattedDates = [];
 
         foreach ($dates as $dateStr) {
@@ -940,16 +965,15 @@ class BookingController extends Controller
                 }
             }
 
-            $dateNet = max(0.00, $dateSubtotal - $couponDiscount);
             $totalSubtotal += $dateSubtotal;
-            $totalDiscount += $couponDiscount;
+            $totalCouponDiscount += $couponDiscount;
 
             $formattedDates[] = [
                 'date' => $dateStr,
                 'day_name' => ucfirst($dayOfWeek),
                 'subtotal' => $dateSubtotal,
-                'discount' => $couponDiscount,
-                'net_amount' => $dateNet,
+                'coupon_discount' => $couponDiscount,
+                'after_coupon' => max(0.00, $dateSubtotal - $couponDiscount),
                 'slots' => $slotsData,
                 'coupon' => [
                     'applied' => $couponApplied,
@@ -960,6 +984,27 @@ class BookingController extends Controller
             ];
         }
 
+        // Distribute manual additional discount proportionally across dates
+        $sumAfterCoupon = array_sum(array_column($formattedDates, 'after_coupon'));
+        $dateCount = count($formattedDates);
+
+        foreach ($formattedDates as &$fDate) {
+            if ($manualDiscount > 0) {
+                if ($sumAfterCoupon > 0) {
+                    $dateAddDiscount = round($manualDiscount * ($fDate['after_coupon'] / $sumAfterCoupon), 2);
+                } else {
+                    $dateAddDiscount = round($manualDiscount / $dateCount, 2);
+                }
+            } else {
+                $dateAddDiscount = 0.00;
+            }
+            $fDate['additional_discount'] = min($dateAddDiscount, $fDate['after_coupon']);
+            $fDate['discount'] = $fDate['coupon_discount'] + $fDate['additional_discount'];
+            $fDate['net_amount'] = max(0.00, $fDate['after_coupon'] - $fDate['additional_discount']);
+        }
+        unset($fDate);
+
+        $totalDiscount = $totalCouponDiscount + $manualDiscount;
         $totalAmount = max(0.00, $totalSubtotal - $totalDiscount);
 
         // Part payment calculations
@@ -982,6 +1027,8 @@ class BookingController extends Controller
         return response()->json([
             'success' => true,
             'subtotal' => $totalSubtotal,
+            'coupon_discount' => $totalCouponDiscount,
+            'additional_discount' => $manualDiscount,
             'discount' => $totalDiscount,
             'total_amount' => $totalAmount,
             'part_payment_active' => $partPaymentActive,

@@ -14,6 +14,7 @@ class BookingDate extends Model
         'booking_date',
         'status',
         'amount',
+        'coupon_discount',
         'additional_discount',
         'payment_status',
         'cancelled_at',
@@ -26,6 +27,7 @@ class BookingDate extends Model
     protected $casts = [
         'booking_date' => 'string',
         'amount' => 'decimal:2',
+        'coupon_discount' => 'decimal:2',
         'additional_discount' => 'decimal:2',
         'cancelled_at' => 'datetime',
         'cancellation_fee_applied' => 'decimal:2',
