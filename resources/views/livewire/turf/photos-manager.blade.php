@@ -252,13 +252,26 @@ new #[Layout('layouts.app')] class extends Component
                                     {{ __('Select Field Image') }}
                                 </label>
                                 <div 
-                                    x-data="{ isUploading: false, progress: 0 }"
+                                    x-data="{ isDragging: false, isUploading: false, progress: 0 }"
+                                    x-on:dragover.prevent="isDragging = true"
+                                    x-on:dragleave.prevent="isDragging = false"
+                                    x-on:drop.prevent="isDragging = false"
                                     x-on:livewire-upload-start="isUploading = true"
                                     x-on:livewire-upload-finish="isUploading = false"
                                     x-on:livewire-upload-error="isUploading = false; alert('Upload failed. Please ensure the file is an image and under 2MB.')"
                                     x-on:livewire-upload-progress="progress = $event.detail.progress"
-                                    class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed {{ $errors->has('photoFile') ? 'border-red-500 dark:border-red-500 bg-red-50/10 dark:bg-red-950/5' : 'border-gray-300 dark:border-gray-650 bg-gray-50/50 dark:bg-gray-900/10' }} rounded-2xl relative"
+                                    :class="isDragging ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/30 scale-[1.01]' : '{{ $errors->has('photoFile') ? 'border-red-500 dark:border-red-500 bg-red-50/10 dark:bg-red-950/5' : 'border-gray-300 dark:border-gray-650 bg-gray-50/50 dark:bg-gray-900/10' }}'"
+                                    class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-2xl relative transition-all duration-200"
                                 >
+                                    <!-- Full Box Overlay Transparent File Input for 100% Drag & Drop and Click Coverage -->
+                                    <input 
+                                        id="photoFile" 
+                                        type="file" 
+                                        wire:model="photoFile" 
+                                        accept="image/*"
+                                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                    >
+
                                     <!-- Loading Indicator Overlay -->
                                     <div x-show="isUploading" class="absolute inset-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xs flex flex-col items-center justify-center rounded-2xl z-20" style="display: none;">
                                         <svg class="animate-spin h-8 w-8 text-indigo-650 dark:text-indigo-400" fill="none" viewBox="0 0 24 24">
@@ -268,15 +281,14 @@ new #[Layout('layouts.app')] class extends Component
                                         <span class="text-xs font-bold text-gray-700 dark:text-gray-300 mt-2" x-text="'Uploading image (' + progress + '%)...'"></span>
                                     </div>
 
-                                    <div class="space-y-1 text-center">
+                                    <div class="space-y-1 text-center pointer-events-none">
                                         <svg class="mx-auto h-10 w-10 text-gray-400 dark:text-gray-500" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                                             <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                         </svg>
-                                        <div class="flex text-xs text-gray-600 dark:text-gray-400">
-                                            <label for="photoFile" class="relative cursor-pointer rounded-md font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
-                                                <span>{{ __('Upload a file') }}</span>
-                                                <input id="photoFile" wire:model="photoFile" type="file" class="sr-only">
-                                            </label>
+                                        <div class="flex text-xs text-gray-600 dark:text-gray-400 justify-center">
+                                            <span class="font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500">
+                                                {{ __('Upload a file') }}
+                                            </span>
                                             <p class="pl-1">{{ __('or drag and drop') }}</p>
                                         </div>
                                         <p class="text-[10px] text-gray-400 dark:text-gray-500">

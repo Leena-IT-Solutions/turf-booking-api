@@ -375,8 +375,16 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-label for="image" :value="__('Select Slide Image')" />
                                 
                                 <!-- File Upload Trigger Area -->
-                                <div class="mt-1.5 flex items-center justify-center w-full">
-                                    <label class="flex flex-col items-center justify-center w-full aspect-[16/9] border-2 border-gray-300 dark:border-gray-700 border-dashed rounded-3xl cursor-pointer bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/80 overflow-hidden relative group">
+                                <div class="mt-1.5 flex items-center justify-center w-full"
+                                    x-data="{ isDragging: false }"
+                                    x-on:dragover.prevent="isDragging = true"
+                                    x-on:dragleave.prevent="isDragging = false"
+                                    x-on:drop.prevent="isDragging = false"
+                                >
+                                    <label 
+                                        :class="isDragging ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/30 scale-[1.01]' : ''"
+                                        class="flex flex-col items-center justify-center w-full aspect-[16/9] border-2 border-gray-300 dark:border-gray-700 border-dashed rounded-3xl cursor-pointer bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/80 overflow-hidden relative group transition-all duration-200"
+                                    >
                                         
                                         <!-- Image Preview Block -->
                                         @if ($image)
@@ -384,15 +392,16 @@ new #[Layout('layouts.app')] class extends Component
                                         @elseif ($existingImagePath)
                                             <img src="{{ Storage::url($existingImagePath) }}" class="absolute inset-0 h-full w-full object-cover">
                                         @else
-                                            <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <div class="flex flex-col items-center justify-center pt-5 pb-6 pointer-events-none">
                                                 <svg class="w-8 h-8 mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                 </svg>
                                                 <p class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{{ __('Upload Image') }}</p>
+                                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{{ __('Click or drag and drop image here') }}</p>
                                             </div>
                                         @endif
 
-                                        <input type="file" wire:model="image" id="image" class="hidden" accept="image/*" />
+                                        <input type="file" wire:model="image" id="image" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/*" />
                                     </label>
                                 </div>
                                 <x-input-error :messages="$errors->get('image')" class="mt-2" />
