@@ -4,6 +4,9 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::view('/', 'welcome');
+Route::view('/features', 'features')->name('features');
+Route::view('/pricing', 'pricing')->name('pricing');
+Route::view('/contact', 'contact')->name('contact');
 Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 
 Route::get('dashboard', function () {
