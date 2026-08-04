@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::match(['get', 'post'], '/whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'handle']);
 Route::post('/send-whatsapp-otp', [AuthController::class, 'sendWhatsAppOtp']);
 Route::post('/verify-whatsapp-otp', [AuthController::class, 'verifyWhatsAppOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
