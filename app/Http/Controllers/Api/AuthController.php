@@ -165,28 +165,135 @@ class AuthController extends Controller
     }
 
     /**
-     * Request a password reset OTP.
+     * Send WhatsApp OTP for registration or password reset.
      */
-    public function forgotPassword(Request $request)
+    public function sendWhatsAppOtp(Request $request)
     {
         $request->validate([
-            'email' => 'required|string|email|exists:users,email',
+            'mobile' => 'required|string|min:10|max:15',
+            'purpose' => 'required|string|in:registration,forgot_password',
         ]);
 
-        $email = $request->email;
+        $mobile = preg_replace('/[^0-9]/', '', $request->mobile);
+        if (strlen($mobile) === 10) {
+            $mobile = '91' . $mobile;
+        }
+
+        if ($request->purpose === 'registration') {
+            if (User::where('mobile', $request->mobile)->orWhere('mobile', $mobile)->where('is_quick_created', false)->exists()) {
+                return response()->json([
+                    'message' => 'This mobile number is already registered.'
+                ], 422);
+            }
+        } elseif ($request->purpose === 'forgot_password') {
+            $user = User::where('mobile', $request->mobile)->orWhere('mobile', $mobile)->orWhere('mobile', substr($mobile, 2))->first();
+            if (!$user) {
+                return response()->json([
+                    'message' => 'No user found with this mobile number.'
+                ], 404);
+            }
+        }
+
         $otp = strval(rand(100000, 999999));
 
         \DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $email],
+            ['email' => 'whatsapp_' . $mobile],
             [
                 'token' => Hash::make($otp),
                 'created_at' => now()
             ]
         );
 
+        $whatsAppService = new \App\Services\WhatsAppService();
+        $sent = $whatsAppService->sendOtp($mobile, $otp, $request->purpose);
+
         return response()->json([
-            'message' => 'OTP sent successfully to your email.',
-            'otp' => $otp, // Return in response for development convenience
+            'message' => 'WhatsApp OTP sent successfully.',
+            'otp' => config('app.debug') ? $otp : null,
+            'whatsapp_sent' => $sent,
+        ]);
+    }
+
+    /**
+     * Verify WhatsApp OTP for registration or password reset.
+     */
+    public function verifyWhatsAppOtp(Request $request)
+    {
+        $request->validate([
+            'mobile' => 'required|string|min:10|max:15',
+            'otp' => 'required|string|min:6|max:6',
+        ]);
+
+        $mobile = preg_replace('/[^0-9]/', '', $request->mobile);
+        if (strlen($mobile) === 10) {
+            $mobile = '91' . $mobile;
+        }
+
+        $reset = \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $mobile)->first();
+
+        if (!$reset || !Hash::check($request->otp, $reset->token)) {
+            return response()->json([
+                'message' => 'Invalid OTP code.'
+            ], 422);
+        }
+
+        if (\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+            return response()->json([
+                'message' => 'OTP has expired.'
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'WhatsApp OTP verified successfully.'
+        ]);
+    }
+
+    /**
+     * Request a password reset OTP.
+     */
+    public function forgotPassword(Request $request)
+    {
+        $request->validate([
+            'login' => 'nullable|string',
+            'email' => 'nullable|string|email',
+            'mobile' => 'nullable|string',
+        ]);
+
+        $login = $request->input('login', $request->input('email', $request->input('mobile')));
+        if (!$login) {
+            return response()->json(['message' => 'Email or mobile number is required.'], 422);
+        }
+
+        $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
+        $user = User::where($isEmail ? 'email' : 'mobile', $login)->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'No user found with the provided credentials.'
+            ], 404);
+        }
+
+        $otp = strval(rand(100000, 999999));
+        $identifier = $isEmail ? $user->email : ('whatsapp_' . preg_replace('/[^0-9]/', '', $user->mobile));
+
+        \DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $identifier],
+            [
+                'token' => Hash::make($otp),
+                'created_at' => now()
+            ]
+        );
+
+        $whatsappSent = false;
+        if (!$isEmail) {
+            $whatsAppService = new \App\Services\WhatsAppService();
+            $whatsappSent = $whatsAppService->sendOtp($user->mobile, $otp, 'password reset');
+        }
+
+        return response()->json([
+            'message' => $isEmail ? 'OTP sent successfully to your email.' : 'OTP sent successfully to your WhatsApp.',
+            'otp' => config('app.debug') ? $otp : null,
+            'whatsapp_sent' => $whatsappSent,
         ]);
     }
 
@@ -196,11 +303,17 @@ class AuthController extends Controller
     public function verifyOtp(Request $request)
     {
         $request->validate([
-            'email' => 'required|string|email|exists:users,email',
+            'login' => 'nullable|string',
+            'email' => 'nullable|string',
+            'mobile' => 'nullable|string',
             'otp' => 'required|string|min:6|max:6',
         ]);
 
-        $reset = \DB::table('password_reset_tokens')->where('email', $request->email)->first();
+        $login = $request->input('login', $request->input('email', $request->input('mobile')));
+        $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
+        $identifier = $isEmail ? $login : ('whatsapp_' . preg_replace('/[^0-9]/', '', $login));
+
+        $reset = \DB::table('password_reset_tokens')->where('email', $identifier)->first();
 
         if (!$reset || !Hash::check($request->otp, $reset->token)) {
             return response()->json([
@@ -225,12 +338,18 @@ class AuthController extends Controller
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|string|email|exists:users,email',
+            'login' => 'nullable|string',
+            'email' => 'nullable|string',
+            'mobile' => 'nullable|string',
             'otp' => 'required|string|min:6|max:6',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        $reset = \DB::table('password_reset_tokens')->where('email', $request->email)->first();
+        $login = $request->input('login', $request->input('email', $request->input('mobile')));
+        $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
+        $identifier = $isEmail ? $login : ('whatsapp_' . preg_replace('/[^0-9]/', '', $login));
+
+        $reset = \DB::table('password_reset_tokens')->where('email', $identifier)->first();
 
         if (!$reset || !Hash::check($request->otp, $reset->token)) {
             return response()->json([
@@ -244,16 +363,17 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::where('email', $request->email)->firstOrFail();
+        $user = User::where($isEmail ? 'email' : 'mobile', $login)->firstOrFail();
         $user->password = Hash::make($request->password);
         $user->save();
 
-        \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+        \DB::table('password_reset_tokens')->where('email', $identifier)->delete();
 
         return response()->json([
             'message' => 'Password reset successfully.'
         ]);
     }
+
 
     /**
      * Update user profile details.
