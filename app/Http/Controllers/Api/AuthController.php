@@ -347,7 +347,13 @@ class AuthController extends Controller
 
         $login = $request->input('login', $request->input('email', $request->input('mobile')));
         $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
-        $identifier = $isEmail ? $login : ('whatsapp_' . preg_replace('/[^0-9]/', '', $login));
+        
+        $cleanMobile = preg_replace('/[^0-9]/', '', $login);
+        if (strlen($cleanMobile) === 10) {
+            $cleanMobile = '91' . $cleanMobile;
+        }
+
+        $identifier = $isEmail ? $login : ('whatsapp_' . $cleanMobile);
 
         $reset = \DB::table('password_reset_tokens')->where('email', $identifier)->first();
 
@@ -363,7 +369,11 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::where($isEmail ? 'email' : 'mobile', $login)->firstOrFail();
+        $user = User::where($isEmail ? 'email' : 'mobile', $login)
+            ->orWhere('mobile', $cleanMobile)
+            ->orWhere('mobile', substr($cleanMobile, 2))
+            ->firstOrFail();
+
         $user->password = Hash::make($request->password);
         $user->save();
 
@@ -373,6 +383,7 @@ class AuthController extends Controller
             'message' => 'Password reset successfully.'
         ]);
     }
+
 
 
     /**
