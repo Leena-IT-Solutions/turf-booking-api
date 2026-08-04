@@ -12,8 +12,9 @@ class WhatsAppService
 
     public function __construct()
     {
-        $this->token = env('WHATSAPP_TOKEN', '');
-        $this->phoneNumberId = env('WHATSAPP_PHONE_NUMBER_ID', '');
+        $setting = \App\Models\SaasSetting::first();
+        $this->token = $setting?->whatsapp_token ?? env('WHATSAPP_TOKEN', '');
+        $this->phoneNumberId = $setting?->whatsapp_phone_number_id ?? env('WHATSAPP_PHONE_NUMBER_ID', '');
     }
 
     /**

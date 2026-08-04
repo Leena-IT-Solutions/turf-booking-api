@@ -17,6 +17,9 @@ new #[Layout('layouts.app')] class extends Component
     public $address = '';
     public $is_maintenance_mode = false;
     public $gemini_api_key = '';
+    public $whatsapp_token = '';
+    public $whatsapp_phone_number_id = '';
+    public $whatsapp_business_account_id = '';
     public $razorpay_key = '';
     public $razorpay_secret = '';
     public $mailgun_domain = '';
@@ -51,6 +54,9 @@ new #[Layout('layouts.app')] class extends Component
         $this->is_maintenance_mode = $setting->is_maintenance_mode;
         $this->current_logo_path = $setting->logo_path;
         $this->gemini_api_key = $setting->gemini_api_key;
+        $this->whatsapp_token = $setting->whatsapp_token;
+        $this->whatsapp_phone_number_id = $setting->whatsapp_phone_number_id;
+        $this->whatsapp_business_account_id = $setting->whatsapp_business_account_id;
         $this->google_maps_api_key = $setting->google_maps_api_key;
         $this->razorpay_key = $setting->razorpay_key;
         $this->razorpay_secret = $setting->razorpay_secret;
@@ -72,6 +78,9 @@ new #[Layout('layouts.app')] class extends Component
             'new_logo' => 'nullable|image|max:2048', // 2MB max
             'is_maintenance_mode' => 'boolean',
             'gemini_api_key' => 'nullable|string|max:255',
+            'whatsapp_token' => 'nullable|string',
+            'whatsapp_phone_number_id' => 'nullable|string|max:255',
+            'whatsapp_business_account_id' => 'nullable|string|max:255',
             'google_maps_api_key' => 'nullable|string|max:255',
             'razorpay_key' => 'nullable|string|max:255',
             'razorpay_secret' => 'nullable|string|max:255',
@@ -96,6 +105,9 @@ new #[Layout('layouts.app')] class extends Component
             'new_logo' => 'nullable|image|max:2048',
             'is_maintenance_mode' => 'boolean',
             'gemini_api_key' => 'nullable|string|max:255',
+            'whatsapp_token' => 'nullable|string',
+            'whatsapp_phone_number_id' => 'nullable|string|max:255',
+            'whatsapp_business_account_id' => 'nullable|string|max:255',
             'google_maps_api_key' => 'nullable|string|max:255',
             'razorpay_key' => 'nullable|string|max:255',
             'razorpay_secret' => 'nullable|string|max:255',
@@ -118,6 +130,9 @@ new #[Layout('layouts.app')] class extends Component
             'address' => $this->address,
             'is_maintenance_mode' => $this->is_maintenance_mode,
             'gemini_api_key' => $this->gemini_api_key,
+            'whatsapp_token' => $this->whatsapp_token,
+            'whatsapp_phone_number_id' => $this->whatsapp_phone_number_id,
+            'whatsapp_business_account_id' => $this->whatsapp_business_account_id,
             'google_maps_api_key' => $this->google_maps_api_key,
             'razorpay_key' => $this->razorpay_key,
             'razorpay_secret' => $this->razorpay_secret,
@@ -128,6 +143,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => $this->min_slots_booking,
             'commission_percentage' => $this->commission_percentage,
         ];
+
 
         if ($this->new_logo) {
             // Delete old logo if exists
@@ -324,6 +340,43 @@ new #[Layout('layouts.app')] class extends Component
                             {{ __('Get your API Key from the Google AI Studio console.') }}
                         </span>
                         <x-input-error :messages="$errors->get('gemini_api_key')" class="mt-2" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp Setup Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+                <div class="max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('WhatsApp OTP Integration (Meta Cloud API)') }}</h3>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                            {{ __('Configure your Meta WhatsApp Cloud API credentials to enable WhatsApp OTP verification for mobile registration and password reset.') }}
+                        </p>
+                    </div>
+
+                    <div class="space-y-4 pt-2">
+                        <!-- WhatsApp Token -->
+                        <div>
+                            <x-input-label for="whatsappToken" :value="__('WhatsApp API Access Token')" />
+                            <x-text-input wire:model.live.debounce.250ms="whatsapp_token" id="whatsappToken" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="EAAUBGZ..." />
+                            <x-input-error :messages="$errors->get('whatsapp_token')" class="mt-2" />
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Phone Number ID -->
+                            <div>
+                                <x-input-label for="whatsappPhoneNumberId" :value="__('Phone Number ID')" />
+                                <x-text-input wire:model.live.debounce.250ms="whatsapp_phone_number_id" id="whatsappPhoneNumberId" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="1275286312329223" />
+                                <x-input-error :messages="$errors->get('whatsapp_phone_number_id')" class="mt-2" />
+                            </div>
+
+                            <!-- Business Account ID -->
+                            <div>
+                                <x-input-label for="whatsappBusinessAccountId" :value="__('WhatsApp Business Account ID')" />
+                                <x-text-input wire:model.live.debounce.250ms="whatsapp_business_account_id" id="whatsappBusinessAccountId" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="2693008137759947" />
+                                <x-input-error :messages="$errors->get('whatsapp_business_account_id')" class="mt-2" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
