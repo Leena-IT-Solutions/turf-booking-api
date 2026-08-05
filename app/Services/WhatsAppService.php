@@ -38,8 +38,25 @@ class WhatsAppService
         $messageText = "Your TurfBooking OTP code for {$purpose} is: {$otp}. It is valid for 10 minutes. Please do not share it with anyone.";
 
         try {
-            // 1. First attempt: Template Message (Meta Sandbox requires template message for initial contact)
+            // 1. First attempt: Direct freeform text message with the actual 6-digit OTP code
+            $response = Http::withToken($this->token)
+                ->post($url, [
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type' => 'individual',
+                    'to' => $cleanMobile,
+                    'type' => 'text',
+                    'text' => [
+                        'preview_url' => false,
+                        'body' => $messageText,
+                    ],
+                ]);
 
+            if ($response->successful()) {
+                Log::info("WhatsApp text OTP {$otp} sent successfully to {$cleanMobile}.");
+                return true;
+            }
+
+            // 2. Fallback attempt: Template message if customer service window is closed
             $templateResponse = Http::withToken($this->token)
                 ->post($url, [
                     'messaging_product' => 'whatsapp',
@@ -54,30 +71,13 @@ class WhatsAppService
                 ]);
 
             if ($templateResponse->successful()) {
-                Log::info("WhatsApp template OTP sent successfully to {$cleanMobile}.");
-                return true;
-            }
-
-            // 2. Second attempt: Direct text message
-            $response = Http::withToken($this->token)
-                ->post($url, [
-                    'messaging_product' => 'whatsapp',
-                    'recipient_type' => 'individual',
-                    'to' => $cleanMobile,
-                    'type' => 'text',
-                    'text' => [
-                        'preview_url' => false,
-                        'body' => $messageText,
-                    ],
-                ]);
-
-            if ($response->successful()) {
-                Log::info("WhatsApp text OTP sent successfully to {$cleanMobile}.");
+                Log::info("WhatsApp template sent to {$cleanMobile}.");
                 return true;
             }
 
             Log::error("WhatsApp API Text Error: " . $response->body() . " | Template Error: " . $templateResponse->body());
             return false;
+
         } catch (\Throwable $e) {
             Log::error("WhatsApp API Exception: " . $e->getMessage());
             return false;
