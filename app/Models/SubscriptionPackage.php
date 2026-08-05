@@ -14,8 +14,6 @@ class SubscriptionPackage extends Model
         'description',
         'amount',
         'days',
-        'total_percentage',
-        'payment_gateway_percentage',
         'commission_percentage',
         'is_active',
         'sort_order',
@@ -24,13 +22,12 @@ class SubscriptionPackage extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
-        'total_percentage' => 'decimal:2',
-        'payment_gateway_percentage' => 'decimal:2',
         'commission_percentage' => 'decimal:2',
         'is_active' => 'boolean',
         'days' => 'integer',
         'sort_order' => 'integer',
         'features' => 'array',
     ];
+
 
 }
