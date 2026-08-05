@@ -96,9 +96,7 @@ new #[Layout('layouts.app')] class extends Component
             'name' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0',
             'days' => 'required|integer|min:1',
-            'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
-            'total_percentage' => 'required|numeric|min:0|max:100',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
         ]);
@@ -110,13 +108,14 @@ new #[Layout('layouts.app')] class extends Component
             'description' => $this->description,
             'amount' => (float) $this->amount,
             'days' => (int) $this->days,
-            'total_percentage' => (float) $this->total_percentage,
-            'payment_gateway_percentage' => (float) $this->payment_gateway_percentage,
+            'total_percentage' => (float) $this->commission_percentage,
+            'payment_gateway_percentage' => 0.00,
             'commission_percentage' => (float) $this->commission_percentage,
             'is_active' => $this->is_active,
             'sort_order' => (int) $this->sort_order,
             'features' => $featuresArray,
         ];
+
 
 
         if ($this->editingId) {
@@ -414,32 +413,14 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
 
-                    <!-- Percentage Breakdown Box (Fixed Colors in Light & Dark Mode) -->
-                    <div class="p-5 rounded-2xl bg-gray-100/70 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 space-y-4">
-                        <span class="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">
-                            Percentages Breakdown
-                        </span>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-800 dark:text-gray-200 mb-1.5">Gateway Percentage (%) *</label>
-                                <input type="number" step="0.01" wire:model.live="payment_gateway_percentage" placeholder="2.00" 
-                                    class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-semibold">
-                                @error('payment_gateway_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-800 dark:text-gray-200 mb-1.5">Commission Percentage (%) *</label>
-                                <input type="number" step="0.01" wire:model.live="commission_percentage" placeholder="3.00" 
-                                    class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-semibold">
-                                @error('commission_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-800 dark:text-gray-200 mb-1.5">Total Percentage (%) *</label>
-                                <input type="number" step="0.01" wire:model="total_percentage" placeholder="5.00" 
-                                    class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 font-black">
-                                @error('total_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
+                    <!-- Commission Percentage Field -->
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Commission Percentage (%) *</label>
+                        <input type="number" step="0.01" wire:model="commission_percentage" placeholder="0.00" 
+                            class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold">
+                        @error('commission_percentage') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                     </div>
+
 
 
                     <!-- Description -->
