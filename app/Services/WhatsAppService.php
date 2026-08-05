@@ -37,7 +37,9 @@ class WhatsAppService
 
         $messageText = "Your TurfBooking OTP code for {$purpose} is: {$otp}. It is valid for 10 minutes. Please do not share it with anyone.";
 
+        try {
             // 1. First attempt: Template Message (Meta Sandbox requires template message for initial contact)
+
             $templateResponse = Http::withToken($this->token)
                 ->post($url, [
                     'messaging_product' => 'whatsapp',
