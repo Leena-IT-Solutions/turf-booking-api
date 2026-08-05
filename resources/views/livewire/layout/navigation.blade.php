@@ -168,26 +168,59 @@ new class extends Component
 
                 <!-- Turf Admin Section -->
                 @if (auth()->user()->hasRole('turf-admin'))
+                    <!-- Overview -->
                     <div class="space-y-2">
-                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Turf Admin') }}</div>
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Overview') }}</div>
                         <a href="{{ route('turf.dashboard') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.dashboard') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.dashboard') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                             <span class="ms-3">{{ __('Turf Dashboard') }}</span>
                         </a>
+                    </div>
+
+                    <!-- Business -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Business') }}</div>
                         <a href="{{ route('turf.business') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.business') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.business') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="ms-3">{{ __('Business & Earnings') }}</span>
                         </a>
-
                         <a href="{{ route('turf.bookings') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.bookings') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.bookings') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span class="ms-3">{{ __('Bookings') }}</span>
+                        </a>
+                    </div>
+
+                    <!-- Reports -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Reports') }}</div>
+                        <a href="{{ route('turf.reports') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.reports') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Reports') }}</span>
+                        </a>
+                    </div>
+
+                    <!-- Operations -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Operations') }}</div>
+                        <a href="{{ route('turf.staff') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.staff') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.staff') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Admin & Manager') }}</span>
+                        </a>
+                        <a href="{{ route('turf.subscription') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.subscription') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.subscription') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            <span class="ms-3">{{ __('Subscription') }}</span>
                         </a>
                         <a href="{{ route('turf.slot-locks') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.slot-locks') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.slot-locks') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -195,12 +228,11 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Slot Locks') }}</span>
                         </a>
-                        <a href="{{ route('turf.reports') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.reports') ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span class="ms-3">{{ __('Reports') }}</span>
-                        </a>
+                    </div>
+
+                    <!-- Turf Setup -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Turf Setup') }}</div>
                         <a href="{{ route('turf.locations') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.locations') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.locations') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -250,28 +282,12 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Pricing') }}</span>
                         </a>
-
                         <a href="{{ route('turf.coupons') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.coupons') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.coupons') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span class="ms-3">{{ __('Coupons') }}</span>
                         </a>
-
-                        <a href="{{ route('turf.subscription') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.subscription') ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.subscription') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                            </svg>
-                            <span class="ms-3">{{ __('Subscription') }}</span>
-                        </a>
-
-                        <a href="{{ route('turf.staff') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.staff') ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.staff') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <span class="ms-3">{{ __('Admin & Manager') }}</span>
-                        </a>
-
                         <a href="{{ route('turf.settings') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.settings') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.settings') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -281,6 +297,7 @@ new class extends Component
                         </a>
                     </div>
                 @endif
+
 
                 <!-- Customer Section -->
                 @if (auth()->check())
@@ -458,26 +475,59 @@ new class extends Component
 
                 <!-- Turf Admin Section -->
                 @if (auth()->user()->hasRole('turf-admin'))
+                    <!-- Overview -->
                     <div class="space-y-2">
-                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Turf Admin') }}</div>
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Overview') }}</div>
                         <a href="{{ route('turf.dashboard') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.dashboard') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.dashboard') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                             <span class="ms-3">{{ __('Turf Dashboard') }}</span>
                         </a>
+                    </div>
+
+                    <!-- Business -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Business') }}</div>
                         <a href="{{ route('turf.business') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.business') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.business') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="ms-3">{{ __('Business & Earnings') }}</span>
                         </a>
-
                         <a href="{{ route('turf.bookings') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.bookings') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.bookings') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span class="ms-3">{{ __('Bookings') }}</span>
+                        </a>
+                    </div>
+
+                    <!-- Reports -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Reports') }}</div>
+                        <a href="{{ route('turf.reports') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.reports') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Reports') }}</span>
+                        </a>
+                    </div>
+
+                    <!-- Operations -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Operations') }}</div>
+                        <a href="{{ route('turf.staff') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.staff') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.staff') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Admin & Manager') }}</span>
+                        </a>
+                        <a href="{{ route('turf.subscription') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.subscription') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.subscription') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                            <span class="ms-3">{{ __('Subscription') }}</span>
                         </a>
                         <a href="{{ route('turf.slot-locks') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.slot-locks') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.slot-locks') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -485,12 +535,11 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Slot Locks') }}</span>
                         </a>
-                        <a href="{{ route('turf.reports') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.reports') ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span class="ms-3">{{ __('Reports') }}</span>
-                        </a>
+                    </div>
+
+                    <!-- Turf Setup -->
+                    <div class="space-y-2 pt-2">
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Turf Setup') }}</div>
                         <a href="{{ route('turf.locations') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.locations') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.locations') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -540,21 +589,12 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Pricing') }}</span>
                         </a>
-
                         <a href="{{ route('turf.coupons') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.coupons') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.coupons') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span class="ms-3">{{ __('Coupons') }}</span>
                         </a>
-
-                        <a href="{{ route('turf.staff') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.staff') ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.staff') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <span class="ms-3">{{ __('Admin & Manager') }}</span>
-                        </a>
-
                         <a href="{{ route('turf.settings') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.settings') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.settings') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
