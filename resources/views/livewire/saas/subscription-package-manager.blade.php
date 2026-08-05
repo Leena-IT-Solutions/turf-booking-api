@@ -232,13 +232,13 @@ new #[Layout('layouts.app')] class extends Component
             $packages = $query->get();
         @endphp
 
-        <!-- PACKAGES CARD LIST (FULL WIDTH) -->
+        <!-- PACKAGES CARD LIST (FULL WIDTH CARDS WITH DEDICATED PRICE ROW) -->
         <div class="flex flex-col space-y-4 w-full">
             @forelse ($packages as $pkg)
-                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md w-full">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col space-y-5 transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md w-full">
                     
-                    <!-- Left Section: Package Info & Features (Stacked Vertically) -->
-                    <div class="flex-1 space-y-3 min-w-0">
+                    <!-- Top Header Row: Package Name, Active Switch & Action Buttons -->
+                    <div class="flex items-start justify-between gap-4 w-full">
                         <div class="flex items-center gap-3">
                             <h3 class="text-xl font-black text-gray-900 dark:text-white leading-snug">
                                 {{ $pkg->name }}
@@ -252,14 +252,28 @@ new #[Layout('layouts.app')] class extends Component
                             </button>
                         </div>
 
-                        <!-- Description -->
+                        <!-- Right Actions: Edit & Delete -->
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button wire:click="openEditModal({{ $pkg->id }})" type="button" 
+                                class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                                <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                Edit
+                            </button>
+                            <button wire:click="confirmDelete({{ $pkg->id }})" type="button" 
+                                class="p-2 bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Description & Vertical Features List -->
+                    <div class="space-y-3 min-w-0">
                         @if ($pkg->description)
                             <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                                 {{ $pkg->description }}
                             </p>
                         @endif
 
-                        <!-- Feature Bullet Points (Stacked Vertically, One Upon Another) -->
                         @if (is_array($pkg->features) && count($pkg->features) > 0)
                             <div class="space-y-1.5 pt-1">
                                 <span class="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider block">FEATURES</span>
@@ -275,35 +289,25 @@ new #[Layout('layouts.app')] class extends Component
                         @endif
                     </div>
 
-                    <!-- Middle Section: Price & Commission (Compact Wrapped Box) -->
-                    <div class="bg-gray-50/90 dark:bg-gray-900/60 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 flex flex-wrap xl:flex-nowrap items-center gap-4 sm:gap-6 min-w-0">
-                        <div class="text-left sm:text-center min-w-[120px]">
-                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">MONTHLY (30 DAYS)</span>
-                            <span class="text-lg font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
+                    <!-- Dedicated Separate Row for Price & Commission -->
+                    <div class="w-full bg-gray-50/90 dark:bg-gray-900/60 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 flex flex-wrap sm:flex-nowrap items-center justify-between gap-4">
+                        <div class="flex items-center gap-6 flex-wrap sm:flex-nowrap">
+                            <div>
+                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">MONTHLY (30 DAYS)</span>
+                                <span class="text-xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
+                            </div>
+                            <div class="hidden sm:block h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
+                            <div>
+                                <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">YEARLY (365 DAYS)</span>
+                                <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
+                            </div>
                         </div>
-                        <div class="text-left sm:text-center min-w-[120px]">
-                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">YEARLY (365 DAYS)</span>
-                            <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
-                        </div>
-                        <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center min-w-[110px]">
+
+                        <div class="px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center shrink-0">
                             <span class="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider block">COMMISSION</span>
                             <span class="text-base font-black text-amber-600 dark:text-amber-400">{{ $pkg->commission_percentage }}%</span>
                         </div>
                     </div>
-
-                    <!-- Right Section: Edit & Delete Buttons -->
-                    <div class="flex items-center gap-2 shrink-0">
-                        <button wire:click="openEditModal({{ $pkg->id }})" type="button" 
-                            class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
-                            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                            Edit
-                        </button>
-                        <button wire:click="confirmDelete({{ $pkg->id }})" type="button" 
-                            class="p-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
-                    </div>
-
 
                 </div>
             @empty
