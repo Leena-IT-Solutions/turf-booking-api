@@ -168,20 +168,15 @@ new class extends Component
 
                 <!-- Turf Admin Section -->
                 @if (auth()->user()->hasRole('turf-admin'))
-                    <!-- Overview -->
+                    <!-- Business Overview -->
                     <div class="space-y-2">
-                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Overview') }}</div>
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Business Overview') }}</div>
                         <a href="{{ route('turf.dashboard') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.dashboard') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.dashboard') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                             <span class="ms-3">{{ __('Turf Dashboard') }}</span>
                         </a>
-                    </div>
-
-                    <!-- Business -->
-                    <div class="space-y-2 pt-2">
-                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Business') }}</div>
                         <a href="{{ route('turf.business') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.business') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.business') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -195,6 +190,7 @@ new class extends Component
                             <span class="ms-3">{{ __('Bookings') }}</span>
                         </a>
                     </div>
+
 
                     <!-- Reports -->
                     <div class="space-y-2 pt-2">
@@ -475,20 +471,15 @@ new class extends Component
 
                 <!-- Turf Admin Section -->
                 @if (auth()->user()->hasRole('turf-admin'))
-                    <!-- Overview -->
+                    <!-- Business Overview -->
                     <div class="space-y-2">
-                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Overview') }}</div>
+                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Business Overview') }}</div>
                         <a href="{{ route('turf.dashboard') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.dashboard') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.dashboard') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                             </svg>
                             <span class="ms-3">{{ __('Turf Dashboard') }}</span>
                         </a>
-                    </div>
-
-                    <!-- Business -->
-                    <div class="space-y-2 pt-2">
-                        <div class="px-4 py-1.5 text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-widest">{{ __('Business') }}</div>
                         <a href="{{ route('turf.business') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('turf.business') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.business') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -502,6 +493,7 @@ new class extends Component
                             <span class="ms-3">{{ __('Bookings') }}</span>
                         </a>
                     </div>
+
 
                     <!-- Reports -->
                     <div class="space-y-2 pt-2">
