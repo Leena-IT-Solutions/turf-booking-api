@@ -13,8 +13,30 @@ new #[Layout('layouts.app')] class extends Component
         $pkg = SubscriptionPackage::find($packageId);
         if (!$pkg) return;
 
-        session()->flash('status', "Selected {$pkg->name} ({$cycle} billing). Payment integration coming soon!");
+        $user = auth()->user();
+        
+        // Deactivate existing active subscriptions
+        \App\Models\TurfSubscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->update(['status' => 'expired']);
+
+        $price = $cycle === 'yearly' ? $pkg->yearly_amount : $pkg->monthly_amount;
+        $days = $cycle === 'yearly' ? 365 : 30;
+
+        \App\Models\TurfSubscription::create([
+            'user_id' => $user->id,
+            'subscription_package_id' => $pkg->id,
+            'billing_cycle' => $cycle,
+            'price' => $price,
+            'commission_percentage' => $pkg->commission_percentage,
+            'starts_at' => now(),
+            'expires_at' => now()->addDays($days),
+            'status' => 'active',
+        ]);
+
+        session()->flash('status', "Successfully subscribed to {$pkg->name} ({$cycle} billing)! Your commission rate is now {$pkg->commission_percentage}%.");
     }
+
 }; ?>
 
 <div class="space-y-6">
@@ -46,6 +68,69 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     </div>
 
+    @php
+        $activeSub = auth()->user()->activeSubscription;
+    @endphp
+
+    <!-- CURRENT ACTIVE SUBSCRIPTION CARD -->
+    <div class="bg-white dark:bg-gray-800 rounded-3xl border {{ $activeSub ? 'border-indigo-200 dark:border-indigo-700/60 shadow-md' : 'border-amber-200 dark:border-amber-700/60' }} p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-700/60">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">CURRENT PLAN</span>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black uppercase {{ $activeSub ? 'bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-700' : 'bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700' }}">
+                        {{ $activeSub ? '● ' . ($activeSub->package->name ?? 'Paid Plan') : '○ Default Free Plan' }}
+                    </span>
+                </div>
+                <h2 class="text-2xl font-black text-gray-900 dark:text-white">
+                    {{ $activeSub ? ($activeSub->package->name ?? 'Subscription Active') : 'Default 7.00% Commission Plan' }}
+                </h2>
+            </div>
+
+            <div class="flex items-center gap-4 bg-gray-50/90 dark:bg-gray-900/70 px-5 py-3 rounded-2xl border border-gray-100 dark:border-gray-700/60 shrink-0">
+                <div>
+                    <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">YOUR COMMISSION RATE</span>
+                    <span class="text-2xl font-black {{ $activeSub ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                        {{ $activeSub ? number_format($activeSub->commission_percentage, 2) : '7.00' }}%
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        @if ($activeSub)
+            <!-- Active Paid Subscription Details -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Billing Cycle</span>
+                    <span class="font-extrabold text-gray-800 dark:text-gray-200 uppercase">{{ $activeSub->billing_cycle }}</span>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Subscription Price</span>
+                    <span class="font-extrabold text-gray-800 dark:text-gray-200">₹{{ number_format($activeSub->price, 2) }}</span>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/50">
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-0.5">Valid Until</span>
+                    <span class="font-extrabold text-indigo-600 dark:text-indigo-400">{{ $activeSub->expires_at->format('d M Y, h:i A') }}</span>
+                </div>
+            </div>
+        @else
+            <!-- Free Plan Recommendation Banner -->
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-start gap-3">
+                    <div class="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-black text-amber-800 dark:text-amber-300 uppercase tracking-wide">Lower Your Commission Rate!</h4>
+                        <p class="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                            You are currently on the default <strong>7% commission plan</strong>. Subscribe to one of our premium packages below to lower your platform commission rate!
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
+    </div>
+
     <!-- Session Status Flash Alert -->
     @if (session('status'))
         <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
@@ -53,6 +138,7 @@ new #[Layout('layouts.app')] class extends Component
             {{ session('status') }}
         </div>
     @endif
+
 
     @php
         $packages = SubscriptionPackage::where('is_active', true)
