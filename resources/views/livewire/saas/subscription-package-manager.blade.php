@@ -219,16 +219,15 @@ new #[Layout('layouts.app')] class extends Component
             }
 
             if ($this->sortBy === 'price_asc') {
-                $query->orderBy('amount', 'asc');
+                $query->orderBy('monthly_amount', 'asc');
             } elseif ($this->sortBy === 'price_desc') {
-                $query->orderBy('amount', 'desc');
-            } elseif ($this->sortBy === 'days') {
-                $query->orderBy('days', 'desc');
+                $query->orderBy('monthly_amount', 'desc');
             } elseif ($this->sortBy === 'newest') {
                 $query->orderBy('created_at', 'desc');
             } else {
-                $query->orderBy('sort_order', 'asc')->orderBy('amount', 'asc');
+                $query->orderBy('sort_order', 'asc')->orderBy('monthly_amount', 'asc');
             }
+
 
             $packages = $query->get();
         @endphp
