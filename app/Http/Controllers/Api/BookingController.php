@@ -1082,6 +1082,26 @@ class BookingController extends Controller
             return response()->json(['message' => 'Booking not found'], 404);
         }
 
+        // DEBT GUARDRAIL CHECK FOR OFFLINE PAYMENTS
+        $turfAdminOwner = $booking->turf->location->user ?? null;
+        if ($turfAdminOwner) {
+            $saas = \App\Models\SaasSetting::first();
+            $maxDue = (float) ($saas?->max_commission_due ?? 2000.00);
+            $graceDays = (int) ($saas?->commission_due_grace_days ?? 7);
+
+            $currentBalance = (float) $turfAdminOwner->commission_wallet_balance;
+            $dueDays = $turfAdminOwner->commission_due_since
+                ? now()->diffInDays($turfAdminOwner->commission_due_since)
+                : 0;
+
+            if ($currentBalance <= -$maxDue || ($currentBalance < 0 && $dueDays >= $graceDays)) {
+                $dueAmount = number_format(abs($currentBalance), 2);
+                return response()->json([
+                    'message' => "Offline booking locked! Commission due of ₹{$dueAmount} exceeds limit or grace period. Please settle your due balance from the Business page to record more offline payments.",
+                ], 422);
+            }
+        }
+
         $totalAmount = (float) BookingDate::where('booking_id', $booking->id)->where('status', '!=', 'Cancelled')->sum('amount');
         $totalPaid = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
         $totalRemaining = max(0.00, $totalAmount - $totalPaid);
@@ -1149,6 +1169,10 @@ class BookingController extends Controller
         $unpaidDates = $bookingDates->filter(fn($d) => ($dateBalances[$d->id] ?? 0) > 0)->values();
         $count = $unpaidDates->count();
 
+        $turfAdminOwner = $booking->turf->location->user ?? null;
+        $commissionCalc = new \App\Services\CommissionCalculator();
+        $walletService = new \App\Services\WalletService();
+
         foreach ($unpaidDates as $index => $bDate) {
             if ($remainingToDistribute <= 0) {
                 break;
@@ -1163,14 +1187,38 @@ class BookingController extends Controller
             }
 
             if ($paidForDate > 0) {
+                // Calculate commission breakdown
+                $commData = $turfAdminOwner
+                    ? $commissionCalc->calculate($turfAdminOwner, $paymentMethod, $paidForDate)
+                    : [
+                        'rate' => 7.00,
+                        'commissionAmount' => round($paidForDate * 0.07, 2),
+                        'cashHeldAmount' => $paymentMethod === 'App' ? $paidForDate : 0.00,
+                        'turfPayoutAmount' => ($paymentMethod === 'App' ? $paidForDate : 0.00) - round($paidForDate * 0.07, 2),
+                    ];
+
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
                     'booking_date_id' => $bDate->id,
                     'payment_method' => $paymentMethod,
                     'amount' => $paidForDate,
+                    'commission_percentage' => $commData['rate'],
+                    'commission_amount' => $commData['commissionAmount'],
+                    'cash_held_amount' => $commData['cashHeldAmount'],
+                    'turf_payout_amount' => $commData['turfPayoutAmount'],
+                    'wallet_cleared_at' => null,
                     'status' => 'Success',
                     'paid_at' => Carbon::now(),
                 ]);
+
+                // Check wallet clearance logic
+                $isBookingMatured = $bDate->booking_date <= Carbon::today()->format('Y-m-d');
+                $isNegativeOrZeroContribution = $commData['turfPayoutAmount'] <= 0;
+
+                if ($turfAdminOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
+                    $walletService->applyDelta($turfAdminOwner, $commData['turfPayoutAmount'], 'payment_settlement', $payment);
+                    $payment->update(['wallet_cleared_at' => Carbon::now()]);
+                }
 
                 if ($razorpayPaymentId && $paymentMethod === 'App') {
                     PaymentGateway::create([
@@ -1186,6 +1234,7 @@ class BookingController extends Controller
 
         $this->recalculateBookingPaymentStatus($booking);
     }
+
 
     private function recalculateBookingPaymentStatus($booking): void
     {

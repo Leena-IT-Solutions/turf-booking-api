@@ -51,6 +51,10 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/subscription-packages', 'saas.subscription-package-manager')
         ->middleware('role:saas-admin')
         ->name('saas.subscription-packages');
+    Volt::route('saas/payouts', 'saas.payout-manager')
+        ->middleware('role:saas-admin')
+        ->name('saas.payouts');
+
     Volt::route('saas/administrator', 'saas.administrator-dashboard')
         ->middleware('role:saas-admin')
         ->name('saas.administrator');
@@ -58,6 +62,10 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('turf/dashboard', 'turf.dashboard-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.dashboard');
+    Volt::route('turf/business', 'turf.business-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.business');
+
     Volt::route('turf/bookings', 'turf.booking-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.bookings');

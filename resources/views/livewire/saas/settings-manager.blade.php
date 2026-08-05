@@ -28,6 +28,13 @@ new #[Layout('layouts.app')] class extends Component
     public $turf_search_km = 10;
     public $min_slots_booking = 2;
     public $commission_percentage = 7.00;
+    public $payment_gateway_percentage = 2.00;
+    public $payout_hours = 24;
+    public $payout_charges = 40.00;
+    public $razorpayx_account_number = '';
+    public $razorpayx_webhook_secret = '';
+    public $max_commission_due = 2000.00;
+    public $commission_due_grace_days = 7;
     public $google_maps_api_key = '';
     
     // File inputs
@@ -45,6 +52,11 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 10,
             'min_slots_booking' => 2,
             'commission_percentage' => 7.00,
+            'payment_gateway_percentage' => 2.00,
+            'payout_hours' => 24,
+            'payout_charges' => 40.00,
+            'max_commission_due' => 2000.00,
+            'commission_due_grace_days' => 7,
         ]);
 
         $this->app_name = $setting->app_name;
@@ -66,6 +78,13 @@ new #[Layout('layouts.app')] class extends Component
         $this->turf_search_km = $setting->turf_search_km ?? 5;
         $this->min_slots_booking = $setting->min_slots_booking ?? 1;
         $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
+        $this->payment_gateway_percentage = (float) ($setting->payment_gateway_percentage ?? 2.00);
+        $this->payout_hours = (int) ($setting->payout_hours ?? 24);
+        $this->payout_charges = (float) ($setting->payout_charges ?? 40.00);
+        $this->razorpayx_account_number = $setting->razorpayx_account_number;
+        $this->razorpayx_webhook_secret = $setting->razorpayx_webhook_secret;
+        $this->max_commission_due = (float) ($setting->max_commission_due ?? 2000.00);
+        $this->commission_due_grace_days = (int) ($setting->commission_due_grace_days ?? 7);
     }
 
     public function updated($propertyName)
@@ -90,6 +109,13 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 'required|integer|min:1|max:100',
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
+            'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
+            'payout_hours' => 'required|integer|min:0',
+            'payout_charges' => 'required|numeric|min:0',
+            'razorpayx_account_number' => 'nullable|string|max:255',
+            'razorpayx_webhook_secret' => 'nullable|string|max:255',
+            'max_commission_due' => 'required|numeric|min:0',
+            'commission_due_grace_days' => 'required|integer|min:0',
         ];
 
         $this->validateOnly($propertyName, $rules);
@@ -117,6 +143,13 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 'required|integer|min:1|max:100',
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
+            'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
+            'payout_hours' => 'required|integer|min:0',
+            'payout_charges' => 'required|numeric|min:0',
+            'razorpayx_account_number' => 'nullable|string|max:255',
+            'razorpayx_webhook_secret' => 'nullable|string|max:255',
+            'max_commission_due' => 'required|numeric|min:0',
+            'commission_due_grace_days' => 'required|integer|min:0',
         ];
 
         $this->validate($rules);
@@ -142,7 +175,15 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => $this->turf_search_km,
             'min_slots_booking' => $this->min_slots_booking,
             'commission_percentage' => $this->commission_percentage,
+            'payment_gateway_percentage' => $this->payment_gateway_percentage,
+            'payout_hours' => $this->payout_hours,
+            'payout_charges' => $this->payout_charges,
+            'razorpayx_account_number' => $this->razorpayx_account_number,
+            'razorpayx_webhook_secret' => $this->razorpayx_webhook_secret,
+            'max_commission_due' => $this->max_commission_due,
+            'commission_due_grace_days' => $this->commission_due_grace_days,
         ];
+
 
 
         if ($this->new_logo) {
@@ -402,13 +443,77 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             </div>
 
+            <!-- Commission & Payout Configuration Card -->
+            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+                <div class="max-w-2xl space-y-4">
+                    <div>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Commission & Payout Policy') }}</h3>
+                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                            {{ __('Set rules for platform commission deductions, gateway percentage discounts, payout withdrawal fees, and offline booking debt limits.') }}
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+                        <!-- Offline Payment Gateway Discount % -->
+                        <div>
+                            <x-input-label for="paymentGatewayPercentage" :value="__('Gateway Deduction for Offline (%)')" />
+                            <x-text-input wire:model.live.debounce.250ms="payment_gateway_percentage" id="paymentGatewayPercentage" type="number" step="0.01" min="0" max="100" class="mt-1.5 block w-full text-xs" placeholder="2.00" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('% deducted from commission when booking payment is collected offline.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('payment_gateway_percentage')" class="mt-2" />
+                        </div>
+
+                        <!-- Payout Cooldown Hours -->
+                        <div>
+                            <x-input-label for="payoutHours" :value="__('Free Payout Cooldown (Hours)')" />
+                            <x-text-input wire:model.live.debounce.250ms="payout_hours" id="payoutHours" type="number" min="0" class="mt-1.5 block w-full text-xs" placeholder="24" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Minimum gap (in hours) required between two free withdrawal payouts.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('payout_hours')" class="mt-2" />
+                        </div>
+
+                        <!-- Rapid Payout Charges -->
+                        <div>
+                            <x-input-label for="payoutCharges" :value="__('Rapid Payout Fee (₹)')" />
+                            <x-text-input wire:model.live.debounce.250ms="payout_charges" id="payoutCharges" type="number" step="0.01" min="0" class="mt-1.5 block w-full text-xs" placeholder="40.00" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Flat fee charged if a payout is requested before the cooldown hours elapse.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('payout_charges')" class="mt-2" />
+                        </div>
+
+                        <!-- Max Commission Due Limit -->
+                        <div>
+                            <x-input-label for="maxCommissionDue" :value="__('Max Commission Due Limit (₹)')" />
+                            <x-text-input wire:model.live.debounce.250ms="max_commission_due" id="maxCommissionDue" type="number" step="0.01" min="0" class="mt-1.5 block w-full text-xs" placeholder="2000.00" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Maximum negative wallet balance before offline bookings are locked.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('max_commission_due')" class="mt-2" />
+                        </div>
+
+                        <!-- Grace Days for Debt -->
+                        <div>
+                            <x-input-label for="commissionDueGraceDays" :value="__('Commission Due Grace Days')" />
+                            <x-text-input wire:model.live.debounce.250ms="commission_due_grace_days" id="commissionDueGraceDays" type="number" min="0" class="mt-1.5 block w-full text-xs" placeholder="7" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Days allowed with a negative balance before offline bookings lock.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('commission_due_grace_days')" class="mt-2" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Razorpay Setup Card -->
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Razorpay Payment Gateway') }}</h3>
+                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Razorpay Payment & Payout Gateway') }}</h3>
                         <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
-                            {{ __('Configure your Razorpay API credentials to process secure, real-time client payments and slot bookings on the platform.') }}
+                            {{ __('Configure your Razorpay API credentials and RazorpayX account details for client payments and automated turf payouts.') }}
                         </p>
                     </div>
 
@@ -426,9 +531,30 @@ new #[Layout('layouts.app')] class extends Component
                             <x-text-input wire:model.live.debounce.250ms="razorpay_secret" id="razorpaySecret" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="••••••••••••••••" />
                             <x-input-error :messages="$errors->get('razorpay_secret')" class="mt-2" />
                         </div>
+
+                        <!-- RazorpayX Account Number -->
+                        <div>
+                            <x-input-label for="razorpayxAccountNumber" :value="__('RazorpayX Account Number')" />
+                            <x-text-input wire:model.live.debounce.250ms="razorpayx_account_number" id="razorpayxAccountNumber" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="2334455667788" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Business account number used to originate RazorpayX payouts.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('razorpayx_account_number')" class="mt-2" />
+                        </div>
+
+                        <!-- RazorpayX Webhook Secret -->
+                        <div>
+                            <x-input-label for="razorpayxWebhookSecret" :value="__('RazorpayX Webhook Secret')" />
+                            <x-text-input wire:model.live.debounce.250ms="razorpayx_webhook_secret" id="razorpayxWebhookSecret" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="••••••••••••••••" />
+                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                                {{ __('Secret key used to verify RazorpayX payout webhook signatures.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('razorpayx_webhook_secret')" class="mt-2" />
+                        </div>
                     </div>
                 </div>
             </div>
+
 
             <!-- Mailgun Setup Card -->
             <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">

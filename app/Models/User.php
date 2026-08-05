@@ -163,8 +163,14 @@ class User extends Authenticatable
     public function getCommissionPercentageAttribute(): float
     {
         $sub = $this->activeSubscription;
-        return $sub ? (float) $sub->commission_percentage : 7.00;
+        if ($sub) {
+            return (float) $sub->commission_percentage;
+        }
+
+        $saas = SaasSetting::first();
+        return $saas ? (float) $saas->commission_percentage : 7.00;
     }
 }
+
 
 
