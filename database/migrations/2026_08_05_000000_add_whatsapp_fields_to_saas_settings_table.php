@@ -12,11 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('saas_settings', function (Blueprint $table) {
-            $table->text('whatsapp_token')->nullable()->after('gemini_api_key');
-            $table->string('whatsapp_phone_number_id')->nullable()->after('whatsapp_token');
-            $table->string('whatsapp_business_account_id')->nullable()->after('whatsapp_phone_number_id');
+            if (!Schema::hasColumn('saas_settings', 'whatsapp_token')) {
+                $table->text('whatsapp_token')->nullable()->after('gemini_api_key');
+            }
+            if (!Schema::hasColumn('saas_settings', 'whatsapp_phone_number_id')) {
+                $table->string('whatsapp_phone_number_id')->nullable()->after('whatsapp_token');
+            }
+            if (!Schema::hasColumn('saas_settings', 'whatsapp_business_account_id')) {
+                $table->string('whatsapp_business_account_id')->nullable()->after('whatsapp_phone_number_id');
+            }
         });
     }
+
 
     /**
      * Reverse the migrations.
