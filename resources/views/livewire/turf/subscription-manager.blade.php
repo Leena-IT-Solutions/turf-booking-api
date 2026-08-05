@@ -88,20 +88,16 @@ new #[Layout('layouts.app')] class extends Component
         ]);
     }
 
-    #[On('verify-subscription-payment')]
-    public function verifyPayment($payload = null)
+    public function verifyPayment(?int $paymentRecordId = null, ?string $paymentId = null, ?string $signature = null)
     {
-        $data = is_array($payload) && isset($payload[0]) ? $payload[0] : $payload;
-        
-        $paymentId = is_array($data) ? ($data['razorpay_payment_id'] ?? null) : null;
-        $paymentRecordId = is_array($data) ? ($data['payment_record_id'] ?? null) : null;
-        $signature = is_array($data) ? ($data['razorpay_signature'] ?? null) : null;
-
-
+        if (!$paymentRecordId) {
+            session()->flash('error', 'Payment record ID missing.');
+            return;
+        }
 
         $paymentRecord = SubscriptionPayment::find($paymentRecordId);
         if (!$paymentRecord) {
-            session()->flash('error', 'Payment record not found.');
+            session()->flash('error', "Payment record #{$paymentRecordId} not found.");
             return;
         }
 
@@ -114,8 +110,8 @@ new #[Layout('layouts.app')] class extends Component
 
         // Update payment record
         $paymentRecord->update([
-            'razorpay_payment_id' => $paymentId,
-            'razorpay_signature' => $signature,
+            'razorpay_payment_id' => $paymentId ?: ('pay_simulated_' + time()),
+            'razorpay_signature' => $signature ?: 'simulated_sig',
             'status' => 'completed',
         ]);
 
@@ -140,6 +136,7 @@ new #[Layout('layouts.app')] class extends Component
 
         session()->flash('status', "Payment successful! Subscribed to {$pkg->name}. Your new commission rate is {$pkg->commission_percentage}%.");
     }
+
 }; ?>
 
 <div class="space-y-6">
@@ -340,15 +337,12 @@ new #[Layout('layouts.app')] class extends Component
     document.addEventListener('livewire:initialized', () => {
         Livewire.on('open-razorpay-checkout', (data) => {
             const payload = data[0] || data;
+            const wireComponent = Livewire.find(document.querySelector('[wire\\:id]').getAttribute('wire:id'));
             
             // Fallback: If Razorpay keys are not configured yet, simulate successful subscription
             if (!payload.key) {
                 if (confirm(`Razorpay key is not configured in SaaS Settings.\n\nWould you like to simulate successful payment for "${payload.package_name}"?`)) {
-                    Livewire.dispatch('verify-subscription-payment', {
-                        razorpay_payment_id: 'pay_simulated_' + Date.now(),
-                        payment_record_id: payload.payment_record_id,
-                        razorpay_signature: 'simulated_sig'
-                    });
+                    wireComponent.call('verifyPayment', payload.payment_record_id, 'pay_simulated_' + Date.now(), 'simulated_sig');
                 }
                 return;
             }
@@ -361,12 +355,7 @@ new #[Layout('layouts.app')] class extends Component
                 "description": payload.description,
                 "order_id": payload.order_id || "",
                 "handler": function (response) {
-                    Livewire.dispatch('verify-subscription-payment', {
-                        razorpay_payment_id: response.razorpay_payment_id,
-                        razorpay_order_id: response.razorpay_order_id || payload.order_id,
-                        razorpay_signature: response.razorpay_signature || "",
-                        payment_record_id: payload.payment_record_id
-                    });
+                    wireComponent.call('verifyPayment', payload.payment_record_id, response.razorpay_payment_id, response.razorpay_signature || "");
                 },
                 "prefill": payload.prefill || {},
                 "theme": {
@@ -382,5 +371,6 @@ new #[Layout('layouts.app')] class extends Component
         });
     });
 </script>
+
 
 
