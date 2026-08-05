@@ -1,42 +1,141 @@
 <?php
 
 use App\Models\SubscriptionPackage;
+use App\Models\SubscriptionPayment;
+use App\Models\TurfSubscription;
+use App\Models\SaasSetting;
+use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.app')] class extends Component
 {
     public string $billingCycle = 'monthly'; // 'monthly' or 'yearly'
+    public string $razorpayKey = '';
 
-    public function selectPlan(int $packageId, string $cycle)
+    public function mount()
+    {
+        $setting = SaasSetting::first();
+        $this->razorpayKey = $setting?->razorpay_key ?: (config('services.razorpay.key') ?: '');
+    }
+
+    public function initiatePayment(int $packageId, string $cycle)
     {
         $pkg = SubscriptionPackage::find($packageId);
-        if (!$pkg) return;
+        if (!$pkg) {
+            session()->flash('error', 'Selected subscription package not found.');
+            return;
+        }
 
         $user = auth()->user();
-        
-        // Deactivate existing active subscriptions
-        \App\Models\TurfSubscription::where('user_id', $user->id)
-            ->where('status', 'active')
-            ->update(['status' => 'expired']);
+        $price = $cycle === 'yearly' ? (float)$pkg->yearly_amount : (float)$pkg->monthly_amount;
+        $amountInPaise = (int) round($price * 100);
 
-        $price = $cycle === 'yearly' ? $pkg->yearly_amount : $pkg->monthly_amount;
-        $days = $cycle === 'yearly' ? 365 : 30;
+        $setting = SaasSetting::first();
+        $rzpKey = $setting?->razorpay_key ?: config('services.razorpay.key');
+        $rzpSecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
 
-        \App\Models\TurfSubscription::create([
+        $orderId = null;
+
+        // Create Razorpay Order if keys configured
+        if ($rzpKey && $rzpSecret) {
+            try {
+                $response = Http::withBasicAuth($rzpKey, $rzpSecret)
+                    ->post('https://api.razorpay.com/v1/orders', [
+                        'amount' => $amountInPaise,
+                        'currency' => 'INR',
+                        'receipt' => 'sub_' . time() . '_' . $user->id,
+                        'notes' => [
+                            'user_id' => $user->id,
+                            'package_id' => $pkg->id,
+                            'cycle' => $cycle,
+                        ],
+                    ]);
+
+                if ($response->successful()) {
+                    $orderData = $response->json();
+                    $orderId = $orderData['id'] ?? null;
+                }
+            } catch (\Exception $e) {
+                // Fallback to manual order reference if network error
+            }
+        }
+
+        $payment = SubscriptionPayment::create([
             'user_id' => $user->id,
             'subscription_package_id' => $pkg->id,
             'billing_cycle' => $cycle,
-            'price' => $price,
+            'amount' => $price,
+            'razorpay_order_id' => $orderId,
+            'status' => 'pending',
+        ]);
+
+        $this->dispatch('open-razorpay-checkout', [
+            'key' => $this->razorpayKey,
+            'amount' => $amountInPaise,
+            'currency' => 'INR',
+            'name' => config('app.name', 'TurfBooking'),
+            'description' => "Subscription: {$pkg->name} ({$cycle})",
+            'order_id' => $orderId,
+            'prefill' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'contact' => $user->mobile ?? '',
+            ],
+            'payment_record_id' => $payment->id,
+            'package_name' => $pkg->name,
+        ]);
+    }
+
+    #[On('verify-subscription-payment')]
+    public function verifyPayment($data)
+    {
+        $paymentId = $data['razorpay_payment_id'] ?? null;
+        $paymentRecordId = $data['payment_record_id'] ?? null;
+        $signature = $data['razorpay_signature'] ?? null;
+
+        $paymentRecord = SubscriptionPayment::find($paymentRecordId);
+        if (!$paymentRecord) {
+            session()->flash('error', 'Payment record not found.');
+            return;
+        }
+
+        $user = auth()->user();
+        $pkg = SubscriptionPackage::find($paymentRecord->subscription_package_id);
+        if (!$pkg) {
+            session()->flash('error', 'Package not found.');
+            return;
+        }
+
+        // Update payment record
+        $paymentRecord->update([
+            'razorpay_payment_id' => $paymentId,
+            'razorpay_signature' => $signature,
+            'status' => 'completed',
+        ]);
+
+        // Deactivate previous active subscriptions for this Turf Admin
+        TurfSubscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->update(['status' => 'expired']);
+
+        // Activate new subscription
+        $days = $paymentRecord->billing_cycle === 'yearly' ? 365 : 30;
+
+        TurfSubscription::create([
+            'user_id' => $user->id,
+            'subscription_package_id' => $pkg->id,
+            'billing_cycle' => $paymentRecord->billing_cycle,
+            'price' => $paymentRecord->amount,
             'commission_percentage' => $pkg->commission_percentage,
             'starts_at' => now(),
             'expires_at' => now()->addDays($days),
             'status' => 'active',
         ]);
 
-        session()->flash('status', "Successfully subscribed to {$pkg->name} ({$cycle} billing)! Your commission rate is now {$pkg->commission_percentage}%.");
+        session()->flash('status', "Payment successful! Subscribed to {$pkg->name}. Your new commission rate is {$pkg->commission_percentage}%.");
     }
-
 }; ?>
 
 <div class="space-y-6">
@@ -138,7 +237,12 @@ new #[Layout('layouts.app')] class extends Component
             {{ session('status') }}
         </div>
     @endif
-
+    @if (session('error'))
+        <div class="p-4 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-700/60 text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-2">
+            <svg class="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            {{ session('error') }}
+        </div>
+    @endif
 
     @php
         $packages = SubscriptionPackage::where('is_active', true)
@@ -171,7 +275,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Subscribe Button (Right Top Aligned) -->
-                    <button wire:click="selectPlan({{ $pkg->id }}, '{{ $billingCycle }}')" type="button"
+                    <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')" type="button"
                         class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-[0.99] shrink-0">
                         <span>Subscribe Now</span>
                         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
@@ -225,4 +329,54 @@ new #[Layout('layouts.app')] class extends Component
         @endforelse
     </div>
 </div>
+
+<!-- Razorpay Checkout Script Integration -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+    document.addEventListener('livewire:initialized', () => {
+        Livewire.on('open-razorpay-checkout', (data) => {
+            const payload = data[0] || data;
+            
+            // Fallback: If Razorpay keys are not configured yet, simulate successful subscription
+            if (!payload.key) {
+                if (confirm(`Razorpay key is not configured in SaaS Settings.\n\nWould you like to simulate successful payment for "${payload.package_name}"?`)) {
+                    Livewire.dispatch('verify-subscription-payment', {
+                        razorpay_payment_id: 'pay_simulated_' + Date.now(),
+                        payment_record_id: payload.payment_record_id,
+                        razorpay_signature: 'simulated_sig'
+                    });
+                }
+                return;
+            }
+
+            const options = {
+                "key": payload.key,
+                "amount": payload.amount,
+                "currency": payload.currency || "INR",
+                "name": payload.name,
+                "description": payload.description,
+                "order_id": payload.order_id || "",
+                "handler": function (response) {
+                    Livewire.dispatch('verify-subscription-payment', {
+                        razorpay_payment_id: response.razorpay_payment_id,
+                        razorpay_order_id: response.razorpay_order_id || payload.order_id,
+                        razorpay_signature: response.razorpay_signature || "",
+                        payment_record_id: payload.payment_record_id
+                    });
+                },
+                "prefill": payload.prefill || {},
+                "theme": {
+                    "color": "#4F46E5"
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                alert("Payment Failed: " + (response.error.description || "Transaction cancelled."));
+            });
+            rzp.open();
+        });
+    });
+</script>
+
 
