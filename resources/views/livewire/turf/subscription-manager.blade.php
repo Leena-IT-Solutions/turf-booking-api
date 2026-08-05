@@ -117,27 +117,49 @@ new #[Layout('layouts.app')] class extends Component
             'status' => 'completed',
         ]);
 
-        // Deactivate previous active subscriptions for this Turf Admin
-        TurfSubscription::where('user_id', $user->id)
-            ->where('status', 'active')
-            ->update(['status' => 'expired']);
-
-        // Activate new subscription
         $days = $paymentRecord->billing_cycle === 'yearly' ? 365 : 30;
 
+        // Check if user currently has an active subscription
+        $activeSub = TurfSubscription::where('user_id', $user->id)
+            ->where('status', 'active')
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->first();
+
+        if ($activeSub) {
+            // Renewal: Calculate new end date from existing expires_at + days
+            $startsAt = $activeSub->starts_at;
+            $newExpiresAt = $activeSub->expires_at->copy()->addDays($days);
+
+            // Deactivate previous active subscription record
+            $activeSub->update(['status' => 'expired']);
+        } else {
+            // New subscription from scratch or expired plan
+            $startsAt = now();
+            $newExpiresAt = now()->addDays($days);
+
+            // Deactivate any old expired records
+            TurfSubscription::where('user_id', $user->id)
+                ->where('status', 'active')
+                ->update(['status' => 'expired']);
+        }
+
+        // Create new active subscription record
         TurfSubscription::create([
             'user_id' => $user->id,
             'subscription_package_id' => $pkg->id,
             'billing_cycle' => $paymentRecord->billing_cycle,
             'price' => $paymentRecord->amount,
             'commission_percentage' => $pkg->commission_percentage,
-            'starts_at' => now(),
-            'expires_at' => now()->addDays($days),
+            'starts_at' => $startsAt,
+            'expires_at' => $newExpiresAt,
             'status' => 'active',
         ]);
 
-        session()->flash('status', "Payment successful! Subscribed to {$pkg->name}. Your new commission rate is {$pkg->commission_percentage}%.");
+        $actionText = $activeSub ? 'renewed' : 'activated';
+        session()->flash('status', "Payment successful! Subscription successfully {$actionText} for {$pkg->name}. Valid until {$newExpiresAt->format('d M Y, h:i A')}.");
     }
+
 
 }; ?>
 
@@ -189,13 +211,23 @@ new #[Layout('layouts.app')] class extends Component
                 </h2>
             </div>
 
-            <div class="flex items-center gap-4 bg-gray-50/90 dark:bg-gray-900/70 px-5 py-3 rounded-2xl border border-gray-100 dark:border-gray-700/60 shrink-0">
-                <div>
-                    <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">YOUR COMMISSION RATE</span>
-                    <span class="text-2xl font-black {{ $activeSub ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
-                        {{ $activeSub ? number_format($activeSub->commission_percentage, 2) : '7.00' }}%
-                    </span>
+            <div class="flex items-center gap-3 shrink-0">
+                <div class="flex items-center gap-4 bg-gray-50/90 dark:bg-gray-900/70 px-5 py-3 rounded-2xl border border-gray-100 dark:border-gray-700/60">
+                    <div>
+                        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">YOUR COMMISSION RATE</span>
+                        <span class="text-2xl font-black {{ $activeSub ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400' }}">
+                            {{ $activeSub ? number_format($activeSub->commission_percentage, 2) : '7.00' }}%
+                        </span>
+                    </div>
                 </div>
+
+                @if ($activeSub && $activeSub->subscription_package_id)
+                    <button wire:click="initiatePayment({{ $activeSub->subscription_package_id }}, '{{ $activeSub->billing_cycle }}')" type="button"
+                        class="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md cursor-pointer active:scale-[0.99] shrink-0">
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        <span>Renew Plan</span>
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -215,6 +247,7 @@ new #[Layout('layouts.app')] class extends Component
                     <span class="font-extrabold text-indigo-600 dark:text-indigo-400">{{ $activeSub->expires_at->format('d M Y, h:i A') }}</span>
                 </div>
             </div>
+
         @else
             <!-- Free Plan Recommendation Banner -->
             <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -277,12 +310,22 @@ new #[Layout('layouts.app')] class extends Component
                         </span>
                     </div>
 
-                    <!-- Subscribe Button (Right Top Aligned) -->
+                    @php
+                        $isCurrentActivePackage = $activeSub && $activeSub->subscription_package_id === $pkg->id;
+                    @endphp
+
+                    <!-- Subscribe / Renew Button -->
                     <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')" type="button"
-                        class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-[0.99] shrink-0">
-                        <span>Subscribe Now</span>
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        class="px-6 py-2.5 {{ $isCurrentActivePackage ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-indigo-600 hover:bg-indigo-700' }} text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-[0.99] shrink-0">
+                        @if ($isCurrentActivePackage)
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            <span>Renew Plan</span>
+                        @else
+                            <span>Subscribe Now</span>
+                            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                        @endif
                     </button>
+
                 </div>
 
                 <!-- Description & Features (Vertical Stack) -->
