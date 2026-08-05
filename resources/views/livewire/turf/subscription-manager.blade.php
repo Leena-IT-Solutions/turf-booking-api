@@ -89,11 +89,18 @@ new #[Layout('layouts.app')] class extends Component
     }
 
     #[On('verify-subscription-payment')]
-    public function verifyPayment($data)
+    public function verifyPayment($data = null)
     {
-        $paymentId = $data['razorpay_payment_id'] ?? null;
-        $paymentRecordId = $data['payment_record_id'] ?? null;
-        $signature = $data['razorpay_signature'] ?? null;
+        if (is_array($data)) {
+            $paymentId = $data['razorpay_payment_id'] ?? null;
+            $paymentRecordId = $data['payment_record_id'] ?? null;
+            $signature = $data['razorpay_signature'] ?? null;
+        } else {
+            $paymentId = func_get_arg(0) ?? null;
+            $paymentRecordId = func_num_args() > 1 ? func_get_arg(1) : null;
+            $signature = null;
+        }
+
 
         $paymentRecord = SubscriptionPayment::find($paymentRecordId);
         if (!$paymentRecord) {
