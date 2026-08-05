@@ -232,15 +232,15 @@ new #[Layout('layouts.app')] class extends Component
             $packages = $query->get();
         @endphp
 
-        <!-- PACKAGES CARD LIST GRID -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 w-full">
+        <!-- PACKAGES CARD LIST (FULL WIDTH) -->
+        <div class="flex flex-col space-y-4 w-full">
             @forelse ($packages as $pkg)
-                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col justify-between relative transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md group">
+                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md w-full">
                     
-                    <!-- Card Top Header -->
-                    <div>
-                        <div class="flex items-start justify-between gap-2 mb-3">
-                            <h3 class="text-lg font-black text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition leading-snug">
+                    <!-- Left Section: Package Info & Features -->
+                    <div class="flex-1 space-y-3">
+                        <div class="flex items-center gap-3">
+                            <h3 class="text-xl font-black text-gray-900 dark:text-white leading-snug">
                                 {{ $pkg->name }}
                             </h3>
 
@@ -252,53 +252,48 @@ new #[Layout('layouts.app')] class extends Component
                             </button>
                         </div>
 
-                        <!-- Price & Duration Box -->
-                        <div class="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 my-3 grid grid-cols-2 gap-3">
-                            <div>
-                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Monthly (30 Days)</span>
-                                <span class="text-xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Yearly (365 Days)</span>
-                                <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
-                            </div>
-                        </div>
-
                         <!-- Description -->
                         @if ($pkg->description)
-                            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-3 line-clamp-2">
+                            <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                                 {{ $pkg->description }}
                             </p>
                         @endif
 
-                        <!-- Commission Percentage Badge -->
-                        <div class="mb-3">
-                            <div class="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 flex items-center justify-between">
-                                <span class="text-[10px] font-black text-amber-600 dark:text-amber-300 uppercase tracking-wider">Commission</span>
-                                <span class="text-xs font-black text-amber-700 dark:text-amber-200">{{ $pkg->commission_percentage }}%</span>
-                            </div>
-                        </div>
-
                         <!-- Feature Bullet Points -->
                         @if (is_array($pkg->features) && count($pkg->features) > 0)
-                            <div class="space-y-1.5 mb-4">
-                                <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Features</span>
-                                <ul class="space-y-1">
-                                    @foreach ($pkg->features as $feat)
-                                        <li class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                            <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            <span class="truncate">{{ $feat }}</span>
-                                        </li>
-                                    @endforeach
-                                </ul>
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
+                                @foreach ($pkg->features as $feat)
+                                    <div class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        <span>{{ $feat }}</span>
+                                    </div>
+                                @endforeach
                             </div>
                         @endif
                     </div>
 
-                    <!-- Card Actions Footer -->
-                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700/60 flex items-center gap-2">
+                    <!-- Middle Section: Price & Commission -->
+                    <div class="flex items-center gap-6 shrink-0 bg-gray-50/80 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60">
+                        <div class="text-center px-2">
+                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Monthly (30 Days)</span>
+                            <span class="text-xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
+                        </div>
+                        <div class="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
+                        <div class="text-center px-2">
+                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Yearly (365 Days)</span>
+                            <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
+                        </div>
+                        <div class="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
+                        <div class="text-center px-2">
+                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Commission</span>
+                            <span class="text-base font-black text-amber-600 dark:text-amber-400">{{ $pkg->commission_percentage }}%</span>
+                        </div>
+                    </div>
+
+                    <!-- Right Section: Actions Footer -->
+                    <div class="flex items-center gap-2 shrink-0 md:pl-2">
                         <button wire:click="openEditModal({{ $pkg->id }})" type="button" 
-                            class="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                            class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
                             <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit
                         </button>
@@ -309,7 +304,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
             @empty
-                <div class="col-span-full bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400 space-y-3">
+                <div class="w-full bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400 space-y-3">
                     <span class="text-4xl block">📦</span>
                     <p class="font-bold text-gray-800 dark:text-gray-200">No subscription packages found.</p>
                     <button wire:click="openCreateModal" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold cursor-pointer">
@@ -318,6 +313,7 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             @endforelse
         </div>
+
 
     </div>
 
