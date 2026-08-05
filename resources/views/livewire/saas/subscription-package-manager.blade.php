@@ -272,28 +272,26 @@ new #[Layout('layouts.app')] class extends Component
                         @endif
                     </div>
 
-                    <!-- Middle Section: Price & Commission -->
-                    <div class="flex items-center gap-6 shrink-0 bg-gray-50/80 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60">
-                        <div class="text-center px-2">
+                    <!-- Middle Section: Price & Commission (Responsive Grid) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto bg-gray-50/80 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shrink-0">
+                        <div class="text-left sm:text-center p-1">
                             <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Monthly (30 Days)</span>
-                            <span class="text-xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
+                            <span class="text-lg sm:text-xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
                         </div>
-                        <div class="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
-                        <div class="text-center px-2">
+                        <div class="text-left sm:text-center p-1 border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700/70 pt-2 sm:pt-1">
                             <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Yearly (365 Days)</span>
-                            <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
+                            <span class="text-lg sm:text-xl font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
                         </div>
-                        <div class="h-8 w-px bg-gray-200 dark:bg-gray-700"></div>
-                        <div class="text-center px-2">
+                        <div class="text-left sm:text-center p-1 border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700/70 pt-2 sm:pt-1">
                             <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Commission</span>
                             <span class="text-base font-black text-amber-600 dark:text-amber-400">{{ $pkg->commission_percentage }}%</span>
                         </div>
                     </div>
 
                     <!-- Right Section: Actions Footer -->
-                    <div class="flex items-center gap-2 shrink-0 md:pl-2">
+                    <div class="flex items-center justify-end gap-2 w-full lg:w-auto shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-gray-100 dark:border-gray-700/60">
                         <button wire:click="openEditModal({{ $pkg->id }})" type="button" 
-                            class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                            class="flex-1 lg:flex-initial px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
                             <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit
                         </button>
@@ -302,6 +300,7 @@ new #[Layout('layouts.app')] class extends Component
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </div>
+
                 </div>
             @empty
                 <div class="w-full bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400 space-y-3">
