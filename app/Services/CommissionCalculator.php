@@ -32,9 +32,14 @@ class CommissionCalculator
 
         return [
             'rate' => $rate,
+            'commission_percentage' => $rate,
             'commissionAmount' => $commissionAmount,
+            'commission_amount' => $commissionAmount,
             'cashHeldAmount' => $cashHeldAmount,
+            'cash_held_amount' => $cashHeldAmount,
             'turfPayoutAmount' => $turfPayoutAmount,
+            'turf_payout_amount' => $turfPayoutAmount,
         ];
     }
 }
+

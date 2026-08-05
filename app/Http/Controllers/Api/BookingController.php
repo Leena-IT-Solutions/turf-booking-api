@@ -478,6 +478,17 @@ class BookingController extends Controller
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
         $dateCoupons = $validated['coupons'] ?? [];
+
+        $paymentMethod = $validated['payment_method'];
+
+        // DEBT GUARDRAIL CHECK FOR OFFLINE PAYMENTS IN STORE
+        if (in_array($paymentMethod, ['Cash', 'UPI', 'Other', 'offline'])) {
+            $lockError = $this->checkOfflinePaymentDebtLock($turf);
+            if ($lockError) {
+                return response()->json(['message' => $lockError], 422);
+            }
+        }
+
         $manualDiscount = ($isStaffOrAdmin && isset($validated['additional_discount'])) ? (float)$validated['additional_discount'] : 0.00;
         $paymentMethod = $validated['payment_method'];
 
@@ -1063,6 +1074,33 @@ class BookingController extends Controller
     }
 
     /**
+     * Helper to check if offline payment is locked for a turf owner due to debt limits.
+     */
+    private function checkOfflinePaymentDebtLock(Turf $turf): ?string
+    {
+        $turfAdminOwner = $turf->location->user ?? null;
+        if (!$turfAdminOwner) {
+            return null;
+        }
+
+        $saas = \App\Models\SaasSetting::first();
+        $maxDue = (float) ($saas?->max_commission_due ?? 2000.00);
+        $graceDays = (int) ($saas?->commission_due_grace_days ?? 7);
+
+        $currentBalance = (float) $turfAdminOwner->commission_wallet_balance;
+        $dueDays = $turfAdminOwner->commission_due_since
+            ? now()->diffInDays($turfAdminOwner->commission_due_since)
+            : 0;
+
+        if ($currentBalance <= -$maxDue || ($currentBalance < 0 && $dueDays >= $graceDays)) {
+            $dueAmount = number_format(abs($currentBalance), 2);
+            return "Offline booking locked! Commission due of ₹{$dueAmount} exceeds limit or grace period. Please settle your due balance from the Business page to record more offline payments.";
+        }
+
+        return null;
+    }
+
+    /**
      * Record offline cash/UPI payment for a booking date (restricted to admins/managers).
      */
     public function recordPayment(Request $request, BookingDate $bookingDate): JsonResponse
@@ -1083,26 +1121,13 @@ class BookingController extends Controller
         }
 
         // DEBT GUARDRAIL CHECK FOR OFFLINE PAYMENTS
-        $turfAdminOwner = $booking->turf->location->user ?? null;
-        if ($turfAdminOwner) {
-            $saas = \App\Models\SaasSetting::first();
-            $maxDue = (float) ($saas?->max_commission_due ?? 2000.00);
-            $graceDays = (int) ($saas?->commission_due_grace_days ?? 7);
-
-            $currentBalance = (float) $turfAdminOwner->commission_wallet_balance;
-            $dueDays = $turfAdminOwner->commission_due_since
-                ? now()->diffInDays($turfAdminOwner->commission_due_since)
-                : 0;
-
-            if ($currentBalance <= -$maxDue || ($currentBalance < 0 && $dueDays >= $graceDays)) {
-                $dueAmount = number_format(abs($currentBalance), 2);
-                return response()->json([
-                    'message' => "Offline booking locked! Commission due of ₹{$dueAmount} exceeds limit or grace period. Please settle your due balance from the Business page to record more offline payments.",
-                ], 422);
-            }
+        $lockError = $this->checkOfflinePaymentDebtLock($booking->turf);
+        if ($lockError) {
+            return response()->json(['message' => $lockError], 422);
         }
 
         $totalAmount = (float) BookingDate::where('booking_id', $booking->id)->where('status', '!=', 'Cancelled')->sum('amount');
+
         $totalPaid = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
         $totalRemaining = max(0.00, $totalAmount - $totalPaid);
         $amountToPay = min((float)$validated['amount'], $totalRemaining);
@@ -1631,8 +1656,36 @@ class BookingController extends Controller
                     'refunded_at' => $cancelledAt,
                 ]);
 
+                // WALLET REFUND REVERSAL LOGIC
+                $turfAdminOwner = $booking->turf->location->user ?? null;
+                if ($turfAdminOwner && $paymentRefund > 0 && (float)$payment->amount > 0) {
+                    $refundRatio = $paymentRefund / (float)$payment->amount;
+                    $originalPayoutContribution = (float)($payment->turf_payout_amount ?? 0);
+
+                    if ($payment->wallet_cleared_at) {
+                        // Payment contribution was already applied to wallet -> Reverse it
+                        $reversalAmount = round(-$originalPayoutContribution * $refundRatio, 2);
+                        if ($reversalAmount != 0) {
+                            $walletService = new \App\Services\WalletService();
+                            $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
+                        }
+                    } else {
+                        // Payment contribution was still pending clearance -> Shrink stored contribution proportionally
+                        $newCommissionAmount = round(((float)$payment->commission_amount) * (1 - $refundRatio), 2);
+                        $newCashHeldAmount = round(((float)$payment->cash_held_amount) * (1 - $refundRatio), 2);
+                        $newPayoutAmount = round(((float)$payment->turf_payout_amount) * (1 - $refundRatio), 2);
+
+                        $payment->update([
+                            'commission_amount' => $newCommissionAmount,
+                            'cash_held_amount' => $newCashHeldAmount,
+                            'turf_payout_amount' => $newPayoutAmount,
+                        ]);
+                    }
+                }
+
                 $remainingRefundToDistribute -= $paymentRefund;
             }
+
 
             $bDate->update([
                 'status' => 'Cancelled',

@@ -85,14 +85,20 @@ class PayoutService
                 try {
                     $this->processRazorpayXPayout($payout, $lockedUser, $rzpKey, $rzpSecret, $accountNumber);
                 } catch (\Exception $e) {
-                    // Update payout failure note but keep in processing state or handle error
-                    $payout->update(['failure_reason' => $e->getMessage()]);
+                    $payout->update([
+                        'status' => 'failed',
+                        'failure_reason' => $e->getMessage(),
+                    ]);
+
+                    // Reverse the debited amount back to wallet
+                    $walletService->applyDelta($lockedUser, $requestedAmount, 'payout_reversal', $payout);
                 }
             }
 
             return $payout;
-        } );
+        });
     }
+
 
     private function processRazorpayXPayout(TurfPayout $payout, User $user, string $key, string $secret, string $accountNumber): void
     {

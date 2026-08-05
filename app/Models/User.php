@@ -13,8 +13,14 @@ use Laravel\Sanctum\HasApiTokens;
 
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable(['name', 'email', 'mobile', 'password', 'is_quick_created'])]
+#[Fillable([
+    'name', 'email', 'mobile', 'password', 'is_quick_created',
+    'commission_wallet_balance', 'commission_due_since', 'payout_method',
+    'bank_account_name', 'bank_account_number', 'bank_ifsc', 'upi_id',
+    'razorpay_contact_id', 'razorpay_fund_account_id', 'payout_schedule', 'payout_schedule_day'
+])]
 #[Hidden(['password', 'remember_token'])]
+
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

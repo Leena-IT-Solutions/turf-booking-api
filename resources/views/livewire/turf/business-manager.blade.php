@@ -34,6 +34,9 @@ new #[Layout('layouts.app')] class extends Component
     public function mount()
     {
         $user = auth()->user();
+        if (!$user) {
+            return;
+        }
         $this->payoutMethod = $user->payout_method ?: 'bank';
         $this->bankAccountName = $user->bank_account_name ?: '';
         $this->bankAccountNumber = $user->bank_account_number ?: '';
@@ -49,6 +52,7 @@ new #[Layout('layouts.app')] class extends Component
             $this->settleAmount = (string) abs($balance);
         }
     }
+
 
     public function saveKycDetails()
     {
@@ -177,6 +181,23 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
+        $saas = SaasSetting::first();
+        $rzpSecret = $saas?->razorpay_secret ?: config('services.razorpay.secret');
+
+        // HMAC Signature Verification if Razorpay Secret is configured
+        if ($rzpSecret && $settlement->razorpay_order_id) {
+            if (!$paymentId || !$signature) {
+                session()->flash('error', 'Payment verification failed: Missing payment ID or signature.');
+                return;
+            }
+
+            $expectedSignature = hash_hmac('sha256', $settlement->razorpay_order_id . '|' . $paymentId, $rzpSecret);
+            if (!hash_equals($expectedSignature, $signature)) {
+                session()->flash('error', 'Payment verification failed: Invalid Razorpay signature.');
+                return;
+            }
+        }
+
         $user = auth()->user();
         $settlement->update([
             'razorpay_payment_id' => $paymentId ?: ('pay_simulated_' . time()),
@@ -192,6 +213,7 @@ new #[Layout('layouts.app')] class extends Component
         session()->flash('status', "Commission due of ₹" . number_format($settlement->amount, 2) . " settled successfully!");
         $this->mount();
     }
+
 }; ?>
 
 <div class="space-y-6">
@@ -213,30 +235,32 @@ new #[Layout('layouts.app')] class extends Component
     @php
         $user = auth()->user();
         $saas = \App\Models\SaasSetting::first();
-        $effectiveRate = $user->commission_percentage;
-        $hasActiveSub = (bool) $user->activeSubscription;
-        $balance = (float) $user->commission_wallet_balance;
+        $effectiveRate = $user?->commission_percentage ?? 7.00;
+        $hasActiveSub = $user ? (bool) $user->activeSubscription : false;
+        $balance = $user ? (float) $user->commission_wallet_balance : 0.00;
 
         // Pending Clearance: Online payments where booking date is in the future
-        $pendingClearanceAmount = (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
+        $pendingClearanceAmount = $user ? (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
             ->whereNull('wallet_cleared_at')
             ->where('status', 'Success')
             ->where('turf_payout_amount', '>', 0)
-            ->sum('turf_payout_amount');
+            ->sum('turf_payout_amount') : 0.00;
 
-        $totalCommissionEarned = (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
+
+        $totalCommissionEarned = $user ? (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
                 $q->where('user_id', $user->id);
-            })->where('status', 'Success')->sum('commission_amount');
+            })->where('status', 'Success')->sum('commission_amount') : 0.00;
 
-        $totalPayoutsReceived = (float) TurfPayout::where('user_id', $user->id)->where('status', 'completed')->sum('net_amount');
+        $totalPayoutsReceived = $user ? (float) TurfPayout::where('user_id', $user->id)->where('status', 'completed')->sum('net_amount') : 0.00;
 
         $maxDue = (float) ($saas?->max_commission_due ?? 2000.00);
         $graceDays = (int) ($saas?->commission_due_grace_days ?? 7);
-        $dueDays = $user->commission_due_since ? now()->diffInDays($user->commission_due_since) : 0;
+        $dueDays = ($user && $user->commission_due_since) ? now()->diffInDays($user->commission_due_since) : 0;
         $isOfflineLocked = $balance <= -$maxDue || ($balance < 0 && $dueDays >= $graceDays);
     @endphp
+
 
     <!-- WALLET SUMMARY BADGES -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -375,6 +399,35 @@ new #[Layout('layouts.app')] class extends Component
                         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
                         <span>Submit Payout Request</span>
                     </button>
+
+                    <!-- Payout Schedule Preference Section -->
+                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700/60 space-y-3">
+                        <x-input-label :value="__('Automatic Payout Schedule')" />
+                        <div class="flex items-center gap-3">
+                            <select wire:model.live="payoutSchedule" class="text-xs rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500">
+                                <option value="manual">Manual Request</option>
+                                <option value="daily">Daily Automatic</option>
+                                <option value="weekly">Weekly Automatic</option>
+                            </select>
+
+                            @if ($payoutSchedule === 'weekly')
+                                <select wire:model.live="payoutScheduleDay" class="text-xs rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500">
+                                    <option value="1">Monday</option>
+                                    <option value="2">Tuesday</option>
+                                    <option value="3">Wednesday</option>
+                                    <option value="4">Thursday</option>
+                                    <option value="5">Friday</option>
+                                    <option value="6">Saturday</option>
+                                    <option value="0">Sunday</option>
+                                </select>
+                            @endif
+
+                            <button wire:click="saveSchedulePreference" type="button" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition cursor-pointer">
+                                Save Schedule
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         @endif
@@ -437,13 +490,14 @@ new #[Layout('layouts.app')] class extends Component
 
     <!-- BOOKING COMMISSION TRANSACTIONS TABLE -->
     @php
-        $payments = Payment::with(['booking.turf', 'bookingDate'])
+        $payments = $user ? Payment::with(['booking.turf', 'bookingDate'])
             ->whereHas('booking.turf.location', function($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
             ->latest()
-            ->paginate(10);
+            ->paginate(10) : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
     @endphp
+
 
     <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
         <div class="flex items-center justify-between">

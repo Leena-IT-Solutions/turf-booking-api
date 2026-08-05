@@ -24,12 +24,16 @@ class RazorpayPayoutWebhookController extends Controller
         $payload = $request->getContent();
 
         // 1. Verify HMAC Signature if secret configured
-        if ($webhookSecret && $signature) {
+        if ($webhookSecret) {
+            if (!$signature) {
+                return response()->json(['message' => 'Missing X-Razorpay-Signature header'], 400);
+            }
             $expectedSignature = hash_hmac('sha256', $payload, $webhookSecret);
             if (!hash_equals($expectedSignature, $signature)) {
                 return response()->json(['message' => 'Invalid webhook signature'], 400);
             }
         }
+
 
         $data = $request->all();
         $eventId = $request->header('X-Razorpay-Event-Id') ?: ($data['event_id'] ?? null ?: ('evt_' . time() . '_' . uniqid()));
