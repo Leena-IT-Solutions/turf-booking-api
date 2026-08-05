@@ -88,7 +88,9 @@ new #[Layout('layouts.app')] class extends Component
         ]);
     }
 
-    public function verifyPayment(?int $paymentRecordId = null, ?string $paymentId = null, ?string $signature = null)
+    #[On('verify-subscription-payment')]
+    public function verifyPayment($paymentRecordId = null, $paymentId = null, $signature = null)
+
     {
         if (!$paymentRecordId) {
             session()->flash('error', 'Payment record ID missing.');
@@ -342,7 +344,7 @@ new #[Layout('layouts.app')] class extends Component
             // Fallback: If Razorpay keys are not configured yet, simulate successful subscription
             if (!payload.key) {
                 if (confirm(`Razorpay key is not configured in SaaS Settings.\n\nWould you like to simulate successful payment for "${payload.package_name}"?`)) {
-                    wireComponent.call('verifyPayment', payload.payment_record_id, 'pay_simulated_' + Date.now(), 'simulated_sig');
+                    Livewire.dispatch('verify-subscription-payment', [payload.payment_record_id, 'pay_simulated_' + Date.now(), 'simulated_sig']);
                 }
                 return;
             }
@@ -355,8 +357,9 @@ new #[Layout('layouts.app')] class extends Component
                 "description": payload.description,
                 "order_id": payload.order_id || "",
                 "handler": function (response) {
-                    wireComponent.call('verifyPayment', payload.payment_record_id, response.razorpay_payment_id, response.razorpay_signature || "");
+                    Livewire.dispatch('verify-subscription-payment', [payload.payment_record_id, response.razorpay_payment_id, response.razorpay_signature || ""]);
                 },
+
                 "prefill": payload.prefill || {},
                 "theme": {
                     "color": "#4F46E5"
