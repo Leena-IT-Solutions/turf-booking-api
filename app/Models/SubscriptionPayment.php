@@ -14,6 +14,8 @@ class SubscriptionPayment extends Model
         'subscription_package_id',
         'billing_cycle',
         'amount',
+        'turf_ids',
+        'turf_count',
         'razorpay_order_id',
         'razorpay_payment_id',
         'razorpay_signature',
@@ -22,6 +24,8 @@ class SubscriptionPayment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'turf_ids' => 'array',
+        'turf_count' => 'integer',
     ];
 
     public function user()
@@ -32,5 +36,10 @@ class SubscriptionPayment extends Model
     public function package()
     {
         return $this->belongsTo(SubscriptionPackage::class, 'subscription_package_id');
+    }
+
+    public function turfSubscriptions()
+    {
+        return $this->hasMany(TurfSubscription::class, 'subscription_payment_id');
     }
 }

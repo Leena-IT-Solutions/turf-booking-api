@@ -291,18 +291,43 @@ new #[Layout('layouts.app')] class extends Component
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Online credits clearing after booking dates pass</p>
         </div>
 
-        <!-- Effective Commission Rate -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-indigo-100 dark:border-indigo-800/60 shadow-xs space-y-2">
+        <!-- Per-Turf Commission Rates Card -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-indigo-100 dark:border-indigo-800/60 shadow-xs space-y-3 md:col-span-2">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">EFFECTIVE COMMISSION</span>
-                <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full {{ $hasActiveSub ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' }}">
-                    {{ $hasActiveSub ? 'Subscribed' : 'Default Rate' }}
-                </span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">TURF COMMISSION RATES</span>
+                <span class="text-[9px] text-gray-400 font-medium">Gateway discount: {{ number_format($saas?->payment_gateway_percentage ?? 2.00, 2) }}%</span>
             </div>
-            <div class="text-3xl font-black text-indigo-600 dark:text-indigo-400">
-                {{ number_format($effectiveRate, 2) }}%
-            </div>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400">Offline payments get {{ number_format($saas?->payment_gateway_percentage ?? 2.00, 2) }}% gateway discount</p>
+            @php
+                $manageableTurfs = $user ? $user->manageableTurfs()->with(['location', 'activeSubscription.package'])->get() : collect();
+            @endphp
+            @if ($manageableTurfs->isEmpty())
+                <p class="text-xs text-gray-500">No turfs created yet.</p>
+            @else
+                <div class="divide-y divide-gray-100 dark:divide-gray-700/60 max-h-36 overflow-y-auto">
+                    @foreach ($manageableTurfs as $mturf)
+                        @php
+                            $activeSub = $mturf->activeSubscription;
+                        @endphp
+                        <div class="py-1.5 flex items-center justify-between text-xs">
+                            <div class="min-w-0">
+                                <span class="font-bold text-gray-800 dark:text-gray-200 block truncate">{{ $mturf->name }}</span>
+                                <span class="text-[10px] text-gray-400 truncate block">{{ $mturf->location?->name ?? 'Default Location' }}</span>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <div class="flex items-center gap-1.5 justify-end">
+                                    <span class="font-black text-indigo-600 dark:text-indigo-400">{{ number_format($mturf->commission_percentage, 2) }}%</span>
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full {{ $activeSub ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' }}">
+                                        {{ $activeSub ? $activeSub->package?->name : 'Default' }}
+                                    </span>
+                                </div>
+                                @if ($activeSub)
+                                    <span class="text-[9px] text-gray-400 block">Exp: {{ $activeSub->expires_at?->format('d M Y') }}</span>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <!-- Lifetime Payouts Received -->
@@ -314,6 +339,7 @@ new #[Layout('layouts.app')] class extends Component
             <p class="text-[11px] text-gray-500 dark:text-gray-400">Lifetime completed bank/UPI transfers</p>
         </div>
     </div>
+
 
     <!-- Flash Notifications -->
     @if (session('status'))

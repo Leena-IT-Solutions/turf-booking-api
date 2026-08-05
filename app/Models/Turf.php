@@ -125,4 +125,28 @@ class Turf extends Model
     {
         return $this->hasMany(Coupon::class);
     }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(TurfSubscription::class);
+    }
+
+    public function activeSubscription()
+    {
+        return $this->hasOne(TurfSubscription::class)
+            ->where('status', 'active')
+            ->where('expires_at', '>', now())
+            ->latestOfMany();
+    }
+
+    public function getCommissionPercentageAttribute(): float
+    {
+        $sub = $this->activeSubscription;
+        if ($sub) {
+            return (float) $sub->commission_percentage;
+        }
+        $saas = \App\Models\SaasSetting::first();
+        return $saas ? (float) $saas->commission_percentage : 7.00;
+    }
 }
+

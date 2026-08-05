@@ -34,6 +34,7 @@ class CommissionWalletSettlementTest extends TestCase
         ]);
 
 
+
         $this->turfAdmin = User::factory()->create([
             'commission_wallet_balance' => 0.00,
         ]);
@@ -51,6 +52,7 @@ class CommissionWalletSettlementTest extends TestCase
             'location_id' => $location->id,
             'name' => 'Main Football Turf',
             'type' => 'Football',
+            'is_active' => true,
             'is_part_payment_active' => true,
             'part_payment_type' => 'percentage',
             'part_payment_value' => 30,
@@ -58,14 +60,14 @@ class CommissionWalletSettlementTest extends TestCase
 
 
 
+
         $category = \App\Models\SlotCategory::create(['name' => 'Regular']);
 
         $this->slot = Slot::create([
-            'turf_id' => $this->turf->id,
             'slot_category_id' => $category->id,
-            'name' => '7-8 PM Slot',
-            'from_time' => '19:00:00',
-            'to_time' => '20:00:00',
+            'name' => '11-12 PM Slot',
+            'from_time' => '23:00:00',
+            'to_time' => '23:59:00',
             'duration' => 60,
         ]);
 
@@ -82,17 +84,20 @@ class CommissionWalletSettlementTest extends TestCase
         $customer = User::factory()->create();
 
         // 1. Customer creates ₹1000 booking with ₹300 online payment
-        $today = now()->format('Y-m-d');
+        $bookingDate = now()->format('Y-m-d');
         $response = $this->actingAs($customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
             'slot_ids' => [$this->slot->id],
-            'booking_dates' => [$today],
+            'booking_dates' => [$bookingDate],
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'part',
             'amount_received' => 300.00,
         ]);
 
+
         $response->assertStatus(200);
+
+
         $bookingId = $response->json('booking.id');
 
 

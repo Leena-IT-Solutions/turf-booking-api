@@ -1194,7 +1194,8 @@ class BookingController extends Controller
         $unpaidDates = $bookingDates->filter(fn($d) => ($dateBalances[$d->id] ?? 0) > 0)->values();
         $count = $unpaidDates->count();
 
-        $turfAdminOwner = $booking->turf->location->user ?? null;
+        $turf = $booking->turf;
+        $walletOwner = $turf?->location?->user ?? null;
         $commissionCalc = new \App\Services\CommissionCalculator();
         $walletService = new \App\Services\WalletService();
 
@@ -1212,15 +1213,16 @@ class BookingController extends Controller
             }
 
             if ($paidForDate > 0) {
-                // Calculate commission breakdown
-                $commData = $turfAdminOwner
-                    ? $commissionCalc->calculate($turfAdminOwner, $paymentMethod, $paidForDate)
+                // Calculate commission breakdown using Turf rate
+                $commData = $turf
+                    ? $commissionCalc->calculate($turf, $paymentMethod, $paidForDate)
                     : [
                         'rate' => 7.00,
                         'commissionAmount' => round($paidForDate * 0.07, 2),
                         'cashHeldAmount' => $paymentMethod === 'App' ? $paidForDate : 0.00,
                         'turfPayoutAmount' => ($paymentMethod === 'App' ? $paidForDate : 0.00) - round($paidForDate * 0.07, 2),
                     ];
+
 
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
@@ -1240,10 +1242,11 @@ class BookingController extends Controller
                 $isBookingMatured = $bDate->booking_date <= Carbon::today()->format('Y-m-d');
                 $isNegativeOrZeroContribution = $commData['turfPayoutAmount'] <= 0;
 
-                if ($turfAdminOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
-                    $walletService->applyDelta($turfAdminOwner, $commData['turfPayoutAmount'], 'payment_settlement', $payment);
+                if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
+                    $walletService->applyDelta($walletOwner, $commData['turfPayoutAmount'], 'payment_settlement', $payment);
                     $payment->update(['wallet_cleared_at' => Carbon::now()]);
                 }
+
 
                 if ($razorpayPaymentId && $paymentMethod === 'App') {
                     PaymentGateway::create([

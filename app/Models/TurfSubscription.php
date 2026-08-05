@@ -10,8 +10,9 @@ class TurfSubscription extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'turf_id',
         'subscription_package_id',
+        'subscription_payment_id',
         'billing_cycle',
         'price',
         'commission_percentage',
@@ -27,13 +28,18 @@ class TurfSubscription extends Model
         'expires_at' => 'datetime',
     ];
 
-    public function user()
+    public function turf()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Turf::class);
     }
 
     public function package()
     {
         return $this->belongsTo(SubscriptionPackage::class, 'subscription_package_id');
+    }
+
+    public function subscriptionPayment()
+    {
+        return $this->belongsTo(SubscriptionPayment::class);
     }
 }

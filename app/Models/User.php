@@ -151,32 +151,8 @@ class User extends Authenticatable
             })->orWhereIn('turfs.id', $this->assignedTurfs()->pluck('turfs.id'));
         });
     }
-
-    /**
-     * Get active subscription for the user (Turf Admin).
-     */
-    public function activeSubscription()
-    {
-        return $this->hasOne(TurfSubscription::class)
-                    ->where('status', 'active')
-                    ->where('expires_at', '>', now())
-                    ->latest();
-    }
-
-    /**
-     * Get active commission percentage for the user (7% default if no active subscription).
-     */
-    public function getCommissionPercentageAttribute(): float
-    {
-        $sub = $this->activeSubscription;
-        if ($sub) {
-            return (float) $sub->commission_percentage;
-        }
-
-        $saas = SaasSetting::first();
-        return $saas ? (float) $saas->commission_percentage : 7.00;
-    }
 }
+
 
 
 
