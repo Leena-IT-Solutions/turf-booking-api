@@ -52,8 +52,6 @@ new #[Layout('layouts.app')] class extends Component
     public function openCreateModal()
     {
         $this->resetForm();
-        $this->from_date = Carbon::now('Asia/Kolkata')->toDateString();
-        $this->to_date = Carbon::now('Asia/Kolkata')->addYear()->toDateString();
         $this->showFormModal = true;
     }
 
@@ -71,8 +69,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->payment_gateway_percentage = (string) $pkg->payment_gateway_percentage;
         $this->commission_percentage = (string) $pkg->commission_percentage;
         $this->is_active = (bool) $pkg->is_active;
-        $this->from_date = $pkg->from_date ? $pkg->from_date->format('Y-m-d') : '';
-        $this->to_date = $pkg->to_date ? $pkg->to_date->format('Y-m-d') : '';
         $this->sort_order = (int) $pkg->sort_order;
         $this->features_text = is_array($pkg->features) ? implode("\n", $pkg->features) : '';
 
@@ -90,8 +86,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->payment_gateway_percentage = '0.00';
         $this->commission_percentage = '0.00';
         $this->is_active = true;
-        $this->from_date = '';
-        $this->to_date = '';
         $this->sort_order = 0;
         $this->features_text = '';
     }
@@ -106,8 +100,6 @@ new #[Layout('layouts.app')] class extends Component
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'total_percentage' => 'required|numeric|min:0|max:100',
             'is_active' => 'boolean',
-            'from_date' => 'nullable|date',
-            'to_date' => 'nullable|date|after_or_equal:from_date',
             'sort_order' => 'integer|min:0',
         ]);
 
@@ -122,11 +114,10 @@ new #[Layout('layouts.app')] class extends Component
             'payment_gateway_percentage' => (float) $this->payment_gateway_percentage,
             'commission_percentage' => (float) $this->commission_percentage,
             'is_active' => $this->is_active,
-            'from_date' => $this->from_date ?: null,
-            'to_date' => $this->to_date ?: null,
             'sort_order' => (int) $this->sort_order,
             'features' => $featuresArray,
         ];
+
 
         if ($this->editingId) {
             $pkg = SubscriptionPackage::findOrFail($this->editingId);

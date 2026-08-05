@@ -18,8 +18,6 @@ class SubscriptionPackage extends Model
         'payment_gateway_percentage',
         'commission_percentage',
         'is_active',
-        'from_date',
-        'to_date',
         'sort_order',
         'features',
     ];
@@ -30,10 +28,9 @@ class SubscriptionPackage extends Model
         'payment_gateway_percentage' => 'decimal:2',
         'commission_percentage' => 'decimal:2',
         'is_active' => 'boolean',
-        'from_date' => 'date:Y-m-d',
-        'to_date' => 'date:Y-m-d',
         'days' => 'integer',
         'sort_order' => 'integer',
         'features' => 'array',
     ];
+
 }
