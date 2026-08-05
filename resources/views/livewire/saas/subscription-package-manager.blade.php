@@ -450,20 +450,6 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
 
-                    <!-- From & To Date (with Light/White Calendar Icon in Dark Mode) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">From Date</label>
-                            <input type="date" wire:model="from_date" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white dark:[color-scheme:dark]">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">To Date</label>
-                            <input type="date" wire:model="to_date" 
-                                class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white dark:[color-scheme:dark]">
-                            @error('to_date') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
-                        </div>
-                    </div>
 
                     <!-- Description -->
                     <div>
