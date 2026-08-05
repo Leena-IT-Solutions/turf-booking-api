@@ -144,6 +144,8 @@ class User extends Authenticatable
                 $q->where('user_id', $this->id);
             })->orWhereIn('turfs.id', $this->assignedTurfs()->pluck('turfs.id'));
         });
+    }
+
     /**
      * Get active subscription for the user (Turf Admin).
      */
@@ -164,4 +166,5 @@ class User extends Authenticatable
         return $sub ? (float) $sub->commission_percentage : 7.00;
     }
 }
+
 
