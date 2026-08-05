@@ -237,8 +237,8 @@ new #[Layout('layouts.app')] class extends Component
             @forelse ($packages as $pkg)
                 <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md w-full">
                     
-                    <!-- Left Section: Package Info & Features -->
-                    <div class="flex-1 space-y-3">
+                    <!-- Left Section: Package Info & Features (Stacked Vertically) -->
+                    <div class="flex-1 space-y-3 min-w-0">
                         <div class="flex items-center gap-3">
                             <h3 class="text-xl font-black text-gray-900 dark:text-white leading-snug">
                                 {{ $pkg->name }}
@@ -259,47 +259,51 @@ new #[Layout('layouts.app')] class extends Component
                             </p>
                         @endif
 
-                        <!-- Feature Bullet Points -->
+                        <!-- Feature Bullet Points (Stacked Vertically, One Upon Another) -->
                         @if (is_array($pkg->features) && count($pkg->features) > 0)
-                            <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
-                                @foreach ($pkg->features as $feat)
-                                    <div class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
-                                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                        <span>{{ $feat }}</span>
-                                    </div>
-                                @endforeach
+                            <div class="space-y-1.5 pt-1">
+                                <span class="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider block">FEATURES</span>
+                                <div class="space-y-1">
+                                    @foreach ($pkg->features as $feat)
+                                        <div class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                            <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            <span class="break-words">{{ $feat }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
                         @endif
                     </div>
 
-                    <!-- Middle Section: Price & Commission (Responsive Grid) -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto bg-gray-50/80 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 shrink-0">
-                        <div class="text-left sm:text-center p-1">
-                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Monthly (30 Days)</span>
-                            <span class="text-lg sm:text-xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
+                    <!-- Middle Section: Price & Commission (Compact Wrapped Box) -->
+                    <div class="bg-gray-50/90 dark:bg-gray-900/60 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 flex flex-wrap xl:flex-nowrap items-center gap-4 sm:gap-6 min-w-0">
+                        <div class="text-left sm:text-center min-w-[120px]">
+                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">MONTHLY (30 DAYS)</span>
+                            <span class="text-lg font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
                         </div>
-                        <div class="text-left sm:text-center p-1 border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700/70 pt-2 sm:pt-1">
-                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Yearly (365 Days)</span>
-                            <span class="text-lg sm:text-xl font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
+                        <div class="text-left sm:text-center min-w-[120px]">
+                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">YEARLY (365 DAYS)</span>
+                            <span class="text-lg font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
                         </div>
-                        <div class="text-left sm:text-center p-1 border-t sm:border-t-0 sm:border-l border-gray-200 dark:border-gray-700/70 pt-2 sm:pt-1">
-                            <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Commission</span>
+                        <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center min-w-[110px]">
+                            <span class="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider block">COMMISSION</span>
                             <span class="text-base font-black text-amber-600 dark:text-amber-400">{{ $pkg->commission_percentage }}%</span>
                         </div>
                     </div>
 
-                    <!-- Right Section: Actions Footer -->
-                    <div class="flex items-center justify-end gap-2 w-full lg:w-auto shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-gray-100 dark:border-gray-700/60">
+                    <!-- Right Section: Edit & Delete Buttons -->
+                    <div class="flex items-center gap-2 shrink-0">
                         <button wire:click="openEditModal({{ $pkg->id }})" type="button" 
-                            class="flex-1 lg:flex-initial px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                            class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
                             <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             Edit
                         </button>
                         <button wire:click="confirmDelete({{ $pkg->id }})" type="button" 
-                            class="px-3.5 py-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
+                            class="p-2.5 bg-red-600/10 hover:bg-red-600/20 text-red-600 dark:text-red-400 border border-red-500/30 dark:border-red-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center cursor-pointer">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </div>
+
 
                 </div>
             @empty
