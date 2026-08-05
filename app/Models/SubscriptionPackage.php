@@ -12,8 +12,8 @@ class SubscriptionPackage extends Model
     protected $fillable = [
         'name',
         'description',
-        'amount',
-        'days',
+        'monthly_amount',
+        'yearly_amount',
         'commission_percentage',
         'is_active',
         'sort_order',
@@ -21,13 +21,14 @@ class SubscriptionPackage extends Model
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
+        'monthly_amount' => 'decimal:2',
+        'yearly_amount' => 'decimal:2',
         'commission_percentage' => 'decimal:2',
         'is_active' => 'boolean',
-        'days' => 'integer',
         'sort_order' => 'integer',
         'features' => 'array',
     ];
+
 
 
 }

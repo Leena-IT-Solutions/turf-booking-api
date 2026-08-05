@@ -21,33 +21,12 @@ new #[Layout('layouts.app')] class extends Component
     // Form fields
     public string $name = '';
     public string $description = '';
-    public string $amount = '';
-    public int $days = 30;
-    public string $total_percentage = '0.00';
-    public string $payment_gateway_percentage = '0.00';
+    public string $monthly_amount = '0.00';
+    public string $yearly_amount = '0.00';
     public string $commission_percentage = '0.00';
     public bool $is_active = true;
-    public string $from_date = '';
-    public string $to_date = '';
     public int $sort_order = 0;
     public string $features_text = '';
-
-    public function updatedPaymentGatewayPercentage()
-    {
-        $this->recalculateTotalPercentage();
-    }
-
-    public function updatedCommissionPercentage()
-    {
-        $this->recalculateTotalPercentage();
-    }
-
-    private function recalculateTotalPercentage()
-    {
-        $gw = (float) $this->payment_gateway_percentage;
-        $comm = (float) $this->commission_percentage;
-        $this->total_percentage = number_format($gw + $comm, 2, '.', '');
-    }
 
     public function openCreateModal()
     {
@@ -63,10 +42,8 @@ new #[Layout('layouts.app')] class extends Component
         $this->editingId = $pkg->id;
         $this->name = $pkg->name;
         $this->description = $pkg->description ?? '';
-        $this->amount = (string) $pkg->amount;
-        $this->days = (int) $pkg->days;
-        $this->total_percentage = (string) $pkg->total_percentage;
-        $this->payment_gateway_percentage = (string) $pkg->payment_gateway_percentage;
+        $this->monthly_amount = (string) $pkg->monthly_amount;
+        $this->yearly_amount = (string) $pkg->yearly_amount;
         $this->commission_percentage = (string) $pkg->commission_percentage;
         $this->is_active = (bool) $pkg->is_active;
         $this->sort_order = (int) $pkg->sort_order;
@@ -80,10 +57,8 @@ new #[Layout('layouts.app')] class extends Component
         $this->editingId = null;
         $this->name = '';
         $this->description = '';
-        $this->amount = '0.00';
-        $this->days = 30;
-        $this->total_percentage = '0.00';
-        $this->payment_gateway_percentage = '0.00';
+        $this->monthly_amount = '0.00';
+        $this->yearly_amount = '0.00';
         $this->commission_percentage = '0.00';
         $this->is_active = true;
         $this->sort_order = 0;
@@ -94,8 +69,8 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->validate([
             'name' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
-            'days' => 'required|integer|min:1',
+            'monthly_amount' => 'required|numeric|min:0',
+            'yearly_amount' => 'required|numeric|min:0',
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
@@ -106,15 +81,14 @@ new #[Layout('layouts.app')] class extends Component
         $data = [
             'name' => $this->name,
             'description' => $this->description,
-            'amount' => (float) $this->amount,
-            'days' => (int) $this->days,
-            'total_percentage' => (float) $this->commission_percentage,
-            'payment_gateway_percentage' => 0.00,
+            'monthly_amount' => (float) $this->monthly_amount,
+            'yearly_amount' => (float) $this->yearly_amount,
             'commission_percentage' => (float) $this->commission_percentage,
             'is_active' => $this->is_active,
             'sort_order' => (int) $this->sort_order,
             'features' => $featuresArray,
         ];
+
 
 
 
@@ -280,16 +254,14 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Price & Duration Box -->
-                        <div class="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 my-3 flex items-baseline justify-between">
+                        <div class="p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 my-3 grid grid-cols-2 gap-3">
                             <div>
-                                <span class="text-2xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->amount, 2) }}</span>
-                                <span class="text-xs font-semibold text-gray-500 dark:text-gray-400 block sm:inline">/ {{ $pkg->days }} Days</span>
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Monthly (30 Days)</span>
+                                <span class="text-xl font-black text-gray-900 dark:text-white">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
                             </div>
                             <div class="text-right">
-                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Duration</span>
-                                <span class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
-                                    {{ $pkg->days }} Days
-                                </span>
+                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Yearly (365 Days)</span>
+                                <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
                             </div>
                         </div>
 
@@ -300,32 +272,13 @@ new #[Layout('layouts.app')] class extends Component
                             </p>
                         @endif
 
-                        <!-- Percentage Breakdown Chips -->
-                        <div class="space-y-1.5 mb-3">
-                            <span class="text-[10px] font-bold uppercase text-gray-400 tracking-wider">Percentages Breakdown</span>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div class="p-2.5 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-700/50 text-center">
-                                    <span class="text-[9px] font-black text-indigo-600 dark:text-indigo-300 block uppercase tracking-wider">Total</span>
-                                    <span class="text-xs font-black text-indigo-700 dark:text-indigo-200">{{ $pkg->total_percentage }}%</span>
-                                </div>
-                                <div class="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700/50 text-center">
-                                    <span class="text-[9px] font-black text-emerald-600 dark:text-emerald-300 block uppercase tracking-wider">Gateway</span>
-                                    <span class="text-xs font-black text-emerald-700 dark:text-emerald-200">{{ $pkg->payment_gateway_percentage }}%</span>
-                                </div>
-                                <div class="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 text-center">
-                                    <span class="text-[9px] font-black text-amber-600 dark:text-amber-300 block uppercase tracking-wider">Comm.</span>
-                                    <span class="text-xs font-black text-amber-700 dark:text-amber-200">{{ $pkg->commission_percentage }}%</span>
-                                </div>
+                        <!-- Commission Percentage Badge -->
+                        <div class="mb-3">
+                            <div class="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 flex items-center justify-between">
+                                <span class="text-[10px] font-black text-amber-600 dark:text-amber-300 uppercase tracking-wider">Commission</span>
+                                <span class="text-xs font-black text-amber-700 dark:text-amber-200">{{ $pkg->commission_percentage }}%</span>
                             </div>
                         </div>
-
-                        <!-- Date Range Validity -->
-                        @if ($pkg->from_date || $pkg->to_date)
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400 flex items-center gap-1.5 mb-3 py-2 border-t border-gray-100 dark:border-gray-700/60">
-                                <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                <span class="truncate">Valid: <strong>{{ $pkg->from_date ? $pkg->from_date->format('d M Y') : 'Start' }}</strong> - <strong>{{ $pkg->to_date ? $pkg->to_date->format('d M Y') : 'Ongoing' }}</strong></span>
-                            </div>
-                        @endif
 
                         <!-- Feature Bullet Points -->
                         @if (is_array($pkg->features) && count($pkg->features) > 0)
@@ -387,24 +340,24 @@ new #[Layout('layouts.app')] class extends Component
                     <!-- Name -->
                     <div>
                         <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Package Name *</label>
-                        <input type="text" wire:model="name" placeholder="e.g. Pro Monthly Plan" 
+                        <input type="text" wire:model="name" placeholder="e.g. Pro Subscription" 
                             class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
                         @error('name') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                     </div>
 
-                    <!-- Amount, Days, Sort Order -->
+                    <!-- Monthly Amount & Yearly Amount -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Amount (₹) *</label>
-                            <input type="number" step="0.01" wire:model="amount" placeholder="2999.00" 
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Monthly Amount (₹) *</label>
+                            <input type="number" step="0.01" wire:model="monthly_amount" placeholder="499.00" 
                                 class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold">
-                            @error('amount') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
+                            @error('monthly_amount') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Validity Days *</label>
-                            <input type="number" wire:model="days" placeholder="30" 
+                            <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Yearly Amount (₹) *</label>
+                            <input type="number" step="0.01" wire:model="yearly_amount" placeholder="4999.00" 
                                 class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white font-bold">
-                            @error('days') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
+                            @error('yearly_amount') <span class="text-[10px] text-red-500 font-bold mt-1 block">{{ $message }}</span> @enderror
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Display Sort Order</label>
@@ -412,6 +365,7 @@ new #[Layout('layouts.app')] class extends Component
                                 class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
                         </div>
                     </div>
+
 
                     <!-- Commission Percentage Field -->
                     <div>
