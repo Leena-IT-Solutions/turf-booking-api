@@ -61,56 +61,53 @@ new #[Layout('layouts.app')] class extends Component
             ->get();
     @endphp
 
-    <!-- Subscription Plans Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+    <!-- Subscription Plans List (Full Width Cards) -->
+    <div class="flex flex-col space-y-4 w-full">
         @forelse ($packages as $pkg)
             @php
                 $price = $billingCycle === 'yearly' ? $pkg->yearly_amount : $pkg->monthly_amount;
                 $durationText = $billingCycle === 'yearly' ? 'Year (365 Days)' : 'Month (30 Days)';
             @endphp
-            <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col justify-between relative transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md group">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm flex flex-col space-y-5 transition hover:border-indigo-400 dark:hover:border-indigo-500 hover:shadow-md w-full">
                 
-                <div class="space-y-4">
-                    <!-- Package Name & Header -->
-                    <div class="flex items-start justify-between gap-2">
+                <!-- Top Header Row: Plan Name, Status & Subscribe Action -->
+                <div class="flex items-start justify-between gap-4 w-full">
+                    <div class="flex items-center gap-3">
                         <div>
-                            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">PLAN</span>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">SUBSCRIPTION PLAN</span>
                             <h3 class="text-xl font-black text-gray-900 dark:text-white leading-snug">
                                 {{ $pkg->name }}
                             </h3>
                         </div>
-                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                        <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 shrink-0">
                             Active
                         </span>
                     </div>
 
-                    <!-- Price Box -->
-                    <div class="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 space-y-1">
-                        <div class="flex items-baseline gap-1">
-                            <span class="text-3xl font-black text-gray-900 dark:text-white">₹{{ number_format($price, 2) }}</span>
-                            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">/ {{ $durationText }}</span>
-                        </div>
-                        <div class="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                            <span>Platform Commission: {{ $pkg->commission_percentage }}%</span>
-                        </div>
-                    </div>
+                    <!-- Subscribe Button (Right Top Aligned) -->
+                    <button wire:click="selectPlan({{ $pkg->id }}, '{{ $billingCycle }}')" type="button"
+                        class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-[0.99] shrink-0">
+                        <span>Subscribe Now</span>
+                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                </div>
 
-                    <!-- Description -->
+                <!-- Description & Features (Vertical Stack) -->
+                <div class="space-y-3 min-w-0">
                     @if ($pkg->description)
                         <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                             {{ $pkg->description }}
                         </p>
                     @endif
 
-                    <!-- Features -->
                     @if (is_array($pkg->features) && count($pkg->features) > 0)
-                        <div class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                        <div class="space-y-1.5 pt-1">
                             <span class="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider block">INCLUDED FEATURES</span>
-                            <div class="space-y-1.5">
+                            <div class="space-y-1">
                                 @foreach ($pkg->features as $feat)
                                     <div class="text-xs text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                        <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                        <span>{{ $feat }}</span>
+                                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                        <span class="break-words">{{ $feat }}</span>
                                     </div>
                                 @endforeach
                             </div>
@@ -118,16 +115,22 @@ new #[Layout('layouts.app')] class extends Component
                     @endif
                 </div>
 
-                <!-- Select / Subscribe Button -->
-                <div class="pt-6 mt-6 border-t border-gray-100 dark:border-gray-700/60">
-                    <button wire:click="selectPlan({{ $pkg->id }}, '{{ $billingCycle }}')" type="button"
-                        class="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-[0.99]">
-                        <span>Subscribe Now</span>
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                    </button>
+                <!-- Dedicated Full Width Row for Pricing & Commission -->
+                <div class="w-full bg-gray-50/90 dark:bg-gray-900/60 p-4 rounded-2xl border border-gray-100 dark:border-gray-700/60 flex flex-wrap sm:flex-nowrap items-center justify-between gap-4">
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">PRICE:</span>
+                        <span class="text-2xl font-black text-gray-900 dark:text-white">₹{{ number_format($price, 2) }}</span>
+                        <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">/ {{ $durationText }}</span>
+                    </div>
+
+                    <div class="px-4 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-center shrink-0">
+                        <span class="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider block">PLATFORM COMMISSION</span>
+                        <span class="text-base font-black text-amber-600 dark:text-amber-400">{{ $pkg->commission_percentage }}%</span>
+                    </div>
                 </div>
 
             </div>
+
         @empty
             <div class="col-span-full bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400 space-y-3">
                 <span class="text-4xl block">📦</span>
