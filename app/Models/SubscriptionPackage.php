@@ -12,28 +12,23 @@ class SubscriptionPackage extends Model
     protected $fillable = [
         'name',
         'description',
-        'amount',
-        'days',
-        'total_percentage',
-        'payment_gateway_percentage',
+        'monthly_amount',
+        'yearly_amount',
         'commission_percentage',
         'is_active',
-        'from_date',
-        'to_date',
         'sort_order',
         'features',
     ];
 
     protected $casts = [
-        'amount' => 'decimal:2',
-        'total_percentage' => 'decimal:2',
-        'payment_gateway_percentage' => 'decimal:2',
+        'monthly_amount' => 'decimal:2',
+        'yearly_amount' => 'decimal:2',
         'commission_percentage' => 'decimal:2',
         'is_active' => 'boolean',
-        'from_date' => 'date:Y-m-d',
-        'to_date' => 'date:Y-m-d',
-        'days' => 'integer',
         'sort_order' => 'integer',
         'features' => 'array',
     ];
+
+
+
 }

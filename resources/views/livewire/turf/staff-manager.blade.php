@@ -316,7 +316,7 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Alerts -->
         @if ($message)
-            <div class="p-4 rounded-2xl flex items-center gap-3 border shadow-sm transition-all {{ $messageType === 'success' ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-950/20 dark:border-emerald-950 text-emerald-800 dark:text-emerald-300' : 'bg-red-50 border-red-100 dark:bg-red-950/20 dark:border-red-950 text-red-800 dark:text-red-300' }}">
+            <div class="p-4 rounded-2xl flex items-center gap-3 border shadow-sm transition-all {{ $messageType === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-800 ' : 'bg-red-50 border-red-100 text-red-800 ' }}">
                 @if ($messageType === 'success')
                     <svg class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138z" />
@@ -334,17 +334,17 @@ new #[Layout('layouts.app')] class extends Component
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             <!-- Search card -->
-            <div class="lg:col-span-1 bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm space-y-6">
+            <div class="lg:col-span-1 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-6">
                 <div>
-                    <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ __('Find User') }}</h3>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ __('Search registered customers by email or mobile number.') }}</p>
+                    <h3 class="text-base font-bold text-gray-900">{{ __('Find User') }}</h3>
+                    <p class="text-xs text-gray-400 mt-1">{{ __('Search registered customers by email or mobile number.') }}</p>
                 </div>
 
                 <form wire:submit.prevent="search" class="space-y-4">
                     <div>
-                        <label for="searchQuery" class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('Email / Mobile') }}</label>
+                        <label for="searchQuery" class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{{ __('Email / Mobile') }}</label>
                         <div class="relative">
-                            <input type="text" id="searchQuery" wire:model="searchQuery" placeholder="e.g. sandeep198558@gmail.com" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" required />
+                            <input type="text" id="searchQuery" wire:model="searchQuery" placeholder="e.g. sandeep198558@gmail.com" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" required />
                         </div>
                         @error('searchQuery') <span class="text-xs text-red-500 mt-1">{{ $message }}</span> @enderror
                     </div>
@@ -359,29 +359,29 @@ new #[Layout('layouts.app')] class extends Component
 
                 <!-- Search Result Panel -->
                 @if ($foundUser)
-                    <div class="p-5 bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-950 rounded-2xl space-y-4">
+                    <div class="p-5 bg-indigo-50/50 border border-indigo-100/50 rounded-2xl space-y-4">
                         <div class="flex items-center gap-3">
                             <div class="h-10 w-10 shrink-0 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/20">
                                 {{ $foundUser['initials'] }}
                             </div>
                             <div class="min-w-0">
-                                <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{{ $foundUser['name'] }}</h4>
-                                <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ $foundUser['email'] }}</p>
-                                <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-0.5">{{ $foundUser['mobile'] }}</p>
+                                <h4 class="text-sm font-bold text-gray-900 truncate">{{ $foundUser['name'] }}</h4>
+                                <p class="text-[10px] text-gray-400 truncate mt-0.5">{{ $foundUser['email'] }}</p>
+                                <p class="text-[10px] text-gray-400 truncate mt-0.5">{{ $foundUser['mobile'] }}</p>
                             </div>
                         </div>
 
-                        <hr class="border-indigo-100/50 dark:border-indigo-950" />
+                        <hr class="border-indigo-100/50" />
 
                         <div class="space-y-3">
                             <div>
-                                <label class="block text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{{ __('Select Roles') }}</label>
+                                <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">{{ __('Select Roles') }}</label>
                                 <div class="space-y-2.5">
-                                    <label class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                                    <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
                                         <input type="checkbox" wire:model="selectedRoles.manager" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                         <span class="font-medium">{{ __('Manager') }}</span>
                                     </label>
-                                    <label class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
+                                    <label class="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
                                         <input type="checkbox" wire:model="selectedRoles.turf-admin" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                         <span class="font-medium">{{ __('Admin') }}</span>
                                     </label>
@@ -400,19 +400,19 @@ new #[Layout('layouts.app')] class extends Component
             <div class="lg:col-span-2 space-y-4">
                 <div class="flex items-center justify-between px-2">
                     <div>
-                        <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ __('Current Staff Members') }}</h3>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ __('List of admins and managers managing your venue.') }}</p>
+                        <h3 class="text-base font-bold text-gray-900">{{ __('Current Staff Members') }}</h3>
+                        <p class="text-xs text-gray-400 mt-1">{{ __('List of admins and managers managing your venue.') }}</p>
                     </div>
-                    <span class="px-2.5 py-1 text-xs font-bold bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                    <span class="px-2.5 py-1 text-xs font-bold bg-indigo-50 text-indigo-600 rounded-lg">
                         {{ $staffGrouped->count() }} {{ trans_choice('Member|Members', $staffGrouped->count()) }}
                     </span>
                 </div>
 
                 @if ($staffGrouped->isEmpty())
-                    <div class="bg-white dark:bg-gray-800 border border-dashed border-gray-200 dark:border-gray-700 p-12 rounded-3xl flex flex-col items-center justify-center text-center">
+                    <div class="bg-white border border-dashed border-gray-200 p-12 rounded-3xl flex flex-col items-center justify-center text-center">
                         <span class="text-4xl">👥</span>
-                        <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 mt-4">{{ __('No Staff Appointed') }}</h4>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-sm">
+                        <h4 class="text-sm font-bold text-gray-900 mt-4">{{ __('No Staff Appointed') }}</h4>
+                        <p class="text-xs text-gray-400 mt-2 max-w-sm">
                             {{ __('You haven\'t assigned any manager or admin roles yet. Search for users by their email or mobile number to appoint them.') }}
                         </p>
                     </div>
@@ -423,19 +423,19 @@ new #[Layout('layouts.app')] class extends Component
                                 $user = $group->first()->user;
                                 $assignedTurfNames = $user->assignedTurfs->where('pivot.turf_admin_id', auth()->id())->pluck('name')->join(', ');
                             @endphp
-                            <div class="bg-white dark:bg-gray-800 p-5 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition hover:shadow-md relative overflow-hidden group">
+                            <div class="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 transition hover:shadow-md relative overflow-hidden group">
                                 <div class="flex items-center gap-4">
-                                    <div class="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-50 to-indigo-100/50 dark:from-indigo-950/20 dark:to-indigo-900/10 border border-indigo-100/30 dark:border-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-extrabold text-base shadow-sm">
+                                    <div class="h-12 w-12 shrink-0 rounded-xl bg-gradient-to-tr from-indigo-50 to-indigo-100/50 border border-indigo-100/30 text-indigo-600 flex items-center justify-center font-extrabold text-base shadow-sm">
                                         {{ collect(explode(' ', $user->name))->map(fn($n) => mb_substr($n, 0, 1))->take(2)->join('') }}
                                     </div>
                                     <div class="min-w-0">
                                         <div class="flex items-center flex-wrap gap-2">
-                                            <h4 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{{ $user->name }}</h4>
+                                            <h4 class="text-sm font-bold text-gray-900 truncate">{{ $user->name }}</h4>
                                             
                                             <!-- Grouped roles list inside user card -->
                                             <div class="flex flex-wrap gap-1">
                                                 @foreach ($group as $member)
-                                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md {{ $member->role === 'turf-admin' ? 'bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-950' : 'bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-950' }}">
+                                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md {{ $member->role === 'turf-admin' ? 'bg-blue-50 text-blue-600 border border-blue-100/50 ' : 'bg-purple-50 text-purple-600 border border-purple-100/50 ' }}">
                                                         {{ $member->role === 'turf-admin' ? __('Admin') : __('Manager') }}
                                                         <button @click.prevent="triggerConfirm('{{ __('Revoke Role') }}', '{{ __('Are you sure you want to revoke this specific role from this user?') }}', 'revokeStaff', {{ $member->id }})" title="{{ __('Revoke role') }}" class="ms-1 hover:text-red-500 font-bold transition cursor-pointer">
                                                             ✕
@@ -444,26 +444,26 @@ new #[Layout('layouts.app')] class extends Component
                                                 @endforeach
                                             </div>
                                         </div>
-                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                                        <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 mt-1 text-[11px] text-gray-400">
                                             <span class="flex items-center gap-1">
                                                 ✉️ {{ $user->email }}
                                             </span>
-                                            <span class="hidden sm:inline text-gray-300 dark:text-gray-700">•</span>
+                                            <span class="hidden sm:inline text-gray-300">•</span>
                                             <span class="flex items-center gap-1">
                                                 📞 {{ $user->mobile }}
                                             </span>
                                         </div>
                                         
                                         <!-- Assigned turfs list visualizer -->
-                                        <div class="mt-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
-                                            <span class="text-[10px] font-black uppercase text-indigo-500 dark:text-indigo-400 mr-1.5 tracking-wider">{{ __('Assigned Turfs:') }}</span>
+                                        <div class="mt-2 text-xs font-semibold text-gray-500">
+                                            <span class="text-[10px] font-black uppercase text-indigo-500 mr-1.5 tracking-wider">{{ __('Assigned Turfs:') }}</span>
                                             {{ $assignedTurfNames ?: __('None (no access to any turf)') }}
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-4 justify-end shrink-0 border-t sm:border-t-0 border-gray-50 dark:border-gray-800 pt-3 sm:pt-0">
-                                    <button @click.prevent="assignOpen = true; $wire.openAssignModal({{ $user->id }})" class="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 cursor-pointer flex items-center gap-1.5 transition">
+                                <div class="flex items-center gap-4 justify-end shrink-0 border-t sm:border-t-0 border-gray-50 pt-3 sm:pt-0">
+                                    <button @click.prevent="assignOpen = true; $wire.openAssignModal({{ $user->id }})" class="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer flex items-center gap-1.5 transition">
                                         ⚙️ {{ __('Assign Turfs') }}
                                     </button>
                                     <button @click.prevent="triggerConfirm('{{ __('Revoke All Roles') }}', '{{ __('Are you sure you want to revoke all staff privileges from this user?') }}', 'revokeAllStaff', {{ $user->id }})" class="text-xs font-semibold text-red-500 hover:text-red-650 cursor-pointer flex items-center gap-1.5 transition">
@@ -505,22 +505,22 @@ new #[Layout('layouts.app')] class extends Component
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-             class="relative bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700/50 space-y-6 z-10 text-center sm:text-left">
+             class="relative bg-white rounded-3xl max-w-md w-full p-6 shadow-xl border border-gray-100 space-y-6 z-10 text-center sm:text-left">
             
             <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                <div class="h-12 w-12 rounded-2xl bg-red-50 dark:bg-red-950/30 text-red-500 flex items-center justify-center shrink-0 border border-red-100 dark:border-red-900/30">
+                <div class="h-12 w-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center shrink-0 border border-red-100">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                 </div>
                 <div class="space-y-2 min-w-0 flex-1">
-                    <h3 class="text-base font-extrabold text-gray-900 dark:text-gray-100" x-text="confirmTitle"></h3>
-                    <p class="text-xs text-gray-400 dark:text-gray-500 leading-relaxed" x-text="confirmMessage"></p>
+                    <h3 class="text-base font-extrabold text-gray-900" x-text="confirmTitle"></h3>
+                    <p class="text-xs text-gray-400 leading-relaxed" x-text="confirmMessage"></p>
                 </div>
             </div>
 
             <div class="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
-                <button type="button" @click="confirmOpen = false" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition cursor-pointer">
+                <button type="button" @click="confirmOpen = false" class="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer">
                     {{ __('Cancel') }}
                 </button>
                 <button type="button" @click="executeAction" class="px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-semibold shadow-md shadow-red-500/10 hover:shadow-red-500/20 transition cursor-pointer">
@@ -552,13 +552,13 @@ new #[Layout('layouts.app')] class extends Component
              x-transition:leave="transition ease-in duration-200"
              x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
              x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-             class="relative bg-white dark:bg-gray-800 rounded-3xl max-w-lg w-full p-6 shadow-xl border border-gray-100 dark:border-gray-700/50 space-y-6 z-10">
+             class="relative bg-white rounded-3xl max-w-lg w-full p-6 shadow-xl border border-gray-100 space-y-6 z-10">
             
             <div>
-                <h3 class="text-base font-extrabold text-gray-900 dark:text-gray-100">
+                <h3 class="text-base font-extrabold text-gray-900">
                     {{ __('Assign Turfs') }}
                 </h3>
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <p class="text-xs text-gray-400 mt-1">
                     {{ __('Select which turfs this staff member is allowed to manage.') }}
                 </p>
             </div>
@@ -567,19 +567,19 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="max-h-[300px] overflow-y-auto space-y-4 pr-2">
                     @foreach ($ownedLocations as $loc)
                         <div class="space-y-2">
-                            <div class="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-wider">
+                            <div class="text-[10px] font-black uppercase text-gray-400 tracking-wider">
                                 📍 {{ $loc->name }}
                             </div>
                             @if ($loc->turfs->isEmpty())
-                                <div class="text-xs italic text-gray-400 dark:text-gray-500 pl-4">
+                                <div class="text-xs italic text-gray-400 pl-4">
                                     {{ __('No turfs registered at this location.') }}
                                 </div>
                             @else
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-2">
                                     @foreach ($loc->turfs as $trf)
-                                        <label class="flex items-center gap-2.5 p-3 rounded-2xl border border-gray-150 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer transition">
+                                        <label class="flex items-center gap-2.5 p-3 rounded-2xl border border-gray-150 bg-gray-50/50 hover:bg-gray-50 cursor-pointer transition">
                                             <input type="checkbox" wire:model="selectedTurfs" value="{{ $trf->id }}" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                                            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 ml-2">{{ $trf->name }}</span>
+                                            <span class="text-xs font-semibold text-gray-700 ml-2">{{ $trf->name }}</span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -589,7 +589,7 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
 
                 <div class="flex flex-col-reverse sm:flex-row justify-end gap-2.5 pt-2">
-                    <button type="button" @click="assignOpen = false; $wire.closeAssignModal()" class="px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition cursor-pointer">
+                    <button type="button" @click="assignOpen = false; $wire.closeAssignModal()" class="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition cursor-pointer">
                         {{ __('Cancel') }}
                     </button>
                     <button type="submit" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md shadow-indigo-500/10 hover:shadow-indigo-500/20 transition cursor-pointer">

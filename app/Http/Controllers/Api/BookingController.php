@@ -478,6 +478,17 @@ class BookingController extends Controller
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
         $dateCoupons = $validated['coupons'] ?? [];
+
+        $paymentMethod = $validated['payment_method'];
+
+        // DEBT GUARDRAIL CHECK FOR OFFLINE PAYMENTS IN STORE
+        if (in_array($paymentMethod, ['Cash', 'UPI', 'Other', 'offline'])) {
+            $lockError = $this->checkOfflinePaymentDebtLock($turf);
+            if ($lockError) {
+                return response()->json(['message' => $lockError], 422);
+            }
+        }
+
         $manualDiscount = ($isStaffOrAdmin && isset($validated['additional_discount'])) ? (float)$validated['additional_discount'] : 0.00;
         $paymentMethod = $validated['payment_method'];
 
@@ -1063,6 +1074,33 @@ class BookingController extends Controller
     }
 
     /**
+     * Helper to check if offline payment is locked for a turf owner due to debt limits.
+     */
+    private function checkOfflinePaymentDebtLock(Turf $turf): ?string
+    {
+        $turfAdminOwner = $turf->location->user ?? null;
+        if (!$turfAdminOwner) {
+            return null;
+        }
+
+        $saas = \App\Models\SaasSetting::first();
+        $maxDue = (float) ($saas?->max_commission_due ?? 2000.00);
+        $graceDays = (int) ($saas?->commission_due_grace_days ?? 7);
+
+        $currentBalance = (float) $turfAdminOwner->commission_wallet_balance;
+        $dueDays = $turfAdminOwner->commission_due_since
+            ? now()->diffInDays($turfAdminOwner->commission_due_since)
+            : 0;
+
+        if ($currentBalance <= -$maxDue || ($currentBalance < 0 && $dueDays >= $graceDays)) {
+            $dueAmount = number_format(abs($currentBalance), 2);
+            return "Offline booking locked! Commission due of ₹{$dueAmount} exceeds limit or grace period. Please settle your due balance from the Business page to record more offline payments.";
+        }
+
+        return null;
+    }
+
+    /**
      * Record offline cash/UPI payment for a booking date (restricted to admins/managers).
      */
     public function recordPayment(Request $request, BookingDate $bookingDate): JsonResponse
@@ -1082,7 +1120,14 @@ class BookingController extends Controller
             return response()->json(['message' => 'Booking not found'], 404);
         }
 
+        // DEBT GUARDRAIL CHECK FOR OFFLINE PAYMENTS
+        $lockError = $this->checkOfflinePaymentDebtLock($booking->turf);
+        if ($lockError) {
+            return response()->json(['message' => $lockError], 422);
+        }
+
         $totalAmount = (float) BookingDate::where('booking_id', $booking->id)->where('status', '!=', 'Cancelled')->sum('amount');
+
         $totalPaid = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
         $totalRemaining = max(0.00, $totalAmount - $totalPaid);
         $amountToPay = min((float)$validated['amount'], $totalRemaining);
@@ -1149,6 +1194,11 @@ class BookingController extends Controller
         $unpaidDates = $bookingDates->filter(fn($d) => ($dateBalances[$d->id] ?? 0) > 0)->values();
         $count = $unpaidDates->count();
 
+        $turf = $booking->turf;
+        $walletOwner = $turf?->location?->user ?? null;
+        $commissionCalc = new \App\Services\CommissionCalculator();
+        $walletService = new \App\Services\WalletService();
+
         foreach ($unpaidDates as $index => $bDate) {
             if ($remainingToDistribute <= 0) {
                 break;
@@ -1163,14 +1213,40 @@ class BookingController extends Controller
             }
 
             if ($paidForDate > 0) {
+                // Calculate commission breakdown using Turf rate
+                $commData = $turf
+                    ? $commissionCalc->calculate($turf, $paymentMethod, $paidForDate)
+                    : [
+                        'rate' => 7.00,
+                        'commissionAmount' => round($paidForDate * 0.07, 2),
+                        'cashHeldAmount' => $paymentMethod === 'App' ? $paidForDate : 0.00,
+                        'turfPayoutAmount' => ($paymentMethod === 'App' ? $paidForDate : 0.00) - round($paidForDate * 0.07, 2),
+                    ];
+
+
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
                     'booking_date_id' => $bDate->id,
                     'payment_method' => $paymentMethod,
                     'amount' => $paidForDate,
+                    'commission_percentage' => $commData['rate'],
+                    'commission_amount' => $commData['commissionAmount'],
+                    'cash_held_amount' => $commData['cashHeldAmount'],
+                    'turf_payout_amount' => $commData['turfPayoutAmount'],
+                    'wallet_cleared_at' => null,
                     'status' => 'Success',
                     'paid_at' => Carbon::now(),
                 ]);
+
+                // Check wallet clearance logic
+                $isBookingMatured = $bDate->booking_date <= Carbon::today()->format('Y-m-d');
+                $isNegativeOrZeroContribution = $commData['turfPayoutAmount'] <= 0;
+
+                if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
+                    $walletService->applyDelta($walletOwner, $commData['turfPayoutAmount'], 'payment_settlement', $payment);
+                    $payment->update(['wallet_cleared_at' => Carbon::now()]);
+                }
+
 
                 if ($razorpayPaymentId && $paymentMethod === 'App') {
                     PaymentGateway::create([
@@ -1186,6 +1262,7 @@ class BookingController extends Controller
 
         $this->recalculateBookingPaymentStatus($booking);
     }
+
 
     private function recalculateBookingPaymentStatus($booking): void
     {
@@ -1582,8 +1659,36 @@ class BookingController extends Controller
                     'refunded_at' => $cancelledAt,
                 ]);
 
+                // WALLET REFUND REVERSAL LOGIC
+                $turfAdminOwner = $booking->turf->location->user ?? null;
+                if ($turfAdminOwner && $paymentRefund > 0 && (float)$payment->amount > 0) {
+                    $refundRatio = $paymentRefund / (float)$payment->amount;
+                    $originalPayoutContribution = (float)($payment->turf_payout_amount ?? 0);
+
+                    if ($payment->wallet_cleared_at) {
+                        // Payment contribution was already applied to wallet -> Reverse it
+                        $reversalAmount = round(-$originalPayoutContribution * $refundRatio, 2);
+                        if ($reversalAmount != 0) {
+                            $walletService = new \App\Services\WalletService();
+                            $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
+                        }
+                    } else {
+                        // Payment contribution was still pending clearance -> Shrink stored contribution proportionally
+                        $newCommissionAmount = round(((float)$payment->commission_amount) * (1 - $refundRatio), 2);
+                        $newCashHeldAmount = round(((float)$payment->cash_held_amount) * (1 - $refundRatio), 2);
+                        $newPayoutAmount = round(((float)$payment->turf_payout_amount) * (1 - $refundRatio), 2);
+
+                        $payment->update([
+                            'commission_amount' => $newCommissionAmount,
+                            'cash_held_amount' => $newCashHeldAmount,
+                            'turf_payout_amount' => $newPayoutAmount,
+                        ]);
+                    }
+                }
+
                 $remainingRefundToDistribute -= $paymentRefund;
             }
+
 
             $bDate->update([
                 'status' => 'Cancelled',

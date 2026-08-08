@@ -190,10 +190,10 @@ new #[Layout('layouts.app')] class extends Component
     <div class="sm:px-6 lg:px-8 space-y-6">
         
         <!-- Header Card -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 shadow-sm rounded-3xl border border-gray-100">
             <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Slot Categories') }}</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Configure and organize sports/activity slot classifications and active status settings.') }}</p>
+                <h2 class="text-xl font-bold text-gray-900">{{ __('Slot Categories') }}</h2>
+                <p class="text-xs text-gray-500 mt-1.5">{{ __('Configure and organize sports/activity slot classifications and active status settings.') }}</p>
             </div>
             <div>
                 <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer">
@@ -206,7 +206,7 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         @if (session()->has('status'))
-            <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
+            <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
                 <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -215,9 +215,9 @@ new #[Layout('layouts.app')] class extends Component
         @endif
 
         <!-- Filters Section -->
-        <div class="bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
+        <div class="bg-white p-4 rounded-3xl border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
             <div class="relative w-full md:max-w-xs">
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search categories..." class="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-xs bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
+                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Search categories..." class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-xs bg-white text-gray-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm">
                 <div class="absolute left-3.5 top-3.5 text-gray-400">
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -229,31 +229,31 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Cards Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
             @forelse ($categories as $category)
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative">
                     <div>
                         <div class="flex items-start justify-between gap-4 min-w-0 w-full">
                             <div class="flex items-center gap-3 min-w-0">
-                                <div class="h-11 w-11 shrink-0 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/50 shadow-sm">
+                                <div class="h-11 w-11 shrink-0 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/50 shadow-sm">
                                     <x-icon :name="$category->icon" class="h-5 w-5" />
                                 </div>
                                 <div class="min-w-0">
-                                    <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
+                                    <h3 class="text-sm font-bold text-gray-900 truncate">
                                         {{ $category->name }}
                                     </h3>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-0.5 truncate">{{ __('Registered') }} {{ $category->created_at->format('M d, Y') }}</p>
+                                    <p class="text-[10px] text-gray-400 font-medium mt-0.5 truncate">{{ __('Registered') }} {{ $category->created_at->format('M d, Y') }}</p>
                                 </div>
                             </div>
 
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <!-- Edit Button -->
-                                <button wire:click="editCategory({{ $category->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+                                <button wire:click="editCategory({{ $category->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 text-indigo-600 rounded-xl transition cursor-pointer border border-gray-100 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                 </button>
                                 
                                 <!-- Delete Button -->
-                                <button wire:click="confirmDelete({{ $category->id }})" class="p-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10 dark:border-red-900/10">
+                                <button wire:click="confirmDelete({{ $category->id }})" class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -262,14 +262,14 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Status Toggle Section -->
-                        <div class="mt-6 flex items-center justify-between border-t border-gray-50 dark:border-gray-700/40 pt-4">
-                            <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">{{ __('Category Availability') }}</span>
+                        <div class="mt-6 flex items-center justify-between border-t border-gray-50 pt-4">
+                            <span class="text-xs text-gray-500 font-medium">{{ __('Category Availability') }}</span>
                             <div class="flex items-center gap-3">
-                                <span class="text-[10px] font-black uppercase tracking-wider {{ $category->is_active ? 'text-emerald-500' : 'text-gray-400 dark:text-gray-500' }}">
+                                <span class="text-[10px] font-black uppercase tracking-wider {{ $category->is_active ? 'text-emerald-500' : 'text-gray-400 ' }}">
                                     {{ $category->is_active ? __('Active') : __('Inactive') }}
                                 </span>
                                 <!-- Custom Toggle Button -->
-                                <button wire:click="toggleStatus({{ $category->id }})" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $category->is_active ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700' }}">
+                                <button wire:click="toggleStatus({{ $category->id }})" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $category->is_active ? 'bg-indigo-600' : 'bg-gray-200 ' }}">
                                     <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $category->is_active ? 'translate-x-4' : 'translate-x-0' }}"></span>
                                 </button>
                             </div>
@@ -277,14 +277,14 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
             @empty
-                <div class="col-span-full bg-white dark:bg-gray-800 p-12 text-center text-xs text-gray-500 dark:text-gray-400 rounded-3xl border border-gray-100 dark:border-gray-700/50">
+                <div class="col-span-full bg-white p-12 text-center text-xs text-gray-500 rounded-3xl border border-gray-100">
                     {{ __('No slot categories configured.') }}
                 </div>
             @endforelse
         </div>
 
         @if ($categories->hasPages())
-            <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm mt-6">
+            <div class="bg-white px-6 py-4 rounded-3xl border border-gray-100 shadow-sm mt-6">
                 {{ $categories->links() }}
             </div>
         @endif
@@ -296,13 +296,13 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="resetForm"></div>
 
                 <!-- Modal Container -->
-                <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100">
                     <div class="p-6 sm:p-8">
-                        <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700/50 mb-6">
-                            <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                            <h3 class="text-base font-bold text-gray-900">
                                 {{ $editingId ? __('Edit Slot Category') : __('Create Slot Category') }}
                             </h3>
-                            <button wire:click="resetForm" class="p-1 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                            <button wire:click="resetForm" class="p-1 rounded-lg text-gray-400 hover:bg-gray-100 focus:outline-none">
                                 <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -322,12 +322,12 @@ new #[Layout('layouts.app')] class extends Component
                             <div>
                                 <div class="flex items-center justify-between">
                                     <x-input-label for="categoryIcon" :value="__('Category Icon Name, Emoji, or SVG')" />
-                                    <button type="button" wire:click="generateIcon" class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 transition cursor-pointer" wire:loading.attr="disabled" wire:target="generateIcon">
-                                        <svg class="h-3 w-3 animate-spin text-indigo-600 dark:text-indigo-400" wire:loading wire:target="generateIcon" fill="none" viewBox="0 0 24 24">
+                                    <button type="button" wire:click="generateIcon" class="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 transition cursor-pointer" wire:loading.attr="disabled" wire:target="generateIcon">
+                                        <svg class="h-3 w-3 animate-spin text-indigo-600" wire:loading wire:target="generateIcon" fill="none" viewBox="0 0 24 24">
                                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <svg wire:loading.remove wire:target="generateIcon" class="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <svg wire:loading.remove wire:target="generateIcon" class="h-3.5 w-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 21m0 0l-.813-5.096L3 15m6 6l6-6m-9-9V3m0 0l-.813 5.096L3 9m6-6l6 6M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         </svg>
                                         <span wire:loading.remove wire:target="generateIcon">{{ __('Generate SVG with AI') }}</span>
@@ -339,25 +339,25 @@ new #[Layout('layouts.app')] class extends Component
                                         <x-text-input wire:model.live.debounce.250ms="icon" id="categoryIcon" type="text" class="block w-full font-mono text-xs" placeholder="e.g. morning, or paste raw <svg>...</svg>" />
                                     </div>
                                     @if ($icon)
-                                        <div class="h-[42px] w-[42px] bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl flex items-center justify-center shrink-0">
-                                            <x-icon :name="$icon" class="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                                        <div class="h-[42px] w-[42px] bg-gray-50 border border-gray-200 rounded-2xl flex items-center justify-center shrink-0">
+                                            <x-icon :name="$icon" class="h-5 w-5 text-gray-700" />
                                         </div>
                                     @endif
                                 </div>
                                 <x-input-error :messages="$errors->get('icon')" class="mt-2" />
                                 
                                 @if (!empty($generatedIconOptions))
-                                    <div class="mt-4 p-4 bg-gray-50/50 dark:bg-gray-900/30 border border-gray-150 dark:border-gray-700/60 rounded-2xl">
-                                        <span class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">
+                                    <div class="mt-4 p-4 bg-gray-50/50 border border-gray-150 rounded-2xl">
+                                        <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">
                                             {{ __('AI Alternatives (Click to Select)') }}
                                         </span>
                                         <div class="grid grid-cols-3 gap-3">
                                             @foreach ($generatedIconOptions as $option)
-                                                <button type="button" wire:click="$set('icon', @js($option['svg']))" class="group flex flex-col items-center gap-2 p-3 bg-white dark:bg-gray-800 border {{ $icon === $option['svg'] ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600' }} rounded-xl transition duration-150 text-center cursor-pointer">
-                                                    <div class="h-10 w-10 shrink-0 text-gray-700 dark:text-gray-300 flex items-center justify-center">
+                                                <button type="button" wire:click="$set('icon', @js($option['svg']))" class="group flex flex-col items-center gap-2 p-3 bg-white border {{ $icon === $option['svg'] ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-gray-200 hover:border-gray-300 ' }} rounded-xl transition duration-150 text-center cursor-pointer">
+                                                    <div class="h-10 w-10 shrink-0 text-gray-700 flex items-center justify-center">
                                                         <x-icon :name="$option['svg']" class="h-6 w-6" />
                                                     </div>
-                                                    <span class="text-[9px] font-bold text-gray-500 dark:text-gray-400 truncate w-full group-hover:text-gray-900 dark:group-hover:text-gray-100">
+                                                    <span class="text-[9px] font-bold text-gray-500 truncate w-full group-hover:text-gray-900">
                                                         {{ $option['word'] }}
                                                     </span>
                                                 </button>
@@ -366,22 +366,22 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                 @endif
 
-                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2 leading-relaxed">
-                                    Supported pre-compiled names: <code class="bg-gray-50 dark:bg-gray-900 px-1 py-0.5 rounded text-indigo-500 font-mono text-[9px]">wifi, parking, shower, water, light, first-aid, coffee, seating, key, football, cricket, tennis, basketball, sun, sunset, moon</code>. Find emojis at <a href="https://emojipedia.org" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Emojipedia</a>, or click the AI button to generate a custom SVG vector instantly using Gemini.
+                                <p class="text-[10px] text-gray-400 mt-2 leading-relaxed">
+                                    Supported pre-compiled names: <code class="bg-gray-50 px-1 py-0.5 rounded text-indigo-500 font-mono text-[9px]">wifi, parking, shower, water, light, first-aid, coffee, seating, key, football, cricket, tennis, basketball, sun, sunset, moon</code>. Find emojis at <a href="https://emojipedia.org" target="_blank" class="text-indigo-600 hover:underline">Emojipedia</a>, or click the AI button to generate a custom SVG vector instantly using Gemini.
                                 </p>
                             </div>
 
                             <!-- Is Active Field -->
-                            <div class="flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/60 p-4 rounded-2xl">
-                                <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('Set Category Active') }}</span>
-                                <button type="button" wire:click="$toggle('is_active')" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_active ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700' }}">
+                            <div class="flex items-center justify-between bg-gray-50/50 border border-gray-200 p-4 rounded-2xl">
+                                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">{{ __('Set Category Active') }}</span>
+                                <button type="button" wire:click="$toggle('is_active')" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_active ? 'bg-indigo-600' : 'bg-gray-200 ' }}">
                                     <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $is_active ? 'translate-x-4' : 'translate-x-0' }}"></span>
                                 </button>
                             </div>
 
                             <!-- Form Actions -->
-                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                                <button type="button" wire:click="resetForm" class="px-5 py-2.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl font-bold text-xs uppercase text-gray-700 dark:text-gray-300 transition duration-150 cursor-pointer">
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button type="button" wire:click="resetForm" class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition duration-150 cursor-pointer">
                                     {{ __('Cancel') }}
                                 </button>
                                 <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
@@ -401,31 +401,31 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="cancelDelete"></div>
 
                 <!-- Modal Container -->
-                <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100">
                     <div class="p-6 sm:p-8">
-                        <div class="flex items-center gap-4 text-red-600 dark:text-red-400 mb-4">
-                            <div class="h-12 w-12 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center border border-red-100/50 dark:border-red-950/50 shrink-0">
+                        <div class="flex items-center gap-4 text-red-600 mb-4">
+                            <div class="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center border border-red-100/50 shrink-0">
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">
+                                <h3 class="text-base font-bold text-gray-900">
                                     {{ __('Confirm Delete') }}
                                 </h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p class="text-xs text-gray-500 mt-1">
                                     {{ __('This action cannot be undone.') }}
                                 </p>
                             </div>
                         </div>
 
-                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                        <p class="text-xs text-gray-600 mb-6 leading-relaxed">
                             {{ __('Are you sure you want to delete this category?') }}
                         </p>
 
                         <!-- Form Actions -->
-                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                            <button type="button" wire:click="cancelDelete" class="px-5 py-2.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl font-bold text-xs uppercase text-gray-700 dark:text-gray-300 transition duration-150 cursor-pointer">
+                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button type="button" wire:click="cancelDelete" class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition duration-150 cursor-pointer">
                                 {{ __('Cancel') }}
                             </button>
                             <button type="button" wire:click="performDelete" class="px-5 py-2.5 bg-red-600 hover:bg-red-750 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">

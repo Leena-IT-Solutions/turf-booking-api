@@ -68,11 +68,11 @@ new class extends Component
 
 <section>
     <header>
-        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+        <h2 class="text-lg font-bold text-gray-900">
             {{ __('Profile Information') }}
         </h2>
 
-        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+        <p class="mt-1.5 text-xs text-gray-500 leading-relaxed">
             {{ __("Update your account's profile details, contact number, and email address.") }}
         </p>
     </header>
@@ -91,16 +91,16 @@ new class extends Component
 
             @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! auth()->user()->hasVerifiedEmail())
                 <div class="mt-3">
-                    <p class="text-xs text-gray-800 dark:text-gray-300">
+                    <p class="text-xs text-gray-800">
                         {{ __('Your email address is unverified.') }}
 
-                        <button wire:click.prevent="sendVerification" class="underline text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
+                        <button wire:click.prevent="sendVerification" class="underline text-xs text-gray-500 hover:text-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             {{ __('Click here to re-send the verification email.') }}
                         </button>
                     </p>
 
                     @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-xs text-green-600 dark:text-green-400">
+                        <p class="mt-2 font-medium text-xs text-green-600">
                             {{ __('A new verification link has been sent to your email address.') }}
                         </p>
                     @endif
@@ -117,7 +117,7 @@ new class extends Component
         <div class="flex items-center gap-4 pt-2">
             <x-primary-button class="px-5 py-2.5 rounded-xl">{{ __('Save') }}</x-primary-button>
 
-            <x-action-message class="text-xs text-emerald-600 dark:text-emerald-400 font-semibold" on="profile-updated">
+            <x-action-message class="text-xs text-emerald-600 font-semibold" on="profile-updated">
                 {{ __('Saved successfully.') }}
             </x-action-message>
         </div>

@@ -156,13 +156,13 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
                     <svg class="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                     </svg>
                     Slot Lock & Maintenance Manager
                 </h1>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p class="text-sm text-gray-600 mt-1">
                     Lock slots on specific dates for maintenance, ground repair, or private events to block customer bookings.
                 </p>
             </div>
@@ -170,12 +170,12 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Notification Alerts -->
         @if (session('status'))
-            <div class="mb-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/40 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 text-sm">
+            <div class="mb-4 p-4 rounded-lg bg-green-50 border border-green-200 text-green-800 text-sm">
                 {{ session('status') }}
             </div>
         @endif
         @if (session('error'))
-            <div class="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-sm">
+            <div class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
                 {{ session('error') }}
             </div>
         @endif
@@ -186,29 +186,29 @@ new #[Layout('layouts.app')] class extends Component
         @endphp
 
         @if (!$turf)
-            <div class="p-8 text-center bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                <p class="text-gray-600 dark:text-gray-400">Please select an active Turf from the header dropdown to manage slot locks.</p>
+            <div class="p-8 text-center bg-white rounded-xl shadow-sm border border-gray-200">
+                <p class="text-gray-600">Please select an active Turf from the header dropdown to manage slot locks.</p>
             </div>
         @else
             <!-- Control Card -->
-            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                     <!-- Date Selection -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
                             Select Lock Date
                         </label>
                         <input type="date" wire:model.live="selectedDate" 
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-amber-500 focus:ring-amber-500">
+                            class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500">
                     </div>
 
                     <!-- Lock Reason -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
                             Lock Reason
                         </label>
                         <select wire:model="lockReason" 
-                            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-amber-500 focus:ring-amber-500">
+                            class="w-full rounded-lg border-gray-300 focus:border-amber-500 focus:ring-amber-500">
                             <option value="Maintenance">Maintenance / Ground Repair</option>
                             <option value="Private Event">Private Tournament / Event</option>
                             <option value="Rain Delay">Rain / Weather Delay</option>
@@ -231,15 +231,15 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
 
-                <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-sm">
+                <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-sm">
                     <div class="flex gap-2">
-                        <button wire:click="selectAll" type="button" class="text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 font-medium">Select All</button>
-                        <span class="text-gray-300 dark:text-gray-600">|</span>
-                        <button wire:click="deselectAll" type="button" class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 font-medium">Deselect All</button>
+                        <button wire:click="selectAll" type="button" class="text-xs text-amber-600 hover:text-amber-700 font-medium">Select All</button>
+                        <span class="text-gray-300">|</span>
+                        <button wire:click="deselectAll" type="button" class="text-xs text-gray-500 hover:text-gray-700 font-medium">Deselect All</button>
                     </div>
-                    <div class="text-gray-500 dark:text-gray-400">
-                        Selected: <span class="font-bold text-amber-600 dark:text-amber-400">{{ count($selectedSlotIds) }}</span> | 
-                        Currently Locked: <span class="font-bold text-red-600 dark:text-red-400">{{ count($currentlyLockedSlotIds) }}</span>
+                    <div class="text-gray-500">
+                        Selected: <span class="font-bold text-amber-600">{{ count($selectedSlotIds) }}</span> | 
+                        Currently Locked: <span class="font-bold text-red-600">{{ count($currentlyLockedSlotIds) }}</span>
                     </div>
                 </div>
             </div>
@@ -256,8 +256,8 @@ new #[Layout('layouts.app')] class extends Component
             <div class="space-y-6">
                 @foreach ($categories as $cat)
                     @if ($cat->slots->isNotEmpty())
-                        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-100 dark:border-gray-700">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-100">
                                 {{ $cat->name }}
                             </h3>
 
@@ -272,9 +272,9 @@ new #[Layout('layouts.app')] class extends Component
                                         $toFormatted = date('h:i A', strtotime($slot->to_time));
                                     @endphp
 
-                                    <label class="relative flex flex-col p-3.5 rounded-xl border cursor-pointer transition select-none shadow-sm {{ $isLocked ? 'bg-red-600 border-red-700 text-white ring-2 ring-red-400/50' : ($isSelected ? 'bg-amber-500 border-amber-600 text-white ring-2 ring-amber-400/50' : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 hover:border-amber-400 dark:hover:border-amber-500') }}">
+                                    <label class="relative flex flex-col p-3.5 rounded-xl border cursor-pointer transition select-none shadow-sm {{ $isLocked ? 'bg-red-600 border-red-700 text-white ring-2 ring-red-400/50' : ($isSelected ? 'bg-amber-500 border-amber-600 text-white ring-2 ring-amber-400/50' : 'bg-gray-50 border-gray-200 hover:border-amber-400 ') }}">
                                         <div class="flex items-center justify-between mb-2">
-                                            <input type="checkbox" value="{{ $slot->id }}" wire:model.live="selectedSlotIds" class="rounded border-gray-300 dark:border-gray-600 {{ $isLocked || $isSelected ? 'text-gray-900 focus:ring-white bg-white/20' : 'text-amber-600 focus:ring-amber-500 dark:bg-gray-800' }}">
+                                            <input type="checkbox" value="{{ $slot->id }}" wire:model.live="selectedSlotIds" class="rounded border-gray-300 {{ $isLocked || $isSelected ? 'text-gray-900 focus:ring-white bg-white/20' : 'text-amber-600 focus:ring-amber-500 ' }}">
                                             @if ($isLocked)
                                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-extrabold bg-white/20 text-white border border-white/30 backdrop-blur-xs">
                                                     🔒 Locked
@@ -282,7 +282,7 @@ new #[Layout('layouts.app')] class extends Component
                                             @endif
                                         </div>
 
-                                        <span class="text-xs font-bold {{ $isLocked || $isSelected ? 'text-white' : 'text-gray-900 dark:text-white' }}">
+                                        <span class="text-xs font-bold {{ $isLocked || $isSelected ? 'text-white' : 'text-gray-900 ' }}">
                                             {{ $fromFormatted }} - {{ $toFormatted }}
                                         </span>
 

@@ -234,10 +234,10 @@ new #[Layout('layouts.app')] class extends Component
     <div class="sm:px-6 lg:px-8 space-y-6">
         
         <!-- Header Section -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 shadow-sm rounded-3xl border border-gray-100">
             <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Slider Manager') }}</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Configure and order homepage image slides. Recommends a 16:9 aspect ratio image size.') }}</p>
+                <h2 class="text-xl font-bold text-gray-900">{{ __('Slider Manager') }}</h2>
+                <p class="text-xs text-gray-500 mt-1.5">{{ __('Configure and order homepage image slides. Recommends a 16:9 aspect ratio image size.') }}</p>
             </div>
             <div>
                 <button wire:click="openCreateModal" class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer">
@@ -250,7 +250,7 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         @if (session()->has('status'))
-            <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
+            <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
                 <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -260,14 +260,14 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Grid Layout of Slides -->
         @if ($sliderImages->isEmpty())
-            <div class="bg-white dark:bg-gray-800 rounded-3xl p-12 text-center border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center">
-                <div class="h-12 w-12 text-gray-400 dark:text-gray-500 mb-4">
+            <div class="bg-white rounded-3xl p-12 text-center border border-dashed border-gray-200 flex flex-col items-center justify-center">
+                <div class="h-12 w-12 text-gray-400 mb-4">
                     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H2.25A1.5 1.5 0 00.75 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                     </svg>
                 </div>
-                <h3 class="text-sm font-bold text-gray-900 dark:text-gray-200">{{ __('No slides added') }}</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-xs">{{ __('Get started by creating your first homepage promotion slide.') }}</p>
+                <h3 class="text-sm font-bold text-gray-900">{{ __('No slides added') }}</h3>
+                <p class="text-xs text-gray-500 mt-1 max-w-xs">{{ __('Get started by creating your first homepage promotion slide.') }}</p>
                 <button wire:click="openCreateModal" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out">
                     {{ __('Create Slide') }}
                 </button>
@@ -276,7 +276,7 @@ new #[Layout('layouts.app')] class extends Component
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                  x-data="{ draggingId: null, dragOverId: null }">
                 @foreach ($sliderImages as $sliderImage)
-                    <div class="relative aspect-[16/9] bg-gray-900 rounded-3xl overflow-hidden shadow-sm group border border-gray-100 dark:border-gray-800 cursor-move transition-all duration-300"
+                    <div class="relative aspect-[16/9] bg-gray-900 rounded-3xl overflow-hidden shadow-sm group border border-gray-100 cursor-move transition-all duration-300"
                          draggable="true"
                          x-on:dragstart="draggingId = {{ $sliderImage->id }}; event.dataTransfer.effectAllowed = 'move';"
                          x-on:dragover.prevent="dragOverId = {{ $sliderImage->id }}"
@@ -288,10 +288,7 @@ new #[Layout('layouts.app')] class extends Component
                              draggingId = null;
                              dragOverId = null;
                          "
-                         x-bind:class="{ 
-                             'opacity-50 ring-2 ring-indigo-500 scale-95': draggingId === {{ $sliderImage->id }},
-                             'ring-2 ring-indigo-400 scale-[1.01]': dragOverId === {{ $sliderImage->id }} && draggingId !== {{ $sliderImage->id }}
-                         }">
+                         x-bind:class="{ 'opacity-50 ring-2 ring-indigo-500 scale-95': draggingId === {{ $sliderImage->id }}, 'ring-2 ring-indigo-400 scale-[1.01]': dragOverId === {{ $sliderImage->id }} && draggingId !== {{ $sliderImage->id }} }">
                         <!-- Slide Image Fill -->
                         <img src="{{ Storage::url($sliderImage->image_path) }}" alt="{{ $sliderImage->title }}" class="absolute inset-0 h-full w-full object-cover opacity-75 group-hover:scale-102 transition duration-500">
                         
@@ -344,13 +341,13 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="resetForm"></div>
 
                 <!-- Modal dialog container -->
-                <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-lg z-50 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-lg z-50 border border-gray-100">
                     <div class="p-6 sm:p-8">
-                        <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700/50 mb-6">
-                            <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
+                            <h3 class="text-base font-bold text-gray-900">
                                 {{ $editingId ? __('Edit Slide Details') : __('Create New Slide') }}
                             </h3>
-                            <button wire:click="resetForm" class="p-1 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none">
+                            <button wire:click="resetForm" class="p-1 rounded-lg text-gray-400 hover:bg-gray-100 focus:outline-none">
                                 <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
@@ -360,7 +357,7 @@ new #[Layout('layouts.app')] class extends Component
                         <form wire:submit="saveSlide" class="space-y-5">
                             
                             <!-- Image Aspect Ratio Info Card -->
-                            <div class="bg-indigo-50/50 dark:bg-indigo-950/15 border border-indigo-100/60 dark:border-indigo-900/40 rounded-2xl p-4 flex gap-3 text-xs leading-relaxed text-indigo-700 dark:text-indigo-400">
+                            <div class="bg-indigo-50/50 border border-indigo-100/60 rounded-2xl p-4 flex gap-3 text-xs leading-relaxed text-indigo-700">
                                 <svg class="h-5 w-5 shrink-0 text-indigo-500 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
@@ -387,8 +384,8 @@ new #[Layout('layouts.app')] class extends Component
                                     "
                                 >
                                     <label 
-                                        :class="isDragging ? 'border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/30 scale-[1.01]' : ''"
-                                        class="flex flex-col items-center justify-center w-full aspect-[16/9] border-2 border-gray-300 dark:border-gray-700 border-dashed rounded-3xl cursor-pointer bg-gray-50 dark:bg-gray-900/40 hover:bg-gray-100 dark:hover:bg-gray-900/80 overflow-hidden relative group transition-all duration-200"
+                                        :class="isDragging ? 'border-indigo-500 bg-indigo-50/40 scale-[1.01]' : ''"
+                                        class="flex flex-col items-center justify-center w-full aspect-[16/9] border-2 border-gray-300 border-dashed rounded-3xl cursor-pointer bg-gray-50 hover:bg-gray-100 overflow-hidden relative group transition-all duration-200"
                                     >
                                         
                                         <!-- Image Preview Block -->
@@ -401,8 +398,8 @@ new #[Layout('layouts.app')] class extends Component
                                                 <svg class="w-8 h-8 mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                                 </svg>
-                                                <p class="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider">{{ __('Upload Image') }}</p>
-                                                <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{{ __('Click or drag and drop image here') }}</p>
+                                                <p class="text-xs text-gray-500 font-bold uppercase tracking-wider">{{ __('Upload Image') }}</p>
+                                                <p class="text-[10px] text-gray-400 mt-1">{{ __('Click or drag and drop image here') }}</p>
                                             </div>
                                         @endif
 
@@ -448,15 +445,15 @@ new #[Layout('layouts.app')] class extends Component
                                 <div class="flex items-center mt-6">
                                     <label class="relative inline-flex items-center cursor-pointer select-none">
                                         <input type="checkbox" wire:model="is_active" class="sr-only peer">
-                                        <div class="w-10 h-5 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
-                                        <span class="ms-3 text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('Active Status') }}</span>
+                                        <div class="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                        <span class="ms-3 text-xs font-bold text-gray-700 uppercase tracking-wider">{{ __('Active Status') }}</span>
                                     </label>
                                 </div>
                             </div>
 
                             <!-- Form Buttons -->
-                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                                <button type="button" wire:click="resetForm" class="px-5 py-2.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl font-bold text-xs uppercase text-gray-700 dark:text-gray-300 transition duration-150 cursor-pointer">
+                            <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                <button type="button" wire:click="resetForm" class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition duration-150 cursor-pointer">
                                     {{ __('Cancel') }}
                                 </button>
                                 <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
@@ -476,31 +473,31 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="cancelDelete"></div>
 
                 <!-- Modal Container -->
-                <div class="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100 dark:border-gray-700">
+                <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-md z-50 border border-gray-100">
                     <div class="p-6 sm:p-8">
-                        <div class="flex items-center gap-4 text-red-600 dark:text-red-400 mb-4">
-                            <div class="h-12 w-12 rounded-2xl bg-red-50 dark:bg-red-950/30 flex items-center justify-center border border-red-100/50 dark:border-red-950/50 shrink-0">
+                        <div class="flex items-center gap-4 text-red-600 mb-4">
+                            <div class="h-12 w-12 rounded-2xl bg-red-50 flex items-center justify-center border border-red-100/50 shrink-0">
                                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-base font-bold text-gray-900 dark:text-gray-100">
+                                <h3 class="text-base font-bold text-gray-900">
                                     {{ __('Confirm Delete') }}
                                 </h3>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <p class="text-xs text-gray-500 mt-1">
                                     {{ __('This action cannot be undone.') }}
                                 </p>
                             </div>
                         </div>
 
-                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+                        <p class="text-xs text-gray-600 mb-6 leading-relaxed">
                             {{ __('Are you sure you want to delete this slide?') }}
                         </p>
 
                         <!-- Form Actions -->
-                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700/50">
-                            <button type="button" wire:click="cancelDelete" class="px-5 py-2.5 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 rounded-xl font-bold text-xs uppercase text-gray-700 dark:text-gray-300 transition duration-150 cursor-pointer">
+                        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button type="button" wire:click="cancelDelete" class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition duration-150 cursor-pointer">
                                 {{ __('Cancel') }}
                             </button>
                             <button type="button" wire:click="performDelete" class="px-5 py-2.5 bg-red-600 hover:bg-red-750 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">

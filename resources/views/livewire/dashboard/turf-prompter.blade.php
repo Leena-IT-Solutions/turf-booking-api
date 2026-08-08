@@ -19,21 +19,21 @@ new class extends Component
     }
 }; ?>
 
-<div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50/70 to-emerald-50/60 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 p-6 sm:p-8 md:p-10 border border-indigo-100/80 dark:border-slate-800/80 shadow-xl shadow-indigo-100/40 dark:shadow-2xl dark:shadow-indigo-950/20">
+<div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50/70 to-emerald-50/60 p-6 sm:p-8 md:p-10 border border-indigo-100/80 shadow-xl shadow-indigo-100/40">
     <!-- Ambient Glow Decorators -->
-    <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-emerald-400/20 dark:bg-emerald-500/15 blur-3xl pointer-events-none"></div>
-    <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-indigo-400/20 dark:bg-indigo-500/15 blur-3xl pointer-events-none"></div>
+    <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none"></div>
+    <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none"></div>
 
     <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
         <div class="space-y-3 max-w-2xl text-left">
-            <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 text-[10px] font-black tracking-widest uppercase">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse"></span>
+            <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-[10px] font-black tracking-widest uppercase">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 {{ __('Partner With Us') }}
             </span>
-            <h3 class="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-snug">
+            <h3 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-snug">
                 {{ __('Do you own or manage a Turf?') }}
             </h3>
-            <p class="text-xs sm:text-sm text-gray-600 dark:text-slate-300 leading-relaxed font-medium">
+            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed font-medium">
                 {{ __('Unlock host features to list sports fields, split time slots (including midnight categories), schedule equipment, hire managers, and accept online bookings seamlessly.') }}
             </p>
         </div>
@@ -41,7 +41,7 @@ new class extends Component
         <div class="shrink-0 w-full lg:w-auto">
             <button 
                 wire:click="claimTurfAdmin" 
-                class="w-full lg:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400 active:scale-95 text-white dark:text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl transition duration-200 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 dark:shadow-emerald-500/20 cursor-pointer"
+                class="w-full lg:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition duration-200 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 cursor-pointer"
             >
                 <span>{{ __('Yes, I have a Turf!') }}</span>
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">

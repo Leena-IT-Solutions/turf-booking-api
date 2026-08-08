@@ -19,7 +19,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-gray-50 dark:bg-gray-900" x-data="{ sidebarOpen: false }">
+        <div class="min-h-screen bg-gray-50" x-data="{ sidebarOpen: false }">
             <livewire:layout.navigation />
 
             <!-- Page Content Area -->
@@ -27,7 +27,7 @@
                 <!-- Global Top Bar for Turf Admins & Managers -->
                 @auth
                     @if(auth()->user()->hasRole('turf-admin') || auth()->user()->hasRole('manager'))
-                        <div class="sticky top-16 lg:top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200/50 dark:border-gray-855 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+                        <div class="sticky top-16 lg:top-0 z-10 bg-white border-b border-gray-200/50 px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
                             <livewire:layout.global-context-selector />
                         </div>
                     @endif

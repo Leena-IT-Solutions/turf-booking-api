@@ -169,16 +169,16 @@ new #[Layout('layouts.app')] class extends Component
     <div class="sm:px-6 lg:px-8 space-y-6">
         
         <!-- Header Section -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Turf Verification') }}</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ __('Review and manage the verification status of sports turfs submitted by administrators.') }}</p>
+                <h2 class="text-xl font-bold text-gray-900">{{ __('Turf Verification') }}</h2>
+                <p class="text-xs text-gray-500 mt-1">{{ __('Review and manage the verification status of sports turfs submitted by administrators.') }}</p>
             </div>
         </div>
 
         <!-- Status Flash Message -->
         @if (session('status'))
-            <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-400 text-sm font-medium shadow-sm transition">
+            <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-800 text-sm font-medium shadow-sm transition">
                 {{ session('status') }}
             </div>
         @endif
@@ -189,18 +189,10 @@ new #[Layout('layouts.app')] class extends Component
                 <button 
                     type="button" 
                     wire:click="$set('statusFilter', '{{ $filter }}')" 
-                    class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl border transition-all cursor-pointer flex items-center gap-2 {{
-                        $statusFilter === $filter 
-                            ? 'bg-indigo-600 border-indigo-650 text-white shadow-md shadow-indigo-500/10' 
-                            : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-705'
-                    }}"
+                    class="px-4 py-2 text-xs font-bold uppercase tracking-wider rounded-xl border transition-all cursor-pointer flex items-center gap-2 {{ $statusFilter === $filter ? 'bg-indigo-600 border-indigo-650 text-white shadow-md shadow-indigo-500/10' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 ' }}"
                 >
                     {{ __($filter) }}
-                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-[9px] font-black rounded-full {{
-                        $statusFilter === $filter
-                            ? 'bg-white/20 text-white'
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                    }}">
+                    <span class="inline-flex items-center justify-center px-2 py-0.5 text-[9px] font-black rounded-full {{ $statusFilter === $filter ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-600 ' }}">
                         {{ $counts[$filter] }}
                     </span>
                 </button>
@@ -208,9 +200,9 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <!-- Search Bar -->
-        <div class="relative bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+        <div class="relative bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
             <div class="absolute inset-y-0 start-4 flex items-center pointer-events-none">
-                <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 ms-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 text-gray-400 ms-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
             </div>
@@ -218,14 +210,14 @@ new #[Layout('layouts.app')] class extends Component
                 type="text" 
                 wire:model.live.debounce.300ms="search" 
                 placeholder="{{ __('Search turfs by name, type, area, location, or owner name/email/mobile...') }}"
-                class="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900/40 text-xs font-semibold text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150"
+                class="w-full pl-12 pr-4 py-2.5 bg-gray-50 text-xs font-semibold text-gray-700 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150"
             />
         </div>
 
         <!-- Turfs Card Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             @forelse ($turfs as $turf)
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative group">
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative group">
                     <div>
                         <!-- Turf Info Header -->
                         <div class="flex items-start justify-between gap-4 min-w-0 w-full">
@@ -236,57 +228,46 @@ new #[Layout('layouts.app')] class extends Component
                                     </svg>
                                 </div>
                                 <div class="min-w-0">
-                                    <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
+                                    <h3 class="text-sm font-bold text-gray-800 truncate">
                                         {{ $turf->name }}
                                     </h3>
                                     <div class="flex items-center gap-1.5 mt-1">
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider {{
-                                            $turf->type === 'Synthetic' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
-                                            $turf->type === 'Hard' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
-                                            'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400')
-                                        }}">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider {{ $turf->type === 'Synthetic' ? 'bg-emerald-100 text-emerald-700 ' : ( $turf->type === 'Hard' ? 'bg-amber-100 text-amber-700 ' : 'bg-blue-100 text-blue-700 ') }}">
                                             {{ $turf->type }}
                                         </span>
                                         @if($turf->area)
-                                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold">{{ $turf->area }}</span>
+                                            <span class="text-[10px] text-gray-400 font-semibold">{{ $turf->area }}</span>
                                         @endif
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Current Status Badge -->
-                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider {{
-                                $turf->status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
-                                $turf->status === 'Pending' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : (
-                                $turf->status === 'Review' ? 'bg-indigo-100 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400' : (
-                                $turf->status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : (
-                                $turf->status === 'Hold' ? 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400' :
-                                'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'))))
-                            }}">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider {{ $turf->status === 'Approved' ? 'bg-emerald-100 text-emerald-700 ' : ( $turf->status === 'Pending' ? 'bg-amber-100 text-amber-700 ' : ( $turf->status === 'Review' ? 'bg-indigo-100 text-indigo-700 ' : ( $turf->status === 'Rejected' ? 'bg-red-100 text-red-700 ' : ( $turf->status === 'Hold' ? 'bg-slate-100 text-slate-700 ' : 'bg-gray-100 text-gray-600 ')))) }}">
                                 {{ __($turf->status ?: 'Draft') }}
                             </span>
                         </div>
 
                         <!-- Location Section -->
-                        <div class="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/40 space-y-1">
-                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block">{{ __('Location & Address') }}</span>
-                            <div class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ $turf->location->name }}</div>
-                            <div class="text-[10px] text-gray-500 dark:text-gray-400 leading-relaxed font-semibold">{{ $turf->location->address }}</div>
+                        <div class="mt-4 pt-4 border-t border-gray-50 space-y-1">
+                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">{{ __('Location & Address') }}</span>
+                            <div class="text-xs font-bold text-gray-800">{{ $turf->location->name }}</div>
+                            <div class="text-[10px] text-gray-500 leading-relaxed font-semibold">{{ $turf->location->address }}</div>
                         </div>
 
                         <!-- Owner Section -->
-                        <div class="mt-3 pt-3 border-t border-gray-50 dark:border-gray-700/40 space-y-1">
-                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block">{{ __('Owner Details') }}</span>
-                            <div class="text-xs font-bold text-gray-800 dark:text-gray-200">{{ $turf->location->user->name }}</div>
-                            <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold flex flex-col gap-0.5">
+                        <div class="mt-3 pt-3 border-t border-gray-50 space-y-1">
+                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider block">{{ __('Owner Details') }}</span>
+                            <div class="text-xs font-bold text-gray-800">{{ $turf->location->user->name }}</div>
+                            <div class="text-[10px] text-gray-500 font-semibold flex flex-col gap-0.5">
                                 <span>{{ $turf->location->user->email }}</span>
-                                <span class="text-indigo-500 dark:text-indigo-400 font-bold">{{ $turf->location->user->mobile }}</span>
+                                <span class="text-indigo-500 font-bold">{{ $turf->location->user->mobile }}</span>
                             </div>
                         </div>
                     </div>
 
                     <!-- Actions Footer -->
-                    <div class="mt-6 pt-4 border-t border-gray-50 dark:border-gray-700/40">
+                    <div class="mt-6 pt-4 border-t border-gray-50">
                         <button 
                             type="button" 
                             wire:click="openVerifyModal({{ $turf->id }})" 
@@ -300,8 +281,8 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
             @empty
-                <div class="md:col-span-2 xl:col-span-3 bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-100 dark:border-gray-700/50 text-center">
-                    <p class="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                <div class="md:col-span-2 xl:col-span-3 bg-white p-12 rounded-3xl border border-gray-100 text-center">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         {{ __('No turfs found matching criteria.') }}
                     </p>
                 </div>
@@ -310,7 +291,7 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Pagination Links -->
         @if ($turfs->hasPages())
-            <div class="bg-white dark:bg-gray-800 px-6 py-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+            <div class="bg-white px-6 py-4 rounded-3xl border border-gray-100 shadow-sm">
                 {{ $turfs->links() }}
             </div>
         @endif
@@ -332,7 +313,7 @@ new #[Layout('layouts.app')] class extends Component
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-sm"
+            class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm"
             @click="verifyModal = false"
         ></div>
 
@@ -346,7 +327,7 @@ new #[Layout('layouts.app')] class extends Component
                 x-transition:leave="ease-in duration-200"
                 x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                 x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-700 w-full max-w-6xl overflow-hidden grid grid-cols-1 md:grid-cols-3"
+                class="relative bg-white rounded-3xl shadow-xl border border-gray-200 w-full max-w-6xl overflow-hidden grid grid-cols-1 md:grid-cols-3"
                 style="height: 85vh; max-height: 85vh;"
             >
                 @if($activeModalTurf)
@@ -369,33 +350,33 @@ new #[Layout('layouts.app')] class extends Component
                         }
                     @endphp
                     <!-- Left Panel: Details Display (Scrollable) -->
-                    <div class="md:col-span-2 p-6 md:p-8 space-y-6 border-b md:border-b-0 md:border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800" style="height: 100%; max-height: 100%; overflow-y: auto;">
+                    <div class="md:col-span-2 p-6 md:p-8 space-y-6 border-b md:border-b-0 md:border-r border-gray-200 bg-white" style="height: 100%; max-height: 100%; overflow-y: auto;">
                         <div>
-                            <span class="text-[9px] bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">{{ $activeModalTurf->type }}</span>
-                            <h3 class="text-xl font-extrabold text-gray-900 dark:text-white mt-1">{{ $activeModalTurf->name }}</h3>
-                            <p class="text-xs text-gray-500 mt-1">{{ __('Location: ') }}<span class="font-bold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->name }}</span></p>
+                            <span class="text-[9px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg font-bold uppercase tracking-wider">{{ $activeModalTurf->type }}</span>
+                            <h3 class="text-xl font-extrabold text-gray-900 mt-1">{{ $activeModalTurf->name }}</h3>
+                            <p class="text-xs text-gray-500 mt-1">{{ __('Location: ') }}<span class="font-bold text-gray-800">{{ $activeModalTurf->location->name }}</span></p>
                         </div>
 
                         <!-- Location & Coordinates Section -->
                         <div class="space-y-2">
-                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Location & Contacts') }}</h4>
-                            <div class="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-2xl space-y-2">
+                            <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ __('Location & Contacts') }}</h4>
+                            <div class="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-2">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Address') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->address }}</p>
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Address') }}</span>
+                                        <p class="font-semibold text-gray-800">{{ $activeModalTurf->location->address }}</p>
                                     </div>
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Coordinates') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->latitude }}, {{ $activeModalTurf->location->longitude }}</p>
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Coordinates') }}</span>
+                                        <p class="font-semibold text-gray-800">{{ $activeModalTurf->location->latitude }}, {{ $activeModalTurf->location->longitude }}</p>
                                     </div>
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Contact Number') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->contact_number ?: '-' }}</p>
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Contact Number') }}</span>
+                                        <p class="font-semibold text-gray-800">{{ $activeModalTurf->location->contact_number ?: '-' }}</p>
                                     </div>
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Contact Email') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->location->email ?: '-' }}</p>
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Contact Email') }}</span>
+                                        <p class="font-semibold text-gray-800">{{ $activeModalTurf->location->email ?: '-' }}</p>
                                     </div>
                                 </div>
                             </div>
@@ -403,34 +384,34 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Turf Details Section -->
                         <div class="space-y-2">
-                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Turf Configuration') }}</h4>
-                            <div class="p-4 bg-gray-50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800 rounded-2xl space-y-4">
+                            <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ __('Turf Configuration') }}</h4>
+                            <div class="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-4">
                                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Dimensions') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $activeModalTurf->area ?: '-' }}</p>
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Dimensions') }}</span>
+                                        <p class="font-semibold text-gray-800">{{ $activeModalTurf->area ?: '-' }}</p>
                                     </div>
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Timing') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">{{ $turfTiming }}</p>
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Timing') }}</span>
+                                        <p class="font-semibold text-gray-800">{{ $turfTiming }}</p>
                                     </div>
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Booking Open') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Booking Open') }}</span>
+                                        <p class="font-semibold text-gray-800">
                                             {{ $activeModalTurf->is_booking_open ? __('Next :days Days', ['days' => $activeModalTurf->booking_open_days]) : __('Closed') }}
                                         </p>
                                     </div>
                                     <div>
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-0.5">{{ __('Cancellation Policy') }}</span>
-                                        <p class="font-semibold text-gray-800 dark:text-gray-200">
+                                        <span class="text-gray-400 block mb-0.5">{{ __('Cancellation Policy') }}</span>
+                                        <p class="font-semibold text-gray-800">
                                             {{ $activeModalTurf->is_cancellation_active ? __('Active (:hours Hrs / Fee: ₹:fee)', ['hours' => $activeModalTurf->cancellation_hours, 'fee' => $activeModalTurf->cancellation_fee]) : __('No Cancellation') }}
                                         </p>
                                     </div>
                                 </div>
                                 @if($activeModalTurf->description)
-                                    <div class="text-xs pt-1 border-t border-gray-200/40 dark:border-gray-700/40">
-                                        <span class="text-gray-400 dark:text-gray-500 block mb-1">{{ __('Description') }}</span>
-                                        <p class="text-gray-700 dark:text-gray-300 leading-relaxed font-semibold">{{ $activeModalTurf->description }}</p>
+                                    <div class="text-xs pt-1 border-t border-gray-200/40">
+                                        <span class="text-gray-400 block mb-1">{{ __('Description') }}</span>
+                                        <p class="text-gray-700 leading-relaxed font-semibold">{{ $activeModalTurf->description }}</p>
                                     </div>
                                 @endif
                             </div>
@@ -438,14 +419,14 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Photos Section -->
                         <div class="space-y-2">
-                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Uploaded Photos') }}</h4>
+                            <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ __('Uploaded Photos') }}</h4>
                             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 @forelse($activeModalTurf->photos as $photo)
-                                    <div class="relative rounded-2xl overflow-hidden aspect-video border border-gray-150 dark:border-gray-800 bg-gray-50 dark:bg-gray-900">
+                                    <div class="relative rounded-2xl overflow-hidden aspect-video border border-gray-150 bg-gray-50">
                                         <img src="{{ Storage::url($photo->photo) }}" class="w-full h-full object-cover">
                                     </div>
                                 @empty
-                                    <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold col-span-3">{{ __('No photos uploaded.') }}</p>
+                                    <p class="text-xs text-gray-400 font-semibold col-span-3">{{ __('No photos uploaded.') }}</p>
                                 @endforelse
                             </div>
                         </div>
@@ -454,45 +435,45 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="space-y-4">
                             <!-- Facilities -->
                             <div class="space-y-2">
-                                <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Facilities') }}</h4>
+                                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ __('Facilities') }}</h4>
                                 <div class="flex flex-wrap gap-1.5">
                                     @forelse($activeModalTurf->facilities as $fac)
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">
                                             {{ $fac->name }}
                                         </span>
                                     @empty
-                                        <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('None.') }}</p>
+                                        <p class="text-xs text-gray-400 font-semibold">{{ __('None.') }}</p>
                                     @endforelse
                                 </div>
                             </div>
 
                             <!-- Equipments -->
                             <div class="space-y-2">
-                                <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Equipments') }}</h4>
+                                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ __('Equipments') }}</h4>
                                 <div class="flex flex-wrap gap-1.5">
                                     @forelse($activeModalTurf->turfEquipments as $eq)
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800">
+                                        <span class="inline-flex items-center px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">
                                             {{ $eq->name }}
                                         </span>
                                     @empty
-                                        <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('None.') }}</p>
+                                        <p class="text-xs text-gray-400 font-semibold">{{ __('None.') }}</p>
                                     @endforelse
                                 </div>
                             </div>
 
                             <!-- Sports -->
                             <div class="space-y-2">
-                                <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Sports') }}</h4>
+                                <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ __('Sports') }}</h4>
                                 <div class="flex flex-wrap gap-1.5">
                                     @forelse($activeModalTurf->sports as $sp)
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-800">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gray-50 text-gray-700 border border-gray-100">
                                             @if($sp->icon)
                                                 <span class="h-3 w-3 shrink-0 flex items-center justify-center text-indigo-500">{!! $sp->icon !!}</span>
                                             @endif
                                             {{ $sp->name }}
                                         </span>
                                     @empty
-                                        <p class="text-xs text-gray-400 dark:text-gray-500 font-semibold">{{ __('None.') }}</p>
+                                        <p class="text-xs text-gray-400 font-semibold">{{ __('None.') }}</p>
                                     @endforelse
                                 </div>
                             </div>
@@ -500,7 +481,7 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Slots & Pricing Section -->
                         <div class="space-y-2">
-                            <h4 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">{{ __('Slots & Pricing') }}</h4>
+                            <h4 class="text-xs font-black text-gray-400 uppercase tracking-widest">{{ __('Slots & Pricing') }}</h4>
                             @php
                                 $groupedSlots = [];
                                 if ($activeModalTurf && $activeModalTurf->slots) {
@@ -532,8 +513,8 @@ new #[Layout('layouts.app')] class extends Component
                                     <div class="space-y-2">
                                         <!-- Category Header -->
                                         <div class="flex items-center gap-2">
-                                            <span class="text-[9px] font-black uppercase tracking-wider bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-md border border-indigo-100/50 dark:border-indigo-900/30">{{ $categoryName }}</span>
-                                            <div class="h-[1px] bg-gray-100 dark:bg-gray-800 flex-1"></div>
+                                            <span class="text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md border border-indigo-100/50">{{ $categoryName }}</span>
+                                            <div class="h-[1px] bg-gray-100 flex-1"></div>
                                         </div>
 
                                         <!-- Slots Grid -->
@@ -568,20 +549,20 @@ new #[Layout('layouts.app')] class extends Component
                                                     $from = \Carbon\Carbon::parse($times[0])->format('h:i A');
                                                     $to = \Carbon\Carbon::parse($times[1])->format('h:i A');
                                                 @endphp
-                                                <div class="p-2 bg-white dark:bg-gray-800 rounded-xl border border-gray-150 dark:border-gray-700/80 flex items-center justify-between text-[11px] hover:border-indigo-500 dark:hover:border-indigo-500 transition duration-150">
+                                                <div class="p-2 bg-white rounded-xl border border-gray-150 flex items-center justify-between text-[11px] hover:border-indigo-500 transition duration-150">
                                                     <div class="flex items-center gap-1.5 min-w-0">
                                                         <svg class="h-3.5 w-3.5 text-indigo-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                         </svg>
-                                                        <span class="font-extrabold text-gray-800 dark:text-gray-200 truncate">{{ $from }} - {{ $to }}</span>
+                                                        <span class="font-extrabold text-gray-800 truncate">{{ $from }} - {{ $to }}</span>
                                                     </div>
-                                                    <span class="font-bold text-gray-500 dark:text-gray-400 text-[9px] shrink-0 bg-gray-50 dark:bg-gray-900 px-1.5 py-0.5 rounded-md border border-gray-100 dark:border-gray-800">{{ $priceText }}</span>
+                                                    <span class="font-bold text-gray-500 text-[9px] shrink-0 bg-gray-50 px-1.5 py-0.5 rounded-md border border-gray-100">{{ $priceText }}</span>
                                                 </div>
                                             @endforeach
                                         </div>
                                     </div>
                                 @empty
-                                    <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800 text-center text-xs text-gray-400 dark:text-gray-500 font-semibold">
+                                    <div class="p-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200 text-center text-xs text-gray-400 font-semibold">
                                         {{ __('No slots config available.') }}
                                     </div>
                                 @endforelse
@@ -589,17 +570,17 @@ new #[Layout('layouts.app')] class extends Component
                             
                             @if($activeModalTurf->pricing_wizard_data)
                                 <div class="space-y-2 pt-3">
-                                    <span class="text-gray-400 dark:text-gray-500 font-bold block text-[10px] uppercase tracking-wider">{{ __('Pricing Wizard Config') }}</span>
-                                    <div class="overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm">
+                                    <span class="text-gray-400 font-bold block text-[10px] uppercase tracking-wider">{{ __('Pricing Wizard Config') }}</span>
+                                    <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
                                         <table class="w-full border-collapse text-[10px] text-left">
                                             <thead>
-                                                <tr class="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-1/3">{{ __('Day Group') }}</th>
-                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 w-1/3">{{ __('Time Group') }}</th>
-                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 dark:text-gray-400 w-1/3">{{ __('Price') }}</th>
+                                                <tr class="bg-gray-50 border-b border-gray-200">
+                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 border-r border-gray-200 w-1/3">{{ __('Day Group') }}</th>
+                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 border-r border-gray-200 w-1/3">{{ __('Time Group') }}</th>
+                                                    <th class="px-3 py-2 font-bold uppercase text-gray-500 w-1/3">{{ __('Price') }}</th>
                                                 </tr>
                                             </thead>
-                                            <tbody class="divide-y divide-gray-150 dark:divide-gray-800">
+                                            <tbody class="divide-y divide-gray-150">
                                                 @php
                                                     $wizardData = is_array($activeModalTurf->pricing_wizard_data) 
                                                         ? $activeModalTurf->pricing_wizard_data 
@@ -613,10 +594,10 @@ new #[Layout('layouts.app')] class extends Component
                                                         $timeRangesAll = $wizardData['timeRangesAll'] ?? [];
                                                     @endphp
                                                     @if($sameDay === 'yes')
-                                                        <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
-                                                            <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle">{{ __('All Days (Mon-Sun)') }}</td>
-                                                            <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">{{ __('Flat Rate / All Day') }}</td>
-                                                            <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">₹{{ $wizardData['flatRateAll'] ?? '0' }}/-</td>
+                                                        <tr class="bg-white hover:bg-gray-50 transition duration-100">
+                                                            <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle">{{ __('All Days (Mon-Sun)') }}</td>
+                                                            <td class="px-3 py-2 text-gray-600 border-r border-gray-200">{{ __('Flat Rate / All Day') }}</td>
+                                                            <td class="px-3 py-2 font-black text-indigo-600">₹{{ $wizardData['flatRateAll'] ?? '0' }}/-</td>
                                                         </tr>
                                                     @else
                                                         @foreach($timeRangesAll as $index => $range)
@@ -624,16 +605,16 @@ new #[Layout('layouts.app')] class extends Component
                                                                 $fromTime = \Carbon\Carbon::parse($range['from'] ?? '00:00')->format('h:i A');
                                                                 $toTime = \Carbon\Carbon::parse($range['to'] ?? '23:59')->format('h:i A');
                                                             @endphp
-                                                            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
+                                                            <tr class="bg-white hover:bg-gray-50 transition duration-100">
                                                                 @if($index === 0)
-                                                                    <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle" rowspan="{{ count($timeRangesAll) }}">
+                                                                    <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle" rowspan="{{ count($timeRangesAll) }}">
                                                                         {{ __('All Days (Mon-Sun)') }}
                                                                     </td>
                                                                 @endif
-                                                                <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
+                                                                <td class="px-3 py-2 text-gray-600 border-r border-gray-200">
                                                                     {{ $fromTime }} to {{ $toTime }}
                                                                 </td>
-                                                                <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">
+                                                                <td class="px-3 py-2 font-black text-indigo-600">
                                                                     ₹{{ $range['rate'] ?? '0' }}/-
                                                                 </td>
                                                             </tr>
@@ -650,10 +631,10 @@ new #[Layout('layouts.app')] class extends Component
                                                             $timeRanges = $group['timeRanges'] ?? [];
                                                         @endphp
                                                         @if(empty($timeRanges))
-                                                            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
-                                                                <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle">{{ $daysText }}</td>
-                                                                <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">{{ __('Flat Rate / All Day') }}</td>
-                                                                <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">₹{{ $group['flatRate'] ?? '0' }}/-</td>
+                                                            <tr class="bg-white hover:bg-gray-50 transition duration-100">
+                                                                <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle">{{ $daysText }}</td>
+                                                                <td class="px-3 py-2 text-gray-600 border-r border-gray-200">{{ __('Flat Rate / All Day') }}</td>
+                                                                <td class="px-3 py-2 font-black text-indigo-600">₹{{ $group['flatRate'] ?? '0' }}/-</td>
                                                             </tr>
                                                         @else
                                                             @foreach($timeRanges as $index => $range)
@@ -661,16 +642,16 @@ new #[Layout('layouts.app')] class extends Component
                                                                     $fromTime = \Carbon\Carbon::parse($range['from'])->format('h:i A');
                                                                     $toTime = \Carbon\Carbon::parse($range['to'])->format('h:i A');
                                                                 @endphp
-                                                                <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-100">
+                                                                <tr class="bg-white hover:bg-gray-50 transition duration-100">
                                                                     @if($index === 0)
-                                                                        <td class="px-3 py-2 font-extrabold text-gray-800 dark:text-gray-200 border-r border-gray-200 dark:border-gray-700 align-middle" rowspan="{{ count($timeRanges) }}">
+                                                                        <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle" rowspan="{{ count($timeRanges) }}">
                                                                             {{ $daysText }}
                                                                         </td>
                                                                     @endif
-                                                                    <td class="px-3 py-2 text-gray-600 dark:text-gray-300 border-r border-gray-200 dark:border-gray-700">
+                                                                    <td class="px-3 py-2 text-gray-600 border-r border-gray-200">
                                                                         {{ $fromTime }} to {{ $toTime }}
                                                                     </td>
-                                                                    <td class="px-3 py-2 font-black text-indigo-600 dark:text-indigo-400">
+                                                                    <td class="px-3 py-2 font-black text-indigo-600">
                                                                         ₹{{ $range['rate'] ?? '0' }}/-
                                                                     </td>
                                                                 </tr>
@@ -687,95 +668,95 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Right Panel: Checklist & Verification Controls -->
-                    <div class="md:col-span-1 p-6 md:p-8 flex flex-col justify-between bg-gray-50 dark:bg-gray-900 border-t md:border-t-0 border-gray-150 dark:border-gray-800" style="height: 100%; max-height: 100%; overflow: hidden;">
+                    <div class="md:col-span-1 p-6 md:p-8 flex flex-col justify-between bg-gray-50 border-t md:border-t-0 border-gray-150" style="height: 100%; max-height: 100%; overflow: hidden;">
                         <div>
                             <div>
-                                <h3 class="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">{{ __('Verification Checklist') }}</h3>
-                                <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1">{{ __('Mark all specifications as verified and correct. Unchecked items indicate review feedback.') }}</p>
+                                <h3 class="text-sm font-black text-gray-900 uppercase tracking-wider">{{ __('Verification Checklist') }}</h3>
+                                <p class="text-[10px] text-gray-400 font-semibold mt-1">{{ __('Mark all specifications as verified and correct. Unchecked items indicate review feedback.') }}</p>
                             </div>                            <!-- Checkboxes List -->
                             <div class="space-y-2 overflow-y-auto pr-1.5 custom-scrollbar mt-3" style="max-height: calc(85vh - 380px);">
                                 <!-- Location -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isLocationVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Location') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify ground coordinates, address and contact details.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Location') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify ground coordinates, address and contact details.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Turf Details -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isDetailsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Turf Details') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify turf name, surface type, dimensions and policy details.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Turf Details') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify turf name, surface type, dimensions and policy details.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Photos -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isPhotosVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Photos') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify photo attachments are appropriate and realistic.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Photos') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify photo attachments are appropriate and realistic.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Facilities -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isFacilitiesVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Facilities') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify listed ground amenities and amenities configurations.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Facilities') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify listed ground amenities and amenities configurations.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Equipments -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isEquipmentsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Equipments') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify inventory checklist and configurations.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Equipments') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify inventory checklist and configurations.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Sports -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isSportsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Sports') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify assigned game configurations matches coordinates.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Sports') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify assigned game configurations matches coordinates.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Slots -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isSlotsVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Slots') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify time slots allocations and duration values.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Slots') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify time slots allocations and duration values.') }}</p>
                                     </div>
                                 </label>
 
                                 <!-- Pricing -->
-                                <label class="flex items-start gap-2.5 p-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750 rounded-2xl border border-gray-200/50 dark:border-gray-700/60 transition duration-150 cursor-pointer">
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isPricingVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
                                     <div>
-                                        <span class="text-xs font-bold text-gray-800 dark:text-gray-200" style="font-size: 12px;">{{ __('Pricing') }}</span>
-                                        <p class="text-gray-400 dark:text-gray-500 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify weekday pricing rates, part-payments settings.') }}</p>
+                                        <span class="text-xs font-bold text-gray-800" style="font-size: 12px;">{{ __('Pricing') }}</span>
+                                        <p class="text-gray-400 mt-0.5 leading-normal" style="font-size: 9px; font-weight: 500;">{{ __('Verify weekday pricing rates, part-payments settings.') }}</p>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
                         <!-- Buttons & Controls -->
-                        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-3.5">
+                        <div class="mt-4 pt-4 border-t border-gray-200 space-y-3.5">
                             <!-- Direct Status Actions -->
                             <div class="grid grid-cols-2 gap-2">
                                 <button 
                                     type="button" 
                                     wire:click="updateStatus({{ $activeModalTurf->id }}, 'Approved')" 
-                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Approved' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-600 border border-emerald-100/50 ' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
                                 >
                                     <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
@@ -786,7 +767,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <button 
                                     type="button" 
                                     wire:click="updateStatus({{ $activeModalTurf->id }}, 'Review')" 
-                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Review' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Review' ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-600 border border-indigo-100/50 ' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
                                 >
                                     <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -797,7 +778,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <button 
                                     type="button" 
                                     wire:click="updateStatus({{ $activeModalTurf->id }}, 'Hold')" 
-                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Hold' ? 'bg-slate-600 text-white' : 'bg-slate-50 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 border border-slate-200/50 dark:border-slate-700/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Hold' ? 'bg-slate-600 text-white' : 'bg-slate-50 text-slate-600 border border-slate-200/50 ' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
                                 >
                                     <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -808,7 +789,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <button 
                                     type="button" 
                                     wire:click="updateStatus({{ $activeModalTurf->id }}, 'Rejected')" 
-                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Rejected' ? 'bg-red-600 text-white' : 'bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 border border-red-100/50 dark:border-red-900/30' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
+                                    class="px-2 py-2 {{ $activeModalTurf->status === 'Rejected' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 border border-red-100/50 ' }} rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer text-[10px] font-extrabold uppercase tracking-wide"
                                 >
                                     <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -822,7 +803,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <button 
                                     type="button" 
                                     @click="verifyModal = false" 
-                                    class="flex-1 px-4 py-2.5 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-650 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer"
+                                    class="flex-1 px-4 py-2.5 bg-gray-250 hover:bg-gray-300 text-gray-700 text-xs font-bold rounded-xl transition flex items-center justify-center cursor-pointer"
                                 >
                                     {{ __('Close') }}
                                 </button>

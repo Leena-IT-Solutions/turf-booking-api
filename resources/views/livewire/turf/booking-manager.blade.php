@@ -317,13 +317,13 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Top Bar / Header -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
-                    <svg class="w-8 h-8 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2.5">
+                    <svg class="w-8 h-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                     Bookings Management
                 </h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p class="text-xs text-gray-500 mt-1">
                     Track, search, filter, and manage all customer slot bookings and offline payments in real-time.
                 </p>
             </div>
@@ -331,14 +331,14 @@ new #[Layout('layouts.app')] class extends Component
             <!-- Header Action Controls -->
             <div class="flex items-center gap-2">
                 <!-- View Mode Toggle -->
-                <div class="bg-gray-100 dark:bg-gray-800 p-1 rounded-xl flex items-center border border-gray-200 dark:border-gray-700">
+                <div class="bg-gray-100 p-1 rounded-xl flex items-center border border-gray-200">
                     <button wire:click="$set('viewMode', 'table')" type="button" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 {{ $viewMode === 'table' ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700' }}">
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 {{ $viewMode === 'table' ? 'bg-white text-indigo-600 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
                         Table
                     </button>
                     <button wire:click="$set('viewMode', 'grid')" type="button" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 {{ $viewMode === 'grid' ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 shadow-xs' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700' }}">
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 {{ $viewMode === 'grid' ? 'bg-white text-indigo-600 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
                         Cards
                     </button>
@@ -348,14 +348,14 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Flash Messages -->
         @if (session('status'))
-            <div class="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-sm flex items-center gap-2">
-                <svg class="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 <span>{{ session('status') }}</span>
             </div>
         @endif
         @if (session('error'))
-            <div class="p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 text-sm flex items-center gap-2">
-                <svg class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm flex items-center gap-2">
+                <svg class="w-5 h-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>{{ session('error') }}</span>
             </div>
         @endif
@@ -433,76 +433,76 @@ new #[Layout('layouts.app')] class extends Component
         <!-- KPI Metric Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
             <div wire:click="$set('statusFilter', 'all'); $set('paymentStatusFilter', 'all');" 
-                 class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-xs cursor-pointer hover:border-indigo-400 transition">
+                 class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs cursor-pointer hover:border-indigo-400 transition">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">All Bookings</span>
-                    <span class="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-xs font-bold">📋</span>
+                    <span class="text-xs font-medium text-gray-500">All Bookings</span>
+                    <span class="p-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold">📋</span>
                 </div>
-                <p class="text-2xl font-black text-gray-900 dark:text-white mt-2">{{ number_format($statsAll) }}</p>
+                <p class="text-2xl font-black text-gray-900 mt-2">{{ number_format($statsAll) }}</p>
             </div>
 
             <div wire:click="$set('statusFilter', 'Confirmed')" 
-                 class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-xs cursor-pointer hover:border-blue-400 transition">
+                 class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs cursor-pointer hover:border-blue-400 transition">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-blue-600 dark:text-blue-400">Confirmed</span>
-                    <span class="p-1.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold">✅</span>
+                    <span class="text-xs font-medium text-blue-600">Confirmed</span>
+                    <span class="p-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold">✅</span>
                 </div>
-                <p class="text-2xl font-black text-blue-600 dark:text-blue-400 mt-2">{{ number_format($statsConfirmed) }}</p>
+                <p class="text-2xl font-black text-blue-600 mt-2">{{ number_format($statsConfirmed) }}</p>
             </div>
 
             <div wire:click="$set('paymentStatusFilter', 'Partially Paid')" 
-                 class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-xs cursor-pointer hover:border-amber-400 transition">
+                 class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs cursor-pointer hover:border-amber-400 transition">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-amber-600 dark:text-amber-400">Partially Paid</span>
-                    <span class="p-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-bold">⏳</span>
+                    <span class="text-xs font-medium text-amber-600">Partially Paid</span>
+                    <span class="p-1.5 bg-amber-50 text-amber-600 rounded-lg text-xs font-bold">⏳</span>
                 </div>
-                <p class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-2">{{ number_format($statsPartPaid) }}</p>
+                <p class="text-2xl font-black text-amber-600 mt-2">{{ number_format($statsPartPaid) }}</p>
             </div>
 
             <div wire:click="$set('paymentStatusFilter', 'Unpaid')" 
-                 class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-xs cursor-pointer hover:border-red-400 transition">
+                 class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs cursor-pointer hover:border-red-400 transition">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-red-600 dark:text-red-400">Unpaid</span>
-                    <span class="p-1.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold">⚠️</span>
+                    <span class="text-xs font-medium text-red-600">Unpaid</span>
+                    <span class="p-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-bold">⚠️</span>
                 </div>
-                <p class="text-2xl font-black text-red-600 dark:text-red-400 mt-2">{{ number_format($statsUnpaid) }}</p>
+                <p class="text-2xl font-black text-red-600 mt-2">{{ number_format($statsUnpaid) }}</p>
             </div>
 
             <div wire:click="$set('statusFilter', 'Cancelled')" 
-                 class="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-200 dark:border-gray-700/80 shadow-xs cursor-pointer hover:border-gray-400 transition col-span-2 sm:col-span-1">
+                 class="bg-white p-4 rounded-2xl border border-gray-200 shadow-xs cursor-pointer hover:border-gray-400 transition col-span-2 sm:col-span-1">
                 <div class="flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Cancelled</span>
-                    <span class="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-lg text-xs font-bold">🚫</span>
+                    <span class="text-xs font-medium text-gray-500">Cancelled</span>
+                    <span class="p-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs font-bold">🚫</span>
                 </div>
-                <p class="text-2xl font-black text-gray-500 dark:text-gray-400 mt-2">{{ number_format($statsCancelled) }}</p>
+                <p class="text-2xl font-black text-gray-500 mt-2">{{ number_format($statsCancelled) }}</p>
             </div>
         </div>
 
         <!-- Filter & Search Panel -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700/80 p-5 space-y-4">
+        <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5 space-y-4">
             
             <!-- Quick Date Filter Preset Chips -->
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 dark:border-gray-700/80 pb-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
                 <div class="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-                    <span class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 me-1">Dates:</span>
+                    <span class="text-xs font-bold uppercase tracking-wider text-gray-400 me-1">Dates:</span>
                     <button wire:click="setQuickPreset('all')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-200' }}">
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                         All Time
                     </button>
                     <button wire:click="setQuickPreset('today')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'today' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-200' }}">
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'today' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                         Today
                     </button>
                     <button wire:click="setQuickPreset('tomorrow')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'tomorrow' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-200' }}">
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'tomorrow' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                         Tomorrow
                     </button>
                     <button wire:click="setQuickPreset('week')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'week' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-200' }}">
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'week' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                         This Week
                     </button>
                     <button wire:click="setQuickPreset('month')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'month' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 hover:bg-gray-200' }}">
+                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'month' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
                         This Month
                     </button>
                 </div>
@@ -510,7 +510,7 @@ new #[Layout('layouts.app')] class extends Component
                 <!-- Clear Filters Button -->
                 @if ($search !== '' || $statusFilter !== 'all' || $paymentStatusFilter !== 'all' || $bookingTypeFilter !== 'all' || $datePreset !== 'all')
                     <button wire:click="clearFilters" type="button" 
-                        class="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1 shrink-0">
+                        class="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 shrink-0">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         Reset All Filters
                     </button>
@@ -521,18 +521,18 @@ new #[Layout('layouts.app')] class extends Component
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                 <!-- Search Input -->
                 <div class="lg:col-span-2 relative">
-                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Search Customer / Ref</label>
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Search Customer / Ref</label>
                     <div class="relative">
                         <input type="text" wire:model.live.debounce.300ms="search" placeholder="Name, Mobile, Ref #..." 
-                            class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
+                            class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     </div>
                 </div>
 
                 <!-- Booking Status -->
                 <div>
-                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Booking Status</label>
-                    <select wire:model.live="statusFilter" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Booking Status</label>
+                    <select wire:model.live="statusFilter" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="all">All Statuses</option>
                         <option value="Confirmed">Confirmed</option>
                         <option value="Partially Cancelled">Partially Cancelled</option>
@@ -542,8 +542,8 @@ new #[Layout('layouts.app')] class extends Component
 
                 <!-- Payment Status -->
                 <div>
-                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Payment Status</label>
-                    <select wire:model.live="paymentStatusFilter" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Payment Status</label>
+                    <select wire:model.live="paymentStatusFilter" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="all">All Payments</option>
                         <option value="Paid">Paid (Full)</option>
                         <option value="Partially Paid">Partially Paid</option>
@@ -553,8 +553,8 @@ new #[Layout('layouts.app')] class extends Component
 
                 <!-- Booking Type -->
                 <div>
-                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Booking Type</label>
-                    <select wire:model.live="bookingTypeFilter" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Booking Type</label>
+                    <select wire:model.live="bookingTypeFilter" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="all">All Types</option>
                         <option value="day">Single Day</option>
                         <option value="long">Long (Multi-Date)</option>
@@ -564,8 +564,8 @@ new #[Layout('layouts.app')] class extends Component
 
                 <!-- Sort By -->
                 <div>
-                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">Sort By</label>
-                    <select wire:model.live="sortBy" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white focus:border-indigo-500 focus:ring-indigo-500">
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Sort By</label>
+                    <select wire:model.live="sortBy" class="w-full py-2 px-3 text-xs rounded-xl border border-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                         <option value="newest">Newest First</option>
                         <option value="oldest">Oldest First</option>
                         <option value="date_asc">Session Date (Earliest)</option>
@@ -576,14 +576,14 @@ new #[Layout('layouts.app')] class extends Component
 
             <!-- Custom Date Range Row -->
             @if ($datePreset === 'custom')
-                <div class="pt-3 border-t border-gray-100 dark:border-gray-700/80 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
+                <div class="pt-3 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md">
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-1">From Date</label>
-                        <input type="date" wire:model.live="startDate" class="w-full py-1.5 px-3 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                        <label class="block text-[10px] font-semibold text-gray-500 mb-1">From Date</label>
+                        <input type="date" wire:model.live="startDate" class="w-full py-1.5 px-3 text-xs rounded-xl border border-gray-300">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 mb-1">To Date</label>
-                        <input type="date" wire:model.live="endDate" class="w-full py-1.5 px-3 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                        <label class="block text-[10px] font-semibold text-gray-500 mb-1">To Date</label>
+                        <input type="date" wire:model.live="endDate" class="w-full py-1.5 px-3 text-xs rounded-xl border border-gray-300">
                     </div>
                 </div>
             @endif
@@ -592,10 +592,10 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Bookings Main Content (Table or Grid View) -->
         @if ($viewMode === 'table')
             <!-- TABLE VIEW -->
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xs border border-gray-200 dark:border-gray-700/80 overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs">
-                        <thead class="bg-gray-50 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 uppercase tracking-wider font-bold border-b border-gray-100 dark:border-gray-700/80">
+                        <thead class="bg-gray-50 text-gray-500 uppercase tracking-wider font-bold border-b border-gray-100">
                             <tr>
                                 <th class="px-5 py-4">Customer</th>
                                 <th class="px-5 py-4">Turf</th>
@@ -604,7 +604,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <th class="px-5 py-4 text-right">Action</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-700/60 text-gray-700 dark:text-gray-300">
+                        <tbody class="divide-y divide-gray-100 text-gray-700">
                             @forelse ($bookings as $b)
                                 @php
                                     $activeDates = $b->bookingDates->where('status', '!=', 'Cancelled');
@@ -618,19 +618,19 @@ new #[Layout('layouts.app')] class extends Component
                                         : ($dateList[0] ?? 'N/A');
                                 @endphp
 
-                                <tr class="hover:bg-gray-50/80 dark:hover:bg-gray-700/40 transition">
+                                <tr class="hover:bg-gray-50/80 transition">
                                     <!-- Customer Info -->
                                     <td class="px-5 py-4">
                                         <div class="flex items-center gap-3">
-                                            <div class="w-9 h-9 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-sm border border-indigo-100 dark:border-indigo-800 shrink-0">
+                                            <div class="w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 font-bold flex items-center justify-center text-sm border border-indigo-100 shrink-0">
                                                 {{ strtoupper(substr($b->user?->name ?? 'G', 0, 1)) }}
                                             </div>
                                             <div>
-                                                <div class="font-bold text-gray-900 dark:text-white text-sm">
+                                                <div class="font-bold text-gray-900 text-sm">
                                                     {{ $b->user?->name ?? 'Manual / Guest' }}
                                                 </div>
-                                                <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2 mt-0.5">
-                                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
+                                                <div class="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                                                    <span class="font-bold text-indigo-600">{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
                                                     <span>•</span>
                                                     <span>{{ $b->user?->mobile ?? $b->user?->email ?? 'No contact' }}</span>
                                                 </div>
@@ -640,17 +640,17 @@ new #[Layout('layouts.app')] class extends Component
 
                                     <!-- Turf -->
                                     <td class="px-5 py-4">
-                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                        <div class="font-bold text-gray-900 text-xs">
                                             {{ $b->turf?->name ?? 'N/A' }}
                                         </div>
-                                        <span class="inline-block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mt-0.5">
+                                        <span class="inline-block text-[10px] font-semibold text-gray-500 uppercase mt-0.5">
                                             {{ $b->booking_type ?? 'day' }} session
                                         </span>
                                     </td>
 
                                     <!-- Date of Booking -->
                                     <td class="px-5 py-4">
-                                        <div class="font-bold text-gray-900 dark:text-white text-xs">
+                                        <div class="font-bold text-gray-900 text-xs">
                                             📅 {{ $dateDisplay }}
                                         </div>
                                     </td>
@@ -660,30 +660,30 @@ new #[Layout('layouts.app')] class extends Component
                                         <div class="flex items-center gap-1.5 flex-wrap">
                                             <!-- Booking Status -->
                                             @if ($b->status === 'Confirmed')
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-300">
                                                     Confirmed
                                                 </span>
                                             @elseif ($b->status === 'Partially Cancelled')
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-700">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300">
                                                     Partially Cancelled
                                                 </span>
                                             @else
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-gray-200 text-gray-700 border border-gray-300">
                                                     Cancelled
                                                 </span>
                                             @endif
 
                                             <!-- Payment Status -->
                                             @if ($b->payment_status === 'Paid')
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
                                                     Paid
                                                 </span>
                                             @elseif ($b->payment_status === 'Partially Paid')
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">
                                                     Partially Paid
                                                 </span>
                                             @else
-                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 dark:bg-red-950/60 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-700">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300">
                                                     Unpaid
                                                 </span>
                                             @endif
@@ -701,11 +701,11 @@ new #[Layout('layouts.app')] class extends Component
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                                         <div class="max-w-xs mx-auto space-y-2">
                                             <span class="text-3xl">🔍</span>
-                                            <p class="font-bold text-gray-700 dark:text-gray-300">No bookings matched your search or filters.</p>
-                                            <button wire:click="clearFilters" class="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline">Clear all filters</button>
+                                            <p class="font-bold text-gray-700">No bookings matched your search or filters.</p>
+                                            <button wire:click="clearFilters" class="text-xs font-bold text-indigo-600 hover:underline">Clear all filters</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -715,7 +715,7 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
 
                 <!-- Pagination Footer -->
-                <div class="p-4 border-t border-gray-100 dark:border-gray-700/80 bg-gray-50/50 dark:bg-gray-900/30">
+                <div class="p-4 border-t border-gray-100 bg-gray-50/50">
                     {{ $bookings->links() }}
                 </div>
             </div>
@@ -732,16 +732,16 @@ new #[Layout('layouts.app')] class extends Component
                         $progress = $totalAmount > 0 ? min(100, round(($paidSum / $totalAmount) * 100)) : 0;
                     @endphp
 
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700/80 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition">
+                    <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition">
                         <div>
                             <!-- Card Header -->
-                            <div class="flex items-start justify-between gap-2 border-b border-gray-100 dark:border-gray-700/80 pb-3">
+                            <div class="flex items-start justify-between gap-2 border-b border-gray-100 pb-3">
                                 <div>
-                                    <span class="text-xs font-bold text-gray-900 dark:text-white">{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
-                                    <h3 class="font-extrabold text-sm text-gray-900 dark:text-white mt-0.5">{{ $b->user?->name ?? 'Manual / Guest' }}</h3>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ $b->user?->mobile ?? $b->user?->email ?? '' }}</p>
+                                    <span class="text-xs font-bold text-gray-900">{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
+                                    <h3 class="font-extrabold text-sm text-gray-900 mt-0.5">{{ $b->user?->name ?? 'Manual / Guest' }}</h3>
+                                    <p class="text-xs text-gray-500">{{ $b->user?->mobile ?? $b->user?->email ?? '' }}</p>
                                 </div>
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300' : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800 ' : 'bg-gray-200 text-gray-700 ' }}">
                                     {{ $b->status }}
                                 </span>
                             </div>
@@ -749,31 +749,31 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Dates & Turf -->
                             <div class="mt-3 space-y-1.5 text-xs">
                                 <div class="flex items-center justify-between">
-                                    <span class="text-gray-500 dark:text-gray-400">Turf:</span>
-                                    <span class="font-bold text-gray-800 dark:text-gray-200">{{ $b->turf?->name }}</span>
+                                    <span class="text-gray-500">Turf:</span>
+                                    <span class="font-bold text-gray-800">{{ $b->turf?->name }}</span>
                                 </div>
                                 <div class="flex items-center justify-between">
-                                    <span class="text-gray-500 dark:text-gray-400">Session Dates:</span>
-                                    <span class="font-bold text-indigo-600 dark:text-indigo-400">{{ $b->bookingDates->pluck('booking_date')->implode(', ') }}</span>
+                                    <span class="text-gray-500">Session Dates:</span>
+                                    <span class="font-bold text-indigo-600">{{ $b->bookingDates->pluck('booking_date')->implode(', ') }}</span>
                                 </div>
                             </div>
 
                             <!-- Payment Progress Bar -->
                             <div class="mt-4 space-y-1">
                                 <div class="flex items-center justify-between text-xs font-bold">
-                                    <span class="text-gray-700 dark:text-gray-300">₹{{ number_format($paidSum, 2) }} paid</span>
-                                    <span class="text-gray-500 dark:text-gray-400">Total: ₹{{ number_format($totalAmount, 2) }}</span>
+                                    <span class="text-gray-700">₹{{ number_format($paidSum, 2) }} paid</span>
+                                    <span class="text-gray-500">Total: ₹{{ number_format($totalAmount, 2) }}</span>
                                 </div>
-                                <div class="w-full bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
                                     <div class="h-full bg-emerald-500 rounded-full transition-all" style="width: {{ $progress }}%"></div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Card Action Footer -->
-                        <div class="pt-3 border-t border-gray-100 dark:border-gray-700/80 flex items-center justify-between gap-2">
+                        <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
                             <button wire:click="viewDetails({{ $b->id }})" type="button" 
-                                class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition text-center">
+                                class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition text-center">
                                 View Details
                             </button>
 
@@ -789,7 +789,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
                 @empty
-                    <div class="col-span-full bg-white dark:bg-gray-800 p-12 rounded-2xl border border-gray-200 dark:border-gray-700/80 text-center text-gray-500 dark:text-gray-400">
+                    <div class="col-span-full bg-white p-12 rounded-2xl border border-gray-200 text-center text-gray-500">
                         No bookings found matching your search.
                     </div>
                 @endforelse
@@ -809,15 +809,15 @@ new #[Layout('layouts.app')] class extends Component
         @endphp
         @if ($bDetail)
             <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex justify-end transition">
-                <div class="w-full max-w-xl bg-white dark:bg-gray-800 min-h-screen p-6 shadow-2xl flex flex-col justify-between border-l border-gray-200 dark:border-gray-700">
+                <div class="w-full max-w-xl bg-white min-h-screen p-6 shadow-2xl flex flex-col justify-between border-l border-gray-200">
                     <div class="space-y-6">
                         <!-- Modal Header -->
-                        <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
                             <div>
-                                <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Booking Ledger</span>
-                                <h2 class="text-xl font-black text-gray-900 dark:text-white">{{ $bDetail->booking_reference ?? ('#' . $bDetail->id) }}</h2>
+                                <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Booking Ledger</span>
+                                <h2 class="text-xl font-black text-gray-900">{{ $bDetail->booking_reference ?? ('#' . $bDetail->id) }}</h2>
                             </div>
-                            <button wire:click="closeDetails" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <button wire:click="closeDetails" class="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
                         </div>
@@ -830,35 +830,35 @@ new #[Layout('layouts.app')] class extends Component
                             $dBalance = max(0.00, $dTotalAmount - $dPaidSum);
                         @endphp
 
-                        <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/80 space-y-3">
+                        <div class="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-3">
                             <div class="grid grid-cols-3 gap-2 text-center">
-                                <div class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                <div class="p-2 rounded-lg bg-white border border-gray-100">
                                     <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
-                                    <p class="text-sm font-black text-gray-900 dark:text-white mt-0.5">₹{{ number_format($dTotalAmount, 2) }}</p>
+                                    <p class="text-sm font-black text-gray-900 mt-0.5">₹{{ number_format($dTotalAmount, 2) }}</p>
                                 </div>
-                                <div class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                                    <span class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Paid</span>
-                                    <p class="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">₹{{ number_format($dPaidSum, 2) }}</p>
+                                <div class="p-2 rounded-lg bg-white border border-gray-100">
+                                    <span class="text-[10px] font-bold text-emerald-600 uppercase">Paid</span>
+                                    <p class="text-sm font-black text-emerald-600 mt-0.5">₹{{ number_format($dPaidSum, 2) }}</p>
                                 </div>
-                                <div class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
-                                    <span class="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase">Balance</span>
-                                    <p class="text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">₹{{ number_format($dBalance, 2) }}</p>
+                                <div class="p-2 rounded-lg bg-white border border-gray-100">
+                                    <span class="text-[10px] font-bold text-amber-600 uppercase">Balance</span>
+                                    <p class="text-sm font-black text-amber-600 mt-0.5">₹{{ number_format($dBalance, 2) }}</p>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Customer & Turf Overview -->
-                        <div class="grid grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700/80">
+                        <div class="grid grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
                             <div>
                                 <span class="text-[10px] font-bold uppercase text-gray-400">Customer Info</span>
-                                <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{{ $bDetail->user?->name ?? 'Guest User' }}</p>
+                                <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $bDetail->user?->name ?? 'Guest User' }}</p>
                                 <p class="text-xs text-gray-500">{{ $bDetail->user?->mobile ?? 'No Mobile' }}</p>
                                 <p class="text-xs text-gray-500 truncate">{{ $bDetail->user?->email ?? '' }}</p>
                             </div>
                             <div>
                                 <span class="text-[10px] font-bold uppercase text-gray-400">Turf & Session Type</span>
-                                <p class="text-sm font-bold text-gray-900 dark:text-white mt-0.5">{{ $bDetail->turf?->name }}</p>
-                                <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-300">
+                                <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $bDetail->turf?->name }}</p>
+                                <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-800">
                                     {{ ucfirst($bDetail->booking_type) }} Session
                                 </span>
                             </div>
@@ -866,15 +866,15 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Dates & Slots Timeline -->
                         <div>
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Booked Dates & Slots</h3>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Booked Dates & Slots</h3>
                             <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
                                 @foreach ($bDetail->bookingDates as $bd)
                                     @php
                                         $bdPaidSum = (float) Payment::where('booking_date_id', $bd->id)->where('status', 'Success')->sum('amount');
                                     @endphp
-                                    <div class="p-3 rounded-xl border border-gray-100 dark:border-gray-700/80 bg-white dark:bg-gray-800 flex items-center justify-between">
+                                    <div class="p-3 rounded-xl border border-gray-100 bg-white flex items-center justify-between">
                                         <div>
-                                            <div class="font-bold text-xs text-gray-900 dark:text-white">📅 {{ $bd->booking_date }}</div>
+                                            <div class="font-bold text-xs text-gray-900">📅 {{ $bd->booking_date }}</div>
                                             <div class="text-[11px] text-gray-500 mt-0.5">
                                                 Slots: 
                                                 @foreach ($bd->bookingSlots as $bs)
@@ -885,7 +885,7 @@ new #[Layout('layouts.app')] class extends Component
                                             </div>
                                         </div>
                                         <div class="text-right">
-                                            <div class="font-bold text-xs text-gray-900 dark:text-white">₹{{ number_format($bd->amount, 2) }}</div>
+                                            <div class="font-bold text-xs text-gray-900">₹{{ number_format($bd->amount, 2) }}</div>
                                             <span class="text-[10px] font-bold {{ $bd->payment_status === 'Paid' ? 'text-emerald-600' : ($bd->payment_status === 'Partially Paid' ? 'text-amber-600' : 'text-red-600') }}">
                                                 {{ $bd->payment_status }} (Paid: ₹{{ number_format($bdPaidSum, 2) }})
                                             </span>
@@ -897,13 +897,13 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Payments Ledger -->
                         <div>
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-3">Payments History</h3>
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Payments History</h3>
                             <div class="space-y-2">
                                 @forelse ($bDetail->payments as $pay)
-                                    <div class="p-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/80 flex items-center justify-between text-xs">
+                                    <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between text-xs">
                                         <div>
-                                            <span class="font-bold text-gray-900 dark:text-white">₹{{ number_format($pay->amount, 2) }}</span>
-                                            <span class="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                            <span class="font-bold text-gray-900">₹{{ number_format($pay->amount, 2) }}</span>
+                                            <span class="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
                                                 {{ $pay->payment_method }}
                                             </span>
                                         </div>
@@ -919,7 +919,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Drawer Footer Actions -->
-                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center gap-2">
+                    <div class="pt-4 border-t border-gray-100 flex items-center gap-2">
                         @if ($dBalance > 0 && $bDetail->status !== 'Cancelled')
                             @php $firstUnpaidDate = $bDetail->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
                             @if ($firstUnpaidDate)
@@ -930,12 +930,12 @@ new #[Layout('layouts.app')] class extends Component
                         @endif
 
                         @if ($bDetail->status !== 'Cancelled')
-                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2.5 px-4 bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold transition">
+                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition">
                                 Cancel
                             </button>
                         @endif
 
-                        <button wire:click="closeDetails" class="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-bold transition">
+                        <button wire:click="closeDetails" class="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition">
                             Close
                         </button>
                     </div>
@@ -947,16 +947,16 @@ new #[Layout('layouts.app')] class extends Component
     <!-- RECORD PAYMENT MODAL -->
     @if ($showPaymentModal)
         <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-            <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl space-y-4 border border-gray-200 dark:border-gray-700">
-                <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700">
-                    <h3 class="font-black text-lg text-gray-900 dark:text-white">Record Offline Payment</h3>
+            <div class="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl space-y-4 border border-gray-200">
+                <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                    <h3 class="font-black text-lg text-gray-900">Record Offline Payment</h3>
                     <button wire:click="closePaymentModal" class="text-gray-400 hover:text-gray-600">✕</button>
                 </div>
 
                 <div class="space-y-3">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Payment Method</label>
-                        <select wire:model="paymentMethod" class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Payment Method</label>
+                        <select wire:model="paymentMethod" class="w-full p-2.5 text-xs rounded-xl border border-gray-300">
                             <option value="Cash">Cash Payment</option>
                             <option value="UPI">UPI Payment</option>
                             <option value="Other">Other</option>
@@ -964,13 +964,13 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">Payment Amount (₹)</label>
-                        <input type="number" step="0.01" wire:model="paymentAmount" class="w-full p-2.5 text-xs rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-white font-bold text-emerald-600">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Payment Amount (₹)</label>
+                        <input type="number" step="0.01" wire:model="paymentAmount" class="w-full p-2.5 text-xs rounded-xl border border-gray-300 font-bold text-emerald-600">
                     </div>
                 </div>
 
-                <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
-                    <button wire:click="closePaymentModal" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold">Cancel</button>
+                <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
+                    <button wire:click="closePaymentModal" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Cancel</button>
                     <button wire:click="submitPayment" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs">
                         Confirm & Record Payment
                     </button>
@@ -986,24 +986,24 @@ new #[Layout('layouts.app')] class extends Component
         @endphp
         @if ($cBooking)
             <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                <div class="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl space-y-4 border border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700">
-                        <h3 class="font-black text-lg text-red-600 dark:text-red-400">Cancel Booking Dates</h3>
+                <div class="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl space-y-4 border border-gray-200">
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <h3 class="font-black text-lg text-red-600">Cancel Booking Dates</h3>
                         <button wire:click="closeCancelModal" class="text-gray-400 hover:text-gray-600">✕</button>
                     </div>
 
-                    <p class="text-xs text-gray-600 dark:text-gray-400">
-                        Select the session dates you wish to cancel for booking <strong class="text-gray-900 dark:text-white">{{ $cBooking->booking_reference ?? ('#' . $cBooking->id) }}</strong>:
+                    <p class="text-xs text-gray-600">
+                        Select the session dates you wish to cancel for booking <strong class="text-gray-900">{{ $cBooking->booking_reference ?? ('#' . $cBooking->id) }}</strong>:
                     </p>
 
                     <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
                         @foreach ($cBooking->bookingDates as $bd)
-                            <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer text-xs">
+                            <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer text-xs">
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" value="{{ $bd->id }}" wire:model.live="cancelDateIds" 
                                         {{ $bd->status === 'Cancelled' ? 'disabled' : '' }} 
                                         class="rounded text-red-600 focus:ring-red-500">
-                                    <span class="font-bold text-gray-900 dark:text-white">{{ $bd->booking_date }}</span>
+                                    <span class="font-bold text-gray-900">{{ $bd->booking_date }}</span>
                                 </div>
                                 <span class="font-bold {{ $bd->status === 'Cancelled' ? 'text-gray-400' : 'text-emerald-600' }}">
                                     {{ $bd->status === 'Cancelled' ? 'Already Cancelled' : ('₹' . number_format($bd->amount, 2)) }}
@@ -1012,8 +1012,8 @@ new #[Layout('layouts.app')] class extends Component
                         @endforeach
                     </div>
 
-                    <div class="pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-2">
-                        <button wire:click="closeCancelModal" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-xs font-bold">Keep Booking</button>
+                    <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
+                        <button wire:click="closeCancelModal" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Keep Booking</button>
                         <button wire:click="submitCancellation" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs">
                             Confirm Cancellation
                         </button>

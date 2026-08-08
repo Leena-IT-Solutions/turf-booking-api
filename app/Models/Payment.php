@@ -14,6 +14,11 @@ class Payment extends Model
         'booking_date_id',
         'payment_method',
         'amount',
+        'commission_percentage',
+        'commission_amount',
+        'cash_held_amount',
+        'turf_payout_amount',
+        'wallet_cleared_at',
         'status',
         'paid_at',
         'refunded_amount',
@@ -23,10 +28,16 @@ class Payment extends Model
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'commission_percentage' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'cash_held_amount' => 'decimal:2',
+        'turf_payout_amount' => 'decimal:2',
+        'wallet_cleared_at' => 'datetime',
         'paid_at' => 'datetime',
         'refunded_amount' => 'decimal:2',
         'refunded_at' => 'datetime',
     ];
+
 
     public function booking()
     {

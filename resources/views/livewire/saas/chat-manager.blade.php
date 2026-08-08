@@ -110,7 +110,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="flex-1 flex min-h-0 bg-white dark:bg-gray-800 overflow-hidden" wire:poll.5s>
+<div class="flex-1 flex min-h-0 bg-white overflow-hidden" wire:poll.5s>
 <style>
     /* Constrain the content area wrapper to viewport height */
     div.lg\:ps-64 {
@@ -131,13 +131,13 @@ new #[Layout('layouts.app')] class extends Component
 </style>
             
             <!-- Left Sidebar (Contacts List) -->
-            <div class="w-80 border-r border-gray-100 dark:border-gray-700/50 flex flex-col h-full min-h-0 bg-gray-50/30 dark:bg-gray-900/10">
+            <div class="w-80 border-r border-gray-100 flex flex-col h-full min-h-0 bg-gray-50/30">
                 <!-- Search Bar -->
-                <div class="p-4 border-b border-gray-100 dark:border-gray-700/50">
-                    <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider mb-3">{{ __('Conversations') }}</h3>
+                <div class="p-4 border-b border-gray-100">
+                    <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider mb-3">{{ __('Conversations') }}</h3>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
@@ -145,35 +145,35 @@ new #[Layout('layouts.app')] class extends Component
                             wire:model.live="search"
                             type="text" 
                             placeholder="Search customer..." 
-                            class="w-full text-xs rounded-2xl bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 pl-10 pr-4 py-2.5 focus:outline-none"
+                            class="w-full text-xs rounded-2xl bg-white border-gray-200 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 pl-10 pr-4 py-2.5 focus:outline-none"
                         />
                     </div>
                 </div>
 
                 <!-- Contacts Scroll Area -->
-                <div class="flex-1 overflow-y-auto divide-y divide-gray-50 dark:divide-gray-800/40">
+                <div class="flex-1 overflow-y-auto divide-y divide-gray-50">
                     @forelse ($contacts as $contact)
                         <button 
                             wire:key="contact-{{ $contact->id }}"
                             wire:click="selectCustomer({{ $contact->id }})"
-                            class="w-full p-4 flex items-start gap-3 transition text-left hover:bg-gray-50 dark:hover:bg-gray-800/30 {{ $activeCustomerId === $contact->id ? 'bg-indigo-50/50 dark:bg-indigo-950/10' : '' }}"
+                            class="w-full p-4 flex items-start gap-3 transition text-left hover:bg-gray-50 {{ $activeCustomerId === $contact->id ? 'bg-indigo-50/50 ' : '' }}"
                         >
                             <!-- Avatar -->
-                            <div class="shrink-0 h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                            <div class="shrink-0 h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100/50 text-indigo-600 font-bold text-sm">
                                 {{ strtoupper(substr($contact->name, 0, 2)) }}
                             </div>
 
                             <!-- Details -->
                             <div class="flex-1 min-w-0">
                                 <div class="flex justify-between items-baseline">
-                                    <span class="font-bold text-xs text-gray-900 dark:text-gray-100 truncate">{{ $contact->name }}</span>
+                                    <span class="font-bold text-xs text-gray-900 truncate">{{ $contact->name }}</span>
                                     @if ($contact->latest_message_time)
-                                        <span class="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
+                                        <span class="text-[9px] text-gray-400 font-medium">
                                             {{ $contact->latest_message_time->diffForHumans(null, true) }}
                                         </span>
                                     @endif
                                 </div>
-                                <p class="text-[10px] text-gray-400 dark:text-gray-500 truncate mt-1">
+                                <p class="text-[10px] text-gray-400 truncate mt-1">
                                     {{ $contact->latest_message }}
                                 </p>
                             </div>
@@ -186,7 +186,7 @@ new #[Layout('layouts.app')] class extends Component
                             @endif
                         </button>
                     @empty
-                        <div class="py-12 text-center text-xs text-gray-400 dark:text-gray-500">
+                        <div class="py-12 text-center text-xs text-gray-400">
                             <span class="text-3xl block mb-2">💬</span>
                             {{ __('No conversations found') }}
                         </div>
@@ -195,17 +195,17 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- Right Chat Window -->
-            <div class="flex-1 flex flex-col h-full min-h-0 bg-white dark:bg-gray-800">
+            <div class="flex-1 flex flex-col h-full min-h-0 bg-white">
                 @if ($activeCustomer)
                     <!-- Chat Header -->
-                    <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-700/50 flex items-center justify-between">
+                    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                         <div class="flex items-center gap-3">
-                            <div class="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center border border-indigo-100/50 dark:border-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                            <div class="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100/50 text-indigo-600 font-bold text-sm">
                                 {{ strtoupper(substr($activeCustomer->name, 0, 2)) }}
                             </div>
                             <div>
-                                <h4 class="font-bold text-xs text-gray-900 dark:text-gray-100">{{ $activeCustomer->name }}</h4>
-                                <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold">{{ $activeCustomer->email }} • {{ $activeCustomer->mobile }}</span>
+                                <h4 class="font-bold text-xs text-gray-900">{{ $activeCustomer->name }}</h4>
+                                <span class="text-[10px] text-gray-400 font-semibold">{{ $activeCustomer->email }} • {{ $activeCustomer->mobile }}</span>
                             </div>
                         </div>
                     </div>
@@ -216,7 +216,7 @@ new #[Layout('layouts.app')] class extends Component
                         x-data
                         x-init="$nextTick(() => { $el.scrollTop = $el.scrollHeight; })"
                         @scroll-to-bottom.window="$nextTick(() => { $el.scrollTop = $el.scrollHeight; })"
-                        class="flex-1 min-h-0 p-6 overflow-y-auto space-y-4 bg-gray-50/10 dark:bg-gray-900/5"
+                        class="flex-1 min-h-0 p-6 overflow-y-auto space-y-4 bg-gray-50/10"
                     >
                         @foreach ($messages as $msg)
                             <div wire:key="msg-{{ $msg->id }}" class="flex w-full">
@@ -233,9 +233,9 @@ new #[Layout('layouts.app')] class extends Component
                                 @else
                                     <!-- Left Bubble (Received Message) -->
                                     <div class="flex items-end gap-2 max-w-[80%]">
-                                        <div class="bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-gray-100 rounded-3xl rounded-bl-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
+                                        <div class="bg-gray-100 text-gray-900 rounded-3xl rounded-bl-none px-4 py-2.5 shadow-sm text-xs leading-relaxed">
                                             {{ $msg->message }}
-                                            <span class="block text-[8px] text-gray-400 dark:text-gray-500 text-right mt-1 font-mono">
+                                            <span class="block text-[8px] text-gray-400 text-right mt-1 font-mono">
                                                 {{ $msg->created_at->format('h:i A') }}
                                             </span>
                                         </div>
@@ -246,7 +246,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Chat Bottom Input -->
-                    <div class="p-4 border-t border-gray-100 dark:border-gray-700/50 bg-white dark:bg-gray-800">
+                    <div class="p-4 border-t border-gray-100 bg-white">
                         <form wire:submit.prevent="sendReply" class="flex gap-3">
                             <input 
                                 id="reply-input-field"
@@ -255,7 +255,7 @@ new #[Layout('layouts.app')] class extends Component
                                 x-init="$nextTick(() => { $el.focus(); })"
                                 type="text" 
                                 placeholder="Type a message..." 
-                                class="flex-1 text-xs rounded-2xl bg-gray-50 dark:bg-gray-900/30 border-gray-100 dark:border-gray-700 text-gray-900 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 px-4 py-3"
+                                class="flex-1 text-xs rounded-2xl bg-gray-50 border-gray-100 text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 px-4 py-3"
                             />
                             <button 
                                 type="submit" 
@@ -269,8 +269,8 @@ new #[Layout('layouts.app')] class extends Component
                     <!-- Empty State View -->
                     <div class="flex-1 flex flex-col items-center justify-center text-center p-12">
                         <span class="text-5xl mb-4">💬</span>
-                        <h4 class="font-extrabold text-sm text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Support Workspace') }}</h4>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 max-w-sm leading-relaxed">
+                        <h4 class="font-extrabold text-sm text-gray-900 uppercase tracking-wider">{{ __('Support Workspace') }}</h4>
+                        <p class="text-xs text-gray-400 mt-2 max-w-sm leading-relaxed">
                             {{ __('Select a conversation from the sidebar list to view the support details and reply in real-time.') }}
                         </p>
                     </div>
