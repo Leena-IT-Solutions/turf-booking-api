@@ -16,7 +16,7 @@ class WhatsAppService
         $setting = \App\Models\SaasSetting::first();
         $this->token = $setting?->whatsapp_token ?? env('WHATSAPP_TOKEN', '');
         $this->phoneNumberId = $setting?->whatsapp_phone_number_id ?? env('WHATSAPP_PHONE_NUMBER_ID', '');
-        $this->templateName = $setting?->whatsapp_otp_template ?: (env('WHATSAPP_OTP_TEMPLATE') ?: 'turf_otp');
+        $this->templateName = $setting?->whatsapp_otp_template ?: (env('WHATSAPP_OTP_TEMPLATE') ?: 'otp_turf_booking');
     }
 
     /**
@@ -38,40 +38,8 @@ class WhatsAppService
         $url = "https://graph.facebook.com/v20.0/{$this->phoneNumberId}/messages";
 
         try {
-            // 1. Primary Attempt: Body Parameter Template (e.g. "{{1}} is your verification code...")
-            foreach (['en_US', 'en'] as $lang) {
-                $templateResponse = Http::withToken($this->token)
-                    ->post($url, [
-                        'messaging_product' => 'whatsapp',
-                        'to' => $cleanMobile,
-                        'type' => 'template',
-                        'template' => [
-                            'name' => $this->templateName,
-                            'language' => [
-                                'code' => $lang,
-                            ],
-                            'components' => [
-                                [
-                                    'type' => 'body',
-                                    'parameters' => [
-                                        [
-                                            'type' => 'text',
-                                            'text' => (string) $otp,
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ],
-                    ]);
-
-                if ($templateResponse->successful()) {
-                    Log::info("WhatsApp OTP template '{$this->templateName}' ({$lang}) sent successfully with OTP {$otp} to {$cleanMobile}.");
-                    return true;
-                }
-            }
-
-            // 2. Secondary Attempt: Authentication Copy-Code Button Template
-            foreach (['en_US', 'en'] as $lang) {
+            // 1. Primary Attempt: Authentication Template with Copy-Code Button & Body parameter (e.g. Meta Authentication template)
+            foreach (['en', 'en_US', 'en_GB', 'hi'] as $lang) {
                 $authButtonResponse = Http::withToken($this->token)
                     ->post($url, [
                         'messaging_product' => 'whatsapp',
@@ -108,7 +76,39 @@ class WhatsAppService
                     ]);
 
                 if ($authButtonResponse->successful()) {
-                    Log::info("WhatsApp Authentication Button OTP template '{$this->templateName}' ({$lang}) sent successfully with OTP {$otp} to {$cleanMobile}.");
+                    Log::info("WhatsApp Authentication Button OTP template '{$this->templateName}' ({$lang}) sent successfully to {$cleanMobile}.");
+                    return true;
+                }
+            }
+
+            // 2. Secondary Attempt: Standard Body Parameter Template (without button parameters)
+            foreach (['en', 'en_US', 'en_GB', 'hi'] as $lang) {
+                $templateResponse = Http::withToken($this->token)
+                    ->post($url, [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $cleanMobile,
+                        'type' => 'template',
+                        'template' => [
+                            'name' => $this->templateName,
+                            'language' => [
+                                'code' => $lang,
+                            ],
+                            'components' => [
+                                [
+                                    'type' => 'body',
+                                    'parameters' => [
+                                        [
+                                            'type' => 'text',
+                                            'text' => (string) $otp,
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                    ]);
+
+                if ($templateResponse->successful()) {
+                    Log::info("WhatsApp OTP template '{$this->templateName}' ({$lang}) sent successfully to {$cleanMobile}.");
                     return true;
                 }
             }
