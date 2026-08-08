@@ -38,68 +38,82 @@ class WhatsAppService
         $url = "https://graph.facebook.com/v20.0/{$this->phoneNumberId}/messages";
 
         try {
-            // 1. Primary Attempt: Approved WhatsApp Template message with OTP variable {{1}}
-            // Meta requires approved template messages to send outside the 24-hour customer service window.
-            $templateResponse = Http::withToken($this->token)
-                ->post($url, [
-                    'messaging_product' => 'whatsapp',
-                    'to' => $cleanMobile,
-                    'type' => 'template',
-                    'template' => [
-                        'name' => $this->templateName,
-                        'language' => [
-                            'code' => 'en_US',
-                        ],
-                        'components' => [
-                            [
-                                'type' => 'body',
-                                'parameters' => [
-                                    [
-                                        'type' => 'text',
-                                        'text' => (string) $otp,
+            // 1. Primary Attempt: Body Parameter Template (e.g. "{{1}} is your verification code...")
+            foreach (['en_US', 'en'] as $lang) {
+                $templateResponse = Http::withToken($this->token)
+                    ->post($url, [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $cleanMobile,
+                        'type' => 'template',
+                        'template' => [
+                            'name' => $this->templateName,
+                            'language' => [
+                                'code' => $lang,
+                            ],
+                            'components' => [
+                                [
+                                    'type' => 'body',
+                                    'parameters' => [
+                                        [
+                                            'type' => 'text',
+                                            'text' => (string) $otp,
+                                        ]
                                     ]
                                 ]
                             ]
-                        ]
-                    ],
-                ]);
+                        ],
+                    ]);
 
-            if ($templateResponse->successful()) {
-                Log::info("WhatsApp OTP template '{$this->templateName}' (en_US) sent successfully with OTP {$otp} to {$cleanMobile}.");
-                return true;
+                if ($templateResponse->successful()) {
+                    Log::info("WhatsApp OTP template '{$this->templateName}' ({$lang}) sent successfully with OTP {$otp} to {$cleanMobile}.");
+                    return true;
+                }
             }
 
-            // Fallback language 'en'
-            $templateEnResponse = Http::withToken($this->token)
-                ->post($url, [
-                    'messaging_product' => 'whatsapp',
-                    'to' => $cleanMobile,
-                    'type' => 'template',
-                    'template' => [
-                        'name' => $this->templateName,
-                        'language' => [
-                            'code' => 'en',
-                        ],
-                        'components' => [
-                            [
-                                'type' => 'body',
-                                'parameters' => [
-                                    [
-                                        'type' => 'text',
-                                        'text' => (string) $otp,
+            // 2. Secondary Attempt: Authentication Copy-Code Button Template
+            foreach (['en_US', 'en'] as $lang) {
+                $authButtonResponse = Http::withToken($this->token)
+                    ->post($url, [
+                        'messaging_product' => 'whatsapp',
+                        'to' => $cleanMobile,
+                        'type' => 'template',
+                        'template' => [
+                            'name' => $this->templateName,
+                            'language' => [
+                                'code' => $lang,
+                            ],
+                            'components' => [
+                                [
+                                    'type' => 'body',
+                                    'parameters' => [
+                                        [
+                                            'type' => 'text',
+                                            'text' => (string) $otp,
+                                        ]
+                                    ]
+                                ],
+                                [
+                                    'type' => 'button',
+                                    'sub_type' => 'url',
+                                    'index' => '0',
+                                    'parameters' => [
+                                        [
+                                            'type' => 'text',
+                                            'text' => (string) $otp,
+                                        ]
                                     ]
                                 ]
                             ]
-                        ]
-                    ],
-                ]);
+                        ],
+                    ]);
 
-            if ($templateEnResponse->successful()) {
-                Log::info("WhatsApp OTP template '{$this->templateName}' (en) sent successfully with OTP {$otp} to {$cleanMobile}.");
-                return true;
+                if ($authButtonResponse->successful()) {
+                    Log::info("WhatsApp Authentication Button OTP template '{$this->templateName}' ({$lang}) sent successfully with OTP {$otp} to {$cleanMobile}.");
+                    return true;
+                }
             }
 
-            // 2. Secondary Attempt: Direct freeform text message (for users within active 24h customer window)
+            // 3. Tertiary Attempt: Direct freeform text message (for users within active 24h customer window)
             $messageText = "Your TurfBooking OTP code for {$purpose} is: {$otp}. It is valid for 10 minutes. Please do not share it with anyone.";
             $textResponse = Http::withToken($this->token)
                 ->post($url, [
@@ -118,7 +132,7 @@ class WhatsAppService
                 return true;
             }
 
-            Log::error("WhatsApp API Error | Template (en_US): " . $templateResponse->body() . " | Template (en): " . $templateEnResponse->body() . " | Text: " . $textResponse->body());
+            Log::error("WhatsApp API All Attempts Failed for {$cleanMobile}. Template: {$this->templateName}.");
             return false;
 
         } catch (\Throwable $e) {
