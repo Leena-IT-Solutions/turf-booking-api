@@ -20,6 +20,7 @@ class SaasSetting extends Model
         'whatsapp_token',
         'whatsapp_phone_number_id',
         'whatsapp_business_account_id',
+        'whatsapp_otp_template',
         'google_maps_api_key',
         'razorpay_key',
         'razorpay_secret',

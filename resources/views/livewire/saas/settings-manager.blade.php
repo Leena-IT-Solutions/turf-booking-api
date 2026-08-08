@@ -20,6 +20,7 @@ new #[Layout('layouts.app')] class extends Component
     public $whatsapp_token = '';
     public $whatsapp_phone_number_id = '';
     public $whatsapp_business_account_id = '';
+    public $whatsapp_otp_template = 'turf_otp';
     public $razorpay_key = '';
     public $razorpay_secret = '';
     public $mailgun_domain = '';
@@ -69,6 +70,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->whatsapp_token = $setting->whatsapp_token;
         $this->whatsapp_phone_number_id = $setting->whatsapp_phone_number_id;
         $this->whatsapp_business_account_id = $setting->whatsapp_business_account_id;
+        $this->whatsapp_otp_template = $setting->whatsapp_otp_template ?: 'turf_otp';
         $this->google_maps_api_key = $setting->google_maps_api_key;
         $this->razorpay_key = $setting->razorpay_key;
         $this->razorpay_secret = $setting->razorpay_secret;
@@ -134,6 +136,7 @@ new #[Layout('layouts.app')] class extends Component
             'whatsapp_token' => 'nullable|string',
             'whatsapp_phone_number_id' => 'nullable|string|max:255',
             'whatsapp_business_account_id' => 'nullable|string|max:255',
+            'whatsapp_otp_template' => 'nullable|string|max:255',
             'google_maps_api_key' => 'nullable|string|max:255',
             'razorpay_key' => 'nullable|string|max:255',
             'razorpay_secret' => 'nullable|string|max:255',
@@ -166,6 +169,7 @@ new #[Layout('layouts.app')] class extends Component
             'whatsapp_token' => $this->whatsapp_token,
             'whatsapp_phone_number_id' => $this->whatsapp_phone_number_id,
             'whatsapp_business_account_id' => $this->whatsapp_business_account_id,
+            'whatsapp_otp_template' => $this->whatsapp_otp_template,
             'google_maps_api_key' => $this->google_maps_api_key,
             'razorpay_key' => $this->razorpay_key,
             'razorpay_secret' => $this->razorpay_secret,
@@ -403,19 +407,27 @@ new #[Layout('layouts.app')] class extends Component
                             <x-input-error :messages="$errors->get('whatsapp_token')" class="mt-2" />
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <!-- Phone Number ID -->
                             <div>
                                 <x-input-label for="whatsappPhoneNumberId" :value="__('Phone Number ID')" />
-                                <x-text-input wire:model.live.debounce.250ms="whatsapp_phone_number_id" id="whatsappPhoneNumberId" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="1275286312329223" />
+                                <x-text-input wire:model.live.debounce.250ms="whatsapp_phone_number_id" id="whatsappPhoneNumberId" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="1235536072981098" />
                                 <x-input-error :messages="$errors->get('whatsapp_phone_number_id')" class="mt-2" />
                             </div>
 
                             <!-- Business Account ID -->
                             <div>
                                 <x-input-label for="whatsappBusinessAccountId" :value="__('WhatsApp Business Account ID')" />
-                                <x-text-input wire:model.live.debounce.250ms="whatsapp_business_account_id" id="whatsappBusinessAccountId" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="2693008137759947" />
+                                <x-text-input wire:model.live.debounce.250ms="whatsapp_business_account_id" id="whatsappBusinessAccountId" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="2934433673575027" />
                                 <x-input-error :messages="$errors->get('whatsapp_business_account_id')" class="mt-2" />
+                            </div>
+
+                            <!-- OTP Template Name -->
+                            <div>
+                                <x-input-label for="whatsappOtpTemplate" :value="__('OTP Template Name')" />
+                                <x-text-input wire:model.live.debounce.250ms="whatsapp_otp_template" id="whatsappOtpTemplate" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="turf_otp" />
+                                <span class="text-[10px] text-gray-400 font-semibold mt-1 block">{{ __('Meta template name (e.g. turf_otp) with parameter {1}') }}</span>
+                                <x-input-error :messages="$errors->get('whatsapp_otp_template')" class="mt-2" />
                             </div>
                         </div>
                     </div>
