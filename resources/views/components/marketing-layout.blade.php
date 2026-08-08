@@ -19,21 +19,21 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
     </head>
-    <body class="antialiased font-sans bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
+    <body class="antialiased font-sans bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
         
         <!-- Background Ambient Glow -->
         <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
-            <div class="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full bg-emerald-500/5 dark:bg-emerald-400/5 blur-3xl"></div>
-            <div class="absolute top-1/3 -left-20 w-[400px] h-[400px] rounded-full bg-indigo-500/5 dark:bg-indigo-400/5 blur-3xl"></div>
-            <div class="absolute bottom-10 right-10 w-[450px] h-[450px] rounded-full bg-emerald-500/5 dark:bg-emerald-500/10 blur-3xl"></div>
+            <div class="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full bg-emerald-500/5 blur-3xl"></div>
+            <div class="absolute top-1/3 -left-20 w-[400px] h-[400px] rounded-full bg-indigo-500/5 blur-3xl"></div>
+            <div class="absolute bottom-10 right-10 w-[450px] h-[450px] rounded-full bg-emerald-500/5 blur-3xl"></div>
         </div>
 
         <!-- Sticky Header / Navigation -->
         <header 
             x-data="{ mobileMenuOpen: false, scrolled: false }"
             x-init="window.addEventListener('scroll', () => { scrolled = window.scrollY > 20 })"
-            :class="scrolled ? 'bg-white/80 dark:bg-slate-900/80 border-slate-200/50 dark:border-slate-800/50 shadow-md backdrop-blur-md' : 'bg-white/30 dark:bg-slate-950/30 backdrop-blur-sm border-transparent shadow-none'"
-            class="sticky top-0 z-50 w-full border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200/50 dark:border-slate-800/50 shadow-sm transition-all duration-300 py-4"
+            :class="scrolled ? 'bg-white/80 border-slate-200/50 shadow-md backdrop-blur-md' : 'bg-white/30 backdrop-blur-sm border-transparent shadow-none'"
+            class="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md border-slate-200/50 shadow-sm transition-all duration-300 py-4"
         >
             <div class="max-w-7xl mx-auto px-6 flex items-center justify-between">
                 <!-- Logo & Brand -->
@@ -44,31 +44,31 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
                     </div>
-                    <span class="font-black text-xl tracking-tight text-slate-900 dark:text-white group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition duration-150">
+                    <span class="font-black text-xl tracking-tight text-slate-900 group-hover:text-emerald-500 transition duration-150">
                         {{ config('app.name', 'TurfBooking') }}
                     </span>
                 </a>
 
                 <!-- Desktop Navigation Menu -->
                 <nav class="hidden md:flex items-center gap-8">
-                    <a href="{{ url('/') }}" class="text-sm font-semibold {{ Request::is('/') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400' }} transition duration-150">Home</a>
-                    <a href="{{ url('/features') }}" class="text-sm font-semibold {{ Request::is('features') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400' }} transition duration-150">Features</a>
-                    <a href="{{ url('/pricing') }}" class="text-sm font-semibold {{ Request::is('pricing') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400' }} transition duration-150">Pricing</a>
-                    <a href="{{ url('/contact') }}" class="text-sm font-semibold {{ Request::is('contact') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400' }} transition duration-150">Contact</a>
+                    <a href="{{ url('/') }}" class="text-sm font-semibold {{ Request::is('/') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Home</a>
+                    <a href="{{ url('/features') }}" class="text-sm font-semibold {{ Request::is('features') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Features</a>
+                    <a href="{{ url('/pricing') }}" class="text-sm font-semibold {{ Request::is('pricing') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Pricing</a>
+                    <a href="{{ url('/contact') }}" class="text-sm font-semibold {{ Request::is('contact') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Contact</a>
                 </nav>
 
                 <!-- Navigation Auth Actions -->
                 <div class="hidden md:flex items-center gap-4">
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white dark:text-slate-950 rounded-xl transition-all duration-300 shadow-md shadow-emerald-500/10 hover:shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5">
+                        <a href="{{ url('/dashboard') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl transition-all duration-300 shadow-md shadow-emerald-500/10 hover:shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5">
                             Dashboard
                         </a>
                     @else
-                        <a href="{{ route('login') }}" class="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition duration-150 py-2.5 px-4 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <a href="{{ route('login') }}" class="text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-slate-900 transition duration-150 py-2.5 px-4 rounded-xl hover:bg-slate-100">
                             Log in
                         </a>
                         @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white dark:text-slate-950 rounded-xl transition-all duration-300 shadow-md shadow-emerald-500/10 hover:shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5">
+                            <a href="{{ route('register') }}" class="inline-flex items-center justify-center px-5 py-2.5 text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white rounded-xl transition-all duration-300 shadow-md shadow-emerald-500/10 hover:shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5">
                                 Get Started
                             </a>
                         @endif
@@ -79,7 +79,7 @@
                 <button 
                     @click="mobileMenuOpen = !mobileMenuOpen" 
                     type="button" 
-                    class="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus:outline-none"
+                    class="md:hidden p-2 rounded-xl text-slate-600 hover:bg-slate-100 focus:outline-none"
                     aria-label="Toggle menu"
                 >
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,26 +99,26 @@
                 x-transition:leave-start="opacity-100 translate-y-0"
                 x-transition:leave-end="opacity-0 -translate-y-4"
                 style="display: none;"
-                class="md:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 py-6 px-6 shadow-xl"
+                class="md:hidden absolute top-full left-0 w-full bg-white border-b border-slate-200 py-6 px-6 shadow-xl"
             >
                 <div class="flex flex-col gap-4">
-                    <a @click="mobileMenuOpen = false" href="{{ url('/') }}" class="text-base font-semibold py-2 {{ Request::is('/') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400' }}">Home</a>
-                    <a @click="mobileMenuOpen = false" href="{{ url('/features') }}" class="text-base font-semibold py-2 {{ Request::is('features') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400' }}">Features</a>
-                    <a @click="mobileMenuOpen = false" href="{{ url('/pricing') }}" class="text-base font-semibold py-2 {{ Request::is('pricing') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400' }}">Pricing</a>
-                    <a @click="mobileMenuOpen = false" href="{{ url('/contact') }}" class="text-base font-semibold py-2 {{ Request::is('contact') ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400' }}">Contact</a>
+                    <a @click="mobileMenuOpen = false" href="{{ url('/') }}" class="text-base font-semibold py-2 {{ Request::is('/') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Home</a>
+                    <a @click="mobileMenuOpen = false" href="{{ url('/features') }}" class="text-base font-semibold py-2 {{ Request::is('features') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Features</a>
+                    <a @click="mobileMenuOpen = false" href="{{ url('/pricing') }}" class="text-base font-semibold py-2 {{ Request::is('pricing') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Pricing</a>
+                    <a @click="mobileMenuOpen = false" href="{{ url('/contact') }}" class="text-base font-semibold py-2 {{ Request::is('contact') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Contact</a>
                     
-                    <hr class="border-slate-200 dark:border-slate-800 my-2">
+                    <hr class="border-slate-200 my-2">
                     
                     @auth
-                        <a @click="mobileMenuOpen = false" href="{{ url('/dashboard') }}" class="inline-flex items-center justify-center w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white dark:text-slate-950 font-bold rounded-xl text-center shadow-md">
+                        <a @click="mobileMenuOpen = false" href="{{ url('/dashboard') }}" class="inline-flex items-center justify-center w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl text-center shadow-md">
                             Dashboard
                         </a>
                     @else
-                        <a @click="mobileMenuOpen = false" href="{{ route('login') }}" class="inline-flex items-center justify-center w-full py-3 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200 dark:border-slate-800 rounded-xl text-center hover:bg-slate-50 dark:hover:bg-slate-850">
+                        <a @click="mobileMenuOpen = false" href="{{ route('login') }}" class="inline-flex items-center justify-center w-full py-3 text-slate-700 font-semibold border border-slate-200 rounded-xl text-center hover:bg-slate-50">
                             Log in
                         </a>
                         @if (Route::has('register'))
-                            <a @click="mobileMenuOpen = false" href="{{ route('register') }}" class="inline-flex items-center justify-center w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white dark:text-slate-950 font-bold rounded-xl text-center shadow-md mt-2">
+                            <a @click="mobileMenuOpen = false" href="{{ route('register') }}" class="inline-flex items-center justify-center w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-bold rounded-xl text-center shadow-md mt-2">
                                 Get Started
                             </a>
                         @endif
@@ -133,7 +133,7 @@
         </main>
 
         <!-- Premium Footer -->
-        <footer class="relative z-10 w-full border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 backdrop-blur-sm pt-16 pb-12 transition-colors duration-300">
+        <footer class="relative z-10 w-full border-t border-slate-200 bg-white backdrop-blur-sm pt-16 pb-12 transition-colors duration-300">
             <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
                 <!-- Branding and App Downloads -->
                 <div class="md:col-span-1 space-y-5">
@@ -144,15 +144,15 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
                         </div>
-                        <span class="font-extrabold text-lg text-slate-900 dark:text-white">{{ config('app.name', 'TurfBooking') }}</span>
+                        <span class="font-extrabold text-lg text-slate-900">{{ config('app.name', 'TurfBooking') }}</span>
                     </a>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <p class="text-xs text-slate-500 leading-relaxed">
                         The all-in-one platform for sports facility owners and players. Simplify operations, automate slots scheduling, and boost occupancy rates instantly.
                     </p>
                     
                     <!-- App Badges -->
                     <div class="pt-2 space-y-2">
-                        <span class="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Download companion app</span>
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Download companion app</span>
                         <div class="flex items-center gap-3 flex-wrap">
                             <!-- App Store Badge Link -->
                             <a href="#" class="group transition duration-200">
@@ -184,30 +184,30 @@
 
                 <!-- Column 2: Navigation Links -->
                 <div class="space-y-4">
-                    <span class="block text-xs font-bold text-slate-950 dark:text-white uppercase tracking-widest">Platform</span>
+                    <span class="block text-xs font-bold text-slate-950 uppercase tracking-widest">Platform</span>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="{{ url('/') }}" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">Home Overview</a></li>
-                        <li><a href="{{ url('/features') }}" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">Key Features</a></li>
-                        <li><a href="{{ url('/pricing') }}" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">Pricing Plans</a></li>
-                        <li><a href="{{ route('register') }}" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">Register Venue</a></li>
+                        <li><a href="{{ url('/') }}" class="text-slate-500 hover:text-emerald-600 transition">Home Overview</a></li>
+                        <li><a href="{{ url('/features') }}" class="text-slate-500 hover:text-emerald-600 transition">Key Features</a></li>
+                        <li><a href="{{ url('/pricing') }}" class="text-slate-500 hover:text-emerald-600 transition">Pricing Plans</a></li>
+                        <li><a href="{{ route('register') }}" class="text-slate-500 hover:text-emerald-600 transition">Register Venue</a></li>
                     </ul>
                 </div>
 
                 <!-- Column 3: Legal & Support -->
                 <div class="space-y-4">
-                    <span class="block text-xs font-bold text-slate-950 dark:text-white uppercase tracking-widest">Support & Legal</span>
+                    <span class="block text-xs font-bold text-slate-950 uppercase tracking-widest">Support & Legal</span>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="{{ url('/contact') }}" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">Contact Us</a></li>
-                        <li><a href="{{ route('privacy-policy') }}" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">Privacy Policy</a></li>
-                        <li><a href="mailto:support@turfbooking.com" class="text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition">Support Email</a></li>
-                        <li><span class="text-slate-400 dark:text-slate-500 font-medium">Venue Hotline: +1 (800) 555-TURF</span></li>
+                        <li><a href="{{ url('/contact') }}" class="text-slate-500 hover:text-emerald-600 transition">Contact Us</a></li>
+                        <li><a href="{{ route('privacy-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Privacy Policy</a></li>
+                        <li><a href="mailto:support@turfbooking.com" class="text-slate-500 hover:text-emerald-600 transition">Support Email</a></li>
+                        <li><span class="text-slate-400 font-medium">Venue Hotline: +1 (800) 555-TURF</span></li>
                     </ul>
                 </div>
 
                 <!-- Column 4: Newsletter -->
                 <div class="space-y-4">
-                    <span class="block text-xs font-bold text-slate-950 dark:text-white uppercase tracking-widest">Stay Updated</span>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <span class="block text-xs font-bold text-slate-950 uppercase tracking-widest">Stay Updated</span>
+                    <p class="text-xs text-slate-500 leading-relaxed">
                         Get business advice and software update alerts directly in your inbox.
                     </p>
                     <form x-data="{ email: '', subscribed: false }" @submit.prevent="subscribed = true; email = ''" class="flex gap-2">
@@ -218,9 +218,9 @@
                                 required 
                                 x-model="email"
                                 placeholder="owner@sportscomplex.com" 
-                                class="w-full text-xs px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:border-emerald-500"
+                                class="w-full text-xs px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
                             >
-                            <span x-show="subscribed" class="block text-xs font-semibold text-emerald-600 dark:text-emerald-400 py-2">
+                            <span x-show="subscribed" class="block text-xs font-semibold text-emerald-600 py-2">
                                 ✓ Subscribed successfully!
                             </span>
                         </div>
@@ -236,7 +236,7 @@
             </div>
 
             <!-- Copyright and Social Icons -->
-            <div class="max-w-7xl mx-auto px-6 border-t border-slate-200 dark:border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+            <div class="max-w-7xl mx-auto px-6 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
                 <p>&copy; {{ date('Y') }} {{ config('app.name', 'TurfBooking') }}. All rights reserved.</p>
                 <div class="flex items-center gap-6">
                     <a href="#" class="hover:text-emerald-500 transition"><span class="sr-only">Twitter</span>𝕏</a>

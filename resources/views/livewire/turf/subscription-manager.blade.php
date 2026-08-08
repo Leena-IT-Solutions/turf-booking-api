@@ -225,42 +225,42 @@ new #[Layout('layouts.app')] class extends Component
 
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xs">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
         <div class="flex items-center gap-3">
-            <div class="p-3 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Per-Turf Subscription Plans</h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Select turfs to subscribe or renew, and unlock lower platform commission rates per turf.</p>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Per-Turf Subscription Plans</h1>
+                <p class="text-xs text-gray-500">Select turfs to subscribe or renew, and unlock lower platform commission rates per turf.</p>
             </div>
         </div>
 
         <!-- Billing Cycle Switcher -->
-        <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-900 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 self-start sm:self-auto">
+        <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200 self-start sm:self-auto">
             <button wire:click="$set('billingCycle', 'monthly')" type="button"
-                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $billingCycle === 'monthly' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500 dark:text-gray-400' }}">
+                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $billingCycle === 'monthly' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 ' }}">
                 Monthly
             </button>
             <button wire:click="$set('billingCycle', 'yearly')" type="button"
-                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 {{ $billingCycle === 'yearly' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500 dark:text-gray-400' }}">
+                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer flex items-center gap-1.5 {{ $billingCycle === 'yearly' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 ' }}">
                 <span>Yearly</span>
-                <span class="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-md bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">Save</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-md bg-emerald-100 text-emerald-700">Save</span>
             </button>
         </div>
     </div>
 
     <!-- Flash Notifications -->
     @if (session('status'))
-        <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             {{ session('status') }}
         </div>
     @endif
     @if (session('error'))
-        <div class="p-4 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-700/60 text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-2">
+        <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             {{ session('error') }}
         </div>
@@ -274,28 +274,28 @@ new #[Layout('layouts.app')] class extends Component
         $selectedCount = count($selectedTurfIds);
     @endphp
 
-    <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xs space-y-5">
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-xs space-y-5">
         <div class="flex items-center justify-between">
             <div class="space-y-1">
-                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">STEP 1</span>
-                <h2 class="text-xl font-black text-gray-900 dark:text-white">Select Turfs to Subscribe / Renew</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Pick which turfs you want to include in this subscription payment.</p>
+                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">STEP 1</span>
+                <h2 class="text-xl font-black text-gray-900">Select Turfs to Subscribe / Renew</h2>
+                <p class="text-xs text-gray-500">Pick which turfs you want to include in this subscription payment.</p>
             </div>
-            <button wire:click="toggleAllTurfs" type="button" class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-bold rounded-xl transition cursor-pointer">
+            <button wire:click="toggleAllTurfs" type="button" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer">
                 {{ $selectedCount === $allTurfsCount ? 'Deselect All' : 'Select All' }}
             </button>
         </div>
 
         @if ($manageableLocations->isEmpty() || $allTurfsCount === 0)
-            <div class="p-6 text-center text-gray-500 dark:text-gray-400 text-xs bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
+            <div class="p-6 text-center text-gray-500 text-xs bg-gray-50 rounded-2xl border border-dashed border-gray-300">
                 No turfs available under your management. Create a location and turf first to subscribe.
             </div>
         @else
             <div class="space-y-4">
                 @foreach ($manageableLocations as $loc)
                     @if ($loc->turfs->isNotEmpty())
-                        <div class="bg-gray-50/70 dark:bg-gray-900/40 p-4 rounded-2xl border border-gray-200/80 dark:border-gray-700/60 space-y-3">
-                            <span class="text-[11px] font-black uppercase tracking-wider text-gray-500 dark:text-gray-400 block">
+                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-200/80 space-y-3">
+                            <span class="text-[11px] font-black uppercase tracking-wider text-gray-500 block">
                                 📍 {{ $loc->name }}
                             </span>
                             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -305,17 +305,17 @@ new #[Layout('layouts.app')] class extends Component
                                         $activeSub = $turf->activeSubscription;
                                     @endphp
                                     <div wire:click="toggleTurf({{ $turf->id }})"
-                                        class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 {{ $isSelected ? 'bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 dark:border-indigo-400 shadow-sm' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-80' }}">
+                                        class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 {{ $isSelected ? 'bg-indigo-50/80 border-indigo-500 shadow-sm' : 'bg-white border-gray-200 opacity-80' }}">
                                         <div class="min-w-0">
-                                            <span class="font-bold text-xs text-gray-900 dark:text-white block truncate">{{ $turf->name }}</span>
-                                            <span class="text-[10px] text-gray-500 dark:text-gray-400 block truncate mt-0.5">
+                                            <span class="font-bold text-xs text-gray-900 block truncate">{{ $turf->name }}</span>
+                                            <span class="text-[10px] text-gray-500 block truncate mt-0.5">
                                                 Rate: {{ number_format($turf->commission_percentage, 2) }}% | {{ $activeSub ? $activeSub->package?->name : 'No Plan' }}
                                             </span>
                                             @if ($activeSub)
-                                                <span class="text-[9px] text-emerald-600 dark:text-emerald-400 block font-semibold">Exp: {{ $activeSub->expires_at?->format('d M Y') }}</span>
+                                                <span class="text-[9px] text-emerald-600 block font-semibold">Exp: {{ $activeSub->expires_at?->format('d M Y') }}</span>
                                             @endif
                                         </div>
-                                        <div class="h-5 w-5 rounded-md border flex items-center justify-center shrink-0 {{ $isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 dark:border-gray-600' }}">
+                                        <div class="h-5 w-5 rounded-md border flex items-center justify-center shrink-0 {{ $isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 ' }}">
                                             @if ($isSelected)
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                             @endif
@@ -333,8 +333,8 @@ new #[Layout('layouts.app')] class extends Component
     <!-- STEP 2: SUBSCRIPTION PACKAGES CARDS -->
     <div class="space-y-2">
         <div class="px-2">
-            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">STEP 2</span>
-            <h2 class="text-xl font-black text-gray-900 dark:text-white">Select Subscription Package</h2>
+            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">STEP 2</span>
+            <h2 class="text-xl font-black text-gray-900">Select Subscription Package</h2>
         </div>
 
         @php
@@ -349,39 +349,39 @@ new #[Layout('layouts.app')] class extends Component
                     $durationText = $billingCycle === 'yearly' ? 'year' : 'month';
                 @endphp
 
-                <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xs hover:shadow-md transition p-6 sm:p-8 flex flex-col justify-between space-y-6">
+                <div class="bg-white rounded-3xl border border-gray-200 shadow-xs hover:shadow-md transition p-6 sm:p-8 flex flex-col justify-between space-y-6">
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">{{ $pkg->name }}</span>
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">{{ $pkg->name }}</span>
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
                                 {{ $pkg->commission_percentage }}% Commission
                             </span>
                         </div>
 
                         <div class="space-y-1">
                             <div class="flex items-baseline gap-1">
-                                <span class="text-3xl font-black text-gray-900 dark:text-white">₹{{ number_format($unitPrice, 2) }}</span>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">/ turf / {{ $durationText }}</span>
+                                <span class="text-3xl font-black text-gray-900">₹{{ number_format($unitPrice, 2) }}</span>
+                                <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
                             </div>
                             @if ($selectedCount > 0)
-                                <p class="text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                                <p class="text-xs font-bold text-indigo-600">
                                     Total: ₹{{ number_format($totalPrice, 2) }} for {{ $selectedCount }} turf(s)
                                 </p>
                             @else
-                                <p class="text-xs text-amber-600 dark:text-amber-400 font-semibold">
+                                <p class="text-xs text-amber-600 font-semibold">
                                     Select at least 1 turf above to see total
                                 </p>
                             @endif
                         </div>
 
                         @if ($pkg->description)
-                            <p class="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">{{ $pkg->description }}</p>
+                            <p class="text-xs text-gray-500 leading-relaxed">{{ $pkg->description }}</p>
                         @endif
 
                         @if ($pkg->features && is_array($pkg->features))
-                            <ul class="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                            <ul class="space-y-2 pt-2 border-t border-gray-100">
                                 @foreach ($pkg->features as $feat)
-                                    <li class="flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300">
+                                    <li class="flex items-center gap-2 text-xs text-gray-700">
                                         <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                                         <span>{{ $feat }}</span>
                                     </li>
@@ -393,15 +393,15 @@ new #[Layout('layouts.app')] class extends Component
                     <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')"
                         @if ($selectedCount === 0) disabled @endif
                         type="button"
-                        class="w-full py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm active:scale-[0.99]' : 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' }}">
+                        class="w-full py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm active:scale-[0.99]' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }}">
                         <span>Subscribe / Renew {{ $selectedCount }} Turf(s)</span>
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                     </button>
                 </div>
             @empty
-                <div class="col-span-full bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-200 dark:border-gray-700 text-center text-gray-500 dark:text-gray-400 space-y-3">
+                <div class="col-span-full bg-white p-12 rounded-3xl border border-gray-200 text-center text-gray-500 space-y-3">
                     <span class="text-4xl block">📦</span>
-                    <p class="font-bold text-gray-800 dark:text-gray-200">No active subscription packages available at the moment.</p>
+                    <p class="font-bold text-gray-800">No active subscription packages available at the moment.</p>
                 </div>
             @endforelse
         </div>

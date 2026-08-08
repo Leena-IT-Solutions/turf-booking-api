@@ -218,16 +218,16 @@ new #[Layout('layouts.app')] class extends Component
 
 <div class="space-y-6">
     <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xs">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
         <div class="flex items-center gap-3">
-            <div class="p-3 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-2xl">
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Business & Earnings</h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Track platform commission, withdraw earnings, and manage payout preferences.</p>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Business & Earnings</h1>
+                <p class="text-xs text-gray-500">Track platform commission, withdraw earnings, and manage payout preferences.</p>
             </div>
         </div>
     </div>
@@ -265,34 +265,34 @@ new #[Layout('layouts.app')] class extends Component
     <!-- WALLET SUMMARY BADGES -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <!-- Available / Due Balance Badge -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border {{ $balance < 0 ? 'border-red-300 dark:border-red-800 shadow-md bg-red-50/20' : 'border-emerald-200 dark:border-emerald-800 shadow-xs' }} space-y-2">
+        <div class="bg-white p-6 rounded-3xl border {{ $balance < 0 ? 'border-red-300 shadow-md bg-red-50/20' : 'border-emerald-200 shadow-xs' }} space-y-2">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">
                     {{ $balance >= 0 ? '🟢 AVAILABLE FOR WITHDRAWAL' : '🔴 COMMISSION DUE' }}
                 </span>
                 @if ($balance < 0)
-                    <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border border-red-300">Action Required</span>
+                    <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-300">Action Required</span>
                 @endif
             </div>
-            <div class="text-3xl font-black {{ $balance < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' }}">
+            <div class="text-3xl font-black {{ $balance < 0 ? 'text-red-600 ' : 'text-emerald-600 ' }}">
                 ₹{{ number_format(abs($balance), 2) }}
             </div>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400">
+            <p class="text-[11px] text-gray-500">
                 {{ $balance >= 0 ? 'Matured cleared earnings ready for payout' : 'Commission debt accrued from offline cash bookings' }}
             </p>
         </div>
 
         <!-- Pending Clearance Badge -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-amber-200 dark:border-amber-800/60 shadow-xs space-y-2">
+        <div class="bg-white p-6 rounded-3xl border border-amber-200 shadow-xs space-y-2">
             <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">⏳ PENDING CLEARANCE</span>
-            <div class="text-3xl font-black text-amber-600 dark:text-amber-400">
+            <div class="text-3xl font-black text-amber-600">
                 ₹{{ number_format($pendingClearanceAmount, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400">Online credits clearing after booking dates pass</p>
+            <p class="text-[11px] text-gray-500">Online credits clearing after booking dates pass</p>
         </div>
 
         <!-- Per-Turf Commission Rates Card -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-indigo-100 dark:border-indigo-800/60 shadow-xs space-y-3 md:col-span-2">
+        <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs space-y-3 md:col-span-2">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">TURF COMMISSION RATES</span>
                 <span class="text-[9px] text-gray-400 font-medium">Gateway discount: {{ number_format($saas?->payment_gateway_percentage ?? 2.00, 2) }}%</span>
@@ -303,20 +303,20 @@ new #[Layout('layouts.app')] class extends Component
             @if ($manageableTurfs->isEmpty())
                 <p class="text-xs text-gray-500">No turfs created yet.</p>
             @else
-                <div class="divide-y divide-gray-100 dark:divide-gray-700/60 max-h-36 overflow-y-auto">
+                <div class="divide-y divide-gray-100 max-h-36 overflow-y-auto">
                     @foreach ($manageableTurfs as $mturf)
                         @php
                             $activeSub = $mturf->activeSubscription;
                         @endphp
                         <div class="py-1.5 flex items-center justify-between text-xs">
                             <div class="min-w-0">
-                                <span class="font-bold text-gray-800 dark:text-gray-200 block truncate">{{ $mturf->name }}</span>
+                                <span class="font-bold text-gray-800 block truncate">{{ $mturf->name }}</span>
                                 <span class="text-[10px] text-gray-400 truncate block">{{ $mturf->location?->name ?? 'Default Location' }}</span>
                             </div>
                             <div class="text-right shrink-0">
                                 <div class="flex items-center gap-1.5 justify-end">
-                                    <span class="font-black text-indigo-600 dark:text-indigo-400">{{ number_format($mturf->commission_percentage, 2) }}%</span>
-                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full {{ $activeSub ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' }}">
+                                    <span class="font-black text-indigo-600">{{ number_format($mturf->commission_percentage, 2) }}%</span>
+                                    <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-full {{ $activeSub ? 'bg-indigo-100 text-indigo-700 ' : 'bg-gray-100 text-gray-700 ' }}">
                                         {{ $activeSub ? $activeSub->package?->name : 'Default' }}
                                     </span>
                                 </div>
@@ -331,31 +331,31 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <!-- Lifetime Payouts Received -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xs space-y-2">
+        <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-2">
             <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">TOTAL PAYOUTS RECEIVED</span>
-            <div class="text-3xl font-black text-gray-800 dark:text-gray-200">
+            <div class="text-3xl font-black text-gray-800">
                 ₹{{ number_format($totalPayoutsReceived, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500 dark:text-gray-400">Lifetime completed bank/UPI transfers</p>
+            <p class="text-[11px] text-gray-500">Lifetime completed bank/UPI transfers</p>
         </div>
     </div>
 
 
     <!-- Flash Notifications -->
     @if (session('status'))
-        <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             {{ session('status') }}
         </div>
     @endif
     @if (session('error'))
-        <div class="p-4 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-700/60 text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-2">
+        <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             {{ session('error') }}
         </div>
     @endif
     @if (session('kyc_status'))
-        <div class="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-700/60 text-indigo-800 dark:text-indigo-300 text-xs font-bold flex items-center gap-2">
+        <div class="p-4 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             {{ session('kyc_status') }}
         </div>
@@ -363,9 +363,9 @@ new #[Layout('layouts.app')] class extends Component
 
     <!-- OFFLINE BOOKING LOCK WARNING BANNER -->
     @if ($isOfflineLocked)
-        <div class="p-5 rounded-3xl bg-red-500/10 border border-red-500/30 text-red-800 dark:text-red-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="p-5 rounded-3xl bg-red-500/10 border border-red-500/30 text-red-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-start gap-3">
-                <div class="p-2 bg-red-500/20 text-red-600 dark:text-red-400 rounded-xl shrink-0">
+                <div class="p-2 bg-red-500/20 text-red-600 rounded-xl shrink-0">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                 </div>
                 <div>
@@ -382,11 +382,11 @@ new #[Layout('layouts.app')] class extends Component
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         @if ($balance < 0)
             <!-- COMMISSION DUE SETTLEMENT PANEL -->
-            <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl border border-red-200 dark:border-red-800/60 shadow-xs space-y-5">
+            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-red-200 shadow-xs space-y-5">
                 <div class="space-y-1">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-red-600 dark:text-red-400">REQUIRED ACTION</span>
-                    <h3 class="text-xl font-black text-gray-900 dark:text-white">Settle Platform Commission Due</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Pay your accrued commission balance using online Razorpay gateway to unlock offline bookings.</p>
+                    <span class="text-[10px] font-black uppercase tracking-wider text-red-600">REQUIRED ACTION</span>
+                    <h3 class="text-xl font-black text-gray-900">Settle Platform Commission Due</h3>
+                    <p class="text-xs text-gray-500">Pay your accrued commission balance using online Razorpay gateway to unlock offline bookings.</p>
                 </div>
 
                 <div class="space-y-4 pt-2">
@@ -405,11 +405,11 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @else
             <!-- PAYOUT REQUEST PANEL -->
-            <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl border border-emerald-200 dark:border-emerald-800/60 shadow-xs space-y-5">
+            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-emerald-200 shadow-xs space-y-5">
                 <div class="space-y-1">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">WITHDRAWAL</span>
-                    <h3 class="text-xl font-black text-gray-900 dark:text-white">Request Payout</h3>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Transfer available cleared earnings directly to your bank account or UPI ID.</p>
+                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600">WITHDRAWAL</span>
+                    <h3 class="text-xl font-black text-gray-900">Request Payout</h3>
+                    <p class="text-xs text-gray-500">Transfer available cleared earnings directly to your bank account or UPI ID.</p>
                 </div>
 
                 <div class="space-y-4 pt-2">
@@ -427,17 +427,17 @@ new #[Layout('layouts.app')] class extends Component
                     </button>
 
                     <!-- Payout Schedule Preference Section -->
-                    <div class="pt-4 border-t border-gray-100 dark:border-gray-700/60 space-y-3">
+                    <div class="pt-4 border-t border-gray-100 space-y-3">
                         <x-input-label :value="__('Automatic Payout Schedule')" />
                         <div class="flex items-center gap-3">
-                            <select wire:model.live="payoutSchedule" class="text-xs rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500">
+                            <select wire:model.live="payoutSchedule" class="text-xs rounded-xl border-gray-300 focus:ring-indigo-500">
                                 <option value="manual">Manual Request</option>
                                 <option value="daily">Daily Automatic</option>
                                 <option value="weekly">Weekly Automatic</option>
                             </select>
 
                             @if ($payoutSchedule === 'weekly')
-                                <select wire:model.live="payoutScheduleDay" class="text-xs rounded-xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:ring-indigo-500">
+                                <select wire:model.live="payoutScheduleDay" class="text-xs rounded-xl border-gray-300 focus:ring-indigo-500">
                                     <option value="1">Monday</option>
                                     <option value="2">Tuesday</option>
                                     <option value="3">Wednesday</option>
@@ -459,22 +459,22 @@ new #[Layout('layouts.app')] class extends Component
         @endif
 
         <!-- BANK / UPI KYC DETAILS FORM -->
-        <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xs space-y-5">
+        <div class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-xs space-y-5">
             <div class="space-y-1">
-                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">ACCOUNT DETAILS</span>
-                <h3 class="text-xl font-black text-gray-900 dark:text-white">Payout Receiving Details</h3>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Provide bank account or UPI details to receive automated payouts.</p>
+                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">ACCOUNT DETAILS</span>
+                <h3 class="text-xl font-black text-gray-900">Payout Receiving Details</h3>
+                <p class="text-xs text-gray-500">Provide bank account or UPI details to receive automated payouts.</p>
             </div>
 
             <form wire:submit="saveKycDetails" class="space-y-4 pt-2">
                 <!-- Method selection -->
-                <div class="flex items-center gap-4 bg-gray-100 dark:bg-gray-900 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-4 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
                     <button type="button" wire:click="$set('payoutMethod', 'bank')"
-                        class="flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $payoutMethod === 'bank' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500' }}">
+                        class="flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $payoutMethod === 'bank' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
                         Bank Account
                     </button>
                     <button type="button" wire:click="$set('payoutMethod', 'upi')"
-                        class="flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $payoutMethod === 'upi' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500' }}">
+                        class="flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $payoutMethod === 'upi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
                         UPI ID
                     </button>
                 </div>
@@ -507,7 +507,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 @endif
 
-                <button type="submit" class="w-full py-2.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-xl text-xs font-bold transition hover:opacity-90 cursor-pointer">
+                <button type="submit" class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold transition hover:opacity-90 cursor-pointer">
                     Save Payout Details
                 </button>
             </form>
@@ -525,15 +525,15 @@ new #[Layout('layouts.app')] class extends Component
     @endphp
 
 
-    <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+    <div class="bg-white rounded-3xl border border-gray-200 p-6 space-y-4">
         <div class="flex items-center justify-between">
-            <h3 class="text-base font-black text-gray-900 dark:text-white">Booking Commission Ledger</h3>
+            <h3 class="text-base font-black text-gray-900">Booking Commission Ledger</h3>
             <span class="text-xs text-gray-500">Per-payment breakdown</span>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-                <thead class="bg-gray-50 dark:bg-gray-900/50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700/50">
+                <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
                     <tr>
                         <th class="p-3">Ref & Date</th>
                         <th class="p-3">Method</th>
@@ -545,30 +545,30 @@ new #[Layout('layouts.app')] class extends Component
                         <th class="p-3">Status</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300">
+                <tbody class="divide-y divide-gray-100 text-gray-700">
                     @forelse ($payments as $pmt)
-                        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
+                        <tr class="hover:bg-gray-50/50">
                             <td class="p-3">
-                                <span class="font-bold block text-gray-900 dark:text-white">#{{ $pmt->booking_id }}</span>
+                                <span class="font-bold block text-gray-900">#{{ $pmt->booking_id }}</span>
                                 <span class="text-[10px] text-gray-400">{{ $pmt->created_at->format('d M, h:i A') }}</span>
                             </td>
                             <td class="p-3 font-semibold">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $pmt->payment_method === 'App' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300' }}">
+                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $pmt->payment_method === 'App' ? 'bg-indigo-100 text-indigo-700 ' : 'bg-amber-100 text-amber-700 ' }}">
                                     {{ $pmt->payment_method }}
                                 </span>
                             </td>
                             <td class="p-3 font-bold">₹{{ number_format($pmt->amount, 2) }}</td>
                             <td class="p-3 font-mono text-gray-500">{{ number_format($pmt->commission_percentage ?? 7.00, 2) }}%</td>
-                            <td class="p-3 font-mono text-red-600 dark:text-red-400">-₹{{ number_format($pmt->commission_amount ?? 0, 2) }}</td>
-                            <td class="p-3 font-mono text-gray-600 dark:text-gray-400">₹{{ number_format($pmt->cash_held_amount ?? 0, 2) }}</td>
-                            <td class="p-3 font-bold font-mono {{ ($pmt->turf_payout_amount ?? 0) < 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400' }}">
+                            <td class="p-3 font-mono text-red-600">-₹{{ number_format($pmt->commission_amount ?? 0, 2) }}</td>
+                            <td class="p-3 font-mono text-gray-600">₹{{ number_format($pmt->cash_held_amount ?? 0, 2) }}</td>
+                            <td class="p-3 font-bold font-mono {{ ($pmt->turf_payout_amount ?? 0) < 0 ? 'text-red-600 ' : 'text-emerald-600 ' }}">
                                 {{ ($pmt->turf_payout_amount ?? 0) >= 0 ? '+' : '' }}₹{{ number_format($pmt->turf_payout_amount ?? 0, 2) }}
                             </td>
                             <td class="p-3">
                                 @if ($pmt->wallet_cleared_at)
-                                    <span class="text-[10px] font-black uppercase text-emerald-600 dark:text-emerald-400">Cleared</span>
+                                    <span class="text-[10px] font-black uppercase text-emerald-600">Cleared</span>
                                 @else
-                                    <span class="text-[10px] font-black uppercase text-amber-600 dark:text-amber-400">Pending</span>
+                                    <span class="text-[10px] font-black uppercase text-amber-600">Pending</span>
                                 @endif
                             </td>
                         </tr>

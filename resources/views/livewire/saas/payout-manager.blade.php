@@ -39,27 +39,27 @@ new #[Layout('layouts.app')] class extends Component
 
 <div class="space-y-6">
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-xs">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
         <div class="flex items-center gap-3">
-            <div class="p-3 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl">
+            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Turf Payouts & Webhooks</h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Monitor all turf admin payout requests and RazorpayX webhook logs.</p>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Turf Payouts & Webhooks</h1>
+                <p class="text-xs text-gray-500">Monitor all turf admin payout requests and RazorpayX webhook logs.</p>
             </div>
         </div>
 
         <!-- Tab switcher -->
-        <div class="flex items-center gap-2 bg-gray-100 dark:bg-gray-900 p-1.5 rounded-2xl border border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
             <button wire:click="$set('tab', 'payouts')" type="button"
-                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'payouts' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500' }}">
+                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'payouts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
                 Payout Requests
             </button>
             <button wire:click="$set('tab', 'webhooks')" type="button"
-                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'webhooks' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-gray-500' }}">
+                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'webhooks' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
                 RazorpayX Webhooks
             </button>
         </div>
@@ -67,13 +67,13 @@ new #[Layout('layouts.app')] class extends Component
 
     <!-- Flash alerts -->
     @if (session('status'))
-        <div class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-700/60 text-emerald-800 dark:text-emerald-300 text-xs font-bold flex items-center gap-2">
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
             {{ session('status') }}
         </div>
     @endif
     @if (session('error'))
-        <div class="p-4 rounded-2xl bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-700/60 text-red-800 dark:text-red-300 text-xs font-bold flex items-center gap-2">
+        <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-bold flex items-center gap-2">
             <svg class="w-4 h-4 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             {{ session('error') }}
         </div>
@@ -84,14 +84,14 @@ new #[Layout('layouts.app')] class extends Component
             $payouts = TurfPayout::with('user')->latest()->paginate(15);
         @endphp
 
-        <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 space-y-4 shadow-sm">
+        <div class="bg-white rounded-3xl border border-gray-200 p-6 space-y-4 shadow-sm">
             <div class="flex items-center justify-between">
-                <h3 class="text-base font-black text-gray-900 dark:text-white">All Turf Payouts</h3>
+                <h3 class="text-base font-black text-gray-900">All Turf Payouts</h3>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700/50">
+                    <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
                         <tr>
                             <th class="p-3">ID & Date</th>
                             <th class="p-3">Turf Admin</th>
@@ -103,19 +103,19 @@ new #[Layout('layouts.app')] class extends Component
                             <th class="p-3">Action</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300">
+                    <tbody class="divide-y divide-gray-100 text-gray-700">
                         @forelse ($payouts as $p)
-                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
+                            <tr class="hover:bg-gray-50/50">
                                 <td class="p-3">
-                                    <span class="font-bold block text-gray-900 dark:text-white">#{{ $p->id }}</span>
+                                    <span class="font-bold block text-gray-900">#{{ $p->id }}</span>
                                     <span class="text-[10px] text-gray-400">{{ $p->created_at->format('d M Y, h:i A') }}</span>
                                 </td>
                                 <td class="p-3">
-                                    <span class="font-bold block text-gray-900 dark:text-white">{{ $p->user->name ?? 'User #' . $p->user_id }}</span>
+                                    <span class="font-bold block text-gray-900">{{ $p->user->name ?? 'User #' . $p->user_id }}</span>
                                     <span class="text-[10px] text-gray-400">{{ $p->user->email ?? '' }}</span>
                                 </td>
                                 <td class="p-3">
-                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $p->triggered_by === 'scheduled' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' }}">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $p->triggered_by === 'scheduled' ? 'bg-purple-100 text-purple-700 ' : 'bg-gray-100 text-gray-700 ' }}">
                                         {{ $p->triggered_by }}
                                     </span>
                                 </td>
@@ -123,7 +123,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <td class="p-3 font-mono text-amber-600">₹{{ number_format($p->charge_applied, 2) }}</td>
                                 <td class="p-3 font-bold font-mono text-emerald-600">₹{{ number_format($p->net_amount, 2) }}</td>
                                 <td class="p-3">
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase {{ $p->status === 'completed' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : ($p->status === 'failed' ? 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300' : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300') }}">
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase {{ $p->status === 'completed' ? 'bg-emerald-100 text-emerald-800 ' : ($p->status === 'failed' ? 'bg-red-100 text-red-800 ' : 'bg-amber-100 text-amber-800 ') }}">
                                         {{ $p->status }}
                                     </span>
                                     @if ($p->failure_reason)
@@ -158,14 +158,14 @@ new #[Layout('layouts.app')] class extends Component
             $webhooks = PayoutWebhook::latest()->paginate(15);
         @endphp
 
-        <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 space-y-4 shadow-sm">
+        <div class="bg-white rounded-3xl border border-gray-200 p-6 space-y-4 shadow-sm">
             <div class="flex items-center justify-between">
-                <h3 class="text-base font-black text-gray-900 dark:text-white">RazorpayX Webhook Log Feed</h3>
+                <h3 class="text-base font-black text-gray-900">RazorpayX Webhook Log Feed</h3>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                    <thead class="bg-gray-50 dark:bg-gray-900/50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700/50">
+                    <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
                         <tr>
                             <th class="p-3">Event ID</th>
                             <th class="p-3">Event Type</th>
@@ -173,18 +173,18 @@ new #[Layout('layouts.app')] class extends Component
                             <th class="p-3">Dedupe Status</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-700/50 text-gray-700 dark:text-gray-300">
+                    <tbody class="divide-y divide-gray-100 text-gray-700">
                         @forelse ($webhooks as $wh)
-                            <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-900/30">
-                                <td class="p-3 font-mono font-bold text-gray-900 dark:text-white">{{ $wh->event_id }}</td>
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-3 font-mono font-bold text-gray-900">{{ $wh->event_id }}</td>
                                 <td class="p-3">
-                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase bg-indigo-100 text-indigo-700">
                                         {{ $wh->event_type ?? 'N/A' }}
                                     </span>
                                 </td>
                                 <td class="p-3 text-gray-500">{{ $wh->created_at->format('d M Y, h:i A') }}</td>
                                 <td class="p-3">
-                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase {{ $wh->processed ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-amber-100 text-amber-800' }}">
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase {{ $wh->processed ? 'bg-emerald-100 text-emerald-800 ' : 'bg-amber-100 text-amber-800' }}">
                                         {{ $wh->processed ? 'Processed' : 'Pending' }}
                                     </span>
                                 </td>

@@ -25,11 +25,11 @@ new class extends Component
 
 <section class="space-y-6">
     <header>
-        <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+        <h2 class="text-lg font-bold text-gray-900">
             {{ __('Delete Account') }}
         </h2>
 
-        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+        <p class="mt-1.5 text-xs text-gray-500 leading-relaxed">
             {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
         </p>
     </header>
@@ -43,11 +43,11 @@ new class extends Component
     <x-modal name="confirm-user-deletion" :show="$errors->isNotEmpty()" focusable>
         <form wire:submit="deleteUser" class="p-6 sm:p-8">
 
-            <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+            <h2 class="text-lg font-bold text-gray-900">
                 {{ __('Are you sure you want to delete your account?') }}
             </h2>
 
-            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+            <p class="mt-1.5 text-xs text-gray-500 leading-relaxed">
                 {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
             </p>
 

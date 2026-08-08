@@ -209,10 +209,10 @@ new #[Layout('layouts.app')] class extends Component
     <div class="sm:px-6 lg:px-8 space-y-6">
         <form wire:submit="saveSettings" class="space-y-6">
             <!-- Header Card -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 shadow-sm rounded-3xl border border-gray-100">
                 <div>
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('SaaS Global Settings') }}</h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Configure and control core platform settings, logos, contact info, and maintenance mode status.') }}</p>
+                    <h2 class="text-xl font-bold text-gray-900">{{ __('SaaS Global Settings') }}</h2>
+                    <p class="text-xs text-gray-500 mt-1.5">{{ __('Configure and control core platform settings, logos, contact info, and maintenance mode status.') }}</p>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
                     <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
@@ -222,7 +222,7 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             @if (session()->has('status'))
-                <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
+                <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
                     <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
@@ -231,7 +231,7 @@ new #[Layout('layouts.app')] class extends Component
             @endif
 
             @if ($is_maintenance_mode)
-                <div class="bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 text-amber-800 dark:text-amber-400 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
+                <div class="bg-amber-50 border border-amber-100 text-amber-800 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
                     <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
@@ -240,22 +240,22 @@ new #[Layout('layouts.app')] class extends Component
             @endif
 
             <!-- Core Platform Settings Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     
                     <!-- Left: Logo Upload -->
-                    <div class="flex flex-col items-center justify-start text-center space-y-4 lg:border-r lg:border-gray-100 lg:dark:border-gray-700/50 lg:pr-8">
+                    <div class="flex flex-col items-center justify-start text-center space-y-4 lg:border-r lg:border-gray-100 lg: lg:pr-8">
                         <x-input-label :value="__('SaaS Brand Logo')" />
                         
                         <div class="relative group">
                             <!-- Logo Box Preview -->
-                            <div class="h-32 w-32 rounded-3xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden relative shadow-inner">
+                            <div class="h-32 w-32 rounded-3xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden relative shadow-inner">
                                 @if ($new_logo)
                                     <img src="{{ $new_logo->temporaryUrl() }}" class="h-full w-full object-contain p-2" />
                                 @elseif ($current_logo_path)
                                     <img src="{{ Storage::url($current_logo_path) }}" class="h-full w-full object-contain p-2" />
                                 @else
-                                    <svg class="h-10 w-10 text-gray-400 dark:text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                    <svg class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
                                     </svg>
                                 @endif
@@ -267,7 +267,7 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                         </div>
 
-                        <div class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold space-y-1">
+                        <div class="text-[10px] text-gray-400 font-semibold space-y-1">
                             <p>{{ __('Recommended Aspect Ratio: 1:1 Square') }}</p>
                             <p>{{ __('Maximum allowed size: 2MB') }}</p>
                         </div>
@@ -305,7 +305,7 @@ new #[Layout('layouts.app')] class extends Component
                         <!-- Address -->
                         <div>
                             <x-input-label for="companyAddress" :value="__('Address')" />
-                            <textarea wire:model.live.debounce.250ms="address" id="companyAddress" rows="3" class="mt-1.5 block w-full rounded-2xl border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 shadow-sm text-xs p-4" placeholder="123 Sport Complex St, Mumbai, India"></textarea>
+                            <textarea wire:model.live.debounce.250ms="address" id="companyAddress" rows="3" class="mt-1.5 block w-full rounded-2xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm text-xs p-4" placeholder="123 Sport Complex St, Mumbai, India"></textarea>
                             <x-input-error :messages="$errors->get('address')" class="mt-2" />
                         </div>
                     </div>
@@ -313,11 +313,11 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- Application Settings Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Application Settings') }}</h3>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">{{ __('Application Settings') }}</h3>
+                        <p class="text-[11px] text-gray-400 font-semibold mt-1">
                             {{ __('Configure general application preferences and settings.') }}
                         </p>
                     </div>
@@ -327,7 +327,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="turfSearchKm" :value="__('Turf Search Km')" />
                             <x-text-input wire:model.live.debounce.250ms="turf_search_km" id="turfSearchKm" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="5" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Radius (in kilometers) to search for nearby turfs.') }}
                             </span>
                             <x-input-error :messages="$errors->get('turf_search_km')" class="mt-2" />
@@ -337,7 +337,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="minSlotsBooking" :value="__('Minimum Slots Booking')" />
                             <x-text-input wire:model.live.debounce.250ms="min_slots_booking" id="minSlotsBooking" type="number" min="1" max="100" class="mt-1.5 block w-full" placeholder="1" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Minimum number of slots required for a booking transaction.') }}
                             </span>
                             <x-input-error :messages="$errors->get('min_slots_booking')" class="mt-2" />
@@ -347,16 +347,16 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="commissionPercentage" :value="__('Commission Percentage (%)')" />
                             <x-text-input wire:model.live.debounce.250ms="commission_percentage" id="commissionPercentage" type="number" step="0.01" min="0" max="100" class="mt-1.5 block w-full" placeholder="7.00" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Default platform commission percentage applied for bookings.') }}
                             </span>
                             <x-input-error :messages="$errors->get('commission_percentage')" class="mt-2" />
                         </div>
 
                         <!-- Maintenance Mode -->
-                        <div class="flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/30 border border-gray-200 dark:border-gray-700/60 px-4 py-3 rounded-2xl h-[42px] md:col-span-3">
-                            <span class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('Maintenance Mode') }}</span>
-                            <button type="button" wire:click="$toggle('is_maintenance_mode')" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_maintenance_mode ? 'bg-amber-600' : 'bg-gray-200 dark:bg-gray-700' }}">
+                        <div class="flex items-center justify-between bg-gray-50/50 border border-gray-200 px-4 py-3 rounded-2xl h-[42px] md:col-span-3">
+                            <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">{{ __('Maintenance Mode') }}</span>
+                            <button type="button" wire:click="$toggle('is_maintenance_mode')" class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none {{ $is_maintenance_mode ? 'bg-amber-600' : 'bg-gray-200 ' }}">
                                 <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $is_maintenance_mode ? 'translate-x-4' : 'translate-x-0' }}"></span>
                             </button>
                         </div>
@@ -365,11 +365,11 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- Gemini AI Setup Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Gemini AI Integration') }}</h3>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">{{ __('Gemini AI Integration') }}</h3>
+                        <p class="text-[11px] text-gray-400 font-semibold mt-1">
                             {{ __('Configure your Google Gemini API details to automatically generate responsive, high-quality custom vector SVG icons for slot categories, facilities, equipments, and sports.') }}
                         </p>
                     </div>
@@ -377,7 +377,7 @@ new #[Layout('layouts.app')] class extends Component
                     <div class="pt-2">
                         <x-input-label for="geminiApiKey" :value="__('Gemini API Key')" />
                         <x-text-input wire:model.live.debounce.250ms="gemini_api_key" id="geminiApiKey" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="AIzaSy..." />
-                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                        <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                             {{ __('Get your API Key from the Google AI Studio console.') }}
                         </span>
                         <x-input-error :messages="$errors->get('gemini_api_key')" class="mt-2" />
@@ -386,11 +386,11 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- WhatsApp Setup Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('WhatsApp OTP Integration (Meta Cloud API)') }}</h3>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">{{ __('WhatsApp OTP Integration (Meta Cloud API)') }}</h3>
+                        <p class="text-[11px] text-gray-400 font-semibold mt-1">
                             {{ __('Configure your Meta WhatsApp Cloud API credentials to enable WhatsApp OTP verification for mobile registration and password reset.') }}
                         </p>
                     </div>
@@ -423,11 +423,11 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- Google Maps Setup Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Google Maps Integration') }}</h3>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">{{ __('Google Maps Integration') }}</h3>
+                        <p class="text-[11px] text-gray-400 font-semibold mt-1">
                             {{ __('Provide a Google Maps API Key to enable map pickers, search locations, and coordinate selection features within the mobile application.') }}
                         </p>
                     </div>
@@ -435,7 +435,7 @@ new #[Layout('layouts.app')] class extends Component
                     <div class="pt-2">
                         <x-input-label for="googleMapsApiKey" :value="__('Google Maps API Key')" />
                         <x-text-input wire:model.live.debounce.250ms="google_maps_api_key" id="googleMapsApiKey" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="AIzaSy..." />
-                        <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                        <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                             {{ __('Ensure that the Geocoding API, Maps SDK for Android, and Maps SDK for iOS are enabled on this key in Google Cloud Console.') }}
                         </span>
                         <x-input-error :messages="$errors->get('google_maps_api_key')" class="mt-2" />
@@ -444,11 +444,11 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- Commission & Payout Configuration Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Commission & Payout Policy') }}</h3>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">{{ __('Commission & Payout Policy') }}</h3>
+                        <p class="text-[11px] text-gray-400 font-semibold mt-1">
                             {{ __('Set rules for platform commission deductions, gateway percentage discounts, payout withdrawal fees, and offline booking debt limits.') }}
                         </p>
                     </div>
@@ -458,7 +458,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="paymentGatewayPercentage" :value="__('Gateway Deduction for Offline (%)')" />
                             <x-text-input wire:model.live.debounce.250ms="payment_gateway_percentage" id="paymentGatewayPercentage" type="number" step="0.01" min="0" max="100" class="mt-1.5 block w-full text-xs" placeholder="2.00" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('% deducted from commission when booking payment is collected offline.') }}
                             </span>
                             <x-input-error :messages="$errors->get('payment_gateway_percentage')" class="mt-2" />
@@ -468,7 +468,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="payoutHours" :value="__('Free Payout Cooldown (Hours)')" />
                             <x-text-input wire:model.live.debounce.250ms="payout_hours" id="payoutHours" type="number" min="0" class="mt-1.5 block w-full text-xs" placeholder="24" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Minimum gap (in hours) required between two free withdrawal payouts.') }}
                             </span>
                             <x-input-error :messages="$errors->get('payout_hours')" class="mt-2" />
@@ -478,7 +478,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="payoutCharges" :value="__('Rapid Payout Fee (₹)')" />
                             <x-text-input wire:model.live.debounce.250ms="payout_charges" id="payoutCharges" type="number" step="0.01" min="0" class="mt-1.5 block w-full text-xs" placeholder="40.00" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Flat fee charged if a payout is requested before the cooldown hours elapse.') }}
                             </span>
                             <x-input-error :messages="$errors->get('payout_charges')" class="mt-2" />
@@ -488,7 +488,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="maxCommissionDue" :value="__('Max Commission Due Limit (₹)')" />
                             <x-text-input wire:model.live.debounce.250ms="max_commission_due" id="maxCommissionDue" type="number" step="0.01" min="0" class="mt-1.5 block w-full text-xs" placeholder="2000.00" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Maximum negative wallet balance before offline bookings are locked.') }}
                             </span>
                             <x-input-error :messages="$errors->get('max_commission_due')" class="mt-2" />
@@ -498,7 +498,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="commissionDueGraceDays" :value="__('Commission Due Grace Days')" />
                             <x-text-input wire:model.live.debounce.250ms="commission_due_grace_days" id="commissionDueGraceDays" type="number" min="0" class="mt-1.5 block w-full text-xs" placeholder="7" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Days allowed with a negative balance before offline bookings lock.') }}
                             </span>
                             <x-input-error :messages="$errors->get('commission_due_grace_days')" class="mt-2" />
@@ -508,11 +508,11 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             <!-- Razorpay Setup Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Razorpay Payment & Payout Gateway') }}</h3>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">{{ __('Razorpay Payment & Payout Gateway') }}</h3>
+                        <p class="text-[11px] text-gray-400 font-semibold mt-1">
                             {{ __('Configure your Razorpay API credentials and RazorpayX account details for client payments and automated turf payouts.') }}
                         </p>
                     </div>
@@ -536,7 +536,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="razorpayxAccountNumber" :value="__('RazorpayX Account Number')" />
                             <x-text-input wire:model.live.debounce.250ms="razorpayx_account_number" id="razorpayxAccountNumber" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="2334455667788" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Business account number used to originate RazorpayX payouts.') }}
                             </span>
                             <x-input-error :messages="$errors->get('razorpayx_account_number')" class="mt-2" />
@@ -546,7 +546,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div>
                             <x-input-label for="razorpayxWebhookSecret" :value="__('RazorpayX Webhook Secret')" />
                             <x-text-input wire:model.live.debounce.250ms="razorpayx_webhook_secret" id="razorpayxWebhookSecret" type="password" class="mt-1.5 block w-full font-mono text-xs" placeholder="••••••••••••••••" />
-                            <span class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1.5 block">
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Secret key used to verify RazorpayX payout webhook signatures.') }}
                             </span>
                             <x-input-error :messages="$errors->get('razorpayx_webhook_secret')" class="mt-2" />
@@ -557,11 +557,11 @@ new #[Layout('layouts.app')] class extends Component
 
 
             <!-- Mailgun Setup Card -->
-            <div class="bg-white dark:bg-gray-800 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50 p-6 sm:p-8">
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
                 <div class="max-w-2xl space-y-4">
                     <div>
-                        <h3 class="text-xs font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">{{ __('Mailgun Email Gateway') }}</h3>
-                        <p class="text-[11px] text-gray-400 dark:text-gray-500 font-semibold mt-1">
+                        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">{{ __('Mailgun Email Gateway') }}</h3>
+                        <p class="text-[11px] text-gray-400 font-semibold mt-1">
                             {{ __('Configure your Mailgun credentials to handle transactional mail delivery, reservation confirmations, and system alerts.') }}
                         </p>
                     </div>

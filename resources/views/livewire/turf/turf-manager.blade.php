@@ -221,10 +221,10 @@ new #[Layout('layouts.app')] class extends Component
     <div class="sm:px-6 lg:px-8 space-y-6">
         
         <!-- Header Card -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-gray-800 p-6 shadow-sm rounded-3xl border border-gray-100 dark:border-gray-700/50">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 shadow-sm rounded-3xl border border-gray-100">
             <div>
-                <h2 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ __('Turfs') }}</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{{ __('Configure playing courts, surface specifications, dimensions, and included sport equipment.') }}</p>
+                <h2 class="text-xl font-bold text-gray-900">{{ __('Turfs') }}</h2>
+                <p class="text-xs text-gray-500 mt-1.5">{{ __('Configure playing courts, surface specifications, dimensions, and included sport equipment.') }}</p>
             </div>
             <div>
                 @if ($availableLocations->isEmpty())
@@ -247,7 +247,7 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Session Status Flash Messages -->
         @if (session()->has('status'))
-            <div class="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-emerald-800 dark:text-emerald-400 px-5 py-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
+            <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-4 rounded-2xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
                 <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -256,9 +256,9 @@ new #[Layout('layouts.app')] class extends Component
         @endif
 
         <!-- Filter Search Bar -->
-        <div class="relative bg-white dark:bg-gray-800 p-4 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm">
+        <div class="relative bg-white p-4 rounded-3xl border border-gray-100 shadow-sm">
             <div class="absolute inset-y-0 start-4 flex items-center pointer-events-none">
-                <svg class="h-4 w-4 text-gray-400 dark:text-gray-500 ms-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4 text-gray-400 ms-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
             </div>
@@ -266,14 +266,14 @@ new #[Layout('layouts.app')] class extends Component
                 type="text" 
                 wire:model.live.debounce.300ms="search" 
                 placeholder="{{ __('Search turfs by name, type, area, or location...') }}"
-                class="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900/40 text-xs font-semibold text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150"
+                class="w-full pl-12 pr-4 py-2.5 bg-gray-50 text-xs font-semibold text-gray-700 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150"
             />
         </div>
 
         <!-- Turfs Grid (2 Columns Max) -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             @forelse ($turfs as $turf)
-                <div class="bg-white dark:bg-gray-800 p-6 rounded-3xl border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative group">
+                <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition duration-200 flex flex-col justify-between relative group">
                     <div>
                         <div class="flex items-start justify-between gap-4 min-w-0 w-full">
                             <div class="flex items-center gap-3 min-w-0">
@@ -283,10 +283,10 @@ new #[Layout('layouts.app')] class extends Component
                                     </svg>
                                 </div>
                                 <div class="min-w-0">
-                                    <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
+                                    <h3 class="text-sm font-bold text-gray-800 truncate">
                                         {{ $turf->name }}
                                     </h3>
-                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 font-semibold mt-1 flex items-center gap-1">
+                                    <p class="text-[10px] text-gray-400 font-semibold mt-1 flex items-center gap-1">
                                         <svg class="h-3 w-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -298,14 +298,14 @@ new #[Layout('layouts.app')] class extends Component
 
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <!-- Edit Button -->
-                                <button wire:click="editTurf({{ $turf->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700/50 dark:hover:bg-gray-700 text-indigo-600 dark:text-indigo-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+                                <button wire:click="editTurf({{ $turf->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 text-indigo-600 rounded-xl transition cursor-pointer border border-gray-100 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                 </button>
                                 
                                 <!-- Delete Button -->
-                                <button wire:click="confirmDelete({{ $turf->id }})" class="p-2 bg-gray-50 hover:bg-red-50 dark:bg-gray-700/50 dark:hover:bg-red-950/20 text-red-500 dark:text-red-400 rounded-xl transition cursor-pointer border border-gray-100 dark:border-gray-600 flex items-center justify-center">
+                                <button wire:click="confirmDelete({{ $turf->id }})" class="p-2 bg-gray-50 hover:bg-red-50 text-red-500 rounded-xl transition cursor-pointer border border-gray-100 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -314,29 +314,25 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- Turf Details -->
-                        <div class="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/40 space-y-3">
+                        <div class="mt-4 pt-4 border-t border-gray-50 space-y-3">
                             <div class="flex items-center justify-between text-xs">
-                                <span class="text-gray-400 dark:text-gray-500 font-medium">{{ __('Surface Type:') }}</span>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{
-                                    $turf->type === 'Synthetic' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
-                                    $turf->type === 'Hard' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
-                                    'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400')
-                                }}">
+                                <span class="text-gray-400 font-medium">{{ __('Surface Type:') }}</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{ $turf->type === 'Synthetic' ? 'bg-emerald-100 text-emerald-700 ' : ( $turf->type === 'Hard' ? 'bg-amber-100 text-amber-700 ' : 'bg-blue-100 text-blue-700 ') }}">
                                     {{ $turf->type }}
                                 </span>
                             </div>
 
                             @if($turf->area)
                                 <div class="flex items-center justify-between text-xs">
-                                    <span class="text-gray-400 dark:text-gray-500 font-medium">{{ __('Dimensions/Area:') }}</span>
-                                    <span class="text-gray-600 dark:text-gray-300 font-semibold">{{ $turf->area }}</span>
+                                    <span class="text-gray-400 font-medium">{{ __('Dimensions/Area:') }}</span>
+                                    <span class="text-gray-600 font-semibold">{{ $turf->area }}</span>
                                 </div>
                             @endif
 
                             @if($turf->description)
                                 <div class="text-xs pt-1">
-                                    <span class="text-gray-400 dark:text-gray-500 font-medium block mb-1">{{ __('Description:') }}</span>
-                                    <p class="text-gray-600 dark:text-gray-450 leading-relaxed font-medium bg-gray-50 dark:bg-gray-900/20 p-2.5 rounded-2xl border border-gray-100/50 dark:border-gray-800">
+                                    <span class="text-gray-400 font-medium block mb-1">{{ __('Description:') }}</span>
+                                    <p class="text-gray-600 leading-relaxed font-medium bg-gray-50 p-2.5 rounded-2xl border border-gray-100/50">
                                         {{ $turf->description }}
                                     </p>
                                 </div>
@@ -345,10 +341,10 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Equipments Badge List -->
                             @if($turf->turfEquipments->isNotEmpty())
                                 <div class="pt-1">
-                                    <span class="text-gray-400 dark:text-gray-500 font-medium block mb-1.5 text-xs">{{ __('Included Equipments:') }}</span>
+                                    <span class="text-gray-400 font-medium block mb-1.5 text-xs">{{ __('Included Equipments:') }}</span>
                                     <div class="flex flex-wrap gap-1.5">
                                         @foreach($turf->turfEquipments as $equip)
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200/10">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-bold bg-gray-100 text-gray-600 border border-gray-200/10">
                                                 {{ $equip->name }}
                                             </span>
                                         @endforeach
@@ -359,19 +355,12 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Footer Status Indicators -->
-                    <div class="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/40 space-y-3">
+                    <div class="mt-4 pt-4 border-t border-gray-50 space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
+                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
                                 {{ __('Verification Status') }}
                             </span>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{
-                                $turf->status === 'Approved' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : (
-                                $turf->status === 'Pending' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : (
-                                $turf->status === 'Review' ? 'bg-indigo-100 dark:bg-indigo-950/20 text-indigo-700 dark:text-indigo-400' : (
-                                $turf->status === 'Rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : (
-                                $turf->status === 'Hold' ? 'bg-slate-100 dark:bg-slate-900/30 text-slate-700 dark:text-slate-400' :
-                                'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'))))
-                            }}">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{ $turf->status === 'Approved' ? 'bg-emerald-100 text-emerald-700 ' : ( $turf->status === 'Pending' ? 'bg-amber-100 text-amber-700 ' : ( $turf->status === 'Review' ? 'bg-indigo-100 text-indigo-700 ' : ( $turf->status === 'Rejected' ? 'bg-red-100 text-red-700 ' : ( $turf->status === 'Hold' ? 'bg-slate-100 text-slate-700 ' : 'bg-gray-100 text-gray-600 ')))) }}">
                                 {{ __($turf->status ?: 'Draft') }}
                             </span>
                         </div>
@@ -389,23 +378,23 @@ new #[Layout('layouts.app')] class extends Component
                         @endphp
 
                         @if(!empty($lacking) && ($turf->status ?: 'Draft') !== 'Approved')
-                            <div class="flex flex-col gap-1.5 bg-red-50 dark:bg-red-950/20 border border-red-100/50 dark:border-red-900/30 p-2.5 rounded-2xl mt-1">
-                                <span class="text-[8px] font-black uppercase tracking-wider text-red-600 dark:text-red-400">{{ __('Lacking Verification Points:') }}</span>
+                            <div class="flex flex-col gap-1.5 bg-red-50 border border-red-100/50 p-2.5 rounded-2xl mt-1">
+                                <span class="text-[8px] font-black uppercase tracking-wider text-red-600">{{ __('Lacking Verification Points:') }}</span>
                                 <div class="flex flex-wrap gap-1">
                                     @foreach($lacking as $item)
-                                        <span class="px-2 py-0.5 rounded-lg text-red-600 dark:text-red-400 font-extrabold text-[9px] uppercase tracking-wide" style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.25);">{{ $item }}</span>
+                                        <span class="px-2 py-0.5 rounded-lg text-red-600 font-extrabold text-[9px] uppercase tracking-wide" style="background-color: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.25);">{{ $item }}</span>
                                     @endforeach
                                 </div>
                             </div>
                         @endif
                         
                         <div class="flex items-center justify-between">
-                            <span class="text-[9px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">
+                            <span class="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
                                 {{ __('Turf Status') }}
                             </span>
                             <div class="flex items-center gap-1.5">
                                 <span class="h-2 w-2 rounded-full {{ $turf->is_active ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-red-500 shadow-red-500/30' }} shadow-md"></span>
-                                <span class="text-[10px] font-extrabold uppercase tracking-wide {{ $turf->is_active ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400' }}">
+                                <span class="text-[10px] font-extrabold uppercase tracking-wide {{ $turf->is_active ? 'text-emerald-600 ' : 'text-red-500 ' }}">
                                     {{ $turf->is_active ? __('Active') : __('Inactive') }}
                                 </span>
                             </div>
@@ -422,13 +411,13 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
             @empty
-                <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-12 rounded-3xl border border-gray-100 dark:border-gray-700/50 text-center">
-                    <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4">
+                <div class="lg:col-span-2 bg-white p-12 rounded-3xl border border-gray-100 text-center">
+                    <div class="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto mb-4">
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h3 class="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">{{ __('No Turfs Found') }}</h3>
+                    <h3 class="text-sm font-bold text-gray-700 uppercase tracking-wider">{{ __('No Turfs Found') }}</h3>
                     <p class="text-xs text-gray-400 mt-2">{{ __('Try searching with different terms or add a new playing turf profile.') }}</p>
                 </div>
             @endforelse
@@ -457,7 +446,7 @@ new #[Layout('layouts.app')] class extends Component
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             @click="@this.call('resetForm')"
-            class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-sm transition-opacity"
+            class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
         ></div>
 
         <!-- Modal Content Box -->
@@ -469,13 +458,13 @@ new #[Layout('layouts.app')] class extends Component
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden w-full max-w-lg border border-gray-100 dark:border-gray-700/50 p-6 z-10 transition-all flex flex-col gap-4"
+            class="relative bg-white rounded-3xl shadow-xl overflow-hidden w-full max-w-lg border border-gray-100 p-6 z-10 transition-all flex flex-col gap-4"
         >
-            <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700/50">
-                <h3 class="text-md font-bold text-gray-900 dark:text-gray-100 uppercase tracking-wider">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h3 class="text-md font-bold text-gray-900 uppercase tracking-wider">
                     {{ $editingId ? __('Edit Turf') : __('Add New Turf') }}
                 </h3>
-                <button @click="@this.call('resetForm')" class="text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400 cursor-pointer">
+                <button @click="@this.call('resetForm')" class="text-gray-400 hover:text-gray-500 cursor-pointer">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l18 18" />
                     </svg>
@@ -503,7 +492,7 @@ new #[Layout('layouts.app')] class extends Component
                     <select 
                         id="type" 
                         wire:model="type" 
-                        class="w-full mt-1.5 px-4 py-2.5 text-xs font-semibold bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150"
+                        class="w-full mt-1.5 px-4 py-2.5 text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150"
                     >
                         <option value="Synthetic">{{ __('Synthetic') }}</option>
                         <option value="Hard">{{ __('Hard') }}</option>
@@ -533,7 +522,7 @@ new #[Layout('layouts.app')] class extends Component
                         wire:model="description" 
                         placeholder="{{ __('Describe details about this playing surface...') }}" 
                         rows="3"
-                        class="w-full mt-1.5 px-4 py-2.5 text-xs font-semibold bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150 resize-none"
+                        class="w-full mt-1.5 px-4 py-2.5 text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/80 transition duration-150 resize-none"
                     ></textarea>
                     <x-input-error :messages="$errors->get('description')" class="mt-2" />
                 </div>
@@ -546,20 +535,20 @@ new #[Layout('layouts.app')] class extends Component
                         id="is_active" 
                         type="checkbox" 
                         wire:model="is_active" 
-                        class="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-indigo-600 focus:ring-indigo-500/20 dark:focus:ring-offset-gray-800 transition cursor-pointer"
+                        class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500/20 transition cursor-pointer"
                     />
-                    <label for="is_active" class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider cursor-pointer">
+                    <label for="is_active" class="text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer">
                         {{ __('Active & Available for Booking') }}
                     </label>
                     <x-input-error :messages="$errors->get('is_active')" class="mt-2" />
                 </div>
 
                 <!-- Submit and Cancel Buttons -->
-                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                <div class="flex items-center justify-end gap-2.5 pt-4 border-t border-gray-100">
                     <button 
                         type="button" 
                         @click="@this.call('resetForm')" 
-                        class="px-4 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
+                        class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
                     >
                         {{ __('Cancel') }}
                     </button>
@@ -591,7 +580,7 @@ new #[Layout('layouts.app')] class extends Component
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             @click="@this.call('cancelDelete')"
-            class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-sm transition-opacity"
+            class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
         ></div>
 
         <!-- Modal Dialog -->
@@ -603,16 +592,16 @@ new #[Layout('layouts.app')] class extends Component
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden w-full max-w-sm border border-gray-100 dark:border-gray-700/50 p-6 z-10 transition-all flex flex-col gap-4 text-center"
+            class="relative bg-white rounded-3xl shadow-xl overflow-hidden w-full max-w-sm border border-gray-100 p-6 z-10 transition-all flex flex-col gap-4 text-center"
         >
-            <div class="h-12 w-12 rounded-2xl bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 flex items-center justify-center mx-auto">
+            <div class="h-12 w-12 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mx-auto">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
             </div>
             
             <div>
-                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">
+                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">
                     {{ __('Delete Turf') }}
                 </h3>
                 <p class="text-xs text-gray-400 mt-2">
@@ -624,7 +613,7 @@ new #[Layout('layouts.app')] class extends Component
                 <button 
                     type="button" 
                     @click="@this.call('cancelDelete')" 
-                    class="px-4 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
+                    class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
                 >
                     {{ __('Cancel') }}
                 </button>
@@ -656,7 +645,7 @@ new #[Layout('layouts.app')] class extends Component
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
             @click="@this.call('cancelPublish')"
-            class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-sm transition-opacity"
+            class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity"
         ></div>
 
         <!-- Modal Dialog -->
@@ -668,16 +657,16 @@ new #[Layout('layouts.app')] class extends Component
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
             x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-            class="relative bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden w-full max-w-sm border border-gray-100 dark:border-gray-700/50 p-6 z-10 transition-all flex flex-col gap-4 text-center"
+            class="relative bg-white rounded-3xl shadow-xl overflow-hidden w-full max-w-sm border border-gray-100 p-6 z-10 transition-all flex flex-col gap-4 text-center"
         >
-            <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center mx-auto">
+            <div class="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center mx-auto">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15M12 9l3 3m0 0-3 3m3-3H2.25" />
                 </svg>
             </div>
             
             <div>
-                <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">
+                <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">
                     {{ __('Publish Turf') }}
                 </h3>
                 <p class="text-xs text-gray-400 mt-2">
@@ -689,7 +678,7 @@ new #[Layout('layouts.app')] class extends Component
                 <button 
                     type="button" 
                     @click="@this.call('cancelPublish')" 
-                    class="px-4 py-2 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
+                    class="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold text-[10px] uppercase tracking-wider rounded-xl transition duration-150 cursor-pointer"
                 >
                     {{ __('Cancel') }}
                 </button>
