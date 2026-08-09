@@ -12,7 +12,7 @@ use Livewire\Form;
 
 class LoginForm extends Form
 {
-    #[Validate(['required', 'string', 'regex:/^[6-9]\d{9}$/'])]
+    #[Validate('required|string')]
     public string $login = '';
 
     #[Validate('required|string')]
