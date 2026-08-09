@@ -38,12 +38,7 @@
             <div class="max-w-7xl mx-auto px-6 flex items-center justify-between">
                 <!-- Logo & Brand -->
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group">
-                    <div class="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition duration-300">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                    </div>
+                    <img src="{{ asset('images/logo.png') }}" class="h-10 w-10 rounded-2xl object-cover border border-emerald-100/50 shadow-sm group-hover:scale-105 transition-all duration-300" alt="Logo" />
                     <span class="font-black text-xl tracking-tight text-slate-900 group-hover:text-emerald-500 transition duration-150">
                         {{ config('app.name', 'TurfBooking') }}
                     </span>
@@ -53,7 +48,10 @@
                 <nav class="hidden md:flex items-center gap-8">
                     <a href="{{ url('/') }}" class="text-sm font-semibold {{ Request::is('/') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Home</a>
                     <a href="{{ url('/features') }}" class="text-sm font-semibold {{ Request::is('features') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Features</a>
+                    <a href="{{ url('/how-it-works') }}" class="text-sm font-semibold {{ Request::is('how-it-works') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">How It Works</a>
+                    <a href="{{ url('/for-turf-owners') }}" class="text-sm font-semibold {{ Request::is('for-turf-owners') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">For Turf Owners</a>
                     <a href="{{ url('/pricing') }}" class="text-sm font-semibold {{ Request::is('pricing') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Pricing</a>
+                    <a href="{{ url('/faqs') }}" class="text-sm font-semibold {{ Request::is('faqs') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">FAQs</a>
                     <a href="{{ url('/contact') }}" class="text-sm font-semibold {{ Request::is('contact') ? 'text-emerald-600 ' : 'text-slate-600 hover:text-emerald-600 ' }} transition duration-150">Contact</a>
                 </nav>
 
@@ -104,7 +102,10 @@
                 <div class="flex flex-col gap-4">
                     <a @click="mobileMenuOpen = false" href="{{ url('/') }}" class="text-base font-semibold py-2 {{ Request::is('/') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Home</a>
                     <a @click="mobileMenuOpen = false" href="{{ url('/features') }}" class="text-base font-semibold py-2 {{ Request::is('features') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Features</a>
+                    <a @click="mobileMenuOpen = false" href="{{ url('/how-it-works') }}" class="text-base font-semibold py-2 {{ Request::is('how-it-works') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">How It Works</a>
+                    <a @click="mobileMenuOpen = false" href="{{ url('/for-turf-owners') }}" class="text-base font-semibold py-2 {{ Request::is('for-turf-owners') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">For Turf Owners</a>
                     <a @click="mobileMenuOpen = false" href="{{ url('/pricing') }}" class="text-base font-semibold py-2 {{ Request::is('pricing') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Pricing</a>
+                    <a @click="mobileMenuOpen = false" href="{{ url('/faqs') }}" class="text-base font-semibold py-2 {{ Request::is('faqs') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">FAQs</a>
                     <a @click="mobileMenuOpen = false" href="{{ url('/contact') }}" class="text-base font-semibold py-2 {{ Request::is('contact') ? 'text-emerald-600 ' : 'text-slate-600 ' }}">Contact</a>
                     
                     <hr class="border-slate-200 my-2">
@@ -135,46 +136,42 @@
         <!-- Premium Footer -->
         <footer class="relative z-10 w-full border-t border-slate-200 bg-white backdrop-blur-sm pt-16 pb-12 transition-colors duration-300">
             <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                <!-- Branding and App Downloads -->
-                <div class="md:col-span-1 space-y-5">
+                <!-- Column 1: Brand Info -->
+                <div class="space-y-5">
                     <a href="{{ url('/') }}" class="flex items-center gap-3">
-                        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-md shadow-emerald-500/20">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                        </div>
-                        <span class="font-extrabold text-lg text-slate-900">{{ config('app.name', 'TurfBooking') }}</span>
+                        <img src="{{ asset('images/logo.png') }}" class="h-9 w-9 rounded-xl object-cover border border-emerald-100/50 shadow-sm" alt="Logo" />
+                        <span class="font-extrabold text-lg text-slate-900">TurfBooking</span>
                     </a>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        The all-in-one platform for sports facility owners and players. Simplify operations, automate slots scheduling, and boost occupancy rates instantly.
+                    <p class="text-xs text-slate-500 leading-relaxed font-medium">
+                        The smarter way to discover, book and manage sports turfs.
                     </p>
                     
-                    <!-- App Badges -->
-                    <div class="pt-2 space-y-2">
-                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Download companion app</span>
+                    <!-- App Download Badges -->
+                    <div class="space-y-3 pt-2">
+                        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">DOWNLOAD COMPANION APP</span>
                         <div class="flex items-center gap-3 flex-wrap">
                             <!-- App Store Badge Link -->
-                            <a href="#" class="group transition duration-200">
-                                <div class="bg-black text-white hover:bg-slate-900 border border-slate-800 flex items-center gap-2 px-2.5 py-1.5 rounded-lg shadow-sm">
-                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <a href="https://apps.apple.com/app/turfbooking" class="group transition duration-200">
+                                <div class="bg-black text-white hover:bg-slate-900 border border-slate-800 flex items-center gap-2 px-3 py-1.5 rounded-xl shadow-sm">
+                                    <svg class="w-4 h-4 text-white fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52(..)" />
                                         <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-.96.04-2.13.64-2.82 1.45-.6.69-1.12 1.83-.98 2.94.88.08 1.97-.52 2.81-1.33z"></path>
                                     </svg>
-                                    <div class="text-left leading-none">
-                                        <span class="block text-[7px] text-slate-400 font-medium">Download on the</span>
-                                        <span class="text-[9px] font-bold">App Store</span>
+                                    <div class="text-left leading-none shrink-0">
+                                        <span class="block text-[7px] text-slate-400 font-bold uppercase tracking-wider">Download on the</span>
+                                        <span class="text-[10px] font-black text-white">App Store</span>
                                     </div>
                                 </div>
                             </a>
                             <!-- Play Store Badge Link -->
-                            <a href="#" class="group transition duration-200">
-                                <div class="bg-black text-white hover:bg-slate-900 border border-slate-800 flex items-center gap-2 px-2.5 py-1.5 rounded-lg shadow-sm">
-                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <a href="https://play.google.com/store/apps/details?id=com.turfbooking" class="group transition duration-200">
+                                <div class="bg-black text-white hover:bg-slate-900 border border-slate-800 flex items-center gap-2 px-3 py-1.5 rounded-xl shadow-sm">
+                                    <svg class="w-4 h-4 text-white fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M5 3.23v17.54c0 .54.37.93.88.97l9.47-9.47L5.88 2.26c-.51.04-.88.43-.88.97zm11.2 8.77l3.66-3.66c.38-.38.38-1 0-1.38L5.88 2.26l10.32 9.74zm4.14 1.38L15.47 9l-9.59 9.59c.51.04.88.43.88.97l13.58-6.19c.38-.17.38-.81 0-.99z"></path>
                                     </svg>
-                                    <div class="text-left leading-none">
-                                        <span class="block text-[7px] text-slate-400 font-medium">GET IT ON</span>
-                                        <span class="text-[9px] font-bold">Google Play</span>
+                                    <div class="text-left leading-none shrink-0">
+                                        <span class="block text-[7px] text-slate-400 font-bold uppercase tracking-wider">GET IT ON</span>
+                                        <span class="text-[10px] font-black text-white">Google Play</span>
                                     </div>
                                 </div>
                             </a>
@@ -182,56 +179,39 @@
                     </div>
                 </div>
 
-                <!-- Column 2: Navigation Links -->
+                <!-- Column 2: For Players -->
                 <div class="space-y-4">
-                    <span class="block text-xs font-bold text-slate-950 uppercase tracking-widest">Platform</span>
+                    <span class="block text-xs font-bold text-slate-955 uppercase tracking-widest">For Players</span>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="{{ url('/') }}" class="text-slate-500 hover:text-emerald-600 transition">Home Overview</a></li>
-                        <li><a href="{{ url('/features') }}" class="text-slate-500 hover:text-emerald-600 transition">Key Features</a></li>
-                        <li><a href="{{ url('/pricing') }}" class="text-slate-500 hover:text-emerald-600 transition">Pricing Plans</a></li>
-                        <li><a href="{{ route('register') }}" class="text-slate-500 hover:text-emerald-600 transition">Register Venue</a></li>
+                        <li><a href="{{ url('/download') }}" class="text-slate-500 hover:text-emerald-600 transition">Download App</a></li>
+                        <li><a href="{{ url('/how-it-works') }}" class="text-slate-500 hover:text-emerald-600 transition">How It Works</a></li>
+                        <li><a href="{{ url('/faqs#player-faqs') }}" class="text-slate-500 hover:text-emerald-600 transition">FAQs</a></li>
+                        <li><a href="{{ url('/contact') }}" class="text-slate-500 hover:text-emerald-600 transition">Support</a></li>
                     </ul>
                 </div>
 
-                <!-- Column 3: Legal & Support -->
+                <!-- Column 3: For Turf Owners -->
                 <div class="space-y-4">
-                    <span class="block text-xs font-bold text-slate-950 uppercase tracking-widest">Support & Legal</span>
+                    <span class="block text-xs font-bold text-slate-955 uppercase tracking-widest">For Turf Owners</span>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="{{ url('/contact') }}" class="text-slate-500 hover:text-emerald-600 transition">Contact Us</a></li>
+                        <li><a href="{{ route('register') }}" class="text-slate-500 hover:text-emerald-600 transition">List Your Turf</a></li>
+                        <li><a href="{{ url('/features') }}" class="text-slate-500 hover:text-emerald-600 transition">Features</a></li>
+                        <li><a href="{{ url('/pricing') }}" class="text-slate-500 hover:text-emerald-600 transition">Pricing</a></li>
+                        <li><a href="{{ route('login') }}" class="text-slate-500 hover:text-emerald-600 transition">Owner Login</a></li>
+                        <li><a href="{{ url('/faqs#owner-faqs') }}" class="text-slate-500 hover:text-emerald-600 transition">Owner FAQs</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: Company -->
+                <div class="space-y-4">
+                    <span class="block text-xs font-bold text-slate-955 uppercase tracking-widest">Company</span>
+                    <ul class="space-y-2 text-xs">
+                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">About Us</a></li>
+                        <li><a href="{{ url('/contact') }}" class="text-slate-500 hover:text-emerald-600 transition">Contact</a></li>
                         <li><a href="{{ route('privacy-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Privacy Policy</a></li>
-                        <li><a href="mailto:support@turfbooking.com" class="text-slate-500 hover:text-emerald-600 transition">Support Email</a></li>
-                        <li><span class="text-slate-400 font-medium">Venue Hotline: +1 (800) 555-TURF</span></li>
+                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">Terms & Conditions</a></li>
+                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">Refund/Cancellation Policy</a></li>
                     </ul>
-                </div>
-
-                <!-- Column 4: Newsletter -->
-                <div class="space-y-4">
-                    <span class="block text-xs font-bold text-slate-950 uppercase tracking-widest">Stay Updated</span>
-                    <p class="text-xs text-slate-500 leading-relaxed">
-                        Get business advice and software update alerts directly in your inbox.
-                    </p>
-                    <form x-data="{ email: '', subscribed: false }" @submit.prevent="subscribed = true; email = ''" class="flex gap-2">
-                        <div class="relative w-full">
-                            <input 
-                                x-show="!subscribed"
-                                type="email" 
-                                required 
-                                x-model="email"
-                                placeholder="owner@sportscomplex.com" 
-                                class="w-full text-xs px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
-                            >
-                            <span x-show="subscribed" class="block text-xs font-semibold text-emerald-600 py-2">
-                                ✓ Subscribed successfully!
-                            </span>
-                        </div>
-                        <button 
-                            x-show="!subscribed"
-                            type="submit" 
-                            class="px-4 py-2 text-xs font-bold text-white bg-emerald-500 hover:bg-emerald-400 rounded-lg shadow-sm transition"
-                        >
-                            Subscribe
-                        </button>
-                    </form>
                 </div>
             </div>
 
@@ -239,9 +219,26 @@
             <div class="max-w-7xl mx-auto px-6 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
                 <p>&copy; {{ date('Y') }} {{ config('app.name', 'TurfBooking') }}. All rights reserved.</p>
                 <div class="flex items-center gap-6">
-                    <a href="#" class="hover:text-emerald-500 transition"><span class="sr-only">Twitter</span>𝕏</a>
-                    <a href="#" class="hover:text-emerald-500 transition"><span class="sr-only">Instagram</span>📸</a>
-                    <a href="#" class="hover:text-emerald-500 transition"><span class="sr-only">LinkedIn</span>💼</a>
+                    <a href="https://facebook.com/turfbooking" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-emerald-500 transition-colors" title="Facebook">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="https://instagram.com/turfbooking" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-emerald-500 transition-colors" title="Instagram">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.01 3.71.054 1.139.052 2.03.232 2.698.497a5.03 5.03 0 011.8 1.17 4.884 4.884 0 011.17 1.8c.263.668.443 1.56.497 2.698.043.924.053 1.282.053 3.71s-.01 2.784-.054 3.71c-.052 1.14-.232 2.03-.497 2.698a5.022 5.022 0 01-1.17 1.8 4.88 4.88 0 01-1.8 1.17c-.669.263-1.56.443-2.698.497-.923.043-1.282.054-3.71.054s-2.784-.01-3.71-.054c-1.139-.052-2.03-.232-2.699-.497a5.03 5.03 0 01-1.8-1.17 4.87 4.87 0 01-1.17-1.8c-.263-.669-.443-1.56-.497-2.698C2.01 14.8 2 14.442 2 12s.01-2.784.054-3.71c.052-1.139.232-2.03.497-2.698a5.029 5.029 0 011.17-1.8 4.883 4.883 0 011.8-1.17c.669-.263 1.56-.443 2.698-.497.923-.043 1.282-.054 3.71-.054zM12 5.38c-3.655 0-6.62 2.965-6.62 6.62s2.965 6.62 6.62 6.62 6.62-2.965 6.62-6.62-2.965-6.62-6.62-6.62zm0 10.925c-2.378 0-4.305-1.927-4.305-4.305s1.927-4.305 4.305-4.305 4.305 1.927 4.305 4.305-1.927 4.305-4.305 4.305zm5.305-10.09a1.094 1.094 0 11-2.188 0 1.094 1.094 0 012.188 0z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="https://youtube.com/@turfbooking" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-emerald-500 transition-colors" title="YouTube">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path fill-rule="evenodd" d="M23.498 6.163a3.003 3.003 0 00-2.11-2.11C19.518 3.545 12 3.545 12 3.545s-7.518 0-9.388.508a3.003 3.003 0 00-2.11 2.11C0 8.033 0 12 0 12s0 3.967.502 5.837a3.003 3.003 0 002.11 2.11c1.87.508 9.388.508 9.388.508s7.518 0 9.388-.508a3.003 3.003 0 002.11-2.11C24 15.967 24 12 24 12s0-3.967-.502-5.837zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    <a href="https://twitter.com/turfbooking" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-emerald-500 transition-colors" title="Twitter / X">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M13.682 10.629L20.22 3h-1.55l-5.678 6.602L8.455 3H3.22l6.857 9.979L3.22 21h1.55l6.007-6.982L15.545 21h5.235l-7.098-10.371zm-2.122 2.47L10.865 12.1l-5.518-7.902h2.38l4.316 6.176.695.996 5.793 8.29h-2.38l-4.708-6.734z" />
+                        </svg>
+                    </a>
                 </div>
             </div>
         </footer>

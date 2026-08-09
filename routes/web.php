@@ -5,8 +5,12 @@ use Livewire\Volt\Volt;
 
 Route::view('/', 'welcome');
 Route::view('/features', 'features')->name('features');
+Route::view('/how-it-works', 'how-it-works')->name('how-it-works');
 Route::view('/pricing', 'pricing')->name('pricing');
+Route::view('/faqs', 'faqs')->name('faqs');
 Route::view('/contact', 'contact')->name('contact');
+Route::view('/for-turf-owners', 'for-turf-owners')->name('for-turf-owners');
+Route::view('/download', 'download')->name('download');
 Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
 
 Route::get('dashboard', function () {
@@ -58,6 +62,10 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/administrator', 'saas.administrator-dashboard')
         ->middleware('role:saas-admin')
         ->name('saas.administrator');
+
+    Volt::route('saas/contact-messages', 'saas.contact-messages')
+        ->middleware('role:saas-admin')
+        ->name('saas.contact-messages');
 
     Volt::route('turf/dashboard', 'turf.dashboard-manager')
         ->middleware('role:turf-admin|manager|admin')
