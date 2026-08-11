@@ -335,7 +335,7 @@
                 Your Next Game Is Just a Few Taps Away.
             </h2>
             <div class="pt-2">
-                <a href="https://play.google.com/store/apps/details?id=com.turfbooking" class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-955 font-extrabold text-xs uppercase tracking-wider rounded-2xl transition duration-150 shadow-md shadow-emerald-500/20 gap-2">
+                <a href="https://play.google.com/store/apps/details?id=com.infoleena.turf.booking&hl=en_IN" class="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-955 font-extrabold text-xs uppercase tracking-wider rounded-2xl transition duration-150 shadow-md shadow-emerald-500/20 gap-2">
                     Download TurfBooking App &rarr;
                 </a>
             </div>

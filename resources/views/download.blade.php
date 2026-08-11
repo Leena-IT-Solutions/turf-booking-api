@@ -42,7 +42,7 @@
                     </a>
 
                     <!-- Google Play -->
-                    <a href="https://play.google.com/store/apps/details?id=com.turfbooking" class="group transition duration-200">
+                    <a href="https://play.google.com/store/apps/details?id=com.infoleena.turf.booking&hl=en_IN" class="group transition duration-200">
                         <div class="bg-slate-900 text-white hover:bg-slate-800 border border-slate-855 flex items-center gap-3 px-5 py-3 rounded-2xl shadow-md">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 3.23v17.54c0 .54.37.93.88.97l9.47-9.47L5.88 2.26c-.51.04-.88.43-.88.97zm11.2 8.77l3.66-3.66c.38-.38.38-1 0-1.38L5.88 2.26l10.32 9.74zm4.14 1.38L15.47 9l-9.59 9.59c.51.04.88.43.88.97l13.58-6.19c.38-.17.38-.81 0-.99z"></path>
