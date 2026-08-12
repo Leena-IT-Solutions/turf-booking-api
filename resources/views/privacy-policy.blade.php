@@ -4,6 +4,21 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Privacy Policy - {{ config('app.name', 'TurfBooking') }}</title>
+        <meta name="description" content="Privacy Policy for TurfBooking - Premium Turf Scheduling & Booking Platform. Learn how we handle location permissions and account data.">
+
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:title" content="Privacy Policy - {{ config('app.name', 'TurfBooking') }}">
+        <meta property="og:description" content="Privacy Policy for TurfBooking. Learn how we handle location and account data.">
+        <meta property="og:image" content="{{ asset('images/og-image.png') }}">
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="{{ url()->current() }}">
+        <meta property="twitter:title" content="Privacy Policy - {{ config('app.name', 'TurfBooking') }}">
+        <meta property="twitter:description" content="Privacy Policy for TurfBooking. Learn how we handle location and account data.">
+        <meta property="twitter:image" content="{{ asset('images/og-image.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

@@ -6,6 +6,21 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ $title ?? config('app.name', 'TurfBooking') }} - Premium Turf Scheduling & Booking Platform</title>
+        <meta name="description" content="Manage your turf, schedule bookings, collect online payments, and grow your sports business. Easy turf bookings for players.">
+
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:title" content="{{ $title ?? config('app.name', 'TurfBooking') }} - Premium Turf Scheduling & Booking Platform">
+        <meta property="og:description" content="Manage your turf. Get more bookings. Complete Turf Management for Owners. Easy Booking for Players.">
+        <meta property="og:image" content="{{ asset('images/og-image.png') }}">
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="{{ url()->current() }}">
+        <meta property="twitter:title" content="{{ $title ?? config('app.name', 'TurfBooking') }} - Premium Turf Scheduling & Booking Platform">
+        <meta property="twitter:description" content="Manage your turf. Get more bookings. Complete Turf Management for Owners. Easy Booking for Players.">
+        <meta property="twitter:image" content="{{ asset('images/og-image.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
