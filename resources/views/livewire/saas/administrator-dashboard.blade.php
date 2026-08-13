@@ -20,7 +20,7 @@ new #[Layout('layouts.app')] class extends Component
         $totalBookings = Booking::where('status', 'Confirmed')->count();
         $totalCustomers = User::count();
         $totalTurfs = Turf::count();
-        $unreadContacts = \App\Models\ContactMessage::where('is_read', false)->count();
+        $unreadContacts = \Schema::hasTable('contact_messages') ? \App\Models\ContactMessage::where('is_read', false)->count() : 0;
 
         // 2. Booking Types breakdown
         $dayBookings = Booking::where('booking_type', 'day')->where('status', 'Confirmed')->count();

@@ -170,7 +170,7 @@ new class extends Component
                                 <span class="ms-3">{{ __('Contact Messages') }}</span>
                             </div>
                             @php
-                                $unreadContactCount = \App\Models\ContactMessage::where('is_read', false)->count();
+                                $unreadContactCount = \Schema::hasTable('contact_messages') ? \App\Models\ContactMessage::where('is_read', false)->count() : 0;
                             @endphp
                             @if ($unreadContactCount > 0)
                                 <span class="h-5 w-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-[9px] font-black">
