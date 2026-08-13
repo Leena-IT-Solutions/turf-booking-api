@@ -24,7 +24,7 @@ new #[Layout('layouts.guest')] class extends Component
         $validated = $this->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'mobile' => ['required', 'string', 'max:20', 'unique:'.User::class],
+            'mobile' => ['required', 'string', 'regex:/^[6-9]\d{9}$/', 'unique:'.User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -65,8 +65,7 @@ new #[Layout('layouts.guest')] class extends Component
         <!-- Mobile Number -->
         <div>
             <x-input-label for="mobile" :value="__('Mobile')" class="text-slate-700 font-semibold text-xs mb-1" />
-            <x-text-input wire:model="mobile" id="mobile" class="block w-full px-3.5 py-2.5 bg-slate-50/50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-xl shadow-sm text-sm" type="text" name="mobile" required autocomplete="tel" />
-            <x-input-error :messages="$errors->get('mobile')" class="mt-1" />
+            <x-text-input wire:model="mobile" id="mobile" class="block w-full px-3.5 py-2.5 bg-slate-50/50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-xl shadow-sm text-sm" type="text" name="mobile" required autocomplete="tel" inputmode="numeric" pattern="[6-9][0-9]{9}" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)" />
         </div>
 
         <!-- Password -->

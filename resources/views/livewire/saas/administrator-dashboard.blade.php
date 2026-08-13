@@ -20,6 +20,7 @@ new #[Layout('layouts.app')] class extends Component
         $totalBookings = Booking::where('status', 'Confirmed')->count();
         $totalCustomers = User::count();
         $totalTurfs = Turf::count();
+        $unreadContacts = \App\Models\ContactMessage::where('is_read', false)->count();
 
         // 2. Booking Types breakdown
         $dayBookings = Booking::where('booking_type', 'day')->where('status', 'Confirmed')->count();
@@ -92,6 +93,7 @@ new #[Layout('layouts.app')] class extends Component
             'scatteredPercentage' => $scatteredPercentage,
             'topTurfs' => $topTurfs,
             'recentBookings' => $recentBookings,
+            'unreadContacts' => $unreadContacts,
         ];
     }
 }; ?>
@@ -112,7 +114,7 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <!-- KPI Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
             
             <!-- Revenue Stat Card -->
             <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
@@ -182,6 +184,23 @@ new #[Layout('layouts.app')] class extends Component
                     <span class="block text-[10px] text-gray-400 mt-1">{{ __('Total registered accounts') }}</span>
                 </div>
             </div>
+
+            <!-- Contact Messages Stat Card -->
+            <a href="{{ route('saas.contact-messages') }}" wire:navigate class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group block hover:shadow-md transition duration-300">
+                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-rose-50/50 rounded-full group-hover:scale-110 transition duration-300"></div>
+                <div class="flex items-center justify-between relative z-10">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Unread Inquiries') }}</span>
+                    <span class="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0V9a2 2 0 00-2-2M4 11v4a2 2 0 002 2h12a2 2 0 002-2v-4M9 21h6" />
+                        </svg>
+                    </span>
+                </div>
+                <div class="mt-4 relative z-10">
+                    <span class="text-2xl font-black text-gray-900 font-mono">{{ number_format($unreadContacts) }}</span>
+                    <span class="block text-[10px] text-gray-400 mt-1">{{ __('Unread contact us messages') }}</span>
+                </div>
+            </a>
 
         </div>
 

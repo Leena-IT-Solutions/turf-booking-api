@@ -34,9 +34,9 @@ new #[Layout('layouts.guest')] class extends Component
     </div>
 
     <form wire:submit="login" class="space-y-4">
-        <!-- Email or Mobile -->
+        <!-- Mobile or Email -->
         <div>
-            <x-input-label for="login" :value="__('Email or Mobile')" class="text-slate-700 font-semibold text-xs mb-1" />
+            <x-input-label for="login" :value="__('Mobile or Email')" class="text-slate-700 font-semibold text-xs mb-1" />
             <x-text-input wire:model="form.login" id="login" class="block w-full px-3.5 py-2.5 bg-slate-50/50 border-slate-200 focus:border-emerald-500 focus:ring-emerald-500 rounded-xl shadow-sm text-sm" type="text" name="login" required autofocus autocomplete="username" />
             <x-input-error :messages="$errors->get('form.login')" class="mt-1" />
         </div>

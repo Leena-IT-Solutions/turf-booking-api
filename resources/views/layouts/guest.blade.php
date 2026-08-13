@@ -5,7 +5,22 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'Laravel') }}</title>
+        <title>{{ config('app.name', 'TurfBooking') }}</title>
+        <meta name="description" content="Access your TurfBooking account or register a new one to manage or book sports arenas.">
+
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website">
+        <meta property="og:url" content="{{ url()->current() }}">
+        <meta property="og:title" content="{{ config('app.name', 'TurfBooking') }} - Log In / Register">
+        <meta property="og:description" content="Manage your turf. Get more bookings. Complete Turf Management for Owners. Easy Booking for Players.">
+        <meta property="og:image" content="{{ asset('images/og-image.png') }}">
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image">
+        <meta property="twitter:url" content="{{ url()->current() }}">
+        <meta property="twitter:title" content="{{ config('app.name', 'TurfBooking') }} - Log In / Register">
+        <meta property="twitter:description" content="Manage your turf. Get more bookings. Complete Turf Management for Owners. Easy Booking for Players.">
+        <meta property="twitter:image" content="{{ asset('images/og-image.png') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
