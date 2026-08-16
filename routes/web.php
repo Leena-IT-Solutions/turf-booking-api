@@ -12,6 +12,10 @@ Route::view('/contact', 'contact')->name('contact');
 Route::view('/for-turf-owners', 'for-turf-owners')->name('for-turf-owners');
 Route::view('/download', 'download')->name('download');
 Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
+Route::view('/refund-policy', 'refund-policy')->name('refund-policy');
+Route::view('/terms-and-conditions', 'terms-and-conditions')->name('terms-and-conditions');
+
+Route::get('/sitemap.xml', [\App\Http\Controllers\SitemapController::class, 'index']);
 
 Route::get('dashboard', function () {
     return view('dashboard');

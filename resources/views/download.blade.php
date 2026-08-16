@@ -2,6 +2,9 @@
     <x-slot name="title">
         Download TurfBooking Companion App
     </x-slot>
+    <x-slot name="description">
+        Download the TurfBooking mobile app for Android and iOS. Book sports slots, manage your turf business, and view stats on the go.
+    </x-slot>
 
     <!-- Download Section -->
     <section class="relative pt-20 pb-24 lg:pt-32 lg:pb-36 overflow-hidden">

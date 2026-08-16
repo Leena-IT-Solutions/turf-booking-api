@@ -2,6 +2,9 @@
     <x-slot name="title">
         Platform Modules & Features - Complete Turf Booking Capabilities
     </x-slot>
+    <x-slot name="description">
+        Explore TurfBooking's features. Features include slot booking, automated slot locks, pricing schemes, coupon management, support systems, and sales reports.
+    </x-slot>
 
     <!-- Hero Header -->
     <section class="pt-20 pb-12 text-center relative overflow-hidden">

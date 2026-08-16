@@ -2,6 +2,25 @@
     <x-slot name="title">
         {{ config('app.name', 'TurfBooking') }} - Sports Venue Management & Slot Booking Platform
     </x-slot>
+    <x-slot name="description">
+        Manage your turf, schedule bookings, collect online payments, and grow your sports business. Easy turf bookings for players.
+    </x-slot>
+    <x-slot name="head">
+        <script type="application/ld+json">
+        {
+          "@@context": "https://schema.org",
+          "@@type": "SoftwareApplication",
+          "name": "TurfBooking",
+          "operatingSystem": "All",
+          "applicationCategory": "BusinessApplication",
+          "offers": {
+            "@@type": "Offer",
+            "price": "0",
+            "priceCurrency": "INR"
+          }
+        }
+        </script>
+    </x-slot>
 
     <!-- Hero Section -->
     <section class="relative w-full bg-gradient-to-br from-slate-900 via-slate-950 to-indigo-950 text-white py-24 lg:py-32 overflow-hidden border-b border-slate-800">

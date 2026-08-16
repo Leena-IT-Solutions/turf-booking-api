@@ -2,6 +2,9 @@
     <x-slot name="title">
         How It Works - TurfBooking
     </x-slot>
+    <x-slot name="description">
+        Learn how TurfBooking makes turf slot scheduling and booking easy for both players and turf business owners. Discover the step-by-step process.
+    </x-slot>
 
     <!-- Hero Header -->
     <section class="pt-24 pb-16 text-center relative overflow-hidden bg-slate-50 border-b border-slate-200/50">

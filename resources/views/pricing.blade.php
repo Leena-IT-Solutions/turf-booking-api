@@ -1,6 +1,9 @@
 <x-marketing-layout>
     <x-slot name="title">
-        Pricing - Scale Your Sport Arena Business Cost-Effectively
+        Transparent Pricing Plans - TurfBooking SaaS
+    </x-slot>
+    <x-slot name="description">
+        Choose the perfect pricing plan for your sports venue business. Simple, transparent pricing for turf owners with high ROI.
     </x-slot>
 
     <!-- Pricing Area Wrapper -->
@@ -14,7 +17,7 @@
                 <span class="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">No-Surprise Pricing</span>
             </h1>
             <p class="text-base text-slate-550 max-w-xl mx-auto leading-relaxed font-medium">
-                Choose the subscription model that fits your business. List for free to gain visibility or upgrade to Pro for full management capabilities.
+                Choose the subscription model that fits your business. Both plans include full management features, with the Pro tier offering a reduced platform commission rate.
             </p>
 
             <!-- Toggle Switch -->
@@ -61,22 +64,25 @@
                     <!-- Features -->
                     <ul class="space-y-3.5 text-xs text-slate-600 font-semibold">
                         <li class="flex items-center gap-2.5">
-                            <span class="text-rose-500 font-bold">✔</span> Turf listing
+                            <span class="text-emerald-500 font-bold">✔</span> Turf listing
                         </li>
                         <li class="flex items-center gap-2.5">
-                            <span class="text-rose-500 font-bold">✔</span> Basic visibility
+                            <span class="text-emerald-500 font-bold">✔</span> Basic visibility
                         </li>
                         <li class="flex items-center gap-2.5">
-                            <span class="text-rose-500 font-bold">✔</span> Basic profile
+                            <span class="text-emerald-500 font-bold">✔</span> Basic profile
                         </li>
-                        <li class="flex items-center gap-2.5 text-slate-400 line-through decoration-slate-300">
-                            Full turf management
+                        <li class="flex items-center gap-2.5">
+                            <span class="text-emerald-500 font-bold">✔</span> Full turf management
                         </li>
-                        <li class="flex items-center gap-2.5 text-slate-400 line-through decoration-slate-300">
-                            Booking & Slot management
+                        <li class="flex items-center gap-2.5">
+                            <span class="text-emerald-500 font-bold">✔</span> Booking & Slot management
                         </li>
-                        <li class="flex items-center gap-2.5 text-slate-400 line-through decoration-slate-300">
-                            Reports & dashboard
+                        <li class="flex items-center gap-2.5">
+                            <span class="text-emerald-500 font-bold">✔</span> Reports & dashboard
+                        </li>
+                        <li class="flex items-center gap-2.5">
+                            <span class="text-emerald-500 font-bold">✔</span> Standard platform commission
                         </li>
                     </ul>
                 </div>
@@ -182,7 +188,7 @@
                         <span class="shrink-0 transition-transform duration-350 text-slate-400 group-open:-rotate-180">▼</span>
                     </summary>
                     <p class="mt-4 text-xs text-slate-500 leading-relaxed font-medium">
-                        Free listings do not support direct online bookings through TurfBooking. For Pro subscriptions, a low percentage commission is charged on each online transaction processed, allowing you to keep the vast majority of your revenue.
+                        Both plans support direct online bookings and full scheduling capabilities. Under the Free Listing tier, a standard commission rate is charged on transactions. Upgrading to the Pro tier reduces this platform commission rate significantly, allowing you to maximize your arena's revenue.
                     </p>
                 </details>
             </div>

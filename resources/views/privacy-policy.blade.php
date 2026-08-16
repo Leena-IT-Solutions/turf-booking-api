@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Privacy Policy - {{ config('app.name', 'TurfBooking') }}</title>
         <meta name="description" content="Privacy Policy for TurfBooking - Premium Turf Scheduling & Booking Platform. Learn how we handle location permissions and account data.">
+        <link rel="canonical" href="{{ url()->current() }}">
 
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website">
@@ -102,7 +103,7 @@
                             We retain your personal data only as long as necessary to provide you with our booking services. If you wish to delete your account and remove all your data permanently:
                         </p>
                         <p class="text-xs">
-                            You can initiate account deletion at any time by going to your <strong>Profile Settings</strong> page inside the application and clicking "Delete Account", or by contacting our support team at <a href="mailto:support@turfbooking.com" class="text-emerald-500 hover:underline">support@turfbooking.com</a>. Upon receiving your request, we will delete your account and associated personal data from our active databases within 30 days, except where data must be retained for legal, financial, or auditing compliance.
+                            You can initiate account deletion at any time by going to your <strong>Profile Settings</strong> page inside the application and clicking "Delete Account", or by contacting our support team at <a href="mailto:leenaitsolutions@gmail.com" class="text-emerald-500 hover:underline">leenaitsolutions@gmail.com</a>. Upon receiving your request, we will delete your account and associated personal data from our active databases within 30 days, except where data must be retained for legal, financial, or auditing compliance.
                         </p>
                     </section>
 
@@ -124,7 +125,7 @@
                         <h2 class="text-lg font-bold text-gray-900">8. Contact Us</h2>
                         <p>If you have any questions or feedback regarding this Privacy Policy, please contact us at:</p>
                         <p class="text-xs mt-1">
-                            Email: <a href="mailto:support@turfbooking.com" class="text-emerald-500 hover:underline">support@turfbooking.com</a><br>
+                            Email: <a href="mailto:leenaitsolutions@gmail.com" class="text-emerald-500 hover:underline">leenaitsolutions@gmail.com</a><br>
                             Address: Mumbai, India
                         </p>
                     </section>
@@ -136,7 +137,7 @@
         <!-- Footer -->
         <footer class="bg-white border-t border-gray-100 py-8 px-6 text-center text-xs text-gray-400">
             <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-                <p>&copy; {{ date('Y') }} {{ config('app.name', 'TurfBooking') }}. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} {{ config('app.name', 'TurfBooking') }}. All rights reserved. | Designed & developed by <a href="https://leenaitsolutions.in" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-500 font-medium transition-colors">Leena IT Solutions</a></p>
                 <div class="flex items-center gap-4">
                     <a href="{{ url('/') }}" class="hover:text-emerald-500 transition">Home</a>
                     <a href="{{ route('privacy-policy') }}" class="hover:text-emerald-500 font-medium transition">Privacy Policy</a>

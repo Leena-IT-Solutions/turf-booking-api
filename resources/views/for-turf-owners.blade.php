@@ -2,6 +2,9 @@
     <x-slot name="title">
         For Turf Owners - Automate and Scale Your Sports Arena
     </x-slot>
+    <x-slot name="description">
+        Empower your sports venue business with TurfBooking's dedicated turf owner features: slot managers, staff profiles, pricing configuration, and analytics.
+    </x-slot>
 
     <!-- Pricing / Billing state wrapper for pricing section -->
     <div x-data="{ annual: false }">
@@ -347,22 +350,25 @@
                             <!-- Features -->
                             <ul class="space-y-3.5 text-xs text-slate-600 font-semibold">
                                 <li class="flex items-center gap-2.5">
-                                    <span class="text-rose-500 font-bold">✔</span> Turf listing
+                                    <span class="text-emerald-500 font-bold">✔</span> Turf listing
                                 </li>
                                 <li class="flex items-center gap-2.5">
-                                    <span class="text-rose-500 font-bold">✔</span> Basic visibility
+                                    <span class="text-emerald-500 font-bold">✔</span> Basic visibility
                                 </li>
                                 <li class="flex items-center gap-2.5">
-                                    <span class="text-rose-500 font-bold">✔</span> Basic profile
+                                    <span class="text-emerald-500 font-bold">✔</span> Basic profile
                                 </li>
-                                <li class="flex items-center gap-2.5 text-slate-400 line-through decoration-slate-300">
-                                    Full turf management
+                                <li class="flex items-center gap-2.5">
+                                    <span class="text-emerald-500 font-bold">✔</span> Full turf management
                                 </li>
-                                <li class="flex items-center gap-2.5 text-slate-400 line-through decoration-slate-300">
-                                    Booking & Slot management
+                                <li class="flex items-center gap-2.5">
+                                    <span class="text-emerald-500 font-bold">✔</span> Booking & Slot management
                                 </li>
-                                <li class="flex items-center gap-2.5 text-slate-400 line-through decoration-slate-300">
-                                    Reports & dashboard
+                                <li class="flex items-center gap-2.5">
+                                    <span class="text-emerald-500 font-bold">✔</span> Reports & dashboard
+                                </li>
+                                <li class="flex items-center gap-2.5">
+                                    <span class="text-emerald-500 font-bold">✔</span> Standard platform commission
                                 </li>
                             </ul>
                         </div>

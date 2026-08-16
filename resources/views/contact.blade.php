@@ -2,6 +2,9 @@
     <x-slot name="title">
         Contact - Reach Our Support & Arena Sales Experts
     </x-slot>
+    <x-slot name="description">
+        Get in touch with the TurfBooking team. Contact us for sales inquiries, platform support, turf listings, or custom integrations.
+    </x-slot>
 
     <section class="py-20 lg:py-32 relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">

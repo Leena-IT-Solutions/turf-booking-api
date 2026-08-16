@@ -2,6 +2,9 @@
     <x-slot name="title">
         FAQs - Frequently Asked Questions
     </x-slot>
+    <x-slot name="description">
+        Find answers to frequently asked questions about TurfBooking. Learn about slot locks, online payments, pricing models, and mobile app support.
+    </x-slot>
 
     <!-- Header Section -->
     <section class="pt-20 pb-12 text-center relative overflow-hidden">

@@ -5,21 +5,22 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ $title ?? config('app.name', 'TurfBooking') }} - Premium Turf Scheduling & Booking Platform</title>
-        <meta name="description" content="Manage your turf, schedule bookings, collect online payments, and grow your sports business. Easy turf bookings for players.">
+        <title>{{ $title ?? 'TurfBooking - Premium Turf Scheduling & Booking Platform' }}</title>
+        <meta name="description" content="{{ $description ?? 'Manage your turf, schedule bookings, collect online payments, and grow your sports business. Easy turf bookings for players.' }}">
+        <link rel="canonical" href="{{ url()->current() }}">
 
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website">
         <meta property="og:url" content="{{ url()->current() }}">
-        <meta property="og:title" content="{{ $title ?? config('app.name', 'TurfBooking') }} - Premium Turf Scheduling & Booking Platform">
-        <meta property="og:description" content="Manage your turf. Get more bookings. Complete Turf Management for Owners. Easy Booking for Players.">
+        <meta property="og:title" content="{{ $title ?? 'TurfBooking - Premium Turf Scheduling & Booking Platform' }}">
+        <meta property="og:description" content="{{ $description ?? 'Manage your turf, schedule bookings, collect online payments, and grow your sports business. Easy turf bookings for players.' }}">
         <meta property="og:image" content="{{ asset('images/og-image.png') }}">
 
         <!-- Twitter -->
         <meta property="twitter:card" content="summary_large_image">
         <meta property="twitter:url" content="{{ url()->current() }}">
-        <meta property="twitter:title" content="{{ $title ?? config('app.name', 'TurfBooking') }} - Premium Turf Scheduling & Booking Platform">
-        <meta property="twitter:description" content="Manage your turf. Get more bookings. Complete Turf Management for Owners. Easy Booking for Players.">
+        <meta property="twitter:title" content="{{ $title ?? 'TurfBooking - Premium Turf Scheduling & Booking Platform' }}">
+        <meta property="twitter:description" content="{{ $description ?? 'Manage your turf, schedule bookings, collect online payments, and grow your sports business. Easy turf bookings for players.' }}">
         <meta property="twitter:image" content="{{ asset('images/og-image.png') }}">
 
         <!-- Fonts -->
@@ -33,6 +34,7 @@
         <!-- Styles -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         @livewireStyles
+        {{ $head ?? '' }}
     </head>
     <body class="antialiased font-sans bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-white">
         
@@ -224,15 +226,15 @@
                         <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">About Us</a></li>
                         <li><a href="{{ url('/contact') }}" class="text-slate-500 hover:text-emerald-600 transition">Contact</a></li>
                         <li><a href="{{ route('privacy-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Privacy Policy</a></li>
-                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">Terms & Conditions</a></li>
-                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">Refund/Cancellation Policy</a></li>
+                        <li><a href="{{ route('terms-and-conditions') }}" class="text-slate-500 hover:text-emerald-600 transition">Terms & Conditions</a></li>
+                        <li><a href="{{ route('refund-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Refund/Cancellation Policy</a></li>
                     </ul>
                 </div>
             </div>
 
             <!-- Copyright and Social Icons -->
             <div class="max-w-7xl mx-auto px-6 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-                <p>&copy; {{ date('Y') }} {{ config('app.name', 'TurfBooking') }}. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} {{ config('app.name', 'TurfBooking') }}. All rights reserved. | Designed & developed by <a href="https://leenaitsolutions.in" target="_blank" rel="noopener noreferrer" class="hover:text-emerald-500 font-medium transition-colors">Leena IT Solutions</a></p>
                 <div class="flex items-center gap-6">
                     <a href="https://facebook.com/turfbooking" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-emerald-500 transition-colors" title="Facebook">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
