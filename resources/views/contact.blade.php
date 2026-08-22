@@ -60,7 +60,7 @@
                         </div>
                         <div>
                             <span class="block font-bold text-slate-900">Office Address</span>
-                            <span class="text-slate-500">Ambernarth, Mumbai</span>
+                            <span class="text-slate-500">B101 Sai Section, Hutatma Chowk, Kansai Section, Ambernath, Maharashtra 421501</span>
                         </div>
                     </div>
                 </div>
@@ -76,23 +76,6 @@
                     </a>
                 </div>
 
-                <!-- Sleek CSS Map Mockup -->
-                <div class="relative bg-slate-100 border border-slate-200 rounded-2xl h-44 overflow-hidden shadow-inner flex items-center justify-center transition duration-300">
-                    <!-- map grid lines -->
-                    <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]"></div>
-                    
-                    <!-- Pulsing Green Dot -->
-                    <div class="relative z-10 flex h-3 w-3">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                    </div>
-
-                    <!-- location card float -->
-                    <div class="absolute bottom-4 left-4 bg-white/90 border border-slate-200 px-3 py-1.5 rounded-lg shadow-md text-[9px] font-bold z-10">
-                        <span class="block text-slate-950">TurfBooking Office</span>
-                        <span class="text-slate-450 font-medium">Ambernarth, Mumbai</span>
-                    </div>
-                </div>
             </div>
 
             <!-- Interactive Form (Right Column) -->

@@ -87,7 +87,7 @@ class MarketingPagesTest extends TestCase
         $response->assertSee("Here to Help");
         $response->assertSee('leenaitsolutions@gmail.com');
         $response->assertSee('9096189183');
-        $response->assertSee('Ambernarth, Mumbai');
+        $response->assertSee('B101 Sai Section, Hutatma Chowk, Kansai Section, Ambernath, Maharashtra 421501');
         $response->assertSee('Chat on WhatsApp');
         $response->assertSee('https://wa.me/919096189183');
     }
