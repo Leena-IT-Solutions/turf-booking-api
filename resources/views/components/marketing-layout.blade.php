@@ -168,7 +168,7 @@
                         <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">DOWNLOAD COMPANION APP</span>
                         <div class="flex items-center gap-3 flex-wrap">
                             <!-- App Store Badge Link -->
-                            <a href="https://apps.apple.com/app/turfbooking" class="group transition duration-200">
+                            <a href="https://apps.apple.com/in/app/turf-booking/id6788572230" class="group transition duration-200">
                                 <div class="bg-black text-white hover:bg-slate-900 border border-slate-800 flex items-center gap-2 px-3 py-1.5 rounded-xl shadow-sm">
                                     <svg class="w-4 h-4 text-white fill-current shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52(..)" />
