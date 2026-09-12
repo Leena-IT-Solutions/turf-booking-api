@@ -44,8 +44,8 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="w-full">
+    <div class="w-full space-y-6">
         @php
             $user = auth()->user();
             $activeTurfId = session('active_turf_id');
