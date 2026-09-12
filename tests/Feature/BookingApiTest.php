@@ -537,6 +537,8 @@ class BookingApiTest extends TestCase
         ]);
 
         // 2. User registers using the same email/mobile
+        \Illuminate\Support\Facades\Cache::put('whatsapp_verified_919876543210', true, now()->addMinutes(15));
+
         $registerResponse = $this->postJson("/api/register", [
             'name' => 'Quick Customer Registered',
             'email' => 'quick@gmail.com',

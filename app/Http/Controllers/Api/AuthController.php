@@ -76,6 +76,27 @@ class AuthController extends Controller
     {
         $email = $request->input('email');
         $mobile = $request->input('mobile');
+        $cleanMobile = preg_replace('/[^0-9]/', '', $mobile);
+        if (strlen($cleanMobile) === 10) {
+            $cleanMobile = '91' . $cleanMobile;
+        }
+
+        // Mandatory WhatsApp OTP Verification check
+        $isOtpVerified = \Illuminate\Support\Facades\Cache::get('whatsapp_verified_' . $cleanMobile)
+            || \Illuminate\Support\Facades\Cache::get('whatsapp_verified_' . $mobile);
+
+        if (!$isOtpVerified && $request->filled('otp')) {
+            $reset = \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $cleanMobile)->first();
+            if ($reset && Hash::check($request->otp, $reset->token) && !\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+                $isOtpVerified = true;
+            }
+        }
+
+        if (!$isOtpVerified) {
+            return response()->json([
+                'message' => 'WhatsApp OTP verification is required before registration.'
+            ], 422);
+        }
 
         // Check if a quick created user matches this email or mobile
         $existingUser = null;
@@ -116,6 +137,10 @@ class AuthController extends Controller
                 'is_quick_created' => false,
             ]);
 
+            \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $cleanMobile);
+            \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $mobile);
+            \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $cleanMobile)->delete();
+
             $token = $existingUser->createToken('auth_token')->plainTextToken;
 
             return response()->json([
@@ -147,6 +172,10 @@ class AuthController extends Controller
         ]);
 
         $user->assignRole('customer');
+
+        \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $cleanMobile);
+        \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $mobile);
+        \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $cleanMobile)->delete();
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -242,6 +271,10 @@ class AuthController extends Controller
                 'message' => 'OTP has expired.'
             ], 422);
         }
+
+        // Cache successful OTP verification for 15 minutes
+        \Illuminate\Support\Facades\Cache::put('whatsapp_verified_' . $mobile, true, now()->addMinutes(15));
+        \Illuminate\Support\Facades\Cache::put('whatsapp_verified_' . $request->mobile, true, now()->addMinutes(15));
 
         return response()->json([
             'message' => 'WhatsApp OTP verified successfully.'
