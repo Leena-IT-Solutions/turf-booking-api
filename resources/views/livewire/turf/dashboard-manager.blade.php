@@ -80,7 +80,7 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <!-- Statistics Grid -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
             
             <!-- Locations Card -->
             <a href="{{ route('turf.locations') }}" class="block bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition hover:shadow-md hover:scale-[1.01] group">
