@@ -5,13 +5,11 @@
         </h2>
     </x-slot>
 
-    <div class="py-6 w-full">
-        <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
-            @if(!(auth()->user()->hasRole('turf-admin') && auth()->user()->hasRole('manager')))
-                <livewire:dashboard.turf-prompter />
-            @endif
+    <div class="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+        @if(!(auth()->user()->hasRole('turf-admin') && auth()->user()->hasRole('manager')))
+            <livewire:dashboard.turf-prompter />
+        @endif
 
-            <livewire:dashboard.customer-bookings />
-        </div>
+        <livewire:dashboard.customer-bookings />
     </div>
 </x-app-layout>

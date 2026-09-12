@@ -19,29 +19,29 @@ new class extends Component
     }
 }; ?>
 
-<div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50/70 to-emerald-50/60 p-6 sm:p-8 md:p-10 border border-indigo-100/80 shadow-xl shadow-indigo-100/40">
+<div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 p-6 sm:p-8 md:p-10 border border-slate-800 shadow-xl shadow-slate-900/10 text-white">
     <!-- Ambient Glow Decorators -->
-    <div class="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none"></div>
-    <div class="absolute -left-16 -bottom-16 w-64 h-64 rounded-full bg-indigo-400/20 blur-3xl pointer-events-none"></div>
+    <div class="absolute -right-20 -top-20 w-72 h-72 rounded-full bg-emerald-500/15 blur-3xl pointer-events-none"></div>
+    <div class="absolute -left-20 -bottom-20 w-72 h-72 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none"></div>
 
-    <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
+    <div class="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 sm:gap-8">
         <div class="space-y-3 max-w-2xl text-left">
-            <span class="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 text-[10px] font-black tracking-widest uppercase">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                {{ __('Partner With Us') }}
-            </span>
-            <h3 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-snug">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-[10px] sm:text-[11px] font-black tracking-widest uppercase backdrop-blur-md">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span>{{ __('Partner With Us') }}</span>
+            </div>
+            <h3 class="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-snug">
                 {{ __('Do you own or manage a Turf?') }}
             </h3>
-            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed font-medium">
+            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
                 {{ __('Unlock host features to list sports fields, split time slots (including midnight categories), schedule equipment, hire managers, and accept online bookings seamlessly.') }}
             </p>
         </div>
 
-        <div class="shrink-0 w-full lg:w-auto">
+        <div class="shrink-0 w-full lg:w-auto pt-2 lg:pt-0">
             <button 
                 wire:click="claimTurfAdmin" 
-                class="w-full lg:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-2xl transition duration-200 shadow-lg shadow-emerald-600/20 hover:shadow-emerald-600/30 cursor-pointer"
+                class="w-full lg:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl transition duration-200 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/35 cursor-pointer"
             >
                 <span>{{ __('Yes, I have a Turf!') }}</span>
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
