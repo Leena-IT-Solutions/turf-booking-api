@@ -3,9 +3,9 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -22,63 +22,49 @@ class PasswordResetTest extends TestCase
             ->assertStatus(200);
     }
 
-    public function test_reset_password_link_can_be_requested(): void
+    public function test_whatsapp_password_reset_otp_can_be_requested(): void
     {
-        Notification::fake();
+        $user = User::factory()->create([
+            'mobile' => '9876543210',
+        ]);
 
-        $user = User::factory()->create();
+        $component = Volt::test('pages.auth.forgot-password')
+            ->set('mobile', '9876543210')
+            ->call('sendOtp');
 
-        Volt::test('pages.auth.forgot-password')
-            ->set('email', $user->email)
-            ->call('sendPasswordResetLink');
-
-        Notification::assertSentTo($user, ResetPassword::class);
+        $component->assertHasNoErrors();
+        $this->assertDatabaseHas('password_reset_tokens', [
+            'email' => 'whatsapp_919876543210',
+        ]);
     }
 
-    public function test_reset_password_screen_can_be_rendered(): void
+    public function test_password_can_be_reset_with_valid_whatsapp_otp(): void
     {
-        Notification::fake();
+        $user = User::factory()->create([
+            'mobile' => '9876543210',
+            'password' => Hash::make('oldpassword'),
+        ]);
 
-        $user = User::factory()->create();
+        $otp = '654321';
 
-        Volt::test('pages.auth.forgot-password')
-            ->set('email', $user->email)
-            ->call('sendPasswordResetLink');
+        $component = Volt::test('pages.auth.forgot-password')
+            ->set('mobile', '9876543210')
+            ->call('sendOtp');
 
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) {
-            $response = $this->get('/reset-password/'.$notification->token);
+        DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => 'whatsapp_919876543210'],
+            ['token' => Hash::make($otp), 'created_at' => now()]
+        );
 
-            $response
-                ->assertSeeVolt('pages.auth.reset-password')
-                ->assertStatus(200);
+        $component->set('otp', $otp)
+            ->set('password', 'newpassword123')
+            ->set('password_confirmation', 'newpassword123')
+            ->call('resetPassword');
 
-            return true;
-        });
-    }
+        $component
+            ->assertRedirect(route('login'))
+            ->assertHasNoErrors();
 
-    public function test_password_can_be_reset_with_valid_token(): void
-    {
-        Notification::fake();
-
-        $user = User::factory()->create();
-
-        Volt::test('pages.auth.forgot-password')
-            ->set('email', $user->email)
-            ->call('sendPasswordResetLink');
-
-        Notification::assertSentTo($user, ResetPassword::class, function ($notification) use ($user) {
-            $component = Volt::test('pages.auth.reset-password', ['token' => $notification->token])
-                ->set('email', $user->email)
-                ->set('password', 'password')
-                ->set('password_confirmation', 'password');
-
-            $component->call('resetPassword');
-
-            $component
-                ->assertRedirect('/login')
-                ->assertHasNoErrors();
-
-            return true;
-        });
+        $this->assertTrue(Hash::check('newpassword123', $user->fresh()->password));
     }
 }
