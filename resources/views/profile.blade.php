@@ -15,7 +15,7 @@
         $roles = $user->roles->pluck('name')->toArray();
     @endphp
 
-    <div class="max-w-6xl mx-auto space-y-8" x-data="{ activeTab: 'personal' }">
+    <div class="w-full space-y-8" x-data="{ activeTab: 'personal' }">
         
         <!-- PROFILE HERO HEADER -->
         <div class="relative overflow-hidden rounded-3xl bg-white border border-gray-100 shadow-xl shadow-gray-100/70 p-6 sm:p-8">

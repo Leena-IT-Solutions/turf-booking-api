@@ -104,8 +104,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="sm:px-6 lg:px-8 space-y-6">
+<div class="w-full space-y-6">
 
         @if (session('status'))
             <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
@@ -348,4 +347,3 @@ new #[Layout('layouts.app')] class extends Component
         @endif
 
     </div>
-</div>

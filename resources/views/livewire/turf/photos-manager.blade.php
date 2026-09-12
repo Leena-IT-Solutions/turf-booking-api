@@ -126,8 +126,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6" x-data="{ uploadModal: @entangle('showUploadModal'), deleteConfirm: @entangle('showDeleteConfirm') }">
-    <div class="sm:px-6 lg:px-8 space-y-6">
+<div class="w-full space-y-6" x-data="{ uploadModal: @entangle('showUploadModal'), deleteConfirm: @entangle('showDeleteConfirm') }">
         
         <!-- Status Flash Message -->
         @if (session('status'))
@@ -375,4 +374,3 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
     </div>
-</div>

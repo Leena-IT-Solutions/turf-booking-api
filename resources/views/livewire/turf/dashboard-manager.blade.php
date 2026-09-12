@@ -63,8 +63,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="sm:px-6 lg:px-8 space-y-6">
+<div class="w-full space-y-6">
 
         <!-- Welcome Banner -->
         <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-8 rounded-3xl text-white shadow-md relative overflow-hidden">
@@ -218,7 +217,5 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 @endforelse
             </div>
-        </div>
-
     </div>
 </div>

@@ -300,8 +300,7 @@ new #[Layout('layouts.app')] class extends Component
             $wire.revokeAllStaff(this.confirmId);
         }
     }
-}" class="py-6">
-    <div class="sm:px-6 lg:px-8 space-y-6">
+}" class="w-full space-y-6">
         
         <!-- Header Banner -->
         <div class="bg-gradient-to-r from-violet-600 to-indigo-600 p-8 rounded-3xl text-white shadow-md relative overflow-hidden">
@@ -480,8 +479,6 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
         </div>
-
-    </div>
 
     <!-- Confirmation Modal -->
     <div x-show="confirmOpen" 

@@ -5,7 +5,7 @@
         </h2>
     </x-slot>
 
-    <div class="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+    <div class="w-full space-y-6 sm:space-y-8">
         @if(!(auth()->user()->hasRole('turf-admin') && auth()->user()->hasRole('manager')))
             <livewire:dashboard.turf-prompter />
         @endif
