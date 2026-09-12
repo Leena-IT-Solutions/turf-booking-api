@@ -345,6 +345,15 @@ new #[Layout('layouts.app')] class extends Component
                         },
 
                         loadGoogleMaps(cb) {
+                            window.gm_authFailure = () => {
+                                console.warn('Google Maps authentication failed, falling back to Leaflet.');
+                                this.locError = 'Google Maps authorization failed (check API key restrictions/billing in SaaS Settings). Falling back to OpenStreetMap.';
+                                this.mapEngine = 'leaflet';
+                                this.ensureLeaflet(() => {
+                                    this.setupLeafletMap();
+                                });
+                            };
+
                             if (window.google && window.google.maps) {
                                 cb();
                                 return;
@@ -389,6 +398,17 @@ new #[Layout('layouts.app')] class extends Component
                             const startLat = hasCoords ? curLat : 19.0760;
                             const startLng = hasCoords ? curLng : 72.8777;
                             const zoom = hasCoords ? 16 : 13;
+
+                            if (this.gmap) {
+                                const latLng = new google.maps.LatLng(startLat, startLng);
+                                this.gmap.setCenter(latLng);
+                                this.gmap.setZoom(zoom);
+                                if (this.gmarker) {
+                                    this.gmarker.setPosition(latLng);
+                                }
+                                google.maps.event.trigger(this.gmap, 'resize');
+                                return;
+                            }
 
                             const mapOptions = {
                                 center: { lat: startLat, lng: startLng },
@@ -437,11 +457,17 @@ new #[Layout('layouts.app')] class extends Component
                                     }
                                     const lat = place.geometry.location.lat();
                                     const lng = place.geometry.location.lng();
-                                    this.gmap.setCenter({ lat, lng });
-                                    this.gmap.setZoom(16);
-                                    this.gmarker.setPosition({ lat, lng });
+                                    
                                     this.updateCoords(lat, lng);
                                     this.locSuccess = 'Pinned to: ' + (place.name || place.formatted_address);
+
+                                    const loc = place.geometry.location;
+                                    this.gmap.setCenter(loc);
+                                    this.gmap.setZoom(16);
+                                    if (this.gmarker) {
+                                        this.gmarker.setPosition(loc);
+                                    }
+                                    google.maps.event.trigger(this.gmap, 'resize');
                                 });
                             }
 
@@ -560,8 +586,12 @@ new #[Layout('layouts.app')] class extends Component
                         updateCoords(lat, lng) {
                             const fLat = parseFloat(lat).toFixed(6);
                             const fLng = parseFloat(lng).toFixed(6);
-                            $wire.set('latitude', fLat);
-                            $wire.set('longitude', fLng);
+                            $wire.set('latitude', fLat, false);
+                            $wire.set('longitude', fLng, false);
+                            const latInput = document.getElementById('locLat');
+                            const lngInput = document.getElementById('locLng');
+                            if (latInput) latInput.value = fLat;
+                            if (lngInput) lngInput.value = fLng;
                             this.locError = '';
                         },
 
@@ -592,7 +622,9 @@ new #[Layout('layouts.app')] class extends Component
                                                 const latLng = new google.maps.LatLng(lat, lng);
                                                 this.gmap.setCenter(latLng);
                                                 this.gmap.setZoom(16);
-                                                this.gmarker.setPosition(latLng);
+                                                if (this.gmarker) {
+                                                    this.gmarker.setPosition(latLng);
+                                                }
                                                 google.maps.event.trigger(this.gmap, 'resize');
                                             }
                                         } else {
@@ -793,7 +825,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <div x-show="mapOpen" x-transition class="space-y-2">
                                     <!-- Search / Geocode Address input -->
                                     <div class="flex items-center gap-2">
-                                        <div class="relative flex-1">
+                                        <div wire:ignore class="relative flex-1">
                                             <input 
                                                 type="text" 
                                                 x-ref="searchInput"
@@ -826,8 +858,8 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
 
                                     <!-- Map Canvas -->
-                                    <div class="relative rounded-2xl overflow-hidden border border-gray-200 shadow-inner z-0 isolate">
-                                        <div x-ref="mapContainer" class="h-60 sm:h-64 w-full bg-slate-100"></div>
+                                    <div wire:ignore class="relative rounded-2xl overflow-hidden border border-gray-200 shadow-inner z-0 isolate">
+                                        <div wire:ignore x-ref="mapContainer" class="h-60 sm:h-64 w-full bg-slate-100"></div>
                                         <div class="absolute bottom-2 left-2 z-[400] bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] font-bold text-gray-700 shadow border border-gray-200/70 pointer-events-none flex items-center gap-1.5">
                                             <span>📍</span>
                                             <span>Click map or drag marker to set precise entrance</span>
@@ -853,7 +885,7 @@ new #[Layout('layouts.app')] class extends Component
                                     <div>
                                         <x-input-label for="locLat" :value="__('Latitude')" />
                                         <x-text-input 
-                                            wire:model.live.debounce.250ms="latitude" 
+                                            wire:model="latitude" 
                                             @input="onCoordInput" 
                                             id="locLat" 
                                             type="text" 
@@ -865,7 +897,7 @@ new #[Layout('layouts.app')] class extends Component
                                     <div>
                                         <x-input-label for="locLng" :value="__('Longitude')" />
                                         <x-text-input 
-                                            wire:model.live.debounce.250ms="longitude" 
+                                            wire:model="longitude" 
                                             @input="onCoordInput" 
                                             id="locLng" 
                                             type="text" 
