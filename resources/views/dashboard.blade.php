@@ -10,6 +10,8 @@
             @if(!(auth()->user()->hasRole('turf-admin') && auth()->user()->hasRole('manager')))
                 <livewire:dashboard.turf-prompter />
             @endif
+
+            <livewire:dashboard.customer-bookings />
         </div>
     </div>
 </x-app-layout>
