@@ -43,6 +43,9 @@ class CustomerTurfPromptTest extends TestCase
 
         // Run the Volt component
         Volt::test('dashboard.turf-prompter')
+            ->call('openConfirmModal')
+            ->assertSet('showConfirmModal', true)
+            ->assertSee('Become a Turf Partner')
             ->call('claimTurfAdmin')
             ->assertRedirect(route('turf.dashboard'));
 
