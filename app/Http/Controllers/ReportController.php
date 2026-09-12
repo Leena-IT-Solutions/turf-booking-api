@@ -22,14 +22,17 @@ class ReportController extends Controller
         $status = $request->input('status');
         $paymentStatus = $request->input('payment_status');
         $activeTurfId = session('active_turf_id');
+        $manageableTurfIds = Turf::manageable(auth()->user())->pluck('id')->toArray();
 
         $query = Booking::with(['turf', 'user', 'bookingDates.bookingSlots.slot', 'payments'])
             ->whereHas('bookingDates', function ($q) use ($startDate, $endDate) {
                 $q->whereBetween('booking_date', [$startDate, $endDate]);
             });
 
-        if ($activeTurfId) {
+        if ($activeTurfId && in_array($activeTurfId, $manageableTurfIds)) {
             $query->where('turf_id', $activeTurfId);
+        } else {
+            $query->whereIn('turf_id', $manageableTurfIds);
         }
 
         if ($status && $status !== 'all') {
@@ -121,14 +124,19 @@ class ReportController extends Controller
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
         $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
         $activeTurfId = session('active_turf_id');
+        $manageableTurfIds = Turf::manageable(auth()->user())->pluck('id')->toArray();
 
         $query = Payment::with(['booking.turf', 'bookingDate'])
             ->where('status', 'Success')
             ->whereBetween(\DB::raw('DATE(paid_at)'), [$startDate, $endDate]);
 
-        if ($activeTurfId) {
+        if ($activeTurfId && in_array($activeTurfId, $manageableTurfIds)) {
             $query->whereHas('booking', function ($q) use ($activeTurfId) {
                 $q->where('turf_id', $activeTurfId);
+            });
+        } else {
+            $query->whereHas('booking', function ($q) use ($manageableTurfIds) {
+                $q->whereIn('turf_id', $manageableTurfIds);
             });
         }
 

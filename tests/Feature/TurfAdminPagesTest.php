@@ -83,4 +83,47 @@ class TurfAdminPagesTest extends TestCase
             ->assertSee('Mumbai Sports Complex')
             ->assertSee('Football Turf A');
     }
+
+    public function test_turf_admin_with_no_turfs_sees_no_bookings(): void
+    {
+        // Another owner with turfs and bookings
+        $otherOwner = User::factory()->create();
+        $otherOwner->assignRole('turf-admin');
+        $otherLoc = \App\Models\Location::create([
+            'user_id' => $otherOwner->id,
+            'name' => 'Other Complex',
+            'address' => 'Pune',
+        ]);
+        $otherTurf = \App\Models\Turf::create([
+            'location_id' => $otherLoc->id,
+            'name' => 'Other Football Ground',
+            'type' => 'Grass',
+        ]);
+        $customer = User::factory()->create();
+        $booking = \App\Models\Booking::create([
+            'user_id' => $customer->id,
+            'turf_id' => $otherTurf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        \App\Models\BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => now()->toDateString(),
+            'amount' => 1000.00,
+            'status' => 'Confirmed',
+        ]);
+
+        // Admin who has NO turfs
+        $newAdmin = User::factory()->create();
+        $newAdmin->assignRole('turf-admin');
+
+        $this->actingAs($newAdmin);
+
+        Volt::test('turf.booking-manager')
+            ->assertDontSee('Other Football Ground')
+            ->assertDontSee($customer->name)
+            ->assertSee("You don't have any turfs or bookings yet.", false);
+    }
 }

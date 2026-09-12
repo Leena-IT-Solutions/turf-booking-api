@@ -98,6 +98,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function viewDetails(int $bookingId)
     {
+        $manageableTurfIds = Turf::manageable()->pluck('id')->toArray();
+        $booking = Booking::whereIn('turf_id', $manageableTurfIds)->find($bookingId);
+        if (!$booking) return;
+
         $this->selectedBookingId = $bookingId;
         $this->showDetailModal = true;
     }
@@ -110,7 +114,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function openPaymentModal(int $bookingDateId)
     {
-        $bDate = BookingDate::with('booking')->find($bookingDateId);
+        $manageableTurfIds = Turf::manageable()->pluck('id')->toArray();
+        $bDate = BookingDate::whereHas('booking', function ($q) use ($manageableTurfIds) {
+            $q->whereIn('turf_id', $manageableTurfIds);
+        })->with('booking')->find($bookingDateId);
         if (!$bDate) return;
 
         $this->paymentBookingDateId = $bookingDateId;
@@ -141,7 +148,8 @@ new #[Layout('layouts.app')] class extends Component
 
         if (!$this->paymentBookingId) return;
 
-        $booking = Booking::find($this->paymentBookingId);
+        $manageableTurfIds = Turf::manageable()->pluck('id')->toArray();
+        $booking = Booking::whereIn('turf_id', $manageableTurfIds)->find($this->paymentBookingId);
         if (!$booking) return;
 
         $amountToPay = (float)$this->paymentAmount;
@@ -236,7 +244,8 @@ new #[Layout('layouts.app')] class extends Component
 
     public function openCancelModal(int $bookingId)
     {
-        $booking = Booking::with('bookingDates')->find($bookingId);
+        $manageableTurfIds = Turf::manageable()->pluck('id')->toArray();
+        $booking = Booking::whereIn('turf_id', $manageableTurfIds)->with('bookingDates')->find($bookingId);
         if (!$booking) return;
 
         $this->cancelBookingId = $bookingId;
@@ -258,7 +267,8 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        $booking = Booking::with(['turf', 'bookingDates.bookingSlots'])->find($this->cancelBookingId);
+        $manageableTurfIds = Turf::manageable()->pluck('id')->toArray();
+        $booking = Booking::whereIn('turf_id', $manageableTurfIds)->with(['turf', 'bookingDates.bookingSlots'])->find($this->cancelBookingId);
         if (!$booking) return;
 
         DB::beginTransaction();
@@ -361,13 +371,16 @@ new #[Layout('layouts.app')] class extends Component
         @endif
 
         @php
+            $user = auth()->user();
             $activeTurfId = session('active_turf_id');
-            $turf = $activeTurfId ? Turf::manageable()->find($activeTurfId) : null;
+            $manageableTurfIds = Turf::manageable($user)->pluck('id')->toArray();
 
-            // Base query for statistics & listing
+            // Base query for statistics & listing strictly scoped to manageable turfs
             $baseQuery = Booking::with(['turf', 'user', 'bookingDates.bookingSlots.slot', 'payments']);
-            if ($activeTurfId) {
+            if ($activeTurfId && in_array($activeTurfId, $manageableTurfIds)) {
                 $baseQuery->where('turf_id', $activeTurfId);
+            } else {
+                $baseQuery->whereIn('turf_id', $manageableTurfIds);
             }
 
             // Stats counts
@@ -703,9 +716,14 @@ new #[Layout('layouts.app')] class extends Component
                                 <tr>
                                     <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                                         <div class="max-w-xs mx-auto space-y-2">
-                                            <span class="text-3xl">🔍</span>
-                                            <p class="font-bold text-gray-700">No bookings matched your search or filters.</p>
-                                            <button wire:click="clearFilters" class="text-xs font-bold text-indigo-600 hover:underline">Clear all filters</button>
+                                            <span class="text-3xl">📭</span>
+                                            @if (empty($manageableTurfIds))
+                                                <p class="font-bold text-gray-700">You don't have any turfs or bookings yet.</p>
+                                                <a href="{{ route('turf.turfs') }}" class="inline-block text-xs font-bold text-indigo-600 hover:underline">Add your first turf</a>
+                                            @else
+                                                <p class="font-bold text-gray-700">No bookings matched your search or filters.</p>
+                                                <button wire:click="clearFilters" class="text-xs font-bold text-indigo-600 hover:underline">Clear all filters</button>
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>
@@ -789,8 +807,14 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
                 @empty
-                    <div class="col-span-full bg-white p-12 rounded-2xl border border-gray-200 text-center text-gray-500">
-                        No bookings found matching your search.
+                    <div class="col-span-full bg-white p-12 rounded-2xl border border-gray-200 text-center text-gray-500 space-y-2">
+                        <span class="text-3xl block">📭</span>
+                        @if (empty($manageableTurfIds))
+                            <p class="font-bold text-gray-700">You don't have any turfs or bookings yet.</p>
+                            <a href="{{ route('turf.turfs') }}" class="inline-block text-xs font-bold text-indigo-600 hover:underline">Add your first turf</a>
+                        @else
+                            <p class="font-bold text-gray-700">No bookings found matching your search.</p>
+                        @endif
                     </div>
                 @endforelse
             </div>

@@ -47,17 +47,20 @@ new #[Layout('layouts.app')] class extends Component
 <div class="py-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         @php
+            $user = auth()->user();
             $activeTurfId = session('active_turf_id');
-            $turf = $activeTurfId ? Turf::manageable()->find($activeTurfId) : null;
+            $manageableTurfIds = Turf::manageable($user)->pluck('id')->toArray();
 
-            // Fetch statistics for selected range
+            // Fetch statistics for selected range strictly scoped to manageable turfs
             $bookingsQuery = Booking::with(['bookingDates', 'payments'])
                 ->whereHas('bookingDates', function ($q) {
                     $q->whereBetween('booking_date', [$this->startDate, $this->endDate]);
                 });
 
-            if ($activeTurfId) {
+            if ($activeTurfId && in_array($activeTurfId, $manageableTurfIds)) {
                 $bookingsQuery->where('turf_id', $activeTurfId);
+            } else {
+                $bookingsQuery->whereIn('turf_id', $manageableTurfIds);
             }
 
             if ($this->statusFilter !== 'all') {
