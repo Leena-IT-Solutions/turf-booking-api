@@ -53,8 +53,8 @@
             <div class="max-w-7xl mx-auto px-6 flex items-center justify-between">
                 <!-- Logo & Brand -->
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group">
-                    <img src="{{ asset('images/logo.png') }}" class="h-10 w-10 rounded-2xl object-cover border border-emerald-100/50 shadow-sm group-hover:scale-105 transition-all duration-300" alt="Logo" />
-                    <span class="font-black text-xl tracking-tight text-slate-900 group-hover:text-emerald-500 transition duration-150">
+                    <img src="{{ asset('images/logo.png') }}" class="h-10 w-10 rounded-2xl object-contain shadow-xs group-hover:scale-105 transition-all duration-300" alt="Logo" />
+                    <span class="font-black text-xl tracking-tight text-slate-900 group-hover:text-indigo-600 transition duration-150">
                         {{ config('app.name', 'TurfBooking') }}
                     </span>
                 </a>
@@ -154,7 +154,7 @@
                 <!-- Column 1: Brand Info -->
                 <div class="space-y-5">
                     <a href="{{ url('/') }}" class="flex items-center gap-3">
-                        <img src="{{ asset('images/logo.png') }}" class="h-9 w-9 rounded-xl object-cover border border-emerald-100/50 shadow-sm" alt="Logo" />
+                        <img src="{{ asset('images/logo.png') }}" class="h-9 w-9 rounded-xl object-contain shadow-xs" alt="Logo" />
                         <span class="font-extrabold text-lg text-slate-900">TurfBooking</span>
                     </a>
                     <p class="text-xs text-slate-500 leading-relaxed font-medium">

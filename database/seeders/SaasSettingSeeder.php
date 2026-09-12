@@ -22,9 +22,11 @@ class SaasSettingSeeder extends Seeder
         $publicDisk->makeDirectory('logos');
 
         $logoPath = 'logos/brand_logo.png';
-        if (extension_loaded('gd')) {
+        if (file_exists(public_path('images/logo.png'))) {
+            $publicDisk->put($logoPath, file_get_contents(public_path('images/logo.png')));
+        } elseif (extension_loaded('gd')) {
             $im = imagecreatetruecolor(200, 200);
-            $bg = imagecolorallocate($im, 79, 70, 229); // Indigo 600
+            $bg = imagecolorallocate($im, 79, 71, 228); // Indigo 600
             imagefill($im, 0, 0, $bg);
             
             $white = imagecolorallocate($im, 255, 255, 255);

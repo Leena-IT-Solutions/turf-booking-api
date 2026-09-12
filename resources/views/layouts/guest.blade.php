@@ -44,8 +44,8 @@
             <!-- Brand Logo & Header Info -->
             <div class="mb-8 flex flex-col items-center text-center">
                 <a href="/" wire:navigate class="inline-flex items-center gap-2.5 group">
-                    <img src="{{ asset('images/logo.png') }}" class="h-12 w-12 rounded-2xl object-cover border border-emerald-100/50 shadow-sm group-hover:scale-105 transition-all duration-300" alt="Logo" />
-                    <span class="font-extrabold text-2xl tracking-tight text-slate-950 group-hover:text-emerald-500 transition-colors duration-300">{{ config('app.name', 'TurfBooking') }}</span>
+                    <img src="{{ asset('images/logo.png') }}" class="h-12 w-12 rounded-2xl object-contain shadow-xs group-hover:scale-105 transition-all duration-300" alt="Logo" />
+                    <span class="font-extrabold text-2xl tracking-tight text-slate-950 group-hover:text-indigo-600 transition-colors duration-300">{{ config('app.name', 'TurfBooking') }}</span>
                 </a>
             </div>
 
