@@ -309,8 +309,228 @@ new #[Layout('layouts.app')] class extends Component
                 <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="resetForm"></div>
 
                 <!-- Modal Container -->
-                <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-lg z-50 border border-gray-100">
-                    <div class="p-6 sm:p-8">
+                <div 
+                    x-data="{
+                        mapOpen: true,
+                        isLocating: false,
+                        locError: '',
+                        locSuccess: '',
+                        searchQuery: '',
+                        isSearching: false,
+                        map: null,
+                        marker: null,
+
+                        init() {
+                            this.$nextTick(() => {
+                                this.ensureLeaflet(() => {
+                                    this.setupMap();
+                                });
+                            });
+                        },
+
+                        ensureLeaflet(cb) {
+                            if (typeof window.L !== 'undefined') {
+                                cb();
+                                return;
+                            }
+                            if (!document.getElementById('leaflet-css')) {
+                                const link = document.createElement('link');
+                                link.id = 'leaflet-css';
+                                link.rel = 'stylesheet';
+                                link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                                document.head.appendChild(link);
+                            }
+                            if (!document.getElementById('leaflet-js')) {
+                                const script = document.createElement('script');
+                                script.id = 'leaflet-js';
+                                script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                                script.onload = () => {
+                                    delete window.L.Icon.Default.prototype._getIconUrl;
+                                    window.L.Icon.Default.mergeOptions({
+                                        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+                                        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+                                        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+                                    });
+                                    cb();
+                                };
+                                document.body.appendChild(script);
+                            } else {
+                                const checkInterval = setInterval(() => {
+                                    if (typeof window.L !== 'undefined') {
+                                        clearInterval(checkInterval);
+                                        cb();
+                                    }
+                                }, 50);
+                            }
+                        },
+
+                        setupMap() {
+                            const container = this.$refs.mapContainer;
+                            if (!container || typeof window.L === 'undefined') return;
+
+                            let curLat = parseFloat($wire.latitude);
+                            let curLng = parseFloat($wire.longitude);
+                            const hasCoords = !isNaN(curLat) && !isNaN(curLng) && curLat !== 0 && curLng !== 0;
+                            
+                            const startLat = hasCoords ? curLat : 19.0760;
+                            const startLng = hasCoords ? curLng : 72.8777;
+                            const zoom = hasCoords ? 15 : 12;
+
+                            if (!this.map) {
+                                this.map = window.L.map(container, {
+                                    zoomControl: true,
+                                    scrollWheelZoom: false
+                                }).setView([startLat, startLng], zoom);
+
+                                window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                                    maxZoom: 19,
+                                    attribution: '&copy; OpenStreetMap contributors'
+                                }).addTo(this.map);
+
+                                this.marker = window.L.marker([startLat, startLng], {
+                                    draggable: true
+                                }).addTo(this.map);
+
+                                this.marker.on('dragend', (e) => {
+                                    const pos = e.target.getLatLng();
+                                    this.updateCoords(pos.lat, pos.lng);
+                                });
+
+                                this.map.on('click', (e) => {
+                                    this.marker.setLatLng(e.latlng);
+                                    this.updateCoords(e.latlng.lat, e.latlng.lng);
+                                });
+                            } else {
+                                this.marker.setLatLng([startLat, startLng]);
+                                this.map.setView([startLat, startLng], zoom);
+                                this.map.invalidateSize();
+                            }
+
+                            setTimeout(() => {
+                                if (this.map) this.map.invalidateSize();
+                            }, 350);
+                        },
+
+                        toggleMap() {
+                            this.mapOpen = !this.mapOpen;
+                            if (this.mapOpen) {
+                                this.$nextTick(() => {
+                                    this.ensureLeaflet(() => {
+                                        this.setupMap();
+                                    });
+                                });
+                            }
+                        },
+
+                        updateCoords(lat, lng) {
+                            const fLat = parseFloat(lat).toFixed(6);
+                            const fLng = parseFloat(lng).toFixed(6);
+                            $wire.set('latitude', fLat);
+                            $wire.set('longitude', fLng);
+                            this.locError = '';
+                        },
+
+                        useCurrentLocation() {
+                            if (!navigator.geolocation) {
+                                this.locError = 'Geolocation is not supported by your browser.';
+                                return;
+                            }
+
+                            this.isLocating = true;
+                            this.locError = '';
+                            this.locSuccess = '';
+
+                            navigator.geolocation.getCurrentPosition(
+                                (position) => {
+                                    this.isLocating = false;
+                                    const lat = position.coords.latitude;
+                                    const lng = position.coords.longitude;
+                                    this.updateCoords(lat, lng);
+                                    this.locSuccess = 'GPS Location detected (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+                                    this.mapOpen = true;
+
+                                    this.$nextTick(() => {
+                                        this.ensureLeaflet(() => {
+                                            if (!this.map) {
+                                                this.setupMap();
+                                            } else {
+                                                this.marker.setLatLng([lat, lng]);
+                                                this.map.setView([lat, lng], 16);
+                                                this.map.invalidateSize();
+                                            }
+                                        });
+                                    });
+                                },
+                                (error) => {
+                                    this.isLocating = false;
+                                    if (error.code === error.PERMISSION_DENIED) {
+                                        this.locError = 'Location access was denied. Please allow GPS permissions in your browser or click on the map to set coordinates.';
+                                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                                        this.locError = 'Location information is currently unavailable.';
+                                    } else {
+                                        this.locError = 'Could not get current location (' + error.message + ').';
+                                    }
+                                },
+                                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                            );
+                        },
+
+                        locateAddress() {
+                            const query = (this.searchQuery || '').trim() || ($wire.address || '').trim() || ($wire.name || '').trim();
+                            if (!query) {
+                                this.locError = 'Please enter an address or search term first.';
+                                return;
+                            }
+
+                            this.isSearching = true;
+                            this.locError = '';
+                            this.locSuccess = '';
+
+                            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query))
+                                .then(res => res.json())
+                                .then(data => {
+                                    this.isSearching = false;
+                                    if (data && data.length > 0) {
+                                        const lat = parseFloat(data[0].lat);
+                                        const lon = parseFloat(data[0].lon);
+                                        this.updateCoords(lat, lon);
+                                        this.locSuccess = 'Pinned to: ' + (data[0].display_name.split(',').slice(0, 3).join(', '));
+                                        this.mapOpen = true;
+                                        this.$nextTick(() => {
+                                            this.ensureLeaflet(() => {
+                                                if (!this.map) {
+                                                    this.setupMap();
+                                                } else {
+                                                    this.marker.setLatLng([lat, lon]);
+                                                    this.map.setView([lat, lon], 16);
+                                                    this.map.invalidateSize();
+                                                }
+                                            });
+                                        });
+                                    } else {
+                                        this.locError = 'Could not find coordinates for: \'' + query + '\'. You can click directly on the map to pinpoint.';
+                                    }
+                                })
+                                .catch(err => {
+                                    this.isSearching = false;
+                                    this.locError = 'Address search failed. Please click on the map to pinpoint your location.';
+                                });
+                        },
+
+                        onCoordInput() {
+                            const lat = parseFloat($wire.latitude);
+                            const lng = parseFloat($wire.longitude);
+                            if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+                                if (this.map && this.marker) {
+                                    this.marker.setLatLng([lat, lng]);
+                                    this.map.panTo([lat, lng]);
+                                }
+                            }
+                        }
+                    }"
+                    class="bg-white rounded-3xl overflow-hidden shadow-2xl transform transition-all w-full max-w-2xl z-50 border border-gray-100 max-h-[90vh] flex flex-col my-auto"
+                >
+                    <div class="p-6 sm:p-8 overflow-y-auto">
                         <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-6">
                             <h3 class="text-base font-bold text-gray-900">
                                 {{ $editingId ? __('Edit Location') : __('Create Location') }}
@@ -338,17 +558,134 @@ new #[Layout('layouts.app')] class extends Component
                                 <x-input-error :messages="$errors->get('address')" class="mt-2" />
                             </div>
 
-                            <!-- Coordinates Grid -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <x-input-label for="locLat" :value="__('Latitude')" />
-                                    <x-text-input wire:model.live.debounce.250ms="latitude" id="locLat" type="text" class="mt-1.5 block w-full" placeholder="19.068200" />
-                                    <x-input-error :messages="$errors->get('latitude')" class="mt-2" />
+                            <!-- Geographic Coordinates & Map Picker -->
+                            <div class="space-y-3 pt-1">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div>
+                                        <x-input-label :value="__('Geographic Coordinates & Map')" class="font-bold text-gray-800" />
+                                        <p class="text-[11px] text-gray-500 mt-0.5">{{ __('Select position from map, fetch device GPS, or enter manually.') }}</p>
+                                    </div>
+
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <!-- Current Location Button -->
+                                        <button 
+                                            type="button" 
+                                            @click="useCurrentLocation" 
+                                            :disabled="isLocating"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs border border-emerald-200 transition shadow-xs cursor-pointer disabled:opacity-50"
+                                            title="Detect your device GPS coordinates"
+                                        >
+                                            <template x-if="!isLocating">
+                                                <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <circle cx="12" cy="12" r="3" stroke-width="2" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v3m0 14v3m10-10h-3M5 12H2" />
+                                                </svg>
+                                            </template>
+                                            <template x-if="isLocating">
+                                                <svg class="w-3.5 h-3.5 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                                </svg>
+                                            </template>
+                                            <span x-text="isLocating ? 'Detecting GPS...' : 'Current Location'"></span>
+                                        </button>
+
+                                        <!-- Locate on Map / Toggle Map Button -->
+                                        <button 
+                                            type="button" 
+                                            @click="toggleMap" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition shadow-xs cursor-pointer"
+                                        >
+                                            <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                                            </svg>
+                                            <span x-text="mapOpen ? 'Hide Map' : 'Locate on Map'"></span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div>
-                                    <x-input-label for="locLng" :value="__('Longitude')" />
-                                    <x-text-input wire:model.live.debounce.250ms="longitude" id="locLng" type="text" class="mt-1.5 block w-full" placeholder="72.870300" />
-                                    <x-input-error :messages="$errors->get('longitude')" class="mt-2" />
+
+                                <!-- Feedback message -->
+                                <div x-show="locError" x-cloak class="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center justify-between gap-2">
+                                    <span x-text="locError"></span>
+                                    <button type="button" @click="locError = ''" class="text-red-500 hover:text-red-700 font-bold">✕</button>
+                                </div>
+
+                                <div x-show="locSuccess" x-cloak class="p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-center justify-between gap-2">
+                                    <span x-text="locSuccess"></span>
+                                    <button type="button" @click="locSuccess = ''" class="text-emerald-600 hover:text-emerald-800 font-bold">✕</button>
+                                </div>
+
+                                <!-- Map Container Box -->
+                                <div x-show="mapOpen" x-transition class="space-y-2">
+                                    <!-- Search / Geocode Address input -->
+                                    <div class="flex items-center gap-2">
+                                        <div class="relative flex-1">
+                                            <input 
+                                                type="text" 
+                                                x-model="searchQuery" 
+                                                @keydown.enter.prevent="locateAddress"
+                                                placeholder="Search landmark, street, or city (or use address above)..." 
+                                                class="w-full text-xs pl-8 pr-3 py-2 border border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-indigo-500 bg-gray-50/60"
+                                            />
+                                            <svg class="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                            </svg>
+                                        </div>
+                                        <button 
+                                            type="button" 
+                                            @click="locateAddress" 
+                                            :disabled="isSearching"
+                                            class="px-3 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-xl text-xs font-bold transition disabled:opacity-50 cursor-pointer flex items-center gap-1 shrink-0"
+                                        >
+                                            <span x-show="isSearching" class="animate-spin text-[10px]">⏳</span>
+                                            <span>Locate on Map</span>
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            @click="searchQuery = $wire.address; locateAddress()" 
+                                            title="Search using the address text above"
+                                            class="px-2.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-semibold transition cursor-pointer shrink-0"
+                                        >
+                                            Use Address
+                                        </button>
+                                    </div>
+
+                                    <!-- Leaflet Canvas -->
+                                    <div class="relative rounded-2xl overflow-hidden border border-gray-200 shadow-inner z-0 isolate">
+                                        <div x-ref="mapContainer" class="h-60 sm:h-64 w-full bg-slate-100"></div>
+                                        <div class="absolute bottom-2 left-2 z-[400] bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] font-bold text-gray-700 shadow border border-gray-200/70 pointer-events-none flex items-center gap-1.5">
+                                            <span>📍</span>
+                                            <span>Click map or drag marker to set precise entrance</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Coordinates Inputs Grid -->
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <x-input-label for="locLat" :value="__('Latitude')" />
+                                        <x-text-input 
+                                            wire:model.live.debounce.250ms="latitude" 
+                                            @input="onCoordInput" 
+                                            id="locLat" 
+                                            type="text" 
+                                            class="mt-1.5 block w-full text-xs font-mono" 
+                                            placeholder="19.068200" 
+                                        />
+                                        <x-input-error :messages="$errors->get('latitude')" class="mt-2" />
+                                    </div>
+                                    <div>
+                                        <x-input-label for="locLng" :value="__('Longitude')" />
+                                        <x-text-input 
+                                            wire:model.live.debounce.250ms="longitude" 
+                                            @input="onCoordInput" 
+                                            id="locLng" 
+                                            type="text" 
+                                            class="mt-1.5 block w-full text-xs font-mono" 
+                                            placeholder="72.870300" 
+                                        />
+                                        <x-input-error :messages="$errors->get('longitude')" class="mt-2" />
+                                    </div>
                                 </div>
                             </div>
 
