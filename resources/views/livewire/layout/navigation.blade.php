@@ -83,12 +83,6 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Administrator') }}</span>
                         </a>
-                        <a href="{{ route('saas.sliders') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.sliders') ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.sliders') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span class="ms-3">{{ __('Slider Manager') }}</span>
-                        </a>
                         <a href="{{ route('saas.users') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.users') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.users') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -141,6 +135,12 @@ new class extends Component
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h2a2.5 2.5 0 002.5-2.5V10a2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="ms-3">{{ __('Sports') }}</span>
+                        </a>
+                        <a href="{{ route('saas.sliders') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.sliders') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.sliders') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Slider Manager') }}</span>
                         </a>
                         <a href="{{ route('saas.subscription-packages') }}" wire:navigate class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.subscription-packages') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.subscription-packages') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -421,12 +421,6 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Administrator') }}</span>
                         </a>
-                        <a href="{{ route('saas.sliders') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.sliders') ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.sliders') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <span class="ms-3">{{ __('Slider Manager') }}</span>
-                        </a>
                         <a href="{{ route('saas.users') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.users') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.users') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -479,6 +473,12 @@ new class extends Component
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h2a2.5 2.5 0 002.5-2.5V10a2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="ms-3">{{ __('Sports') }}</span>
+                        </a>
+                        <a href="{{ route('saas.sliders') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.sliders') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.sliders') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Slider Manager') }}</span>
                         </a>
                         <a href="{{ route('saas.subscription-packages') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-4 py-3 text-sm font-medium rounded-xl transition duration-150 ease-in-out {{ request()->routeIs('saas.subscription-packages') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.subscription-packages') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
