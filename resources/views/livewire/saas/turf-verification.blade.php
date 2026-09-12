@@ -592,18 +592,20 @@ new #[Layout('layouts.app')] class extends Component
                                                     @php
                                                         $sameDay = $wizardData['sameRateThroughoutDayAll'] ?? 'yes';
                                                         $timeRangesAll = $wizardData['timeRangesAll'] ?? [];
+                                                        $flatRateAll = (isset($wizardData['flatRateAll']) && $wizardData['flatRateAll'] !== '') ? $wizardData['flatRateAll'] : '0';
                                                     @endphp
                                                     @if($sameDay === 'yes')
                                                         <tr class="bg-white hover:bg-gray-50 transition duration-100">
                                                             <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle">{{ __('All Days (Mon-Sun)') }}</td>
-                                                            <td class="px-3 py-2 text-gray-600 border-r border-gray-200">{{ __('Flat Rate / All Day') }}</td>
-                                                            <td class="px-3 py-2 font-black text-indigo-600">₹{{ $wizardData['flatRateAll'] ?? '0' }}/-</td>
+                                                            <td class="px-3 py-2 text-gray-600 border-r border-gray-200">{{ __('12:00 AM to 11:59 PM (All Day)') }}</td>
+                                                            <td class="px-3 py-2 font-black text-indigo-600">₹{{ $flatRateAll }}/-</td>
                                                         </tr>
                                                     @else
                                                         @foreach($timeRangesAll as $index => $range)
                                                             @php
                                                                 $fromTime = \Carbon\Carbon::parse($range['from'] ?? '00:00')->format('h:i A');
                                                                 $toTime = \Carbon\Carbon::parse($range['to'] ?? '23:59')->format('h:i A');
+                                                                $rate = (isset($range['rate']) && $range['rate'] !== '') ? $range['rate'] : $flatRateAll;
                                                             @endphp
                                                             <tr class="bg-white hover:bg-gray-50 transition duration-100">
                                                                 @if($index === 0)
@@ -615,7 +617,7 @@ new #[Layout('layouts.app')] class extends Component
                                                                     {{ $fromTime }} to {{ $toTime }}
                                                                 </td>
                                                                 <td class="px-3 py-2 font-black text-indigo-600">
-                                                                    ₹{{ $range['rate'] ?? '0' }}/-
+                                                                    ₹{{ $rate }}/-
                                                                 </td>
                                                             </tr>
                                                         @endforeach
@@ -627,35 +629,46 @@ new #[Layout('layouts.app')] class extends Component
                                                     @foreach($dayGroups as $group)
                                                         @php
                                                             $days = array_map(function($d) { return strtoupper($d); }, $group['days'] ?? []);
-                                                            $daysText = implode(', ', $days);
+                                                            $daysText = !empty($days) ? implode(', ', $days) : __('Custom Days');
+                                                            $sameDay = $group['sameRateThroughoutDay'] ?? 'yes';
                                                             $timeRanges = $group['timeRanges'] ?? [];
+                                                            $flatRate = (isset($group['flatRate']) && $group['flatRate'] !== '') ? $group['flatRate'] : '0';
                                                         @endphp
-                                                        @if(empty($timeRanges))
+                                                        @if($sameDay === 'yes')
                                                             <tr class="bg-white hover:bg-gray-50 transition duration-100">
                                                                 <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle">{{ $daysText }}</td>
-                                                                <td class="px-3 py-2 text-gray-600 border-r border-gray-200">{{ __('Flat Rate / All Day') }}</td>
-                                                                <td class="px-3 py-2 font-black text-indigo-600">₹{{ $group['flatRate'] ?? '0' }}/-</td>
+                                                                <td class="px-3 py-2 text-gray-600 border-r border-gray-200">{{ __('12:00 AM to 11:59 PM (All Day)') }}</td>
+                                                                <td class="px-3 py-2 font-black text-indigo-600">₹{{ $flatRate }}/-</td>
                                                             </tr>
                                                         @else
-                                                            @foreach($timeRanges as $index => $range)
-                                                                @php
-                                                                    $fromTime = \Carbon\Carbon::parse($range['from'])->format('h:i A');
-                                                                    $toTime = \Carbon\Carbon::parse($range['to'])->format('h:i A');
-                                                                @endphp
+                                                            @if(empty($timeRanges))
                                                                 <tr class="bg-white hover:bg-gray-50 transition duration-100">
-                                                                    @if($index === 0)
-                                                                        <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle" rowspan="{{ count($timeRanges) }}">
-                                                                            {{ $daysText }}
-                                                                        </td>
-                                                                    @endif
-                                                                    <td class="px-3 py-2 text-gray-600 border-r border-gray-200">
-                                                                        {{ $fromTime }} to {{ $toTime }}
-                                                                    </td>
-                                                                    <td class="px-3 py-2 font-black text-indigo-600">
-                                                                        ₹{{ $range['rate'] ?? '0' }}/-
-                                                                    </td>
+                                                                    <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle">{{ $daysText }}</td>
+                                                                    <td class="px-3 py-2 text-gray-600 border-r border-gray-200">{{ __('12:00 AM to 11:59 PM (All Day)') }}</td>
+                                                                    <td class="px-3 py-2 font-black text-indigo-600">₹{{ $flatRate }}/-</td>
                                                                 </tr>
-                                                            @endforeach
+                                                            @else
+                                                                @foreach($timeRanges as $index => $range)
+                                                                    @php
+                                                                        $fromTime = \Carbon\Carbon::parse($range['from'] ?? '00:00')->format('h:i A');
+                                                                        $toTime = \Carbon\Carbon::parse($range['to'] ?? '23:59')->format('h:i A');
+                                                                        $rate = (isset($range['rate']) && $range['rate'] !== '') ? $range['rate'] : $flatRate;
+                                                                    @endphp
+                                                                    <tr class="bg-white hover:bg-gray-50 transition duration-100">
+                                                                        @if($index === 0)
+                                                                            <td class="px-3 py-2 font-extrabold text-gray-800 border-r border-gray-200 align-middle" rowspan="{{ count($timeRanges) }}">
+                                                                                {{ $daysText }}
+                                                                            </td>
+                                                                        @endif
+                                                                        <td class="px-3 py-2 text-gray-600 border-r border-gray-200">
+                                                                            {{ $fromTime }} to {{ $toTime }}
+                                                                        </td>
+                                                                        <td class="px-3 py-2 font-black text-indigo-600">
+                                                                            ₹{{ $rate }}/-
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            @endif
                                                         @endif
                                                     @endforeach
                                                 @endif

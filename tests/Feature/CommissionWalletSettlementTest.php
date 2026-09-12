@@ -81,6 +81,7 @@ class CommissionWalletSettlementTest extends TestCase
 
     public function test_worked_example_end_to_end_wallet_math()
     {
+        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-09-12 10:00:00'));
         $customer = User::factory()->create();
 
         // 1. Customer creates ₹1000 booking with ₹300 online payment
@@ -127,5 +128,7 @@ class CommissionWalletSettlementTest extends TestCase
         // Net Wallet Balance = +279.00 (online) - 35.00 (offline) = 244.00
         $this->turfAdmin->refresh();
         $this->assertEquals(244.00, (float)$this->turfAdmin->commission_wallet_balance);
+
+        \Carbon\Carbon::setTestNow();
     }
 }
