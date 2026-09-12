@@ -157,8 +157,10 @@ new #[Layout('layouts.app')] class extends Component
             });
         }
 
+        $saasSetting = \App\Models\SaasSetting::first();
         return [
             'locations' => $query->orderBy('name', 'asc')->paginate(9),
+            'googleMapsApiKey' => $saasSetting?->google_maps_api_key ?? '',
         ];
     }
 }; ?>
@@ -311,21 +313,144 @@ new #[Layout('layouts.app')] class extends Component
                 <!-- Modal Container -->
                 <div 
                     x-data="{
+                        googleApiKey: '{{ addslashes($googleMapsApiKey ?? '') }}',
+                        mapEngine: 'google', // 'google' or 'leaflet'
                         mapOpen: true,
                         isLocating: false,
                         locError: '',
                         locSuccess: '',
                         searchQuery: '',
                         isSearching: false,
-                        map: null,
-                        marker: null,
+                        gmap: null,
+                        gmarker: null,
+                        geocoder: null,
+                        autocomplete: null,
+                        lmap: null,
+                        lmarker: null,
 
                         init() {
                             this.$nextTick(() => {
-                                this.ensureLeaflet(() => {
-                                    this.setupMap();
-                                });
+                                if (this.googleApiKey && this.googleApiKey.trim() !== '') {
+                                    this.mapEngine = 'google';
+                                    this.loadGoogleMaps(() => {
+                                        this.setupGoogleMap();
+                                    });
+                                } else {
+                                    this.mapEngine = 'leaflet';
+                                    this.ensureLeaflet(() => {
+                                        this.setupLeafletMap();
+                                    });
+                                }
                             });
+                        },
+
+                        loadGoogleMaps(cb) {
+                            if (window.google && window.google.maps) {
+                                cb();
+                                return;
+                            }
+
+                            if (document.getElementById('google-maps-script')) {
+                                const check = setInterval(() => {
+                                    if (window.google && window.google.maps) {
+                                        clearInterval(check);
+                                        cb();
+                                    }
+                                }, 50);
+                                return;
+                            }
+
+                            const script = document.createElement('script');
+                            script.id = 'google-maps-script';
+                            script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(this.googleApiKey) + '&libraries=places';
+                            script.async = true;
+                            script.defer = true;
+                            script.onload = () => {
+                                cb();
+                            };
+                            script.onerror = () => {
+                                console.warn('Google Maps API failed to load, switching to Leaflet fallback.');
+                                this.mapEngine = 'leaflet';
+                                this.ensureLeaflet(() => {
+                                    this.setupLeafletMap();
+                                });
+                            };
+                            document.head.appendChild(script);
+                        },
+
+                        setupGoogleMap() {
+                            const container = this.$refs.mapContainer;
+                            if (!container || !window.google || !window.google.maps) return;
+
+                            let curLat = parseFloat($wire.latitude);
+                            let curLng = parseFloat($wire.longitude);
+                            const hasCoords = !isNaN(curLat) && !isNaN(curLng) && curLat !== 0 && curLng !== 0;
+
+                            const startLat = hasCoords ? curLat : 19.0760;
+                            const startLng = hasCoords ? curLng : 72.8777;
+                            const zoom = hasCoords ? 16 : 13;
+
+                            const mapOptions = {
+                                center: { lat: startLat, lng: startLng },
+                                zoom: zoom,
+                                mapTypeControl: true,
+                                mapTypeControlOptions: {
+                                    style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+                                    position: google.maps.ControlPosition.TOP_RIGHT
+                                },
+                                streetViewControl: false,
+                                fullscreenControl: false,
+                            };
+
+                            this.gmap = new google.maps.Map(container, mapOptions);
+                            this.geocoder = new google.maps.Geocoder();
+
+                            this.gmarker = new google.maps.Marker({
+                                position: { lat: startLat, lng: startLng },
+                                map: this.gmap,
+                                draggable: true,
+                                animation: google.maps.Animation.DROP,
+                                title: 'Turf Location'
+                            });
+
+                            this.gmarker.addListener('dragend', () => {
+                                const pos = this.gmarker.getPosition();
+                                this.updateCoords(pos.lat(), pos.lng());
+                            });
+
+                            this.gmap.addListener('click', (e) => {
+                                this.gmarker.setPosition(e.latLng);
+                                this.updateCoords(e.latLng.lat(), e.latLng.lng());
+                            });
+
+                            // Google Places Autocomplete
+                            if (this.$refs.searchInput && google.maps.places) {
+                                this.autocomplete = new google.maps.places.Autocomplete(this.$refs.searchInput, {
+                                    fields: ['geometry', 'name', 'formatted_address']
+                                });
+                                this.autocomplete.bindTo('bounds', this.gmap);
+                                this.autocomplete.addListener('place_changed', () => {
+                                    const place = this.autocomplete.getPlace();
+                                    if (!place.geometry || !place.geometry.location) {
+                                        this.locError = 'No geometry details found for this place.';
+                                        return;
+                                    }
+                                    const lat = place.geometry.location.lat();
+                                    const lng = place.geometry.location.lng();
+                                    this.gmap.setCenter({ lat, lng });
+                                    this.gmap.setZoom(16);
+                                    this.gmarker.setPosition({ lat, lng });
+                                    this.updateCoords(lat, lng);
+                                    this.locSuccess = 'Pinned to: ' + (place.name || place.formatted_address);
+                                });
+                            }
+
+                            setTimeout(() => {
+                                if (this.gmap) {
+                                    google.maps.event.trigger(this.gmap, 'resize');
+                                    this.gmap.setCenter({ lat: startLat, lng: startLng });
+                                }
+                            }, 350);
                         },
 
                         ensureLeaflet(cb) {
@@ -364,20 +489,20 @@ new #[Layout('layouts.app')] class extends Component
                             }
                         },
 
-                        setupMap() {
+                        setupLeafletMap() {
                             const container = this.$refs.mapContainer;
                             if (!container || typeof window.L === 'undefined') return;
 
                             let curLat = parseFloat($wire.latitude);
                             let curLng = parseFloat($wire.longitude);
                             const hasCoords = !isNaN(curLat) && !isNaN(curLng) && curLat !== 0 && curLng !== 0;
-                            
+
                             const startLat = hasCoords ? curLat : 19.0760;
                             const startLng = hasCoords ? curLng : 72.8777;
                             const zoom = hasCoords ? 15 : 12;
 
-                            if (!this.map) {
-                                this.map = window.L.map(container, {
+                            if (!this.lmap) {
+                                this.lmap = window.L.map(container, {
                                     zoomControl: true,
                                     scrollWheelZoom: false
                                 }).setView([startLat, startLng], zoom);
@@ -385,29 +510,29 @@ new #[Layout('layouts.app')] class extends Component
                                 window.L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                                     maxZoom: 19,
                                     attribution: '&copy; OpenStreetMap contributors'
-                                }).addTo(this.map);
+                                }).addTo(this.lmap);
 
-                                this.marker = window.L.marker([startLat, startLng], {
+                                this.lmarker = window.L.marker([startLat, startLng], {
                                     draggable: true
-                                }).addTo(this.map);
+                                }).addTo(this.lmap);
 
-                                this.marker.on('dragend', (e) => {
+                                this.lmarker.on('dragend', (e) => {
                                     const pos = e.target.getLatLng();
                                     this.updateCoords(pos.lat, pos.lng);
                                 });
 
-                                this.map.on('click', (e) => {
-                                    this.marker.setLatLng(e.latlng);
+                                this.lmap.on('click', (e) => {
+                                    this.lmarker.setLatLng(e.latlng);
                                     this.updateCoords(e.latlng.lat, e.latlng.lng);
                                 });
                             } else {
-                                this.marker.setLatLng([startLat, startLng]);
-                                this.map.setView([startLat, startLng], zoom);
-                                this.map.invalidateSize();
+                                this.lmarker.setLatLng([startLat, startLng]);
+                                this.lmap.setView([startLat, startLng], zoom);
+                                this.lmap.invalidateSize();
                             }
 
                             setTimeout(() => {
-                                if (this.map) this.map.invalidateSize();
+                                if (this.lmap) this.lmap.invalidateSize();
                             }, 350);
                         },
 
@@ -415,9 +540,19 @@ new #[Layout('layouts.app')] class extends Component
                             this.mapOpen = !this.mapOpen;
                             if (this.mapOpen) {
                                 this.$nextTick(() => {
-                                    this.ensureLeaflet(() => {
-                                        this.setupMap();
-                                    });
+                                    if (this.mapEngine === 'google') {
+                                        if (!this.gmap) {
+                                            this.setupGoogleMap();
+                                        } else {
+                                            google.maps.event.trigger(this.gmap, 'resize');
+                                        }
+                                    } else {
+                                        if (!this.lmap) {
+                                            this.setupLeafletMap();
+                                        } else {
+                                            this.lmap.invalidateSize();
+                                        }
+                                    }
                                 });
                             }
                         },
@@ -446,19 +581,29 @@ new #[Layout('layouts.app')] class extends Component
                                     const lat = position.coords.latitude;
                                     const lng = position.coords.longitude;
                                     this.updateCoords(lat, lng);
-                                    this.locSuccess = 'GPS Location detected (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
+                                    this.locSuccess = 'Current GPS location detected (' + lat.toFixed(4) + ', ' + lng.toFixed(4) + ')';
                                     this.mapOpen = true;
 
                                     this.$nextTick(() => {
-                                        this.ensureLeaflet(() => {
-                                            if (!this.map) {
-                                                this.setupMap();
+                                        if (this.mapEngine === 'google') {
+                                            if (!this.gmap) {
+                                                this.setupGoogleMap();
                                             } else {
-                                                this.marker.setLatLng([lat, lng]);
-                                                this.map.setView([lat, lng], 16);
-                                                this.map.invalidateSize();
+                                                const latLng = new google.maps.LatLng(lat, lng);
+                                                this.gmap.setCenter(latLng);
+                                                this.gmap.setZoom(16);
+                                                this.gmarker.setPosition(latLng);
+                                                google.maps.event.trigger(this.gmap, 'resize');
                                             }
-                                        });
+                                        } else {
+                                            if (!this.lmap) {
+                                                this.setupLeafletMap();
+                                            } else {
+                                                this.lmarker.setLatLng([lat, lng]);
+                                                this.lmap.setView([lat, lng], 16);
+                                                this.lmap.invalidateSize();
+                                            }
+                                        }
                                     });
                                 },
                                 (error) => {
@@ -486,44 +631,73 @@ new #[Layout('layouts.app')] class extends Component
                             this.locError = '';
                             this.locSuccess = '';
 
-                            fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query))
-                                .then(res => res.json())
-                                .then(data => {
+                            if (this.mapEngine === 'google' && window.google && window.google.maps) {
+                                if (!this.geocoder) this.geocoder = new google.maps.Geocoder();
+                                this.geocoder.geocode({ address: query }, (results, status) => {
                                     this.isSearching = false;
-                                    if (data && data.length > 0) {
-                                        const lat = parseFloat(data[0].lat);
-                                        const lon = parseFloat(data[0].lon);
-                                        this.updateCoords(lat, lon);
-                                        this.locSuccess = 'Pinned to: ' + (data[0].display_name.split(',').slice(0, 3).join(', '));
+                                    if (status === 'OK' && results && results[0]) {
+                                        const loc = results[0].geometry.location;
+                                        const lat = loc.lat();
+                                        const lng = loc.lng();
+                                        this.updateCoords(lat, lng);
+                                        this.locSuccess = 'Pinned to: ' + results[0].formatted_address;
                                         this.mapOpen = true;
                                         this.$nextTick(() => {
-                                            this.ensureLeaflet(() => {
-                                                if (!this.map) {
-                                                    this.setupMap();
-                                                } else {
-                                                    this.marker.setLatLng([lat, lon]);
-                                                    this.map.setView([lat, lon], 16);
-                                                    this.map.invalidateSize();
-                                                }
-                                            });
+                                            if (!this.gmap) {
+                                                this.setupGoogleMap();
+                                            } else {
+                                                this.gmap.setCenter(loc);
+                                                this.gmap.setZoom(16);
+                                                this.gmarker.setPosition(loc);
+                                                google.maps.event.trigger(this.gmap, 'resize');
+                                            }
                                         });
                                     } else {
-                                        this.locError = 'Could not find coordinates for: \'' + query + '\'. You can click directly on the map to pinpoint.';
+                                        this.locError = 'Could not find coordinates for: \'' + query + '\'. (Status: ' + status + ')';
                                     }
-                                })
-                                .catch(err => {
-                                    this.isSearching = false;
-                                    this.locError = 'Address search failed. Please click on the map to pinpoint your location.';
                                 });
+                            } else {
+                                fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(query))
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        this.isSearching = false;
+                                        if (data && data.length > 0) {
+                                            const lat = parseFloat(data[0].lat);
+                                            const lon = parseFloat(data[0].lon);
+                                            this.updateCoords(lat, lon);
+                                            this.locSuccess = 'Pinned to: ' + (data[0].display_name.split(',').slice(0, 3).join(', '));
+                                            this.mapOpen = true;
+                                            this.$nextTick(() => {
+                                                if (!this.lmap) {
+                                                    this.setupLeafletMap();
+                                                } else {
+                                                    this.lmarker.setLatLng([lat, lon]);
+                                                    this.lmap.setView([lat, lon], 16);
+                                                    this.lmap.invalidateSize();
+                                                }
+                                            });
+                                        } else {
+                                            this.locError = 'Could not find coordinates for: \'' + query + '\'. You can click directly on the map to pinpoint.';
+                                        }
+                                    })
+                                    .catch(err => {
+                                        this.isSearching = false;
+                                        this.locError = 'Address search failed. Please click on the map to pinpoint your location.';
+                                    });
+                            }
                         },
 
                         onCoordInput() {
                             const lat = parseFloat($wire.latitude);
                             const lng = parseFloat($wire.longitude);
                             if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
-                                if (this.map && this.marker) {
-                                    this.marker.setLatLng([lat, lng]);
-                                    this.map.panTo([lat, lng]);
+                                if (this.mapEngine === 'google' && this.gmap && this.gmarker) {
+                                    const latLng = new google.maps.LatLng(lat, lng);
+                                    this.gmarker.setPosition(latLng);
+                                    this.gmap.panTo(latLng);
+                                } else if (this.lmap && this.lmarker) {
+                                    this.lmarker.setLatLng([lat, lng]);
+                                    this.lmap.panTo([lat, lng]);
                                 }
                             }
                         }
@@ -622,6 +796,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <div class="relative flex-1">
                                             <input 
                                                 type="text" 
+                                                x-ref="searchInput"
                                                 x-model="searchQuery" 
                                                 @keydown.enter.prevent="locateAddress"
                                                 placeholder="Search landmark, street, or city (or use address above)..." 
@@ -650,12 +825,25 @@ new #[Layout('layouts.app')] class extends Component
                                         </button>
                                     </div>
 
-                                    <!-- Leaflet Canvas -->
+                                    <!-- Map Canvas -->
                                     <div class="relative rounded-2xl overflow-hidden border border-gray-200 shadow-inner z-0 isolate">
                                         <div x-ref="mapContainer" class="h-60 sm:h-64 w-full bg-slate-100"></div>
                                         <div class="absolute bottom-2 left-2 z-[400] bg-white/95 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] font-bold text-gray-700 shadow border border-gray-200/70 pointer-events-none flex items-center gap-1.5">
                                             <span>📍</span>
                                             <span>Click map or drag marker to set precise entrance</span>
+                                        </div>
+                                        <div class="absolute top-2 right-2 z-[400] bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-lg text-[10px] font-semibold shadow-xs border border-gray-200/70 pointer-events-none flex items-center gap-1 text-gray-600">
+                                            <template x-if="mapEngine === 'google'">
+                                                <span class="inline-flex items-center gap-1 text-blue-600 font-bold">
+                                                    <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                                                    Google Maps
+                                                </span>
+                                            </template>
+                                            <template x-if="mapEngine !== 'google'">
+                                                <span class="inline-flex items-center gap-1 text-gray-500">
+                                                    OpenStreetMap
+                                                </span>
+                                            </template>
                                         </div>
                                     </div>
                                 </div>
