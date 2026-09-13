@@ -390,32 +390,52 @@ new #[Layout('layouts.app')] class extends Component
                         @endif
                     </div>
 
-                    <!-- Pricing Box -->
-                    <div class="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 space-y-3">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <span class="text-[9px] font-black uppercase tracking-wider text-gray-400 block">{{ __('MONTHLY') }}</span>
-                                <div class="flex items-baseline gap-1.5">
+                    <!-- Pricing Details -->
+                    <div class="space-y-2 pt-2 border-t border-gray-100">
+                        <!-- Monthly Plan -->
+                        <div class="flex items-center justify-between p-3 rounded-2xl bg-gray-50/90 border border-gray-100 hover:bg-gray-100/70 transition">
+                            <div class="space-y-0.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">{{ __('Monthly Billing') }}</span>
+                                <div class="flex items-baseline gap-2">
                                     @if ($isOffer && $pkg->offer_monthly_amount !== null)
-                                        <span class="text-lg font-black text-amber-600 font-mono">₹{{ number_format($pkg->offer_monthly_amount, 2) }}</span>
-                                        <span class="text-xs text-gray-400 line-through font-mono">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
+                                        <span class="text-xl font-black text-amber-600 font-mono">₹{{ number_format($pkg->offer_monthly_amount, fmod($pkg->offer_monthly_amount, 1) == 0 ? 0 : 2) }}</span>
+                                        <span class="text-xs text-gray-400 line-through font-mono">₹{{ number_format($pkg->monthly_amount, fmod($pkg->monthly_amount, 1) == 0 ? 0 : 2) }}</span>
                                     @else
-                                        <span class="text-lg font-black text-gray-900 font-mono">₹{{ number_format($pkg->monthly_amount, 2) }}</span>
+                                        <span class="text-xl font-black text-gray-900 font-mono">₹{{ number_format($pkg->monthly_amount, fmod($pkg->monthly_amount, 1) == 0 ? 0 : 2) }}</span>
                                     @endif
+                                    <span class="text-[11px] text-gray-400 font-medium">/mo</span>
                                 </div>
                             </div>
+                            @if ($isOffer && $pkg->offer_monthly_amount !== null)
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200 shrink-0">
+                                    {{ __('Offer') }}
+                                </span>
+                            @endif
+                        </div>
 
-                            <div class="text-right">
-                                <span class="text-[9px] font-black uppercase tracking-wider text-gray-400 block">{{ __('YEARLY') }}</span>
-                                <div class="flex items-baseline justify-end gap-1.5">
+                        <!-- Yearly Plan -->
+                        <div class="flex items-center justify-between p-3 rounded-2xl bg-indigo-50/40 border border-indigo-100/70 hover:bg-indigo-50/70 transition">
+                            <div class="space-y-0.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-500 block">{{ __('Yearly Billing') }}</span>
+                                <div class="flex items-baseline gap-2">
                                     @if ($isOffer && $pkg->offer_yearly_amount !== null)
-                                        <span class="text-lg font-black text-indigo-600 font-mono">₹{{ number_format($pkg->offer_yearly_amount, 2) }}</span>
-                                        <span class="text-xs text-gray-400 line-through font-mono">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
+                                        <span class="text-xl font-black text-indigo-600 font-mono">₹{{ number_format($pkg->offer_yearly_amount, fmod($pkg->offer_yearly_amount, 1) == 0 ? 0 : 2) }}</span>
+                                        <span class="text-xs text-gray-400 line-through font-mono">₹{{ number_format($pkg->yearly_amount, fmod($pkg->yearly_amount, 1) == 0 ? 0 : 2) }}</span>
                                     @else
-                                        <span class="text-lg font-black text-indigo-600 font-mono">₹{{ number_format($pkg->yearly_amount, 2) }}</span>
+                                        <span class="text-xl font-black text-indigo-600 font-mono">₹{{ number_format($pkg->yearly_amount, fmod($pkg->yearly_amount, 1) == 0 ? 0 : 2) }}</span>
                                     @endif
+                                    <span class="text-[11px] text-indigo-400 font-medium">/yr</span>
                                 </div>
                             </div>
+                            @if ($isOffer && $pkg->offer_yearly_amount !== null)
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-200 shrink-0">
+                                    {{ __('Special') }}
+                                </span>
+                            @else
+                                <span class="px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                    {{ __('Annual') }}
+                                </span>
+                            @endif
                         </div>
                     </div>
 
