@@ -105,6 +105,12 @@ class SaasSettingsTest extends TestCase
             ->set('country', 'India')
             ->set('gst_number', '27bbbbb1111b1z8')
             ->set('udyam_registration_number', 'udyam-mh-01-9999999')
+            ->set('subscription_gst_sac', '998314')
+            ->set('subscription_gst_percentage', 18.00)
+            ->set('commission_gst_sac', '998599')
+            ->set('commission_gst_percentage', 18.00)
+            ->set('booking_gst_sac', '999652')
+            ->set('booking_gst_percentage', 18.00)
             ->call('saveSettings')
             ->assertHasNoErrors();
 
@@ -117,6 +123,12 @@ class SaasSettingsTest extends TestCase
         $this->assertEquals('Maharashtra', $setting->state);
         $this->assertEquals('27BBBBB1111B1Z8', $setting->gst_number);
         $this->assertEquals('UDYAM-MH-01-9999999', $setting->udyam_registration_number);
+        $this->assertEquals('998314', $setting->subscription_gst_sac);
+        $this->assertEquals(18.00, $setting->subscription_gst_percentage);
+        $this->assertEquals('998599', $setting->commission_gst_sac);
+        $this->assertEquals(18.00, $setting->commission_gst_percentage);
+        $this->assertEquals('999652', $setting->booking_gst_sac);
+        $this->assertEquals(18.00, $setting->booking_gst_percentage);
     }
 
     public function test_saas_application_settings_can_be_saved(): void

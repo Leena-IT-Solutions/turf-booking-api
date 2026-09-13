@@ -24,6 +24,12 @@ class SaasSetting extends Model
         'country',
         'gst_number',
         'udyam_registration_number',
+        'subscription_gst_sac',
+        'subscription_gst_percentage',
+        'commission_gst_sac',
+        'commission_gst_percentage',
+        'booking_gst_sac',
+        'booking_gst_percentage',
         'logo_path',
         'is_maintenance_mode',
         'gemini_api_key',
@@ -61,6 +67,9 @@ class SaasSetting extends Model
         'payout_charges' => 'float',
         'max_commission_due' => 'float',
         'commission_due_grace_days' => 'integer',
+        'subscription_gst_percentage' => 'float',
+        'commission_gst_percentage' => 'float',
+        'booking_gst_percentage' => 'float',
     ];
 
 }
