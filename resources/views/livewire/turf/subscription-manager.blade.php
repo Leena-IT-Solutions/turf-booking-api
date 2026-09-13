@@ -72,7 +72,7 @@ new #[Layout('layouts.app')] class extends Component
 
         $user = auth()->user();
         $turfCount = count($turfsToPay);
-        $unitPrice = $cycle === 'yearly' ? (float)$pkg->yearly_amount : (float)$pkg->monthly_amount;
+        $unitPrice = $cycle === 'yearly' ? $pkg->getEffectiveYearlyAmount() : $pkg->getEffectiveMonthlyAmount();
         $totalPrice = round($unitPrice * $turfCount, 2);
         $amountInPaise = (int) round($totalPrice * 100);
 
@@ -218,6 +218,8 @@ new #[Layout('layouts.app')] class extends Component
             ]);
         }
 
+        $pkg->incrementOfferClaim();
+
         session()->flash('status', "Payment successful! Subscription activated/renewed for " . count($turfIds) . " turf(s) on {$pkg->name}.");
     }
 
@@ -344,13 +346,21 @@ new #[Layout('layouts.app')] class extends Component
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             @forelse ($packages as $pkg)
                 @php
-                    $unitPrice = $billingCycle === 'yearly' ? (float)$pkg->yearly_amount : (float)$pkg->monthly_amount;
+                    $isOffer = $pkg->isOfferValid();
+                    $standardPrice = $billingCycle === 'yearly' ? (float)$pkg->yearly_amount : (float)$pkg->monthly_amount;
+                    $unitPrice = $billingCycle === 'yearly' ? $pkg->getEffectiveYearlyAmount() : $pkg->getEffectiveMonthlyAmount();
                     $totalPrice = $unitPrice * $selectedCount;
                     $durationText = $billingCycle === 'yearly' ? 'year' : 'month';
                 @endphp
 
-                <div class="bg-white rounded-3xl border border-gray-200 shadow-xs hover:shadow-md transition p-6 sm:p-8 flex flex-col justify-between space-y-6">
-                    <div class="space-y-4">
+                <div class="bg-white rounded-3xl border {{ $isOffer ? 'border-amber-300 shadow-md ring-1 ring-amber-200' : 'border-gray-200 shadow-xs' }} hover:shadow-lg transition p-6 sm:p-8 flex flex-col justify-between space-y-6 relative overflow-hidden">
+                    @if ($isOffer)
+                        <div class="absolute -top-1 right-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-b-xl shadow-xs flex items-center gap-1">
+                            <span>{{ $pkg->offer_badge ?: 'Launch Offer' }}</span>
+                        </div>
+                    @endif
+
+                    <div class="space-y-4 pt-1">
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">{{ $pkg->name }}</span>
                             <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -359,16 +369,30 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <div class="space-y-1">
-                            <div class="flex items-baseline gap-1">
-                                <span class="text-3xl font-black text-gray-900">₹{{ number_format($unitPrice, 2) }}</span>
-                                <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
-                            </div>
+                            @if ($isOffer && $unitPrice < $standardPrice)
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-3xl font-black text-amber-600">₹{{ number_format($unitPrice, 2) }}</span>
+                                    <span class="text-base text-gray-400 line-through font-bold">₹{{ number_format($standardPrice, 2) }}</span>
+                                    <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
+                                </div>
+                                @if ($pkg->offer_max_claims)
+                                    <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                                        <span>🔥 Only {{ $pkg->getRemainingOfferClaims() }} of {{ $pkg->offer_max_claims }} founder spots left!</span>
+                                    </div>
+                                @endif
+                            @else
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-3xl font-black text-gray-900">₹{{ number_format($unitPrice, 2) }}</span>
+                                    <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
+                                </div>
+                            @endif
+
                             @if ($selectedCount > 0)
-                                <p class="text-xs font-bold text-indigo-600">
+                                <p class="text-xs font-bold text-indigo-600 pt-1">
                                     Total: ₹{{ number_format($totalPrice, 2) }} for {{ $selectedCount }} turf(s)
                                 </p>
                             @else
-                                <p class="text-xs text-amber-600 font-semibold">
+                                <p class="text-xs text-amber-600 font-semibold pt-1">
                                     Select at least 1 turf above to see total
                                 </p>
                             @endif

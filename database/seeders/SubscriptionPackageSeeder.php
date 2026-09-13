@@ -9,63 +9,60 @@ class SubscriptionPackageSeeder extends Seeder
 {
     public function run(): void
     {
-        if (SubscriptionPackage::count() === 0) {
-            SubscriptionPackage::create([
-                'name' => 'Starter Monthly',
-                'description' => 'Ideal for newly launched single-turf grounds starting out with digital bookings.',
-                'amount' => 1499.00,
-                'days' => 30,
-                'total_percentage' => 5.00,
-                'payment_gateway_percentage' => 2.00,
+        // Create or update the primary Standard Turf Partner package with the ₹999 launch offer
+        SubscriptionPackage::updateOrCreate(
+            ['name' => 'Standard Turf Partner'],
+            [
+                'description' => 'Complete software suite for turf management, staff logins, WhatsApp booking notifications, and slot scheduling.',
+                'monthly_amount' => 3000.00,
+                'yearly_amount' => 30000.00,
                 'commission_percentage' => 3.00,
                 'is_active' => true,
-                'from_date' => now()->toDateString(),
-                'to_date' => now()->addYear()->toDateString(),
                 'sort_order' => 1,
+                'is_offer_active' => true,
+                'offer_badge' => '🔥 First 100 Turfs Founder Offer',
+                'offer_monthly_amount' => 999.00,
+                'offer_yearly_amount' => 9999.00,
+                'offer_max_claims' => 100,
+                'offer_claimed_count' => 0,
+                'offer_expires_at' => null,
                 'features' => [
-                    'Single Turf Management',
-                    'Mobile & Web Bookings',
-                    '24/7 Standard Support'
+                    'Unlimited Slots & Pitch Booking Management',
+                    'Automated WhatsApp Booking Confirmations',
+                    'Staff & Manager Access Controls',
+                    'Instant Online & Part Payment Collection',
+                    'Zero Platform Commission Cap',
+                    '24/7 Dedicated Partner Support',
                 ],
-            ]);
+            ]
+        );
 
-            SubscriptionPackage::create([
-                'name' => 'Pro Turf Partner',
-                'description' => 'Most popular growth plan for active multi-court sports facilities needing full reporting & slot controls.',
-                'amount' => 3999.00,
-                'days' => 90,
-                'total_percentage' => 4.00,
-                'payment_gateway_percentage' => 1.80,
-                'commission_percentage' => 2.20,
+        // Pro Multi-Court Plan
+        SubscriptionPackage::updateOrCreate(
+            ['name' => 'Pro Multi-Court Partner'],
+            [
+                'description' => 'Designed for busy multi-court sports facilities with advanced analytics, custom coupons, and priority listing.',
+                'monthly_amount' => 5000.00,
+                'yearly_amount' => 50000.00,
+                'commission_percentage' => 2.00,
                 'is_active' => true,
-                'from_date' => now()->toDateString(),
-                'to_date' => now()->addYear()->toDateString(),
                 'sort_order' => 2,
+                'is_offer_active' => true,
+                'offer_badge' => '⚡ Early Bird Special',
+                'offer_monthly_amount' => 1999.00,
+                'offer_yearly_amount' => 19999.00,
+                'offer_max_claims' => 50,
+                'offer_claimed_count' => 0,
+                'offer_expires_at' => null,
                 'features' => [
-                    'Custom Coupon & Slot Locks',
-                    'CSV Revenue Export Reports',
-                    'Push Notifications Enabled'
+                    'All Standard Partner Features',
+                    'Multi-Pitch Simultaneous Scheduler',
+                    'Custom Turf Promos & Coupons Generator',
+                    'Customer Database & Export Reports',
+                    'Featured Partner Badge on Player App',
+                    'Lowest Platform Commission Rate (2%)',
                 ],
-            ]);
-
-            SubscriptionPackage::create([
-                'name' => 'Enterprise Annual',
-                'description' => 'Complete annual solution with zero commission cap for premium multi-location sports complexes.',
-                'amount' => 12999.00,
-                'days' => 365,
-                'total_percentage' => 3.00,
-                'payment_gateway_percentage' => 1.50,
-                'commission_percentage' => 1.50,
-                'is_active' => true,
-                'from_date' => now()->toDateString(),
-                'to_date' => now()->addYears(2)->toDateString(),
-                'sort_order' => 3,
-                'features' => [
-                    'Lowest Gateway Fee (1.5%)',
-                    'Dedicated Account Manager',
-                    'Priority 24/7 Phone Support'
-                ],
-            ]);
-        }
+            ]
+        );
     }
 }
