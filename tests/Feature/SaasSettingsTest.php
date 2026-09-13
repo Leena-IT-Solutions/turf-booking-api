@@ -141,9 +141,11 @@ class SaasSettingsTest extends TestCase
         Volt::test('saas.settings.application')
             ->assertSet('turf_search_km', 10)
             ->assertSet('min_slots_booking', 2)
+            ->assertSet('free_trial_days', 30)
             ->assertSet('platform_fee', 0.00)
             ->set('turf_search_km', 25)
             ->set('min_slots_booking', 1)
+            ->set('free_trial_days', 45)
             ->set('is_maintenance_mode', true)
             ->set('commission_percentage', 10.50)
             ->set('platform_fee', 15.00)
@@ -158,6 +160,7 @@ class SaasSettingsTest extends TestCase
         $setting = SaasSetting::first();
         $this->assertEquals(25, $setting->turf_search_km);
         $this->assertEquals(1, $setting->min_slots_booking);
+        $this->assertEquals(45, $setting->free_trial_days);
         $this->assertTrue($setting->is_maintenance_mode);
         $this->assertEquals(10.50, $setting->commission_percentage);
         $this->assertEquals(15.00, $setting->platform_fee);

@@ -8,6 +8,7 @@ new #[Layout('layouts.app')] class extends Component
 {
     public $turf_search_km = 10;
     public $min_slots_booking = 2;
+    public $free_trial_days = 30;
     public $is_maintenance_mode = false;
     public $commission_percentage = 7.00;
     public $platform_fee = 0.00;
@@ -28,6 +29,7 @@ new #[Layout('layouts.app')] class extends Component
 
         $this->turf_search_km = $setting->turf_search_km ?? 10;
         $this->min_slots_booking = $setting->min_slots_booking ?? 2;
+        $this->free_trial_days = (int) ($setting->free_trial_days ?? 30);
         $this->is_maintenance_mode = (bool) $setting->is_maintenance_mode;
         $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
         $this->platform_fee = (float) ($setting->platform_fee ?? 0.00);
@@ -43,6 +45,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->validateOnly($propertyName, [
             'turf_search_km' => 'required|integer|min:1|max:500',
             'min_slots_booking' => 'required|integer|min:1|max:50',
+            'free_trial_days' => 'required|integer|min:0|max:365',
             'is_maintenance_mode' => 'boolean',
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'platform_fee' => 'required|numeric|min:0',
@@ -59,6 +62,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->validate([
             'turf_search_km' => 'required|integer|min:1|max:500',
             'min_slots_booking' => 'required|integer|min:1|max:50',
+            'free_trial_days' => 'required|integer|min:0|max:365',
             'is_maintenance_mode' => 'boolean',
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'platform_fee' => 'required|numeric|min:0',
@@ -74,6 +78,7 @@ new #[Layout('layouts.app')] class extends Component
         $data = [
             'turf_search_km' => $this->turf_search_km,
             'min_slots_booking' => $this->min_slots_booking,
+            'free_trial_days' => $this->free_trial_days,
             'is_maintenance_mode' => $this->is_maintenance_mode,
             'commission_percentage' => $this->commission_percentage,
             'platform_fee' => $this->platform_fee,
@@ -195,6 +200,27 @@ new #[Layout('layouts.app')] class extends Component
                                     class="w-full pr-14 pl-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
                                     placeholder="2" />
                                 <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">slots</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Free Trial Days -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <label for="freeTrialDays" class="text-xs font-bold text-gray-900 block cursor-pointer">
+                                {{ __('Free Trial Duration (Turf Owners)') }}
+                            </label>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('Number of complimentary subscription days granted to newly registered turf owners to explore all platform features.') }}
+                            </p>
+                            <x-input-error :messages="$errors->get('free_trial_days')" class="mt-1" />
+                        </div>
+                        <div class="shrink-0 flex items-center">
+                            <div class="relative w-full sm:w-44">
+                                <input wire:model.live.debounce.250ms="free_trial_days" id="freeTrialDays" type="number" min="0" max="365" 
+                                    class="w-full pr-14 pl-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
+                                    placeholder="30" />
+                                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">days</span>
                             </div>
                         </div>
                     </div>
