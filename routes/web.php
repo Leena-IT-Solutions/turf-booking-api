@@ -43,9 +43,21 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/sports', 'saas.sports-manager')
         ->middleware('role:saas-admin')
         ->name('saas.sports');
-    Volt::route('saas/settings', 'saas.settings-manager')
+    Volt::route('saas/settings', 'saas.settings.branding')
         ->middleware('role:saas-admin')
         ->name('saas.settings');
+    Volt::route('saas/settings/branding', 'saas.settings.branding')
+        ->middleware('role:saas-admin')
+        ->name('saas.settings.branding');
+    Volt::route('saas/settings/legal', 'saas.settings.legal')
+        ->middleware('role:saas-admin')
+        ->name('saas.settings.legal');
+    Volt::route('saas/settings/application', 'saas.settings.application')
+        ->middleware('role:saas-admin')
+        ->name('saas.settings.application');
+    Volt::route('saas/settings/credentials', 'saas.settings.credentials')
+        ->middleware('role:saas-admin')
+        ->name('saas.settings.credentials');
     Volt::route('saas/support', 'saas.chat-manager')
         ->middleware('role:saas-admin')
         ->name('saas.support');
