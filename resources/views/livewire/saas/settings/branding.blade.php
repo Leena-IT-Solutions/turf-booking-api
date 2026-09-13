@@ -127,7 +127,7 @@ new #[Layout('layouts.app')] class extends Component
                 <!-- Section Header -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
                     <div class="flex items-center gap-3.5">
-                        <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shadow-2xs">
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shadow-sm">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
@@ -161,17 +161,17 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
 
                 <!-- Logo Upload & Live Interactive Preview Studio -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <div class="flex flex-col lg:flex-row items-center lg:items-start gap-8">
                     
                     <!-- Col 1: Logo Avatar Frame (Interactive drop/upload) -->
-                    <div class="lg:col-span-4 flex flex-col items-center sm:items-start text-center sm:text-left gap-3">
+                    <div class="w-full lg:w-44 shrink-0 flex flex-col items-center sm:items-start text-center sm:text-left gap-3">
                         <div class="relative group cursor-pointer">
                             <!-- Outer Frame with soft shadow & gradient ring -->
                             <div class="w-36 h-36 sm:w-40 sm:h-40 rounded-3xl bg-gradient-to-br from-gray-50 via-white to-gray-50 p-3 border-2 border-dashed border-gray-200 group-hover:border-indigo-500 transition-all duration-300 shadow-sm flex items-center justify-center relative overflow-hidden">
                                 @if ($new_logo)
-                                    <img src="{{ $new_logo->temporaryUrl() }}" alt="New Logo Preview" class="max-h-full max-w-full object-contain drop-shadow-xs" />
+                                    <img src="{{ $new_logo->temporaryUrl() }}" alt="New Logo Preview" class="max-h-full max-w-full object-contain drop-shadow-sm" />
                                 @elseif ($current_logo_path)
-                                    <img src="{{ Storage::url($current_logo_path) }}" alt="Current Brand Logo" class="max-h-full max-w-full object-contain drop-shadow-xs" />
+                                    <img src="{{ Storage::url($current_logo_path) }}" alt="Current Brand Logo" class="max-h-full max-w-full object-contain drop-shadow-sm" />
                                 @else
                                     <div class="flex flex-col items-center justify-center text-gray-400 space-y-1">
                                         <svg class="h-10 w-10 text-gray-300 group-hover:text-indigo-400 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -197,7 +197,7 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-2">
-                            <label class="relative cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200/70 transition shadow-2xs">
+                            <label class="relative cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200/70 transition shadow-sm">
                                 <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
@@ -227,24 +227,24 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Col 2: Specifications and Live Client Mockup -->
-                    <div class="lg:col-span-8 flex flex-col justify-between space-y-5">
+                    <div class="w-full flex-1 flex flex-col space-y-5">
                         <!-- Format Pills -->
                         <div class="bg-gray-50/70 border border-gray-100 rounded-2xl p-4 space-y-2.5">
                             <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500 block">{{ __('Asset Guidelines & Best Practices') }}</span>
                             <div class="flex flex-wrap items-center gap-2">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-2xs">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-sm">
                                     <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
                                     </svg>
                                     {{ __('1:1 Square Aspect Ratio') }}
                                 </span>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-2xs">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-sm">
                                     <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                     {{ __('PNG, SVG, JPG or WebP') }}
                                 </span>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-2xs">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-sm">
                                     <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
@@ -301,7 +301,7 @@ new #[Layout('layouts.app')] class extends Component
             <div class="bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-3xl border border-gray-100 p-6 sm:p-8 space-y-6">
                 <!-- Section Header -->
                 <div class="flex items-center gap-3.5 pb-6 border-b border-gray-100">
-                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100/80 flex items-center justify-center text-emerald-600 shadow-2xs">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100/80 flex items-center justify-center text-emerald-600 shadow-sm">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                         </svg>
@@ -325,7 +325,7 @@ new #[Layout('layouts.app')] class extends Component
                             <span>{{ __('Platform / App Name') }}</span>
                             <span class="text-rose-500">*</span>
                         </label>
-                        <div class="relative rounded-2xl shadow-2xs">
+                        <div class="relative rounded-2xl shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                 <svg class="w-4 h-4 text-indigo-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -348,7 +348,7 @@ new #[Layout('layouts.app')] class extends Component
                             <span>{{ __('Public Support Email') }}</span>
                             <span class="text-rose-500">*</span>
                         </label>
-                        <div class="relative rounded-2xl shadow-2xs">
+                        <div class="relative rounded-2xl shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                 <svg class="w-4 h-4 text-sky-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -371,7 +371,7 @@ new #[Layout('layouts.app')] class extends Component
                             <span>{{ __('Contact Mobile / WhatsApp') }}</span>
                             <span class="text-rose-500">*</span>
                         </label>
-                        <div class="relative rounded-2xl shadow-2xs">
+                        <div class="relative rounded-2xl shadow-sm">
                             <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                                 <svg class="w-4 h-4 text-emerald-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
@@ -395,7 +395,7 @@ new #[Layout('layouts.app')] class extends Component
                         </svg>
                         <span>{{ __('Headquarters / Operating Address') }}</span>
                     </label>
-                    <div class="relative rounded-2xl shadow-2xs">
+                    <div class="relative rounded-2xl shadow-sm">
                         <div class="absolute top-3 left-3.5 pointer-events-none text-gray-400">
                             <svg class="w-4 h-4 text-rose-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z" />
