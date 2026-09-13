@@ -10,6 +10,7 @@ new #[Layout('layouts.app')] class extends Component
     public $min_slots_booking = 2;
     public $is_maintenance_mode = false;
     public $commission_percentage = 7.00;
+    public $platform_fee = 0.00;
     public $payment_gateway_percentage = 2.00;
     public $payout_hours = 24;
     public $payout_charges = 40.00;
@@ -29,6 +30,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->min_slots_booking = $setting->min_slots_booking ?? 2;
         $this->is_maintenance_mode = (bool) $setting->is_maintenance_mode;
         $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
+        $this->platform_fee = (float) ($setting->platform_fee ?? 0.00);
         $this->payment_gateway_percentage = (float) ($setting->payment_gateway_percentage ?? 2.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
         $this->payout_charges = (float) ($setting->payout_charges ?? 40.00);
@@ -43,6 +45,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => 'required|integer|min:1|max:50',
             'is_maintenance_mode' => 'boolean',
             'commission_percentage' => 'required|numeric|min:0|max:100',
+            'platform_fee' => 'required|numeric|min:0',
             'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
@@ -58,6 +61,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => 'required|integer|min:1|max:50',
             'is_maintenance_mode' => 'boolean',
             'commission_percentage' => 'required|numeric|min:0|max:100',
+            'platform_fee' => 'required|numeric|min:0',
             'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
@@ -72,6 +76,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => $this->min_slots_booking,
             'is_maintenance_mode' => $this->is_maintenance_mode,
             'commission_percentage' => $this->commission_percentage,
+            'platform_fee' => $this->platform_fee,
             'payment_gateway_percentage' => $this->payment_gateway_percentage,
             'payout_hours' => $this->payout_hours,
             'payout_charges' => $this->payout_charges,
@@ -253,7 +258,28 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
 
-                    <!-- Row 2: Payment Gateway Percentage -->
+                    <!-- Row 2: Platform Fee (₹) -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <label for="platformFee" class="text-xs font-bold text-gray-900 block cursor-pointer">
+                                {{ __('Platform Fee') }}
+                            </label>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('Fixed convenience platform fee charged per slot booking.') }}
+                            </p>
+                            <x-input-error :messages="$errors->get('platform_fee')" class="mt-1" />
+                        </div>
+                        <div class="shrink-0 flex items-center">
+                            <div class="relative w-full sm:w-44">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">₹</span>
+                                <input wire:model.live.debounce.250ms="platform_fee" id="platformFee" type="number" step="0.01" min="0" 
+                                    class="w-full pl-8 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
+                                    placeholder="0.00" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Payment Gateway Percentage -->
                     <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="space-y-1 max-w-xl">
                             <label for="gatewayPerc" class="text-xs font-bold text-gray-900 block cursor-pointer">
