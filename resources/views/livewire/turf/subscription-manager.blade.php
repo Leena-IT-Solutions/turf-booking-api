@@ -211,7 +211,7 @@ new #[Layout('layouts.app')] class extends Component
                 'subscription_payment_id' => $paymentRecord->id,
                 'billing_cycle' => $paymentRecord->billing_cycle,
                 'price' => $unitPrice,
-                'commission_percentage' => (float)($pkg->commission_percentage ?? 0.00),
+                'commission_percentage' => 0.00,
                 'starts_at' => $startsAt,
                 'expires_at' => $newExpiresAt,
                 'status' => 'active',

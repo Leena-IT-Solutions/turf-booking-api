@@ -111,7 +111,6 @@ new #[Layout('layouts.app')] class extends Component
             'description' => $this->description ? trim($this->description) : null,
             'monthly_amount' => (float) $this->monthly_amount,
             'yearly_amount' => (float) $this->yearly_amount,
-            'commission_percentage' => 0.00,
             'is_active' => $this->is_active,
             'sort_order' => (int) $this->sort_order,
             'features' => $featuresArray,

@@ -52,7 +52,6 @@ class TurfSubscriptionRenewalTest extends TestCase
         $this->package = SubscriptionPackage::create([
             'name' => 'Exclusive 3%',
             'pricing_type' => 'commission',
-            'commission_percentage' => 3.00,
             'monthly_amount' => 1500.00,
             'yearly_amount' => 15000.00,
             'is_active' => true,
@@ -143,7 +142,7 @@ class TurfSubscriptionRenewalTest extends TestCase
         // Assert Turf Active expiry extended by 30 days from existing expiry (~35 days from now)
         $subActive = $this->turfActive->activeSubscription;
         $this->assertNotNull($subActive);
-        $this->assertEquals(3.00, (float)$subActive->commission_percentage);
+        $this->assertEquals(0.00, (float)$subActive->commission_percentage);
         $this->assertTrue($subActive->expires_at->diffInDays(now()->addDays(35)) <= 1);
 
         // Assert Turf Lapsed expiry starts from today + 30 days (~30 days from now)

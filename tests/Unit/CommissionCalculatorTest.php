@@ -70,7 +70,6 @@ class CommissionCalculatorTest extends TestCase
         $package = SubscriptionPackage::create([
             'name' => '3% Pro Plan',
             'pricing_type' => 'commission',
-            'commission_percentage' => 3.00,
             'duration_days' => 30,
             'is_active' => true,
         ]);
@@ -119,7 +118,6 @@ class CommissionCalculatorTest extends TestCase
         $package = SubscriptionPackage::create([
             'name' => '2% VIP Plan',
             'pricing_type' => 'commission',
-            'commission_percentage' => 2.00,
             'duration_days' => 30,
             'is_active' => true,
         ]);
