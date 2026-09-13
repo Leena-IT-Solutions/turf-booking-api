@@ -253,22 +253,37 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                         </div>
 
-                        <!-- Real-time Client App Header Mockup Preview -->
-                        <div class="bg-gradient-to-r from-gray-900 via-slate-900 to-indigo-950 rounded-2xl p-4 text-white shadow-md relative overflow-hidden">
-                            <!-- Background decoration -->
-                            <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none"></div>
-
-                            <div class="flex items-center justify-between text-[11px] font-semibold text-gray-400 mb-3 uppercase tracking-wider">
-                                <span>{{ __('Live Client Navigation Preview') }}</span>
-                                <span class="text-emerald-400 flex items-center gap-1">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                                    {{ __('Customer View') }}
-                                </span>
+                        <!-- Real-time Client App Header Mockup Preview (Clean Light Theme) -->
+                        <div class="rounded-2xl border border-indigo-100/70 bg-gradient-to-b from-slate-50/80 via-white to-white p-4 shadow-sm relative overflow-hidden">
+                            <!-- Top Browser/Device Mockup Bar -->
+                            <div class="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
+                                <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-rose-400/80"></span>
+                                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400/80"></span>
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400/80"></span>
+                                    </div>
+                                    <div class="hidden sm:flex items-center gap-1.5 ml-2 px-2.5 py-0.5 rounded-lg bg-gray-50 border border-gray-200/60 text-[10px] text-gray-500 font-mono">
+                                        <svg class="w-3 h-3 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span>app.turfbooking.com</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400">{{ __('Live Client Preview') }}</span>
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        {{ __('Customer View') }}
+                                    </span>
+                                </div>
                             </div>
 
-                            <div class="flex items-center justify-between bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10">
+                            <!-- Simulated App Navbar -->
+                            <div class="flex items-center justify-between bg-white rounded-xl p-3 border border-gray-200/80 shadow-xs">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-9 h-9 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center shrink-0">
+                                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50/50 to-white p-1 border border-indigo-100 shadow-xs flex items-center justify-center shrink-0">
                                         @if ($new_logo)
                                             <img src="{{ $new_logo->temporaryUrl() }}" class="max-h-full max-w-full object-contain" />
                                         @elseif ($current_logo_path)
@@ -281,15 +296,24 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                     <div>
                                         <div class="flex items-center gap-2">
-                                            <span class="text-sm font-bold text-white">{{ $app_name ?: __('TurfBooking') }}</span>
-                                            <span class="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold tracking-wider">VERIFIED</span>
+                                            <span class="text-sm font-bold text-gray-900 tracking-tight">{{ $app_name ?: __('TurfBooking') }}</span>
+                                            <span class="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/70 text-[9px] font-bold tracking-wider uppercase">VERIFIED</span>
                                         </div>
-                                        <p class="text-[11px] text-gray-300">{{ __('Online Sports & Turf Ground Booking') }}</p>
+                                        <p class="text-[11px] text-gray-400 font-medium">{{ __('Online Sports & Turf Ground Booking') }}</p>
                                     </div>
                                 </div>
 
-                                <div class="hidden sm:flex items-center gap-2">
-                                    <span class="text-xs px-3 py-1 rounded-lg bg-indigo-500 text-white font-bold">{{ __('Book Now') }}</span>
+                                <div class="flex items-center gap-3">
+                                    <div class="hidden sm:flex items-center gap-3 text-xs font-semibold text-gray-500">
+                                        <span class="text-indigo-600 font-bold">{{ __('Turfs') }}</span>
+                                        <span class="hover:text-gray-900 cursor-pointer">{{ __('Slots') }}</span>
+                                    </div>
+                                    <span class="text-xs px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white font-bold shadow-xs flex items-center gap-1.5">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                        <span>{{ __('Book Slot') }}</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
