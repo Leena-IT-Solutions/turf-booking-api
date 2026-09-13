@@ -224,7 +224,7 @@ new #[Layout('layouts.app')] class extends Component
 }; ?>
 
 <div class="py-6">
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    <div class="w-full sm:px-6 lg:px-8 space-y-6">
 
         <!-- Top Header Card -->
         <div class="bg-white p-6 sm:p-8 shadow-sm rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -296,7 +296,7 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <!-- Packages List Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
             @forelse ($packages as $pkg)
                 @php
                     $isOffer = $pkg->isOfferValid();
