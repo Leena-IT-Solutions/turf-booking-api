@@ -88,13 +88,27 @@ new #[Layout('layouts.app')] class extends Component
         <form wire:submit="saveSettings" class="space-y-6">
             <!-- Header Card -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 shadow-sm rounded-3xl border border-gray-100">
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900">{{ __('Branding & Identity') }}</h2>
-                    <p class="text-xs text-gray-500 mt-1.5">{{ __('Customize your SaaS platform brand name, public logo, contact email, phone, and main address.') }}</p>
+                <div class="flex items-center gap-3.5">
+                    <div class="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-2xs shrink-0">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">{{ __('Branding & Identity') }}</h2>
+                        <p class="text-xs text-gray-500 mt-1">{{ __('Customize your SaaS platform brand name, public logo, contact email, phone, and main address.') }}</p>
+                    </div>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
-                    <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow transition duration-150 cursor-pointer">
-                        {{ __('Save Branding') }}
+                    <button type="submit" wire:loading.attr="disabled" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm hover:shadow transition duration-150 cursor-pointer disabled:opacity-50">
+                        <svg wire:loading.remove wire:target="saveSettings" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <svg wire:loading wire:target="saveSettings" class="animate-spin w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        <span>{{ __('Save Branding') }}</span>
                     </button>
                 </div>
             </div>
@@ -108,74 +122,291 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             @endif
 
-            <!-- Branding Card (Matching User Screenshot) -->
-            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8">
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
-                    <!-- Left Column: Logo Upload -->
-                    <div class="flex flex-col items-center justify-start text-center space-y-4 lg:border-r lg:border-gray-100 lg:pr-8">
-                        <span class="text-sm font-semibold text-gray-700">{{ __('SaaS Brand Logo') }}</span>
-                        
-                        <div class="relative group">
-                            <!-- Logo Box Preview -->
-                            <div class="h-32 w-32 rounded-3xl bg-gray-50 border border-gray-200 flex items-center justify-center overflow-hidden relative shadow-inner">
-                                @if ($new_logo)
-                                    <img src="{{ $new_logo->temporaryUrl() }}" class="h-full w-full object-contain p-2" />
-                                @elseif ($current_logo_path)
-                                    <img src="{{ Storage::url($current_logo_path) }}" class="h-full w-full object-contain p-2" />
-                                @else
-                                    <svg class="h-10 w-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
-                                    </svg>
-                                @endif
-                                
-                                <div class="absolute inset-0 bg-gray-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition duration-200 backdrop-blur-[1px]">
-                                    <span class="text-[9px] font-black uppercase text-white tracking-widest">{{ __('Upload Logo') }}</span>
-                                </div>
-                                <input type="file" wire:model="new_logo" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer" accept="image/*" />
-                            </div>
+            <!-- Modern Brand Visual Identity Studio Card -->
+            <div class="bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-3xl border border-gray-100 p-6 sm:p-8 space-y-8">
+                <!-- Section Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
+                    <div class="flex items-center gap-3.5">
+                        <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100/80 flex items-center justify-center text-indigo-600 shadow-2xs">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
                         </div>
-
-                        <div class="text-[10px] text-gray-400 font-semibold space-y-1">
-                            <p>{{ __('Recommended Aspect Ratio: 1:1 Square') }}</p>
-                            <p>{{ __('Maximum allowed size: 2MB') }}</p>
-                        </div>
-                        <x-input-error :messages="$errors->get('new_logo')" class="mt-2" />
-                    </div>
-
-                    <!-- Right Column: Form Fields -->
-                    <div class="lg:col-span-2 space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            
-                            <!-- App Name -->
-                            <div>
-                                <x-input-label for="appName" :value="__('App Name')" />
-                                <x-text-input wire:model.live.debounce.250ms="app_name" id="appName" type="text" class="mt-1.5 block w-full" placeholder="TurfBooking" />
-                                <x-input-error :messages="$errors->get('app_name')" class="mt-2" />
-                            </div>
-
-                            <!-- Contact Email -->
-                            <div>
-                                <x-input-label for="contactEmail" :value="__('Contact Email')" />
-                                <x-text-input wire:model.live.debounce.250ms="contact_email" id="contactEmail" type="email" class="mt-1.5 block w-full" placeholder="sandeep198558@gmail.com" />
-                                <x-input-error :messages="$errors->get('contact_email')" class="mt-2" />
-                            </div>
-
-                            <!-- Contact Mobile -->
-                            <div>
-                                <x-input-label for="contactMobile" :value="__('Contact Mobile')" />
-                                <x-text-input wire:model.live.debounce.250ms="contact_mobile" id="contactMobile" type="text" class="mt-1.5 block w-full" placeholder="9664588677" />
-                                <x-input-error :messages="$errors->get('contact_mobile')" class="mt-2" />
-                            </div>
-                        </div>
-
-                        <!-- Address -->
                         <div>
-                            <x-input-label for="companyAddress" :value="__('Address')" />
-                            <textarea wire:model.live.debounce.250ms="address" id="companyAddress" rows="3" class="mt-1.5 block w-full rounded-2xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm text-xs p-4" placeholder="Mumbai, India"></textarea>
-                            <x-input-error :messages="$errors->get('address')" class="mt-2" />
+                            <h3 class="text-sm font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                                <span>{{ __('Brand Visual Identity') }}</span>
+                                <span class="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">{{ __('Public Asset') }}</span>
+                            </h3>
+                            <p class="text-xs text-gray-500 mt-0.5">{{ __('The official visual mark displayed across player mobile apps, website navigation, invoices, and automated emails.') }}</p>
                         </div>
                     </div>
+                    
+                    <div>
+                        @if ($new_logo)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                {{ __('Unsaved Preview') }}
+                            </span>
+                        @elseif ($current_logo_path)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                {{ __('Active Brand Logo') }}
+                            </span>
+                        @else
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-600 border border-gray-200">
+                                {{ __('Default Icon') }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Logo Upload & Live Interactive Preview Studio -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    
+                    <!-- Col 1: Logo Avatar Frame (Interactive drop/upload) -->
+                    <div class="lg:col-span-4 flex flex-col items-center sm:items-start text-center sm:text-left gap-3">
+                        <div class="relative group cursor-pointer">
+                            <!-- Outer Frame with soft shadow & gradient ring -->
+                            <div class="w-36 h-36 sm:w-40 sm:h-40 rounded-3xl bg-gradient-to-br from-gray-50 via-white to-gray-50 p-3 border-2 border-dashed border-gray-200 group-hover:border-indigo-500 transition-all duration-300 shadow-sm flex items-center justify-center relative overflow-hidden">
+                                @if ($new_logo)
+                                    <img src="{{ $new_logo->temporaryUrl() }}" alt="New Logo Preview" class="max-h-full max-w-full object-contain drop-shadow-xs" />
+                                @elseif ($current_logo_path)
+                                    <img src="{{ Storage::url($current_logo_path) }}" alt="Current Brand Logo" class="max-h-full max-w-full object-contain drop-shadow-xs" />
+                                @else
+                                    <div class="flex flex-col items-center justify-center text-gray-400 space-y-1">
+                                        <svg class="h-10 w-10 text-gray-300 group-hover:text-indigo-400 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
+                                        </svg>
+                                        <span class="text-[10px] font-bold text-gray-400">{{ __('No Logo Set') }}</span>
+                                    </div>
+                                @endif
+
+                                <!-- Hover Overlay with Action Text -->
+                                <div class="absolute inset-0 bg-gray-900/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity duration-200 backdrop-blur-[2px] rounded-3xl p-2 text-white">
+                                    <svg class="w-6 h-6 text-white mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider">{{ __('Change Logo') }}</span>
+                                </div>
+
+                                <!-- Actual File Input Overlay -->
+                                <input type="file" wire:model="new_logo" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2">
+                            <label class="relative cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200/70 transition shadow-2xs">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                <span>{{ __('Upload New Logo') }}</span>
+                                <input type="file" wire:model="new_logo" class="sr-only" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+                            </label>
+
+                            @if ($new_logo)
+                                <button type="button" wire:click="$set('new_logo', null)" class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-xl transition cursor-pointer">
+                                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    <span>{{ __('Revert') }}</span>
+                                </button>
+                            @endif
+                        </div>
+
+                        <div wire:loading wire:target="new_logo" class="text-xs font-bold text-indigo-600 flex items-center gap-2">
+                            <svg class="animate-spin h-3.5 w-3.5 text-indigo-600" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <span>{{ __('Uploading preview...') }}</span>
+                        </div>
+
+                        <x-input-error :messages="$errors->get('new_logo')" class="mt-1" />
+                    </div>
+
+                    <!-- Col 2: Specifications and Live Client Mockup -->
+                    <div class="lg:col-span-8 flex flex-col justify-between space-y-5">
+                        <!-- Format Pills -->
+                        <div class="bg-gray-50/70 border border-gray-100 rounded-2xl p-4 space-y-2.5">
+                            <span class="text-[11px] font-bold uppercase tracking-wider text-gray-500 block">{{ __('Asset Guidelines & Best Practices') }}</span>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-2xs">
+                                    <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                                    </svg>
+                                    {{ __('1:1 Square Aspect Ratio') }}
+                                </span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-2xs">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    {{ __('PNG, SVG, JPG or WebP') }}
+                                </span>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white text-gray-700 text-xs font-semibold border border-gray-200/80 shadow-2xs">
+                                    <svg class="w-3.5 h-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    {{ __('Maximum 2MB File Size') }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Real-time Client App Header Mockup Preview -->
+                        <div class="bg-gradient-to-r from-gray-900 via-slate-900 to-indigo-950 rounded-2xl p-4 text-white shadow-md relative overflow-hidden">
+                            <!-- Background decoration -->
+                            <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl pointer-events-none"></div>
+
+                            <div class="flex items-center justify-between text-[11px] font-semibold text-gray-400 mb-3 uppercase tracking-wider">
+                                <span>{{ __('Live Client Navigation Preview') }}</span>
+                                <span class="text-emerald-400 flex items-center gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    {{ __('Customer View') }}
+                                </span>
+                            </div>
+
+                            <div class="flex items-center justify-between bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-xl bg-white p-1 shadow-sm flex items-center justify-center shrink-0">
+                                        @if ($new_logo)
+                                            <img src="{{ $new_logo->temporaryUrl() }}" class="max-h-full max-w-full object-contain" />
+                                        @elseif ($current_logo_path)
+                                            <img src="{{ Storage::url($current_logo_path) }}" class="max-h-full max-w-full object-contain" />
+                                        @else
+                                            <div class="w-full h-full bg-indigo-600 rounded-lg flex items-center justify-center text-white text-xs font-black">
+                                                {{ substr($app_name ?: 'T', 0, 1) }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-sm font-bold text-white">{{ $app_name ?: __('TurfBooking') }}</span>
+                                            <span class="px-1.5 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold tracking-wider">VERIFIED</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-300">{{ __('Online Sports & Turf Ground Booking') }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="hidden sm:flex items-center gap-2">
+                                    <span class="text-xs px-3 py-1 rounded-lg bg-indigo-500 text-white font-bold">{{ __('Book Now') }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern General Information & Public Contact Card -->
+            <div class="bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-3xl border border-gray-100 p-6 sm:p-8 space-y-6">
+                <!-- Section Header -->
+                <div class="flex items-center gap-3.5 pb-6 border-b border-gray-100">
+                    <div class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100/80 flex items-center justify-center text-emerald-600 shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                            <span>{{ __('Public Platform Details & Contact Channels') }}</span>
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-0.5">{{ __('Define your official platform name, player helpline contacts, and operating business location.') }}</p>
+                    </div>
+                </div>
+
+                <!-- 3-Column Responsive Grid for Top Inputs -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- App Name -->
+                    <div class="space-y-1.5">
+                        <label for="appName" class="text-xs font-bold text-gray-700 tracking-wide flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span>{{ __('Platform / App Name') }}</span>
+                            <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative rounded-2xl shadow-2xs">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <svg class="w-4 h-4 text-indigo-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                            </div>
+                            <input wire:model.live.debounce.250ms="app_name" id="appName" type="text" 
+                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 transition duration-200 placeholder:text-gray-400 placeholder:font-normal" 
+                                placeholder="TurfBooking" />
+                        </div>
+                        <p class="text-[11px] text-gray-400 font-medium">{{ __('Public brand title shown in app header & receipts.') }}</p>
+                        <x-input-error :messages="$errors->get('app_name')" class="mt-1" />
+                    </div>
+
+                    <!-- Contact Email -->
+                    <div class="space-y-1.5">
+                        <label for="contactEmail" class="text-xs font-bold text-gray-700 tracking-wide flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                            </svg>
+                            <span>{{ __('Public Support Email') }}</span>
+                            <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative rounded-2xl shadow-2xs">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <svg class="w-4 h-4 text-sky-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input wire:model.live.debounce.250ms="contact_email" id="contactEmail" type="email" 
+                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 transition duration-200 placeholder:text-gray-400 placeholder:font-normal" 
+                                placeholder="sandeep198558@gmail.com" />
+                        </div>
+                        <p class="text-[11px] text-gray-400 font-medium">{{ __('Customer support & transactional alerts recipient.') }}</p>
+                        <x-input-error :messages="$errors->get('contact_email')" class="mt-1" />
+                    </div>
+
+                    <!-- Contact Mobile -->
+                    <div class="space-y-1.5">
+                        <label for="contactMobile" class="text-xs font-bold text-gray-700 tracking-wide flex items-center gap-1.5">
+                            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <span>{{ __('Contact Mobile / WhatsApp') }}</span>
+                            <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative rounded-2xl shadow-2xs">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <svg class="w-4 h-4 text-emerald-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <input wire:model.live.debounce.250ms="contact_mobile" id="contactMobile" type="text" 
+                                class="w-full pl-10 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 transition duration-200 placeholder:text-gray-400 placeholder:font-normal" 
+                                placeholder="9664588677" />
+                        </div>
+                        <p class="text-[11px] text-gray-400 font-medium">{{ __('Customer helpline shown in player mobile app.') }}</p>
+                        <x-input-error :messages="$errors->get('contact_mobile')" class="mt-1" />
+                    </div>
+                </div>
+
+                <!-- Operating Headquarters Address -->
+                <div class="space-y-1.5 pt-2">
+                    <label for="companyAddress" class="text-xs font-bold text-gray-700 tracking-wide flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>{{ __('Headquarters / Operating Address') }}</span>
+                    </label>
+                    <div class="relative rounded-2xl shadow-2xs">
+                        <div class="absolute top-3 left-3.5 pointer-events-none text-gray-400">
+                            <svg class="w-4 h-4 text-rose-500/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2v16z" />
+                            </svg>
+                        </div>
+                        <textarea wire:model.live.debounce.250ms="address" id="companyAddress" rows="3" 
+                            class="w-full pl-10 pr-4 py-3 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-medium text-gray-900 transition duration-200 placeholder:text-gray-400" 
+                            placeholder="e.g. 102, Sports Arena Hub, Andheri West, Mumbai, India - 400053"></textarea>
+                    </div>
+                    <p class="text-[11px] text-gray-400 font-medium">{{ __('Physical office location or primary operations center printed on customer booking invoices.') }}</p>
+                    <x-input-error :messages="$errors->get('address')" class="mt-1" />
                 </div>
             </div>
         </form>
