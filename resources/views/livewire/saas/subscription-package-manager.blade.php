@@ -23,7 +23,6 @@ new #[Layout('layouts.app')] class extends Component
     public string $description = '';
     public string $monthly_amount = '3000.00';
     public string $yearly_amount = '30000.00';
-    public string $commission_percentage = '3.00';
     public bool $is_active = true;
     public int $sort_order = 0;
     public string $features_text = '';
@@ -53,7 +52,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->description = $pkg->description ?? '';
         $this->monthly_amount = (string) $pkg->monthly_amount;
         $this->yearly_amount = (string) $pkg->yearly_amount;
-        $this->commission_percentage = (string) $pkg->commission_percentage;
         $this->is_active = (bool) $pkg->is_active;
         $this->sort_order = (int) $pkg->sort_order;
         $this->features_text = is_array($pkg->features) ? implode("\n", $pkg->features) : '';
@@ -77,7 +75,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->description = '';
         $this->monthly_amount = '3000.00';
         $this->yearly_amount = '30000.00';
-        $this->commission_percentage = '3.00';
         $this->is_active = true;
         $this->sort_order = (int) (SubscriptionPackage::max('sort_order') + 1);
         $this->features_text = '';
@@ -97,7 +94,6 @@ new #[Layout('layouts.app')] class extends Component
             'name' => 'required|string|max:255',
             'monthly_amount' => 'required|numeric|min:0',
             'yearly_amount' => 'required|numeric|min:0',
-            'commission_percentage' => 'required|numeric|min:0|max:100',
             'is_active' => 'boolean',
             'sort_order' => 'integer|min:0',
             'is_offer_active' => 'boolean',
@@ -115,7 +111,7 @@ new #[Layout('layouts.app')] class extends Component
             'description' => $this->description ? trim($this->description) : null,
             'monthly_amount' => (float) $this->monthly_amount,
             'yearly_amount' => (float) $this->yearly_amount,
-            'commission_percentage' => (float) $this->commission_percentage,
+            'commission_percentage' => 0.00,
             'is_active' => $this->is_active,
             'sort_order' => (int) $this->sort_order,
             'features' => $featuresArray,
@@ -422,11 +418,6 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
                             </div>
                         </div>
-
-                        <div class="pt-2 border-t border-gray-200/60 flex items-center justify-between text-[11px]">
-                            <span class="text-gray-500 font-semibold">{{ __('Platform Commission:') }}</span>
-                            <span class="font-bold text-gray-900 font-mono">{{ $pkg->commission_percentage }}%</span>
-                        </div>
                     </div>
 
                 </div>
@@ -476,7 +467,7 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
 
                             <!-- Standard Pricing Grid -->
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label class="text-xs font-bold text-gray-900 block mb-1">{{ __('Monthly Standard Price (₹) *') }}</label>
                                     <input type="number" step="0.01" wire:model="monthly_amount" placeholder="3000.00" 
@@ -488,12 +479,6 @@ new #[Layout('layouts.app')] class extends Component
                                     <input type="number" step="0.01" wire:model="yearly_amount" placeholder="30000.00" 
                                         class="w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-bold font-mono text-gray-900 transition">
                                     <x-input-error :messages="$errors->get('yearly_amount')" class="mt-1" />
-                                </div>
-                                <div>
-                                    <label class="text-xs font-bold text-gray-900 block mb-1">{{ __('Booking Commission (%) *') }}</label>
-                                    <input type="number" step="0.01" wire:model="commission_percentage" placeholder="3.00" 
-                                        class="w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-bold font-mono text-gray-900 transition">
-                                    <x-input-error :messages="$errors->get('commission_percentage')" class="mt-1" />
                                 </div>
                             </div>
 

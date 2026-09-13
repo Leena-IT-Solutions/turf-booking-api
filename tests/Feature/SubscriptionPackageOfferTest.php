@@ -123,7 +123,6 @@ class SubscriptionPackageOfferTest extends TestCase
             ->set('name', 'Founder Special Plan')
             ->set('monthly_amount', '3000.00')
             ->set('yearly_amount', '30000.00')
-            ->set('commission_percentage', '3.00')
             ->set('is_offer_active', true)
             ->set('offer_badge', '🔥 First 100 Turfs Founder Offer')
             ->set('offer_monthly_amount', '999.00')
@@ -136,6 +135,7 @@ class SubscriptionPackageOfferTest extends TestCase
             'name' => 'Founder Special Plan',
             'monthly_amount' => 3000.00,
             'yearly_amount' => 30000.00,
+            'commission_percentage' => 0.00,
             'is_offer_active' => true,
             'offer_monthly_amount' => 999.00,
             'offer_yearly_amount' => 9999.00,

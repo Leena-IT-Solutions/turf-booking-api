@@ -211,7 +211,7 @@ new #[Layout('layouts.app')] class extends Component
                 'subscription_payment_id' => $paymentRecord->id,
                 'billing_cycle' => $paymentRecord->billing_cycle,
                 'price' => $unitPrice,
-                'commission_percentage' => $pkg->commission_percentage,
+                'commission_percentage' => (float)($pkg->commission_percentage ?? 0.00),
                 'starts_at' => $startsAt,
                 'expires_at' => $newExpiresAt,
                 'status' => 'active',
@@ -236,7 +236,7 @@ new #[Layout('layouts.app')] class extends Component
             </div>
             <div>
                 <h1 class="text-2xl font-black text-gray-900 tracking-tight">Per-Turf Subscription Plans</h1>
-                <p class="text-xs text-gray-500">Select turfs to subscribe or renew, and unlock lower platform commission rates per turf.</p>
+                <p class="text-xs text-gray-500">Select turfs to subscribe or renew, and activate full software management features.</p>
             </div>
         </div>
 
@@ -311,7 +311,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <div class="min-w-0">
                                             <span class="font-bold text-xs text-gray-900 block truncate">{{ $turf->name }}</span>
                                             <span class="text-[10px] text-gray-500 block truncate mt-0.5">
-                                                Rate: {{ number_format($turf->commission_percentage, 2) }}% | {{ $activeSub ? $activeSub->package?->name : 'No Plan' }}
+                                                Plan: {{ $activeSub ? ($activeSub->package?->name ?? 'Subscribed') : 'No Active Plan' }}
                                             </span>
                                             @if ($activeSub)
                                                 <span class="text-[9px] text-emerald-600 block font-semibold">Exp: {{ $activeSub->expires_at?->format('d M Y') }}</span>
@@ -362,10 +362,7 @@ new #[Layout('layouts.app')] class extends Component
 
                     <div class="space-y-4 pt-1">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">{{ $pkg->name }}</span>
-                            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                {{ $pkg->commission_percentage }}% Commission
-                            </span>
+                            <span class="text-xs font-black uppercase tracking-wider text-indigo-600">{{ $pkg->name }}</span>
                         </div>
 
                         <div class="space-y-1">

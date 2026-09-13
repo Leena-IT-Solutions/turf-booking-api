@@ -16,7 +16,7 @@ class SubscriptionPackageSeeder extends Seeder
                 'description' => 'Complete software suite for turf management, staff logins, WhatsApp booking notifications, and slot scheduling.',
                 'monthly_amount' => 3000.00,
                 'yearly_amount' => 30000.00,
-                'commission_percentage' => 3.00,
+                'commission_percentage' => 0.00,
                 'is_active' => true,
                 'sort_order' => 1,
                 'is_offer_active' => true,
@@ -44,7 +44,7 @@ class SubscriptionPackageSeeder extends Seeder
                 'description' => 'Designed for busy multi-court sports facilities with advanced analytics, custom coupons, and priority listing.',
                 'monthly_amount' => 5000.00,
                 'yearly_amount' => 50000.00,
-                'commission_percentage' => 2.00,
+                'commission_percentage' => 0.00,
                 'is_active' => true,
                 'sort_order' => 2,
                 'is_offer_active' => true,
@@ -60,7 +60,7 @@ class SubscriptionPackageSeeder extends Seeder
                     'Custom Turf Promos & Coupons Generator',
                     'Customer Database & Export Reports',
                     'Featured Partner Badge on Player App',
-                    'Lowest Platform Commission Rate (2%)',
+                    'Zero Booking Commission',
                 ],
             ]
         );
