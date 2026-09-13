@@ -204,10 +204,13 @@ new #[Layout('layouts.app')] class extends Component
                                 {{ __('Temporarily suspend public app bookings and customer checkouts while keeping administrator portal active.') }}
                             </p>
                         </div>
-                        <div class="shrink-0 flex items-center">
+                        <div class="shrink-0 flex items-center gap-3">
+                            <span class="text-xs font-bold {{ $is_maintenance_mode ? 'text-amber-600' : 'text-gray-400' }}">
+                                {{ $is_maintenance_mode ? __('Active') : __('Disabled') }}
+                            </span>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input id="maintenanceToggle" type="checkbox" wire:model.live="is_maintenance_mode" class="sr-only peer">
-                                <div class="w-12 h-6.5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500 shadow-inner"></div>
                             </label>
                         </div>
                     </div>
