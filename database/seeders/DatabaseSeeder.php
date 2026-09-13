@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call(FacilitySeeder::class);
         $this->call(EquipmentSeeder::class);
         $this->call(SportSeeder::class);
+        $this->call(PaymentGatewayChargeSeeder::class);
 
         $sandeep = User::firstOrCreate([
             'email' => 'sandeep198558@gmail.com',
