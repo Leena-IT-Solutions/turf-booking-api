@@ -295,7 +295,6 @@ new #[Layout('layouts.app')] class extends Component
         <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs space-y-3 md:col-span-2">
             <div class="flex items-center justify-between">
                 <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">TURF COMMISSION RATES</span>
-                <span class="text-[9px] text-gray-400 font-medium">Gateway discount: {{ number_format($saas?->payment_gateway_percentage ?? 2.00, 2) }}%</span>
             </div>
             @php
                 $manageableTurfs = $user ? $user->manageableTurfs()->with(['location', 'activeSubscription.package'])->get() : collect();

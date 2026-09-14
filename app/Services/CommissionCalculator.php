@@ -17,15 +17,7 @@ class CommissionCalculator
      */
     public function calculate(Turf $turf, string $paymentMethod, float $amount): array
     {
-        $saas = SaasSetting::first();
-        $effectiveRate = $turf->commission_percentage;
-
-        $gatewayPct = (float) ($saas?->payment_gateway_percentage ?? 2.00);
-
-        // Deduct payment gateway percentage for offline payments
-        $rate = $paymentMethod === 'App'
-            ? $effectiveRate
-            : max(0.00, $effectiveRate - $gatewayPct);
+        $rate = (float) $turf->commission_percentage;
 
         $commissionAmount = round($amount * $rate / 100, 2);
         $cashHeldAmount   = $paymentMethod === 'App' ? $amount : 0.00;

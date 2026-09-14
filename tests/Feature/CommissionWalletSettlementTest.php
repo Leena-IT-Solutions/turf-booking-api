@@ -29,7 +29,6 @@ class CommissionWalletSettlementTest extends TestCase
 
         SaasSetting::create([
             'commission_percentage' => 7.00,
-            'payment_gateway_percentage' => 2.00,
             'min_slots_booking' => 1,
         ]);
 
@@ -121,13 +120,13 @@ class CommissionWalletSettlementTest extends TestCase
 
         $offlinePayment = Payment::where('booking_id', $bookingId)->where('payment_method', 'Cash')->first();
         $this->assertEquals(700.00, (float)$offlinePayment->amount);
-        $this->assertEquals(35.00, (float)$offlinePayment->commission_amount); // 5% of 700 (7% - 2% gateway)
+        $this->assertEquals(49.00, (float)$offlinePayment->commission_amount); // 7% of 700
         $this->assertEquals(0.00, (float)$offlinePayment->cash_held_amount);
-        $this->assertEquals(-35.00, (float)$offlinePayment->turf_payout_amount);
+        $this->assertEquals(-49.00, (float)$offlinePayment->turf_payout_amount);
 
-        // Net Wallet Balance = +279.00 (online) - 35.00 (offline) = 244.00
+        // Net Wallet Balance = +279.00 (online) - 49.00 (offline) = 230.00
         $this->turfAdmin->refresh();
-        $this->assertEquals(244.00, (float)$this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(230.00, (float)$this->turfAdmin->commission_wallet_balance);
 
         \Carbon\Carbon::setTestNow();
     }

@@ -26,7 +26,6 @@ class CommissionCalculatorTest extends TestCase
         parent::setUp();
         SaasSetting::create([
             'commission_percentage' => 7.00,
-            'payment_gateway_percentage' => 2.00,
         ]);
 
         $this->user = User::factory()->create();
@@ -56,13 +55,13 @@ class CommissionCalculatorTest extends TestCase
         $this->assertEquals(1000.00, $onlineCalc['cash_held_amount']);
         $this->assertEquals(930.00, $onlineCalc['turf_payout_amount']);
 
-        // Offline (Cash/UPI/Other): Effective rate (7% - 2% gateway discount = 5%)
+        // Offline (Cash/UPI/Other): Effective rate 7% without arbitrary gateway discount
         $offlineCalc = $calculator->calculate($this->turf, 'Cash', 1000.00);
 
-        $this->assertEquals(5.00, $offlineCalc['commission_percentage']);
-        $this->assertEquals(50.00, $offlineCalc['commission_amount']);
+        $this->assertEquals(7.00, $offlineCalc['commission_percentage']);
+        $this->assertEquals(70.00, $offlineCalc['commission_amount']);
         $this->assertEquals(0.00, $offlineCalc['cash_held_amount']);
-        $this->assertEquals(-50.00, $offlineCalc['turf_payout_amount']);
+        $this->assertEquals(-70.00, $offlineCalc['turf_payout_amount']);
     }
 
     public function test_active_subscription_overrides_default_commission_rate()
@@ -106,17 +105,17 @@ class CommissionCalculatorTest extends TestCase
         $this->assertEquals(30.00, $onlineCalc['commission_amount']);
         $this->assertEquals(970.00, $onlineCalc['turf_payout_amount']);
 
-        // Offline (Cash): 3% - 2% gateway discount = 1%
+        // Offline (Cash): 3%
         $offlineCalc = $calculator->calculate($this->turf, 'Cash', 1000.00);
-        $this->assertEquals(1.00, $offlineCalc['commission_percentage']);
-        $this->assertEquals(10.00, $offlineCalc['commission_amount']);
-        $this->assertEquals(-10.00, $offlineCalc['turf_payout_amount']);
+        $this->assertEquals(3.00, $offlineCalc['commission_percentage']);
+        $this->assertEquals(30.00, $offlineCalc['commission_amount']);
+        $this->assertEquals(-30.00, $offlineCalc['turf_payout_amount']);
     }
 
-    public function test_zero_floored_offline_commission_rate()
+    public function test_zero_commission_subscription_rate()
     {
         $package = SubscriptionPackage::create([
-            'name' => '2% VIP Plan',
+            'name' => '0% VIP Plan',
             'pricing_type' => 'commission',
             'duration_days' => 30,
             'is_active' => true,
@@ -141,12 +140,11 @@ class CommissionCalculatorTest extends TestCase
             'starts_at' => now()->subDay(),
             'expires_at' => now()->addDays(29),
             'status' => 'active',
-            'commission_percentage' => 2.00,
+            'commission_percentage' => 0.00,
         ]);
 
         $calculator = new CommissionCalculator();
 
-        // Offline (Cash): 2% - 2% gateway discount = 0%
         $offlineCalc = $calculator->calculate($this->turf, 'Cash', 1000.00);
 
         $this->assertEquals(0.00, $offlineCalc['commission_percentage']);

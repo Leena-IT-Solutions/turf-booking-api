@@ -28,7 +28,6 @@ class WalletClearanceTest extends TestCase
 
         SaasSetting::create([
             'commission_percentage' => 7.00,
-            'payment_gateway_percentage' => 2.00,
         ]);
 
         $this->turfAdmin = User::factory()->create([

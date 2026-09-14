@@ -29,7 +29,6 @@ new #[Layout('layouts.app')] class extends Component
     public $turf_search_km = 10;
     public $min_slots_booking = 2;
     public $commission_percentage = 7.00;
-    public $payment_gateway_percentage = 2.00;
     public $cancellation_fee_percentage = 5.00;
     public $payout_hours = 24;
     public $payout_charges = 40.00;
@@ -54,7 +53,6 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 10,
             'min_slots_booking' => 2,
             'commission_percentage' => 7.00,
-            'payment_gateway_percentage' => 2.00,
             'cancellation_fee_percentage' => 5.00,
             'payout_hours' => 24,
             'payout_charges' => 40.00,
@@ -82,7 +80,6 @@ new #[Layout('layouts.app')] class extends Component
         $this->turf_search_km = $setting->turf_search_km ?? 5;
         $this->min_slots_booking = $setting->min_slots_booking ?? 1;
         $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
-        $this->payment_gateway_percentage = (float) ($setting->payment_gateway_percentage ?? 2.00);
         $this->cancellation_fee_percentage = (float) ($setting->cancellation_fee_percentage ?? 5.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
         $this->payout_charges = (float) ($setting->payout_charges ?? 40.00);
@@ -114,7 +111,6 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 'required|integer|min:1|max:100',
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
-            'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
             'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
@@ -150,7 +146,6 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 'required|integer|min:1|max:100',
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
-            'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
             'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
@@ -184,7 +179,6 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => $this->turf_search_km,
             'min_slots_booking' => $this->min_slots_booking,
             'commission_percentage' => $this->commission_percentage,
-            'payment_gateway_percentage' => $this->payment_gateway_percentage,
             'cancellation_fee_percentage' => $this->cancellation_fee_percentage,
             'payout_hours' => $this->payout_hours,
             'payout_charges' => $this->payout_charges,
@@ -472,15 +466,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-                        <!-- Offline Payment Gateway Discount % -->
-                        <div>
-                            <x-input-label for="paymentGatewayPercentage" :value="__('Gateway Deduction for Offline (%)')" />
-                            <x-text-input wire:model.live.debounce.250ms="payment_gateway_percentage" id="paymentGatewayPercentage" type="number" step="0.01" min="0" max="100" class="mt-1.5 block w-full text-xs" placeholder="2.00" />
-                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
-                                {{ __('% deducted from commission when booking payment is collected offline.') }}
-                            </span>
-                            <x-input-error :messages="$errors->get('payment_gateway_percentage')" class="mt-2" />
-                        </div>
+
 
                         <!-- Cancellation Processing Fee % -->
                         <div>

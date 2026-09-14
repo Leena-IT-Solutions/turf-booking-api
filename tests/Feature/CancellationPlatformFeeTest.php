@@ -29,7 +29,6 @@ class CancellationPlatformFeeTest extends TestCase
 
         SaasSetting::create([
             'commission_percentage' => 7.00,
-            'payment_gateway_percentage' => 2.00,
             'cancellation_fee_percentage' => 5.00,
         ]);
 
