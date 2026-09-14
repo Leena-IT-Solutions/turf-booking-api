@@ -25,6 +25,7 @@ new #[Layout('layouts.app')] class extends Component
     public $is_cancellation_active = false;
     public $cancellation_hours = 48;
     public $cancellation_fee = 0;
+    public $platform_cancellation_fee_percentage = 5.00;
 
     // Message Sharing settings
     public $share_message_template = '';
@@ -61,11 +62,15 @@ new #[Layout('layouts.app')] class extends Component
                 $this->is_cancellation_active = (bool)$turf->is_cancellation_active;
                 $this->cancellation_hours = (int)$turf->cancellation_hours;
                 $this->cancellation_fee = $turf->cancellation_fee;
+                $saas = \App\Models\SaasSetting::first();
+                $this->platform_cancellation_fee_percentage = $saas ? (float)($saas->cancellation_fee_percentage ?? 5.00) : 5.00;
                 $this->share_message_template = $turf->share_message_template ?? "*Booking Confirmed!*\n\n⚽ *Turf:* {turf_name}\n📅 *Date:* {booking_date}\n⏰ *Slots:* {slots}\n\n💳 *Payment Details:*\n• Total Amount: ₹{total_amount}\n• Paid Amount: ₹{paid_amount}\n• Balance Due: ₹{balance_amount}\n\nThank you for booking with us!";
                 return;
             }
         }
 
+        $saas = \App\Models\SaasSetting::first();
+        $this->platform_cancellation_fee_percentage = $saas ? (float)($saas->cancellation_fee_percentage ?? 5.00) : 5.00;
         $this->turfId = null;
     }
 
@@ -313,36 +318,81 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Collapsible Cancellation Fields -->
                         @if ($is_cancellation_active)
-                            <div class="p-5 sm:p-6 bg-rose-50/40 rounded-2xl border border-rose-200/70 grid grid-cols-1 md:grid-cols-2 gap-5 transition-all">
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-900 mb-1">
-                                        {{ __('Cancellation Window') }}
-                                    </label>
-                                    <p class="text-[11px] text-gray-500 mb-2">
-                                        {{ __('Minimum hours prior to slot time required for cancellation') }}
-                                    </p>
-                                    <div class="relative">
-                                        <input wire:model="cancellation_hours" type="number" min="0" step="1" 
-                                            class="w-full pl-4 pr-16 py-2.5 bg-white rounded-xl border border-gray-200 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 text-sm font-semibold text-gray-900 transition shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            placeholder="48" />
-                                        <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">hours</span>
+                            <div class="p-5 sm:p-6 bg-rose-50/40 rounded-2xl border border-rose-200/70 space-y-5 transition-all">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-900 mb-1">
+                                            {{ __('Cancellation Window') }}
+                                        </label>
+                                        <p class="text-[11px] text-gray-500 mb-2">
+                                            {{ __('Minimum hours prior to slot time required for cancellation') }}
+                                        </p>
+                                        <div class="relative">
+                                            <input wire:model.live.debounce.300ms="cancellation_hours" type="number" min="0" step="1" 
+                                                class="w-full pl-4 pr-16 py-2.5 bg-white rounded-xl border border-gray-200 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 text-sm font-semibold text-gray-900 transition shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                                placeholder="48" />
+                                            <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">hours</span>
+                                        </div>
+                                        @error('cancellation_hours') <span class="block text-[10px] text-rose-600 mt-1.5 font-semibold">{{ $message }}</span> @enderror
                                     </div>
-                                    @error('cancellation_hours') <span class="block text-[10px] text-rose-600 mt-1.5 font-semibold">{{ $message }}</span> @enderror
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-900 mb-1">
+                                            {{ __('Turf Cancellation Fee (Per Slot)') }}
+                                        </label>
+                                        <p class="text-[11px] text-gray-500 mb-2">
+                                            {{ __('Fixed deduction retained by your turf on customer cancellation') }}
+                                        </p>
+                                        <div class="relative">
+                                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">₹</span>
+                                            <input wire:model.live.debounce.300ms="cancellation_fee" type="number" min="0" step="0.01" 
+                                                class="w-full pl-8 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 text-sm font-semibold text-gray-900 transition shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                                placeholder="0.00" />
+                                        </div>
+                                        @error('cancellation_fee') <span class="block text-[10px] text-rose-600 mt-1.5 font-semibold">{{ $message }}</span> @enderror
+                                    </div>
                                 </div>
-                                <div>
-                                    <label class="block text-xs font-bold text-gray-900 mb-1">
-                                        {{ __('Cancellation Fee (Per Slot)') }}
-                                    </label>
-                                    <p class="text-[11px] text-gray-500 mb-2">
-                                        {{ __('Fixed deduction retained by turf on customer cancellation') }}
-                                    </p>
-                                    <div class="relative">
-                                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">₹</span>
-                                        <input wire:model="cancellation_fee" type="number" min="0" step="0.01" 
-                                            class="w-full pl-8 pr-4 py-2.5 bg-white rounded-xl border border-gray-200 focus:border-rose-500 focus:ring-4 focus:ring-rose-500/10 text-sm font-semibold text-gray-900 transition shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                                            placeholder="0.00" />
+
+                                <!-- SaaS Platform Refund Processing Fee Notice -->
+                                <div class="p-4 sm:p-4.5 rounded-xl bg-white border border-rose-200/80 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                    <div class="flex items-start sm:items-center gap-3">
+                                        <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-base shrink-0">
+                                            💳
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2 flex-wrap">
+                                                <span class="text-xs font-bold text-gray-900">{{ __('SaaS Platform Refund Charge:') }}</span>
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-rose-50 text-rose-700 border border-rose-200 font-mono">
+                                                    {{ number_format($platform_cancellation_fee_percentage, 2) }}%
+                                                </span>
+                                                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">({{ __('of paid booking amount') }})</span>
+                                            </div>
+                                            <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">
+                                                {{ __('On every customer cancellation, the SaaS platform retains :pct% to cover payment gateway MDR and refund processing costs. Your turf fee is deducted from the remaining amount, and the rest is refunded to the customer.', ['pct' => number_format($platform_cancellation_fee_percentage, 2)]) }}
+                                            </p>
+                                        </div>
                                     </div>
-                                    @error('cancellation_fee') <span class="block text-[10px] text-rose-600 mt-1.5 font-semibold">{{ $message }}</span> @enderror
+                                    <div class="shrink-0 pl-12 sm:pl-0">
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-slate-100 text-slate-700 border border-slate-200">
+                                            <svg class="w-3 h-3 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            {{ __('SaaS Policy') }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Example Refund Calculation Breakdown -->
+                                <div class="px-4 py-3 bg-rose-100/40 rounded-xl border border-rose-200/60 text-[11px] text-rose-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold uppercase tracking-wider text-[10px] text-rose-800 bg-rose-200/60 px-1.5 py-0.5 rounded">{{ __('Example') }}</span>
+                                        <span>{{ __('On a ₹1,000 slot cancellation: Platform Fee is ₹:pfee (:pct%), Turf Fee is ₹:tfee. Total deduction: ₹:total. Refunded to customer: ₹:refund.', [
+                                            'pfee' => number_format(1000 * ($platform_cancellation_fee_percentage / 100), 2),
+                                            'pct' => number_format($platform_cancellation_fee_percentage, 2),
+                                            'tfee' => number_format((float)$cancellation_fee, 2),
+                                            'total' => number_format(1000 * ($platform_cancellation_fee_percentage / 100) + (float)$cancellation_fee, 2),
+                                            'refund' => number_format(max(0, 1000 - (1000 * ($platform_cancellation_fee_percentage / 100) + (float)$cancellation_fee)), 2),
+                                        ]) }}</span>
+                                    </div>
                                 </div>
                             </div>
                         @endif

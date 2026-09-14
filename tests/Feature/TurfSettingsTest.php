@@ -119,4 +119,18 @@ class TurfSettingsTest extends TestCase
             ->call('save')
             ->assertHasErrors(['booking_open_days']);
     }
+
+    public function test_cancellation_policy_displays_platform_refund_charge(): void
+    {
+        $this->actingAs($this->admin);
+
+        \App\Models\SaasSetting::firstOrCreate([], [
+            'cancellation_fee_percentage' => 7.50,
+        ])->update(['cancellation_fee_percentage' => 7.50]);
+
+        Volt::test('turf.settings-manager')
+            ->set('is_cancellation_active', true)
+            ->assertSee('SaaS Platform Refund Charge:')
+            ->assertSee('7.50%');
+    }
 }
