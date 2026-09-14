@@ -4,6 +4,7 @@ use App\Models\SubscriptionPackage;
 use App\Models\SubscriptionPayment;
 use App\Models\TurfSubscription;
 use App\Models\SaasSetting;
+use App\Models\PaymentGatewayCharge;
 use App\Models\Turf;
 use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Layout;
@@ -26,6 +27,26 @@ new #[Layout('layouts.app')] class extends Component
         if ($user) {
             $this->selectedTurfIds = $user->manageableTurfs()->pluck('turfs.id')->map(fn($id) => (int)$id)->toArray();
         }
+    }
+
+    public function with(): array
+    {
+        $setting = SaasSetting::first();
+        $gatewayCharges = PaymentGatewayCharge::where('is_active', true)
+            ->orderBy('sort_order')
+            ->get();
+
+        $defaultCommission = $setting ? (float) $setting->commission_percentage : 7.00;
+        $commissionGst = $setting ? (float) $setting->commission_gst_percentage : 18.00;
+        $effectiveCommission = round($defaultCommission * (1 + ($commissionGst / 100)), 2);
+
+        return [
+            'saasSetting' => $setting,
+            'defaultCommission' => $defaultCommission,
+            'commissionGst' => $commissionGst,
+            'effectiveCommission' => $effectiveCommission,
+            'gatewayCharges' => $gatewayCharges,
+        ];
     }
 
     public function toggleTurf(int $turfId)
@@ -267,6 +288,181 @@ new #[Layout('layouts.app')] class extends Component
             {{ session('error') }}
         </div>
     @endif
+
+    <!-- RATES & TRANSPARENCY: DEFAULT COMMISSION & PAYMENT GATEWAY CHARGES -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Default Platform Commission Card -->
+        <div class="lg:col-span-5 bg-white p-6 sm:p-7 rounded-3xl border border-gray-200/80 shadow-xs flex flex-col justify-between space-y-6">
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 block">Platform Commission</span>
+                            <h3 class="text-sm font-bold text-gray-900">Default Baseline Rate</h3>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100">
+                        Standard
+                    </span>
+                </div>
+
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 border border-indigo-100/60">
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-3xl sm:text-4xl font-black text-gray-900 font-mono tracking-tight">
+                            {{ number_format($defaultCommission, 2) }}%
+                        </span>
+                        <span class="text-xs text-gray-500 font-medium">per booking</span>
+                    </div>
+                    @if ($commissionGst > 0)
+                        <div class="mt-1 flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+                            <span>+ {{ number_format($commissionGst, 2) }}% GST</span>
+                            @if ($saasSetting?->commission_gst_sac)
+                                <span class="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">SAC {{ $saasSetting->commission_gst_sac }}</span>
+                            @endif
+                            <span class="font-bold text-indigo-700">≈ {{ number_format($effectiveCommission, 2) }}% effective</span>
+                        </div>
+                    @endif
+                </div>
+
+                <!-- Comparison Cards -->
+                <div class="space-y-2.5">
+                    <!-- With Subscription -->
+                    <div class="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/70 flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-bold text-emerald-950">With Active Subscription</span>
+                                <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-emerald-200/80 text-emerald-800 font-mono">0.00% Commission</span>
+                            </div>
+                            <p class="text-[11px] text-emerald-800 mt-0.5 leading-relaxed">
+                                Subscribed turfs pay <strong class="font-black">0% platform commission</strong> on all bookings. You keep 100% of your court booking earnings!
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Without Subscription -->
+                    <div class="p-3.5 rounded-2xl bg-gray-50/80 border border-gray-200/80 flex items-start gap-3">
+                        <div class="w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold text-[10px] shadow-xs">
+                            !
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-bold text-gray-900">Without Subscription</span>
+                                <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-amber-100 text-amber-800 font-mono">{{ number_format($defaultCommission, 2) }}% Commission</span>
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
+                                Non-subscribed turfs incur the default baseline commission on every online booking.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Details if configured -->
+            @if ($saasSetting && ($saasSetting->max_commission_due > 0 || $saasSetting->commission_due_grace_days > 0))
+                <div class="pt-3 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
+                    <span>Credit Limit: <strong class="text-gray-800 font-mono">₹{{ number_format($saasSetting->max_commission_due, 2) }}</strong></span>
+                    <span>Grace Period: <strong class="text-gray-800 font-mono">{{ $saasSetting->commission_due_grace_days }} days</strong></span>
+                </div>
+            @endif
+        </div>
+
+        <!-- Payment Gateway Charges Card -->
+        <div class="lg:col-span-7 bg-white p-6 sm:p-7 rounded-3xl border border-gray-200/80 shadow-xs flex flex-col justify-between space-y-4">
+            <div class="space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-violet-600 block">Payment Gateway Charges</span>
+                            <h3 class="text-sm font-bold text-gray-900">Direct Gateway MDR (Razorpay)</h3>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-100 self-start sm:self-auto">
+                        Live Method Rates
+                    </span>
+                </div>
+
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Standard Merchant Discount Rates (MDR) applied by the payment aggregator per transaction on online customer payments:
+                </p>
+
+                <!-- Responsive Charges Table -->
+                <div class="overflow-x-auto rounded-2xl border border-gray-200/80 bg-gray-50/40">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-gray-200/80 bg-gray-100/70 text-[10px] font-black uppercase text-gray-500 tracking-wider">
+                                <th class="py-2.5 px-3.5">Payment Method</th>
+                                <th class="py-2.5 px-3 text-right">Base Fee</th>
+                                <th class="py-2.5 px-3 text-right">GST (18%)</th>
+                                <th class="py-2.5 px-3.5 text-right">Total Deduction</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            @forelse ($gatewayCharges as $charge)
+                                <tr class="hover:bg-gray-50/80 transition">
+                                    <td class="py-2.5 px-3.5">
+                                        <div class="space-y-0.5">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="font-bold text-gray-900">{{ $charge->name }}</span>
+                                                @if ($charge->code)
+                                                    <span class="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase bg-gray-100 text-gray-600">
+                                                        {{ $charge->code }}
+                                                    </span>
+                                                @endif
+                                            </div>
+                                            @if ($charge->description)
+                                                <p class="text-[10px] text-gray-400 truncate max-w-xs">{{ $charge->description }}</p>
+                                            @endif
+                                        </div>
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right font-mono font-bold text-gray-700 whitespace-nowrap">
+                                        {{ number_format($charge->charge_percentage, 2) }}%
+                                        @if ($charge->flat_fee > 0)
+                                            <span class="text-[10px] text-gray-400 font-normal block">+₹{{ number_format($charge->flat_fee, 2) }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="py-2.5 px-3 text-right font-mono text-gray-500 whitespace-nowrap">
+                                        {{ number_format($charge->tax_percentage, 2) }}%
+                                    </td>
+                                    <td class="py-2.5 px-3.5 text-right whitespace-nowrap">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-black font-mono {{ $charge->charge_percentage > 2.00 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' }}">
+                                            {{ number_format($charge->total_percentage, 2) }}%
+                                        </span>
+                                        <span class="text-[9px] text-gray-400 font-medium block mt-0.5">
+                                            ₹{{ number_format(1000 * ($charge->total_percentage / 100), 2) }}/₹1k
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="py-6 text-center text-xs text-gray-400">
+                                        No active payment gateway charges configured.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="pt-2 flex items-center gap-2 text-[10px] text-gray-400">
+                <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Gateway charges are deducted directly by Razorpay during payout settlement on online customer payments.</span>
+            </div>
+        </div>
+    </div>
 
     <!-- STEP 1: TURF CHECKLIST SELECTION -->
     @php

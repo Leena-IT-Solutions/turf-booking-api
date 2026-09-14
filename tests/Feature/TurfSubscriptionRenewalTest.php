@@ -155,4 +155,22 @@ class TurfSubscriptionRenewalTest extends TestCase
         $this->assertNotNull($subNew);
         $this->assertTrue($subNew->expires_at->diffInDays(now()->addDays(30)) <= 1);
     }
+
+    public function test_subscription_page_displays_default_commission_and_payment_gateway_charges(): void
+    {
+        $this->seed(\Database\Seeders\PaymentGatewayChargeSeeder::class);
+
+        $this->actingAs($this->turfAdmin);
+
+        Volt::test('turf.subscription-manager')
+            ->assertSee('Platform Commission')
+            ->assertSee('7.00%')
+            ->assertSee('Default Baseline Rate')
+            ->assertSee('Payment Gateway Charges')
+            ->assertSee('Direct Gateway MDR (Razorpay)')
+            ->assertSee('UPI')
+            ->assertSee('Debit Cards (RuPay)')
+            ->assertSee('Net Banking')
+            ->assertSee('Credit Cards (Domestic)');
+    }
 }
