@@ -382,91 +382,127 @@ new #[Layout('layouts.app')] class extends Component
                         $durationText = $billingCycle === 'yearly' ? 'year' : 'month';
                     @endphp
 
-                    <div class="bg-white rounded-3xl border border-gray-200/90 shadow-xs hover:shadow-md transition-all overflow-hidden w-full">
-                        <!-- Top Accent Bar -->
-                        <div class="h-1.5 {{ $isOffer ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-indigo-600' : 'bg-gradient-to-r from-indigo-500 to-purple-600' }}"></div>
-
-                        <div class="p-6 sm:p-8 space-y-6">
-                            <!-- Header: Title, Badges & Pricing -->
-                            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 pb-6 border-b border-gray-100">
-                                <div class="space-y-2">
-                                    <div class="flex items-center gap-2.5 flex-wrap">
-                                        <h3 class="text-lg sm:text-xl font-black text-gray-900 tracking-tight">{{ $pkg->name }}</h3>
-                                        @if ($isOffer)
-                                            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
-                                                {{ $pkg->offer_badge ?: 'Launch Offer' }}
+                    <div class="bg-white rounded-3xl border border-gray-200/90 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden w-full">
+                        <div class="grid grid-cols-1 lg:grid-cols-12">
+                            <!-- Left: Plan Details & Included Features (7 cols) -->
+                            <div class="lg:col-span-7 p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-8">
+                                <div class="space-y-5">
+                                    <!-- Title & Offer Badge -->
+                                    <div class="space-y-2">
+                                        <div class="flex items-center gap-2.5 flex-wrap">
+                                            <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                                PARTNER PLAN
                                             </span>
-                                        @endif
-                                        @if ($isOffer && $pkg->offer_max_claims)
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                                🔥 Only {{ $pkg->getRemainingOfferClaims() }} of {{ $pkg->offer_max_claims }} spots left
-                                            </span>
+                                            @if ($isOffer)
+                                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
+                                                    {{ $pkg->offer_badge ?: 'Launch Offer' }}
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <h3 class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">{{ $pkg->name }}</h3>
+                                        @if ($pkg->description)
+                                            <p class="text-xs sm:text-sm text-gray-500 leading-relaxed max-w-xl">{{ $pkg->description }}</p>
                                         @endif
                                     </div>
 
-                                    @if ($pkg->description)
-                                        <p class="text-xs text-gray-500 max-w-3xl leading-relaxed">{{ $pkg->description }}</p>
+                                    <!-- Features List -->
+                                    @if ($pkg->features && is_array($pkg->features))
+                                        <div class="pt-4 border-t border-gray-100 space-y-3">
+                                            <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Everything included in this package</span>
+                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                                @foreach ($pkg->features as $feat)
+                                                    <div class="flex items-start gap-3">
+                                                        <div class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5">
+                                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                                        </div>
+                                                        <span class="text-xs font-semibold text-gray-700 leading-snug">{{ $feat }}</span>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
                                     @endif
                                 </div>
 
-                                <!-- Right: Price -->
-                                <div class="flex flex-col lg:items-end shrink-0 bg-gray-50/70 p-4 rounded-2xl border border-gray-100/80">
-                                    <div class="flex items-baseline gap-2 flex-wrap">
-                                        @if ($isOffer && $unitPrice < $standardPrice)
-                                            <span class="text-2xl sm:text-3xl font-black text-amber-600 font-mono tracking-tight">₹{{ number_format($unitPrice, 2) }}</span>
-                                            <span class="text-sm text-gray-400 line-through font-bold">₹{{ number_format($standardPrice, 2) }}</span>
-                                        @else
-                                            <span class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">₹{{ number_format($unitPrice, 2) }}</span>
-                                        @endif
-                                        <span class="text-xs text-gray-500 font-medium">/ turf / {{ $durationText }}</span>
+                                <!-- Zero Commission Callout -->
+                                <div class="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     </div>
-                                    <span class="text-[10px] text-emerald-600 font-black uppercase tracking-wider mt-0.5">
-                                        ✓ 0.00% Platform Commission
-                                    </span>
+                                    <div class="min-w-0">
+                                        <span class="text-xs font-bold text-emerald-900 block">0.00% Platform Commission Guarantee</span>
+                                        <p class="text-[11px] text-emerald-700 mt-0.5">Keep 100% of your court booking revenue. No hidden platform fees.</p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Middle: Features Grid -->
-                            @if ($pkg->features && is_array($pkg->features))
-                                <div class="space-y-3">
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Package Features & Privileges</span>
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                        @foreach ($pkg->features as $feat)
-                                            <div class="p-3.5 rounded-2xl bg-gray-50/70 border border-gray-100 flex items-center gap-3">
-                                                <div class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
-                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            <!-- Right: Pricing, Summary & Checkout Card (5 cols) -->
+                            <div class="lg:col-span-5 bg-gradient-to-b from-indigo-50/70 via-purple-50/30 to-gray-50/80 border-t lg:border-t-0 lg:border-l border-gray-200/80 p-6 sm:p-8 lg:p-10 flex flex-col justify-between space-y-6">
+                                <div class="space-y-6">
+                                    <!-- Price Header -->
+                                    <div class="space-y-2">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-gray-500 block">Pricing & Billing</span>
+                                        <div class="flex items-baseline gap-2 flex-wrap">
+                                            @if ($isOffer && $unitPrice < $standardPrice)
+                                                <span class="text-4xl sm:text-5xl font-black text-gray-900 font-mono tracking-tight">₹{{ number_format($unitPrice, 2) }}</span>
+                                                <div class="flex flex-col">
+                                                    <span class="text-sm text-gray-400 line-through font-bold">₹{{ number_format($standardPrice, 2) }}</span>
+                                                    <span class="text-[10px] font-black uppercase text-amber-600 font-mono">Special Offer</span>
                                                 </div>
-                                                <span class="text-xs font-semibold text-gray-800 leading-snug">{{ $feat }}</span>
+                                            @else
+                                                <span class="text-4xl sm:text-5xl font-black text-gray-900 font-mono tracking-tight">₹{{ number_format($unitPrice, 2) }}</span>
+                                            @endif
+                                            <span class="text-xs font-semibold text-gray-500">/ turf / {{ $durationText }}</span>
+                                        </div>
+
+                                        @if ($isOffer && $pkg->offer_max_claims)
+                                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300/80 text-[11px] font-bold">
+                                                <span>🔥</span>
+                                                <span>Only <strong>{{ $pkg->getRemainingOfferClaims() }}</strong> of {{ $pkg->offer_max_claims }} founder spots left!</span>
                                             </div>
-                                        @endforeach
+                                        @endif
+                                    </div>
+
+                                    <!-- Order Summary Breakdown Card -->
+                                    <div class="p-4 rounded-2xl bg-white border border-gray-200/90 shadow-2xs space-y-3">
+                                        <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Subscription Summary</span>
+                                        
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="text-gray-600">Selected Turfs:</span>
+                                            <span class="font-bold text-gray-900">{{ $selectedCount }} turf(s)</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-xs">
+                                            <span class="text-gray-600">Billing Interval:</span>
+                                            <span class="font-bold text-gray-900 uppercase">{{ ucfirst($billingCycle) }}</span>
+                                        </div>
+                                        <div class="pt-2 border-t border-gray-100 flex items-baseline justify-between">
+                                            <span class="text-xs font-bold text-gray-900">Total Payable:</span>
+                                            <span class="text-2xl font-black text-indigo-600 font-mono">₹{{ number_format($totalPrice, 2) }}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            @endif
-                        </div>
 
-                        <!-- Bottom Action / Checkout Bar -->
-                        <div class="bg-gray-50/80 border-t border-gray-100 px-6 sm:px-8 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div class="space-y-0.5">
-                                @if ($selectedCount > 0)
-                                    <div class="flex items-baseline gap-2 flex-wrap">
-                                        <span class="text-xs text-gray-500 font-medium">Total payable:</span>
-                                        <span class="text-xl sm:text-2xl font-black text-gray-900 font-mono">₹{{ number_format($totalPrice, 2) }}</span>
-                                        <span class="text-xs font-bold text-indigo-600">for {{ $selectedCount }} turf(s) ({{ ucfirst($billingCycle) }})</span>
+                                <!-- Action Button & Reassurance -->
+                                <div class="space-y-3 pt-2">
+                                    <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')"
+                                        @if ($selectedCount === 0) disabled @endif
+                                        type="button"
+                                        class="w-full py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.99] hover:shadow-indigo-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' }}">
+                                        <span>Subscribe / Renew {{ $selectedCount > 0 ? "($selectedCount Turfs)" : '' }}</span>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                    </button>
+
+                                    <div class="flex items-center justify-center gap-3 text-[10px] text-gray-400 font-medium">
+                                        <span class="flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                                            SSL 256-bit Secure
+                                        </span>
+                                        <span>•</span>
+                                        <span>Powered by Razorpay</span>
+                                        <span>•</span>
+                                        <span>Instant Activation</span>
                                     </div>
-                                    <p class="text-[11px] text-gray-400">Zero commission active immediately upon payment • Cancel or renew anytime</p>
-                                @else
-                                    <p class="text-xs font-bold text-amber-600">⚠️ Please select at least 1 turf in Step 1 above to continue.</p>
-                                    <p class="text-[11px] text-gray-400">Total calculation will appear automatically once you pick your turfs.</p>
-                                @endif
+                                </div>
                             </div>
-
-                            <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')"
-                                @if ($selectedCount === 0) disabled @endif
-                                type="button"
-                                class="w-full sm:w-auto min-w-[240px] py-3.5 px-6 rounded-2xl text-xs font-extrabold uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-md active:scale-[0.99]' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }}">
-                                <span>Subscribe / Renew {{ $selectedCount > 0 ? "($selectedCount Turfs)" : '' }}</span>
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                            </button>
                         </div>
                     </div>
                 @endforeach
