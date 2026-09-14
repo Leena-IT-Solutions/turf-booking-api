@@ -62,6 +62,7 @@ class TurfTaxationTest extends TestCase
         $response->assertSee('Tax & GST Identification');
         $response->assertSee('Registered Business Address');
         $response->assertSee('GST Billing');
+        $response->assertSee('Maharashtra (27)');
     }
 
     public function test_taxation_navigation_link_is_present(): void
@@ -104,12 +105,42 @@ class TurfTaxationTest extends TestCase
             'address' => '101, Sports City Boulevard',
             'city' => 'Mumbai',
             'state' => 'Maharashtra',
+            'state_code' => '27',
             'country' => 'India',
             'pincode' => '400001',
             'is_gst_billing_active' => true,
             'gst_pricing_type' => 'included',
             'gst_percentage' => 18.00,
             'gst_number' => '27ABCDE1234F1Z5',
+        ]);
+    }
+
+    public function test_selecting_state_automatically_sets_and_stores_state_code(): void
+    {
+        $this->actingAs($this->admin);
+
+        Volt::test('turf.taxation-manager')
+            ->set('state', 'Delhi')
+            ->assertSet('state_code', '07')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('turf_settings', [
+            'turf_id' => $this->turf->id,
+            'state' => 'Delhi',
+            'state_code' => '07',
+        ]);
+
+        Volt::test('turf.taxation-manager')
+            ->set('state', 'Karnataka')
+            ->assertSet('state_code', '29')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('turf_settings', [
+            'turf_id' => $this->turf->id,
+            'state' => 'Karnataka',
+            'state_code' => '29',
         ]);
     }
 

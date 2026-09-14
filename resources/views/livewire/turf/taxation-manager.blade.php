@@ -8,6 +8,46 @@ use Livewire\Volt\Component;
 
 new #[Layout('layouts.app')] class extends Component
 {
+    public const INDIAN_STATES = [
+        '01' => 'Jammu and Kashmir',
+        '02' => 'Himachal Pradesh',
+        '03' => 'Punjab',
+        '04' => 'Chandigarh',
+        '05' => 'Uttarakhand',
+        '06' => 'Haryana',
+        '07' => 'Delhi',
+        '08' => 'Rajasthan',
+        '09' => 'Uttar Pradesh',
+        '10' => 'Bihar',
+        '11' => 'Sikkim',
+        '12' => 'Arunachal Pradesh',
+        '13' => 'Nagaland',
+        '14' => 'Manipur',
+        '15' => 'Mizoram',
+        '16' => 'Tripura',
+        '17' => 'Meghalaya',
+        '18' => 'Assam',
+        '19' => 'West Bengal',
+        '20' => 'Jharkhand',
+        '21' => 'Odisha',
+        '22' => 'Chhattisgarh',
+        '23' => 'Madhya Pradesh',
+        '24' => 'Gujarat',
+        '26' => 'Dadra and Nagar Haveli and Daman and Diu',
+        '27' => 'Maharashtra',
+        '29' => 'Karnataka',
+        '30' => 'Goa',
+        '31' => 'Lakshadweep',
+        '32' => 'Kerala',
+        '33' => 'Tamil Nadu',
+        '34' => 'Puducherry',
+        '35' => 'Andaman and Nicobar Islands',
+        '36' => 'Telangana',
+        '37' => 'Andhra Pradesh',
+        '38' => 'Ladakh',
+        '97' => 'Other Territory',
+    ];
+
     public $turfId = null;
     public $turfName = '';
 
@@ -20,6 +60,7 @@ new #[Layout('layouts.app')] class extends Component
     public $address = '';
     public $city = '';
     public $state = '';
+    public $state_code = '';
     public $country = 'India';
     public $pincode = '';
 
@@ -76,12 +117,21 @@ new #[Layout('layouts.app')] class extends Component
             $this->address = $setting->address ?? '';
             $this->city = $setting->city ?? '';
             $this->state = $setting->state ?? '';
+            $this->state_code = $setting->state_code ?? '';
             $this->country = $setting->country ?: 'India';
             $this->pincode = $setting->pincode ?? '';
             $this->is_gst_billing_active = (bool)($setting->is_gst_billing_active ?? false);
             $this->gst_pricing_type = $setting->gst_pricing_type ?: 'included';
             $this->gst_percentage = (float)($setting->gst_percentage ?? 18.00);
             $this->gst_number = $setting->gst_number ?? '';
+
+            if (empty($this->state_code) && !empty($this->state)) {
+                $code = array_search($this->state, self::INDIAN_STATES);
+                if ($code !== false) {
+                    $this->state_code = (string)$code;
+                }
+            }
+
             return;
         }
 
@@ -89,9 +139,34 @@ new #[Layout('layouts.app')] class extends Component
         $this->turfName = '';
     }
 
+    public function updatedState($value)
+    {
+        if (empty($value)) {
+            $this->state_code = '';
+            return;
+        }
+
+        $code = array_search($value, self::INDIAN_STATES);
+        if ($code !== false) {
+            $this->state_code = (string)$code;
+        } elseif (isset(self::INDIAN_STATES[$value])) {
+            $this->state = self::INDIAN_STATES[$value];
+            $this->state_code = (string)$value;
+        }
+    }
+
     public function updatedGstNumber()
     {
         $this->gst_number = strtoupper(trim((string)$this->gst_number));
+
+        // If state is not selected yet and GSTIN starts with a valid state code, auto-select state
+        if (empty($this->state) && strlen($this->gst_number) >= 2) {
+            $prefix = substr($this->gst_number, 0, 2);
+            if (isset(self::INDIAN_STATES[$prefix])) {
+                $this->state = self::INDIAN_STATES[$prefix];
+                $this->state_code = $prefix;
+            }
+        }
     }
 
     public function save()
@@ -102,6 +177,16 @@ new #[Layout('layouts.app')] class extends Component
 
         $turf = Turf::manageable()->findOrFail($this->turfId);
 
+        // Ensure state_code is synchronized with selected state
+        if (!empty($this->state)) {
+            $code = array_search($this->state, self::INDIAN_STATES);
+            if ($code !== false) {
+                $this->state_code = (string)$code;
+            }
+        } else {
+            $this->state_code = null;
+        }
+
         $validated = $this->validate([
             'company_name' => 'nullable|string|max:150',
             'company_email' => 'nullable|email|max:150',
@@ -109,6 +194,7 @@ new #[Layout('layouts.app')] class extends Component
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
+            'state_code' => 'nullable|string|max:10',
             'country' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:15',
             'is_gst_billing_active' => 'required|boolean',
@@ -171,7 +257,7 @@ new #[Layout('layouts.app')] class extends Component
                     @endif
                 </div>
                 <h2 class="text-xl font-extrabold text-gray-900 tracking-tight">{{ __('Taxation & Legal Details') }}</h2>
-                <p class="text-xs text-gray-500 mt-1">{{ __('Configure registered business identity, GST billing options, and address stored for this turf.') }}</p>
+                <p class="text-xs text-gray-500 mt-1">{{ __('Configure registered business identity, GST billing options, state code, and address stored for this turf.') }}</p>
             </div>
             <button wire:click="save" wire:loading.attr="disabled" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 text-white font-bold text-xs tracking-wider uppercase transition shadow-sm cursor-pointer shrink-0">
                 <svg wire:loading class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
@@ -415,40 +501,29 @@ new #[Layout('layouts.app')] class extends Component
                                 @error('city') <span class="block text-[10px] text-rose-600 mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
 
+                            <!-- State with Select List & Automatic State Code -->
                             <div>
-                                <label class="block text-xs font-bold text-gray-800 mb-1.5">{{ __('State') }}</label>
-                                <input type="text" list="indian-states-list" wire:model.live.debounce.300ms="state" placeholder="e.g. Maharashtra" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 placeholder:text-gray-400 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition shadow-2xs">
-                                <datalist id="indian-states-list">
-                                    <option value="Andhra Pradesh"></option>
-                                    <option value="Arunachal Pradesh"></option>
-                                    <option value="Assam"></option>
-                                    <option value="Bihar"></option>
-                                    <option value="Chhattisgarh"></option>
-                                    <option value="Goa"></option>
-                                    <option value="Gujarat"></option>
-                                    <option value="Haryana"></option>
-                                    <option value="Himachal Pradesh"></option>
-                                    <option value="Jharkhand"></option>
-                                    <option value="Karnataka"></option>
-                                    <option value="Kerala"></option>
-                                    <option value="Madhya Pradesh"></option>
-                                    <option value="Maharashtra"></option>
-                                    <option value="Manipur"></option>
-                                    <option value="Meghalaya"></option>
-                                    <option value="Mizoram"></option>
-                                    <option value="Nagaland"></option>
-                                    <option value="Odisha"></option>
-                                    <option value="Punjab"></option>
-                                    <option value="Rajasthan"></option>
-                                    <option value="Sikkim"></option>
-                                    <option value="Tamil Nadu"></option>
-                                    <option value="Telangana"></option>
-                                    <option value="Tripura"></option>
-                                    <option value="Uttar Pradesh"></option>
-                                    <option value="Uttarakhand"></option>
-                                    <option value="West Bengal"></option>
-                                    <option value="Delhi"></option>
-                                </datalist>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label class="block text-xs font-bold text-gray-800">{{ __('State') }}</label>
+                                    @if ($state_code)
+                                        <span class="inline-flex items-center gap-1 text-[10px] font-mono font-extrabold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                            <span class="text-indigo-400 font-sans font-medium text-[9px] uppercase tracking-wider">{{ __('State Code:') }}</span> {{ $state_code }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <select wire:model.live="state" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition shadow-2xs cursor-pointer">
+                                    <option value="">{{ __('-- Select State --') }}</option>
+                                    @foreach (self::INDIAN_STATES as $code => $name)
+                                        <option value="{{ $name }}">{{ $name }} ({{ $code }})</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-[11px] text-gray-400 mt-1">
+                                    @if ($state_code)
+                                        {{ __('Official GST State Code :code is automatically stored.', ['code' => $state_code]) }}
+                                    @else
+                                        {{ __('Select your state; statutory state code is mapped automatically.') }}
+                                    @endif
+                                </p>
                                 @error('state') <span class="block text-[10px] text-rose-600 mt-1 font-semibold">{{ $message }}</span> @enderror
                             </div>
                         </div>
@@ -532,7 +607,7 @@ new #[Layout('layouts.app')] class extends Component
                                 @if ($address || $city || $state || $pincode)
                                     {{ $address ?: '' }}
                                     @if ($city || $state)
-                                        <br>{{ implode(', ', array_filter([$city, $state])) }}
+                                        <br>{{ implode(', ', array_filter([$city, $state ? ($state_code ? "$state (Code: $state_code)" : $state) : null])) }}
                                     @endif
                                     @if ($pincode || $country)
                                         <br>{{ implode(' - ', array_filter([$country ?: 'India', $pincode])) }}
@@ -570,20 +645,16 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
                             💡
                         </div>
-                        <h4 class="text-xs font-bold text-indigo-950 uppercase tracking-wider">{{ __('GST Billing Guide') }}</h4>
+                        <h4 class="text-xs font-bold text-indigo-950 uppercase tracking-wider">{{ __('State & GST Guide') }}</h4>
                     </div>
                     <ul class="text-xs text-indigo-900/80 space-y-2 leading-relaxed">
                         <li class="flex items-start gap-2">
                             <span class="text-indigo-600 font-bold">•</span>
-                            <span><strong>{{ __('Included:') }}</strong> {{ __('If you charge ₹1,000 per hour flat, select Included so the customer is not billed extra at checkout.') }}</span>
+                            <span><strong>{{ __('Automatic State Code:') }}</strong> {{ __('Selecting your state automatically assigns the statutory 2-digit GST state code (e.g. Maharashtra = 27, Delhi = 07).') }}</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="text-indigo-600 font-bold">•</span>
-                            <span><strong>{{ __('Excluded:') }}</strong> {{ __('If your base rate is ₹1,000 and GST is separate, select Excluded so GST is added to customer invoice total.') }}</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span class="text-indigo-600 font-bold">•</span>
-                            <span>{{ __('Turn off GST Billing anytime if your annual turnover is below GST threshold limits.') }}</span>
+                            <span><strong>{{ __('Intra-State vs Inter-State:') }}</strong> {{ __('The state code determines CGST+SGST (intra-state) vs IGST (inter-state) on customer booking invoices.') }}</span>
                         </li>
                     </ul>
                 </div>

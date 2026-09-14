@@ -17,6 +17,7 @@ class TurfSetting extends Model
         'address',
         'city',
         'state',
+        'state_code',
         'country',
         'pincode',
         'gst_number',
