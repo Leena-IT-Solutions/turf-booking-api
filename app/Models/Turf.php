@@ -148,5 +148,9 @@ class Turf extends Model
         $saas = \App\Models\SaasSetting::first();
         return $saas ? (float) $saas->commission_percentage : 7.00;
     }
+    public function setting(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(TurfSetting::class);
+    }
 }
 
