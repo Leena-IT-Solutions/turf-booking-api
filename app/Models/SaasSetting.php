@@ -21,8 +21,10 @@ class SaasSetting extends Model
         'pincode',
         'city',
         'state',
+        'state_code',
         'country',
         'gst_number',
+        'is_gst_billing_active',
         'udyam_registration_number',
         'subscription_gst_sac',
         'subscription_gst_percentage',
@@ -59,6 +61,7 @@ class SaasSetting extends Model
 
     protected $casts = [
         'is_maintenance_mode' => 'boolean',
+        'is_gst_billing_active' => 'boolean',
         'turf_search_km' => 'integer',
         'min_slots_booking' => 'integer',
         'free_trial_days' => 'integer',

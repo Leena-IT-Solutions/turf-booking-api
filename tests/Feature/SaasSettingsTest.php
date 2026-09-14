@@ -103,6 +103,7 @@ class SaasSettingsTest extends TestCase
             ->set('city', 'Mumbai')
             ->set('state', 'Maharashtra')
             ->set('country', 'India')
+            ->set('is_gst_billing_active', true)
             ->set('gst_number', '27bbbbb1111b1z8')
             ->set('udyam_registration_number', 'udyam-mh-01-9999999')
             ->set('subscription_gst_sac', '998314')
@@ -121,6 +122,8 @@ class SaasSettingsTest extends TestCase
         $this->assertEquals('400051', $setting->pincode);
         $this->assertEquals('Mumbai', $setting->city);
         $this->assertEquals('Maharashtra', $setting->state);
+        $this->assertEquals('27', $setting->state_code);
+        $this->assertTrue((bool)$setting->is_gst_billing_active);
         $this->assertEquals('27BBBBB1111B1Z8', $setting->gst_number);
         $this->assertEquals('UDYAM-MH-01-9999999', $setting->udyam_registration_number);
         $this->assertEquals('998314', $setting->subscription_gst_sac);

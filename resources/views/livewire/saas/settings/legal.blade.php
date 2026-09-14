@@ -6,6 +6,46 @@ use Livewire\Volt\Component;
 
 new #[Layout('layouts.app')] class extends Component
 {
+    public const INDIAN_STATES = [
+        '01' => 'Jammu and Kashmir',
+        '02' => 'Himachal Pradesh',
+        '03' => 'Punjab',
+        '04' => 'Chandigarh',
+        '05' => 'Uttarakhand',
+        '06' => 'Haryana',
+        '07' => 'Delhi',
+        '08' => 'Rajasthan',
+        '09' => 'Uttar Pradesh',
+        '10' => 'Bihar',
+        '11' => 'Sikkim',
+        '12' => 'Arunachal Pradesh',
+        '13' => 'Nagaland',
+        '14' => 'Manipur',
+        '15' => 'Mizoram',
+        '16' => 'Tripura',
+        '17' => 'Meghalaya',
+        '18' => 'Assam',
+        '19' => 'West Bengal',
+        '20' => 'Jharkhand',
+        '21' => 'Odisha',
+        '22' => 'Chhattisgarh',
+        '23' => 'Madhya Pradesh',
+        '24' => 'Gujarat',
+        '26' => 'Dadra and Nagar Haveli and Daman and Diu',
+        '27' => 'Maharashtra',
+        '29' => 'Karnataka',
+        '30' => 'Goa',
+        '31' => 'Lakshadweep',
+        '32' => 'Kerala',
+        '33' => 'Tamil Nadu',
+        '34' => 'Puducherry',
+        '35' => 'Andaman and Nicobar Islands',
+        '36' => 'Telangana',
+        '37' => 'Andhra Pradesh',
+        '38' => 'Ladakh',
+        '97' => 'Other Territory',
+    ];
+
     public $company_name = '';
     public $company_email = '';
     public $company_phone = '';
@@ -13,7 +53,9 @@ new #[Layout('layouts.app')] class extends Component
     public $pincode = '';
     public $city = '';
     public $state = '';
+    public $state_code = '';
     public $country = 'India';
+    public $is_gst_billing_active = false;
     public $gst_number = '';
     public $udyam_registration_number = '';
 
@@ -41,9 +83,18 @@ new #[Layout('layouts.app')] class extends Component
         $this->pincode = $setting->pincode;
         $this->city = $setting->city;
         $this->state = $setting->state;
+        $this->state_code = $setting->state_code;
         $this->country = $setting->country ?: 'India';
+        $this->is_gst_billing_active = (bool)($setting->is_gst_billing_active ?? false);
         $this->gst_number = $setting->gst_number;
         $this->udyam_registration_number = $setting->udyam_registration_number;
+
+        if (empty($this->state_code) && !empty($this->state)) {
+            $code = array_search($this->state, self::INDIAN_STATES);
+            if ($code !== false) {
+                $this->state_code = (string)$code;
+            }
+        }
 
         $this->subscription_gst_sac = $setting->subscription_gst_sac ?: '998314';
         $this->subscription_gst_percentage = $setting->subscription_gst_percentage ?? 18.00;
@@ -51,6 +102,35 @@ new #[Layout('layouts.app')] class extends Component
         $this->commission_gst_percentage = $setting->commission_gst_percentage ?? 18.00;
         $this->booking_gst_sac = $setting->booking_gst_sac ?: '999652';
         $this->booking_gst_percentage = $setting->booking_gst_percentage ?? 18.00;
+    }
+
+    public function updatedState($value)
+    {
+        if (empty($value)) {
+            $this->state_code = '';
+            return;
+        }
+
+        $code = array_search($value, self::INDIAN_STATES);
+        if ($code !== false) {
+            $this->state_code = (string)$code;
+        } elseif (isset(self::INDIAN_STATES[$value])) {
+            $this->state = self::INDIAN_STATES[$value];
+            $this->state_code = (string)$value;
+        }
+    }
+
+    public function updatedGstNumber($value)
+    {
+        $this->gst_number = strtoupper(trim((string)$value));
+
+        if (empty($this->state) && strlen($this->gst_number) >= 2) {
+            $prefix = substr($this->gst_number, 0, 2);
+            if (isset(self::INDIAN_STATES[$prefix])) {
+                $this->state = self::INDIAN_STATES[$prefix];
+                $this->state_code = $prefix;
+            }
+        }
     }
 
     public function updated($propertyName)
@@ -63,7 +143,9 @@ new #[Layout('layouts.app')] class extends Component
             'pincode' => 'nullable|string|max:10',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
+            'state_code' => 'nullable|string|max:10',
             'country' => 'nullable|string|max:100',
+            'is_gst_billing_active' => 'boolean',
             'gst_number' => 'nullable|string|max:20',
             'udyam_registration_number' => 'nullable|string|max:50',
             'subscription_gst_sac' => 'nullable|string|max:20',
@@ -85,7 +167,9 @@ new #[Layout('layouts.app')] class extends Component
             'pincode' => 'nullable|string|max:10',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
+            'state_code' => 'nullable|string|max:10',
             'country' => 'nullable|string|max:100',
+            'is_gst_billing_active' => 'boolean',
             'gst_number' => 'nullable|string|max:20',
             'udyam_registration_number' => 'nullable|string|max:50',
             'subscription_gst_sac' => 'nullable|string|max:20',
@@ -95,6 +179,15 @@ new #[Layout('layouts.app')] class extends Component
             'booking_gst_sac' => 'nullable|string|max:20',
             'booking_gst_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
+
+        if (!empty($this->state)) {
+            $code = array_search($this->state, self::INDIAN_STATES);
+            if ($code !== false) {
+                $this->state_code = (string)$code;
+            }
+        } else {
+            $this->state_code = null;
+        }
 
         $setting = SaasSetting::first() ?? new SaasSetting();
 
@@ -106,7 +199,9 @@ new #[Layout('layouts.app')] class extends Component
             'pincode' => $this->pincode,
             'city' => $this->city,
             'state' => $this->state,
+            'state_code' => $this->state_code,
             'country' => $this->country,
+            'is_gst_billing_active' => (bool)$this->is_gst_billing_active,
             'gst_number' => $this->gst_number ? strtoupper(trim($this->gst_number)) : null,
             'udyam_registration_number' => $this->udyam_registration_number ? strtoupper(trim($this->udyam_registration_number)) : null,
             'subscription_gst_sac' => $this->subscription_gst_sac ? trim($this->subscription_gst_sac) : '998314',
@@ -138,25 +233,25 @@ new #[Layout('layouts.app')] class extends Component
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">{{ __('Legal, Tax & SAC Configurations') }}</h2>
-                        <p class="text-xs text-gray-500 mt-1">{{ __('Manage corporate identity, registered address, GSTIN, MSME Udyam, and SAC tax codes for invoicing.') }}</p>
+                        <h2 class="text-base font-extrabold text-gray-900 tracking-tight">{{ __('Legal, Company & GST Settings') }}</h2>
+                        <p class="text-xs text-gray-500 mt-0.5">{{ __('Statutory business profile, registered address, GST rates, and Service Accounting Codes (SAC).') }}</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3 shrink-0">
-                    <button type="submit" wire:loading.attr="disabled" class="inline-flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-sm hover:shadow transition duration-150 cursor-pointer disabled:opacity-50">
-                        <svg wire:loading.remove wire:target="saveSettings" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <svg wire:loading wire:target="saveSettings" class="animate-spin w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
+
+                <div class="flex items-center gap-3">
+                    <button type="submit" wire:loading.attr="disabled"
+                        class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold uppercase tracking-wider rounded-2xl shadow-sm hover:shadow transition flex items-center gap-2 cursor-pointer">
+                        <svg wire:loading class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                         </svg>
-                        <span>{{ __('Save Legal Details') }}</span>
+                        <span>{{ __('Save Legal Settings') }}</span>
                     </button>
                 </div>
             </div>
 
-            @if (session()->has('status'))
+            <!-- Status Banner -->
+            @if (session('status'))
                 <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-3">
                     <svg class="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -165,7 +260,7 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             @endif
 
-            <!-- GST & SAC Tax Service Configurations (Left Label - Right Field Layout) -->
+            <!-- GST & SAC Tax Service Configurations -->
             <div class="bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-3xl border border-gray-100 p-6 sm:p-8 space-y-6">
                 <div class="pb-5 border-b border-gray-100 flex items-center gap-3.5">
                     <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
@@ -223,20 +318,20 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
 
-                    <!-- Case 2: Commission for Non-Subscription Turf Owners -->
+                    <!-- Case 2: Platform Commission Deduction -->
                     <div class="py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                         <div class="space-y-1.5 max-w-xl">
                             <div class="flex items-center gap-2">
                                 <label class="text-xs font-bold text-gray-900 block">
-                                    {{ __('2. Platform Commission (Non-Subscription)') }}
+                                    {{ __('2. Booking Commission Fee') }}
                                 </label>
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100">
-                                    {{ __('Commission Fee') }}
+                                    {{ __('Platform Fee') }}
                                 </span>
                             </div>
                             <p class="text-xs text-gray-500 leading-relaxed">
-                                {{ __('Commission charged to turf owners who operate without a monthly subscription plan.') }}
-                                <span class="text-gray-400 font-medium">({{ __('Standard SAC: 998599 - Other Support & Facilitation Services') }})</span>
+                                {{ __('Charged to turf owners on slot bookings as software facilitation & platform commission.') }}
+                                <span class="text-gray-400 font-medium">({{ __('Standard SAC: 998599 - Other Support Services') }})</span>
                             </p>
                             <x-input-error :messages="$errors->get('commission_gst_sac')" class="mt-1" />
                             <x-input-error :messages="$errors->get('commission_gst_percentage')" class="mt-1" />
@@ -326,6 +421,35 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
 
                 <div class="divide-y divide-gray-100">
+                    <!-- GST Billing Enable / Disable Switch -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <div class="flex items-center gap-2">
+                                <label class="text-xs font-bold text-gray-900 block cursor-pointer">
+                                    {{ __('GST Billing Status') }}
+                                </label>
+                                @if ($is_gst_billing_active)
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                                        {{ __('Enabled') }}
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gray-200 text-gray-600">
+                                        {{ __('Disabled') }}
+                                    </span>
+                                @endif
+                            </div>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('Enable statutory GST calculation, breakdown, and tax invoices on subscriptions and platform fees.') }}
+                            </p>
+                        </div>
+                        <div class="shrink-0 flex items-center">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" wire:model.live="is_gst_billing_active" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- GSTIN -->
                     <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="space-y-1 max-w-xl">
@@ -342,6 +466,30 @@ new #[Layout('layouts.app')] class extends Component
                                 <input wire:model.live.debounce.250ms="gst_number" id="gstNumber" type="text" maxlength="15" 
                                     class="w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-bold font-mono text-gray-900 uppercase tracking-wider transition" 
                                     placeholder="27AAAAA0000A1Z5" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GST State Code -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <label class="text-xs font-bold text-gray-900 block">
+                                {{ __('GST State Code') }}
+                            </label>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('2-digit statutory state code automatically determined from your registered business state.') }}
+                            </p>
+                        </div>
+                        <div class="shrink-0 flex items-center">
+                            <div class="relative w-full sm:w-60">
+                                <div class="w-full px-4 py-2.5 bg-gray-50/80 rounded-2xl border border-gray-200 text-xs font-bold font-mono text-gray-900 flex items-center justify-between shadow-2xs">
+                                    <span class="tracking-wider">{{ $state_code ? $state_code : __('Not Assigned') }}</span>
+                                    @if ($state_code && isset(self::INDIAN_STATES[$state_code]))
+                                        <span class="text-[10px] font-sans font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                            {{ self::INDIAN_STATES[$state_code] }}
+                                        </span>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -490,21 +638,32 @@ new #[Layout('layouts.app')] class extends Component
                             <x-input-error :messages="$errors->get('city')" class="mt-1" />
                         </div>
 
-                        <!-- State -->
+                        <!-- State (Select list with State Code) -->
                         <div>
-                            <x-input-label for="state" :value="__('State')" />
-                            <input wire:model.live.debounce.250ms="state" id="state" type="text" 
-                                class="mt-1.5 w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-bold text-gray-900 transition" 
-                                placeholder="e.g. Maharashtra" />
+                            <div class="flex items-center justify-between mb-1.5">
+                                <x-input-label for="state" :value="__('State')" />
+                                @if ($state_code)
+                                    <span class="text-[10px] font-mono font-extrabold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                                        {{ __('Code: ') . $state_code }}
+                                    </span>
+                                @endif
+                            </div>
+                            <select wire:model.live="state" id="state" 
+                                class="w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-semibold text-gray-900 transition cursor-pointer">
+                                <option value="">{{ __('-- Select State --') }}</option>
+                                @foreach (self::INDIAN_STATES as $code => $name)
+                                    <option value="{{ $name }}">{{ $name }} ({{ $code }})</option>
+                                @endforeach
+                            </select>
                             <x-input-error :messages="$errors->get('state')" class="mt-1" />
                         </div>
 
                         <!-- Pincode -->
                         <div>
-                            <x-input-label for="pincode" :value="__('Pincode')" />
+                            <x-input-label for="pincode" :value="__('Postal / Pincode')" />
                             <input wire:model.live.debounce.250ms="pincode" id="pincode" type="text" 
-                                class="mt-1.5 w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-bold font-mono text-gray-900 transition" 
-                                placeholder="e.g. 400069" />
+                                class="mt-1.5 w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-bold text-gray-900 transition" 
+                                placeholder="e.g. 400051" />
                             <x-input-error :messages="$errors->get('pincode')" class="mt-1" />
                         </div>
 
@@ -518,6 +677,18 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Bottom Floating Save Bar -->
+            <div class="flex items-center justify-end gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                <button type="submit" wire:loading.attr="disabled"
+                    class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-sm hover:shadow transition flex items-center gap-2 cursor-pointer">
+                    <svg wire:loading class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                    </svg>
+                    <span>{{ __('Save Legal Settings') }}</span>
+                </button>
             </div>
         </form>
     </div>
