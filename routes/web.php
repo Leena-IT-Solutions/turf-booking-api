@@ -6,7 +6,17 @@ use Livewire\Volt\Volt;
 Route::view('/', 'welcome');
 Route::view('/features', 'features')->name('features');
 Route::view('/how-it-works', 'how-it-works')->name('how-it-works');
-Route::view('/pricing', 'pricing')->name('pricing');
+Route::get('/pricing', function () {
+    $packages = \App\Models\SubscriptionPackage::where('is_active', true)
+        ->orderBy('sort_order', 'asc')
+        ->orderBy('monthly_amount', 'asc')
+        ->get();
+
+    $saasSetting = \App\Models\SaasSetting::first();
+    $defaultCommission = $saasSetting ? (float) $saasSetting->commission_percentage : 7.00;
+
+    return view('pricing', compact('packages', 'defaultCommission', 'saasSetting'));
+})->name('pricing');
 Route::view('/faqs', 'faqs')->name('faqs');
 Route::view('/contact', 'contact')->name('contact');
 Route::view('/for-turf-owners', 'for-turf-owners')->name('for-turf-owners');

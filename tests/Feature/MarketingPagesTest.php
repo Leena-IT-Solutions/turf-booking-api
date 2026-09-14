@@ -71,13 +71,50 @@ class MarketingPagesTest extends TestCase
      */
     public function test_pricing_page_loads_successfully(): void
     {
+        \App\Models\SaasSetting::create([
+            'commission_percentage' => 7.00,
+        ]);
+
+        $pkg = \App\Models\SubscriptionPackage::create([
+            'name' => 'Standard Turf Partner',
+            'monthly_amount' => 3000.00,
+            'yearly_amount' => 30000.00,
+            'is_active' => true,
+            'features' => ['Unlimited Slots', 'Full Turf Management'],
+        ]);
+
         $response = $this->get('/pricing');
         $response->assertStatus(200);
         $response->assertSee('Simple, Transparent');
-        $response->assertSee('Free Listing');
-        $response->assertSee('Pro');
+        $response->assertSee('Default Commission');
+        $response->assertSee('7.0% platform fee per booking');
+        $response->assertSee('Standard Turf Partner');
         $response->assertSee('3,000');
         $response->assertSee('30,000');
+        $response->assertSee('0.00% Platform Commission Guarantee');
+    }
+
+    public function test_pricing_page_displays_active_launch_offer(): void
+    {
+        \App\Models\SubscriptionPackage::create([
+            'name' => 'Founder Special Plan',
+            'monthly_amount' => 4000.00,
+            'yearly_amount' => 40000.00,
+            'is_active' => true,
+            'is_offer_active' => true,
+            'offer_badge' => '🔥 Special Founder Deal',
+            'offer_monthly_amount' => 1299.00,
+            'offer_yearly_amount' => 12999.00,
+            'features' => ['VIP Support'],
+        ]);
+
+        $response = $this->get('/pricing');
+        $response->assertStatus(200);
+        $response->assertSee('Founder Special Plan');
+        $response->assertSee('Special Founder Deal');
+        $response->assertSee('1,299');
+        $response->assertSee('12,999');
+        $response->assertSee('4,000');
     }
 
     public function test_contact_page_loads_successfully(): void
