@@ -10,6 +10,7 @@ class Booking extends Model
     use HasFactory;
 
     protected $fillable = [
+        'booking_number',
         'user_id',
         'turf_id',
         'date_of_booking',
@@ -18,6 +19,37 @@ class Booking extends Model
         'payment_status',
         'coupon_discount',
         'additional_discount',
+        'taxable_amount',
+        'turf_gst_amount',
+        'turf_cgst_amount',
+        'turf_sgst_amount',
+        'turf_gst_rate',
+        'turf_gst_type',
+        'platform_fee',
+        'platform_fee_gst',
+        'platform_fee_cgst',
+        'platform_fee_sgst',
+        'platform_fee_igst',
+        'total_amount',
+        'payable_now',
+        'balance_amount',
+        'is_part_payment',
+        'customer_gstin',
+        'customer_company_name',
+        'gateway_charge_amount',
+        'gateway_tax_amount',
+        'commission_rate',
+        'commission_amount',
+        'commission_gst_amount',
+        'commission_cgst_amount',
+        'commission_sgst_amount',
+        'commission_igst_amount',
+        'turf_payout_amount',
+        'is_cancellation_active',
+        'cancellation_hours',
+        'cancellation_turf_fee',
+        'cancellation_platform_fee_pct',
+        'estimated_refund_amount',
         'cancelled_at',
         'cancellation_fee_applied',
         'refund_amount',
@@ -29,11 +61,67 @@ class Booking extends Model
         'date_of_booking' => 'datetime',
         'coupon_discount' => 'decimal:2',
         'additional_discount' => 'decimal:2',
+        'taxable_amount' => 'decimal:2',
+        'turf_gst_amount' => 'decimal:2',
+        'turf_cgst_amount' => 'decimal:2',
+        'turf_sgst_amount' => 'decimal:2',
+        'turf_gst_rate' => 'decimal:2',
+        'platform_fee' => 'decimal:2',
+        'platform_fee_gst' => 'decimal:2',
+        'platform_fee_cgst' => 'decimal:2',
+        'platform_fee_sgst' => 'decimal:2',
+        'platform_fee_igst' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'payable_now' => 'decimal:2',
+        'balance_amount' => 'decimal:2',
+        'is_part_payment' => 'boolean',
+        'gateway_charge_amount' => 'decimal:2',
+        'gateway_tax_amount' => 'decimal:2',
+        'commission_rate' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+        'commission_gst_amount' => 'decimal:2',
+        'commission_cgst_amount' => 'decimal:2',
+        'commission_sgst_amount' => 'decimal:2',
+        'commission_igst_amount' => 'decimal:2',
+        'turf_payout_amount' => 'decimal:2',
+        'is_cancellation_active' => 'boolean',
+        'cancellation_hours' => 'integer',
+        'cancellation_turf_fee' => 'decimal:2',
+        'cancellation_platform_fee_pct' => 'decimal:2',
+        'estimated_refund_amount' => 'decimal:2',
         'cancelled_at' => 'datetime',
         'cancellation_fee_applied' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'refunded_at' => 'datetime',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($booking) {
+            if (empty($booking->booking_number)) {
+                $booking->booking_number = static::generateBookingNumber();
+            }
+        });
+    }
+
+    /**
+     * Generate sequential booking number TB-YYYYMM-XXXXX
+     */
+    public static function generateBookingNumber(): string
+    {
+        $prefix = 'TB-' . date('Ym') . '-';
+        $last = static::where('booking_number', 'like', "{$prefix}%")
+            ->orderByDesc('id')
+            ->first();
+
+        if ($last && preg_match('/-(\d+)$/', $last->booking_number, $matches)) {
+            $seq = intval($matches[1]) + 1;
+        } else {
+            $seq = 1;
+        }
+
+        return $prefix . str_pad((string)$seq, 5, '0', STR_PAD_LEFT);
+    }
 
     public function user()
     {
@@ -53,5 +141,10 @@ class Booking extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function bookingCancellations()
+    {
+        return $this->hasMany(BookingCancellation::class);
     }
 }

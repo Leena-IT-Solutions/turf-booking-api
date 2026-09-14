@@ -12,6 +12,7 @@ class BookingSlot extends Model
     protected $fillable = [
         'booking_date_id',
         'slot_id',
+        'status',
     ];
 
     public function bookingDate()

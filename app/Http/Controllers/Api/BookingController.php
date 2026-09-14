@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Turf;
 use App\Models\Booking;
 use App\Models\BookingDate;
+use App\Models\BookingCancellation;
 use App\Models\Payment;
 use App\Models\PaymentGateway;
 use App\Models\User;
+use App\Services\BookingPricingCalculator;
+use App\Services\CommissionCalculator;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
@@ -228,15 +231,17 @@ class BookingController extends Controller
         $firstDate = Carbon::parse($dates[0]);
         $dayOfWeek = strtolower($firstDate->format('D'));
 
-        $occupiedSlotIds = \App\Models\BookingSlot::whereHas('bookingDate', function ($q) use ($turf, $dates) {
-            $q->whereIn('booking_date', $dates)
-              ->whereHas('booking', function ($bq) use ($turf) {
-                  $bq->where('turf_id', $turf->id)
-                     ->where('status', 'Confirmed');
-              });
-        })
-        ->pluck('slot_id')
-        ->toArray();
+        $occupiedSlotIds = \App\Models\BookingSlot::where('status', '!=', 'cancelled')
+            ->whereHas('bookingDate', function ($q) use ($turf, $dates) {
+                $q->whereIn('booking_date', $dates)
+                  ->where('status', '!=', 'Cancelled')
+                  ->whereHas('booking', function ($bq) use ($turf) {
+                      $bq->where('turf_id', $turf->id)
+                         ->where('status', 'Confirmed');
+                  });
+            })
+            ->pluck('slot_id')
+            ->toArray();
 
         $slotLocks = \App\Models\SlotLock::where('turf_id', $turf->id)
             ->whereIn('lock_date', $dates)
@@ -467,6 +472,8 @@ class BookingController extends Controller
             'amount_received' => 'nullable|numeric|min:0', // for manager
             'customer_id' => 'nullable|exists:users,id', // for manager
             'razorpay_payment_id' => 'nullable|string',
+            'customer_gstin' => 'nullable|string|max:15',
+            'customer_company_name' => 'nullable|string|max:150',
         ]);
 
         $userId = auth()->id();
@@ -479,8 +486,25 @@ class BookingController extends Controller
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
         $dateCoupons = $validated['coupons'] ?? [];
-
         $paymentMethod = $validated['payment_method'];
+        $paymentOption = $validated['payment_option'] ?? 'full';
+
+        $pricingCalculator = new BookingPricingCalculator();
+
+        // 1. Evaluate Pre-Booking Guardrails
+        $guardrailCheck = $pricingCalculator->validateGuardrails(
+            $turf,
+            auth()->user(),
+            $dates,
+            $slotIds,
+            $paymentMethod,
+            $paymentOption
+        );
+        if (!$guardrailCheck['valid']) {
+            return response()->json([
+                'message' => $guardrailCheck['message'],
+            ], $guardrailCheck['status_code']);
+        }
 
         // DEBT GUARDRAIL CHECK FOR OFFLINE PAYMENTS IN STORE
         if (in_array($paymentMethod, ['Cash', 'UPI', 'Other', 'offline'])) {
@@ -491,16 +515,9 @@ class BookingController extends Controller
         }
 
         $manualDiscount = ($isStaffOrAdmin && isset($validated['additional_discount'])) ? (float)$validated['additional_discount'] : 0.00;
-        $paymentMethod = $validated['payment_method'];
 
         $settings = \App\Models\SaasSetting::first();
         $minSlots = $settings?->min_slots_booking ?? 2;
-
-        if (count($slotIds) < $minSlots) {
-            return response()->json([
-                'message' => "You must book a minimum of {$minSlots} slots.",
-            ], 422);
-        }
 
         $allActiveSlots = $turf->slots()
             ->wherePivot('is_active', true)
@@ -547,7 +564,7 @@ class BookingController extends Controller
             ? $turf->pricing_wizard_data 
             : json_decode($turf->pricing_wizard_data, true);
 
-        // We will perform a transaction to ensure atomic bookings
+        // We will perform a transaction to ensure atomic bookings with lockForUpdate concurrency protection
         \DB::beginTransaction();
 
         try {
@@ -565,6 +582,7 @@ class BookingController extends Controller
                     $isLocked = \App\Models\SlotLock::where('turf_id', $turf->id)
                         ->where('slot_id', $slotId)
                         ->where('lock_date', $dateStr)
+                        ->lockForUpdate()
                         ->first();
 
                     if ($isLocked) {
@@ -579,13 +597,16 @@ class BookingController extends Controller
                     }
 
                     $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
+                        ->where('status', '!=', 'cancelled')
                         ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
                             $q->where('booking_date', $dateStr)
+                              ->where('status', '!=', 'Cancelled')
                               ->whereHas('booking', function ($bq) use ($turf) {
                                   $bq->where('turf_id', $turf->id)
                                      ->where('status', 'Confirmed');
                               });
                         })
+                        ->lockForUpdate()
                         ->exists();
 
                     if ($alreadyBooked) {
@@ -705,7 +726,8 @@ class BookingController extends Controller
                 $totalCouponDiscount += $couponDiscount;
 
                 $calculatedDates[] = [
-                    'date_str' => $dateStr,
+                    'date' => $dateStr,
+                    'day_name' => ucfirst($dayOfWeek),
                     'subtotal' => $dateSubtotal,
                     'coupon_discount' => $couponDiscount,
                     'after_coupon' => max(0.00, $dateSubtotal - $couponDiscount),
@@ -718,7 +740,7 @@ class BookingController extends Controller
             $sumAfterCoupon = array_sum(array_column($calculatedDates, 'after_coupon'));
             $dateCount = count($calculatedDates);
 
-            foreach ($calculatedDates as $idx => &$calcDate) {
+            foreach ($calculatedDates as &$calcDate) {
                 if ($manualDiscount > 0) {
                     if ($sumAfterCoupon > 0) {
                         $dateAddDiscount = round($manualDiscount * ($calcDate['after_coupon'] / $sumAfterCoupon), 2);
@@ -729,13 +751,19 @@ class BookingController extends Controller
                     $dateAddDiscount = 0.00;
                 }
                 $calcDate['additional_discount'] = min($dateAddDiscount, $calcDate['after_coupon']);
-                $calcDate['net_amount'] = max(0.00, $calcDate['after_coupon'] - $calcDate['additional_discount']);
             }
             unset($calcDate);
 
-            $totalAmount = max(0.00, $totalSubtotal - $totalCouponDiscount - $manualDiscount);
+            // Execute full multi-tier financial, tax, commission, and cancellation calculations
+            $pricing = $pricingCalculator->calculatePricing(
+                $turf,
+                $calculatedDates,
+                $manualDiscount,
+                $paymentMethod,
+                $paymentOption
+            );
 
-            // Create parent booking record
+            // Create parent booking record with full financial snapshot
             $booking = Booking::create([
                 'user_id' => $targetUserId,
                 'turf_id' => $turf->id,
@@ -743,16 +771,67 @@ class BookingController extends Controller
                 'booking_type' => $bookingType,
                 'status' => 'Confirmed',
                 'payment_status' => 'Pending',
-                'coupon_discount' => $totalCouponDiscount,
-                'additional_discount' => $manualDiscount,
+                'coupon_discount' => $pricing['coupon_discount'],
+                'additional_discount' => $pricing['additional_discount'],
+                'taxable_amount' => $pricing['taxable_amount'],
+                'turf_gst_amount' => $pricing['turf_gst_amount'],
+                'turf_cgst_amount' => $pricing['turf_cgst_amount'],
+                'turf_sgst_amount' => $pricing['turf_sgst_amount'],
+                'turf_gst_rate' => $pricing['turf_gst_rate'],
+                'turf_gst_type' => $pricing['turf_gst_type'],
+                'platform_fee' => $pricing['platform_fee'],
+                'platform_fee_gst' => $pricing['platform_fee_gst'],
+                'platform_fee_cgst' => $pricing['platform_fee_cgst'],
+                'platform_fee_sgst' => $pricing['platform_fee_sgst'],
+                'platform_fee_igst' => $pricing['platform_fee_igst'],
+                'total_amount' => $pricing['total_amount'],
+                'payable_now' => $pricing['payable_now'],
+                'balance_amount' => $pricing['balance_amount'],
+                'is_part_payment' => $pricing['is_part_payment'],
+                'customer_gstin' => $validated['customer_gstin'] ?? null,
+                'customer_company_name' => $validated['customer_company_name'] ?? null,
+                'gateway_charge_amount' => 0.00,
+                'gateway_tax_amount' => 0.00,
+                'commission_rate' => $pricing['commission_rate'],
+                'commission_amount' => $pricing['commission_amount'],
+                'commission_gst_amount' => $pricing['commission_gst_amount'],
+                'commission_cgst_amount' => $pricing['commission_cgst_amount'],
+                'commission_sgst_amount' => $pricing['commission_sgst_amount'],
+                'commission_igst_amount' => $pricing['commission_igst_amount'],
+                'turf_payout_amount' => $pricing['turf_payout_amount'],
+                'is_cancellation_active' => $pricing['is_cancellation_active'],
+                'cancellation_hours' => $pricing['cancellation_hours'],
+                'cancellation_turf_fee' => $pricing['cancellation_turf_fee'],
+                'cancellation_platform_fee_pct' => $pricing['cancellation_platform_fee_pct'],
+                'estimated_refund_amount' => $pricing['estimated_refund_amount'],
             ]);
 
-            // Save booking dates
-            $bookingDatesCreated = [];
+            // Save booking dates & slots
+            $pricingDatesByDate = collect($pricing['dates'])->keyBy('date');
+
             foreach ($calculatedDates as $calcDate) {
+                $pDate = $pricingDatesByDate->get($calcDate['date']) ?? [];
+
                 $bookingDate = $booking->bookingDates()->create([
-                    'booking_date' => $calcDate['date_str'],
-                    'amount' => $calcDate['net_amount'],
+                    'booking_date' => $calcDate['date'],
+                    'amount' => $pDate['turf_total'] ?? $calcDate['after_coupon'],
+                    'taxable_amount' => $pDate['taxable_amount'] ?? 0.00,
+                    'turf_gst_amount' => $pDate['turf_gst_amount'] ?? 0.00,
+                    'turf_cgst_amount' => $pDate['turf_cgst_amount'] ?? 0.00,
+                    'turf_sgst_amount' => $pDate['turf_sgst_amount'] ?? 0.00,
+                    'paid_amount' => 0.00,
+                    'balance_amount' => $pDate['balance_amount'] ?? 0.00,
+                    'commission_rate' => $pDate['commission_rate'] ?? 0.00,
+                    'commission_amount' => $pDate['commission_amount'] ?? 0.00,
+                    'commission_gst_amount' => $pDate['commission_gst_amount'] ?? 0.00,
+                    'commission_cgst_amount' => $pDate['commission_cgst_amount'] ?? 0.00,
+                    'commission_sgst_amount' => $pDate['commission_sgst_amount'] ?? 0.00,
+                    'commission_igst_amount' => $pDate['commission_igst_amount'] ?? 0.00,
+                    'turf_payout_amount' => $pDate['turf_payout_amount'] ?? 0.00,
+                    'cash_held_amount' => $pDate['cash_held_amount'] ?? 0.00,
+                    'cancellation_turf_fee' => $pDate['cancellation_turf_fee'] ?? 0.00,
+                    'cancellation_platform_fee' => $pDate['cancellation_platform_fee'] ?? 0.00,
+                    'estimated_refund_amount' => $pDate['estimated_refund_amount'] ?? 0.00,
                     'coupon_discount' => $calcDate['coupon_discount'],
                     'additional_discount' => $calcDate['additional_discount'],
                     'payment_status' => 'Unpaid',
@@ -761,6 +840,7 @@ class BookingController extends Controller
                 foreach ($calcDate['slots'] as $slotId) {
                     $bookingDate->bookingSlots()->create([
                         'slot_id' => $slotId,
+                        'status' => 'active',
                     ]);
                 }
 
@@ -774,37 +854,26 @@ class BookingController extends Controller
                     ]);
                     $calcDate['coupon']->increment('used_count');
                 }
-
-                $bookingDatesCreated[] = $bookingDate;
             }
 
             // Distribute paid amount and create payment records
+            $gatewayCharge = 0.00;
+            $gatewayTax = 0.00;
+            $rzpPaymentId = $request->input('razorpay_payment_id');
+
             if ($isStaffOrAdmin && $customerId) {
                 // Manager/Admin booking for customer:
                 $amountReceived = (float)($validated['amount_received'] ?? 0.00);
                 if ($amountReceived > 0) {
-                    $this->distributePaymentToBooking($booking, $amountReceived, $paymentMethod);
+                    $this->distributePaymentToBooking($booking, $amountReceived, $paymentMethod, null, 0.00, 0.00);
                 }
             } else {
                 // Customer booking:
                 if ($paymentMethod === 'App') {
-                    $partPaymentActive = $turf->is_part_payment_active ?? false;
-                    $paymentOption = $validated['payment_option'] ?? 'full';
-                    
-                    $paidAmount = $totalAmount;
-                    if ($partPaymentActive && $paymentOption === 'part') {
-                        $partType = $turf->part_payment_type ?? 'percentage';
-                        $partVal = (float)($turf->part_payment_value ?? 0.00);
-                        if ($partType === 'percentage') {
-                            $paidAmount = round($totalAmount * ($partVal / 100), 2);
-                        } else {
-                            $paidAmount = min($partVal, $totalAmount);
-                        }
-                    }
+                    $paidAmount = (float) $pricing['payable_now'];
 
                     if ($paidAmount > 0) {
-                        if ($request->filled('razorpay_payment_id')) {
-                            $rzpId = $request->input('razorpay_payment_id');
+                        if ($rzpPaymentId) {
                             $setting = \App\Models\SaasSetting::first();
                             $rzpKey = $setting?->razorpay_key ?: config('services.razorpay.key');
                             $rzpSecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
@@ -812,25 +881,31 @@ class BookingController extends Controller
                             if ($rzpKey && $rzpSecret) {
                                 try {
                                     $fetch = \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
-                                        ->get("https://api.razorpay.com/v1/payments/{$rzpId}");
+                                        ->get("https://api.razorpay.com/v1/payments/{$rzpPaymentId}");
                                     if ($fetch->successful()) {
                                         $pData = $fetch->json();
+                                        if (isset($pData['fee'])) {
+                                            $gatewayCharge = round($pData['fee'] / 100, 2);
+                                        }
+                                        if (isset($pData['tax'])) {
+                                            $gatewayTax = round($pData['tax'] / 100, 2);
+                                        }
                                         if (($pData['status'] ?? '') === 'authorized') {
                                             \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
                                                 ->asForm()
-                                                ->post("https://api.razorpay.com/v1/payments/{$rzpId}/capture", [
+                                                ->post("https://api.razorpay.com/v1/payments/{$rzpPaymentId}/capture", [
                                                     'amount' => $pData['amount'],
                                                     'currency' => $pData['currency'] ?? 'INR',
                                                 ]);
                                         }
                                     }
                                 } catch (\Exception $e) {
-                                    \Illuminate\Support\Facades\Log::error('Razorpay auto-capture error on store: ' . $e->getMessage());
+                                    \Illuminate\Support\Facades\Log::error('Razorpay auto-capture/fee fetch error on store: ' . $e->getMessage());
                                 }
                             }
                         }
 
-                        $this->distributePaymentToBooking($booking, $paidAmount, 'App', $request->input('razorpay_payment_id'));
+                        $this->distributePaymentToBooking($booking, $paidAmount, 'App', $rzpPaymentId, $gatewayCharge, $gatewayTax);
                     }
                 }
             }
@@ -843,7 +918,7 @@ class BookingController extends Controller
 
             return response()->json([
                 'message' => 'Turf booked successfully!',
-                'booking' => $booking->load('bookingDates.bookingSlots.slot'),
+                'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments.paymentGateway']),
             ]);
 
         } catch (\Exception $e) {
@@ -868,6 +943,8 @@ class BookingController extends Controller
             'booking_type' => 'required|string|in:day,long,scattered',
             'coupons' => 'nullable|array', // key is date (YYYY-MM-DD), value is coupon code (string)
             'additional_discount' => 'nullable|numeric|min:0',
+            'payment_method' => 'nullable|string|in:offline,App,Cash,UPI,Other',
+            'payment_option' => 'nullable|string|in:full,part',
         ]);
 
         $isStaffOrAdmin = auth()->user()->hasAnyRole(['saas-admin', 'turf-admin', 'manager']);
@@ -875,7 +952,26 @@ class BookingController extends Controller
         $dates = $validated['booking_dates'];
         $bookingType = $validated['booking_type'];
         $dateCoupons = $validated['coupons'] ?? [];
+        $paymentMethod = $validated['payment_method'] ?? 'App';
+        $paymentOption = $validated['payment_option'] ?? 'full';
         $manualDiscount = ($isStaffOrAdmin && isset($validated['additional_discount'])) ? (float)$validated['additional_discount'] : 0.00;
+
+        $pricingCalculator = new BookingPricingCalculator();
+
+        // 1. Evaluate Pre-Booking Guardrails
+        $guardrailCheck = $pricingCalculator->validateGuardrails(
+            $turf,
+            auth()->user(),
+            $dates,
+            $slotIds,
+            $paymentMethod,
+            $paymentOption
+        );
+        if (!$guardrailCheck['valid']) {
+            return response()->json([
+                'message' => $guardrailCheck['message'],
+            ], $guardrailCheck['status_code']);
+        }
 
         $wizard = is_array($turf->pricing_wizard_data) 
             ? $turf->pricing_wizard_data 
@@ -883,7 +979,7 @@ class BookingController extends Controller
 
         $totalSubtotal = 0.00;
         $totalCouponDiscount = 0.00;
-        $formattedDates = [];
+        $calculatedDates = [];
 
         foreach ($dates as $dateStr) {
             $dateObj = Carbon::parse($dateStr);
@@ -893,8 +989,10 @@ class BookingController extends Controller
             
             foreach ($slotIds as $slotId) {
                 $alreadyBooked = \App\Models\BookingSlot::where('slot_id', $slotId)
+                    ->where('status', '!=', 'cancelled')
                     ->whereHas('bookingDate', function ($q) use ($turf, $dateStr) {
                         $q->where('booking_date', $dateStr)
+                          ->where('status', '!=', 'Cancelled')
                           ->whereHas('booking', function ($bq) use ($turf) {
                               $bq->where('turf_id', $turf->id)
                                  ->where('status', 'Confirmed');
@@ -1004,7 +1102,7 @@ class BookingController extends Controller
             $totalSubtotal += $dateSubtotal;
             $totalCouponDiscount += $couponDiscount;
 
-            $formattedDates[] = [
+            $calculatedDates[] = [
                 'date' => $dateStr,
                 'day_name' => ucfirst($dayOfWeek),
                 'subtotal' => $dateSubtotal,
@@ -1021,10 +1119,10 @@ class BookingController extends Controller
         }
 
         // Distribute manual additional discount proportionally across dates
-        $sumAfterCoupon = array_sum(array_column($formattedDates, 'after_coupon'));
-        $dateCount = count($formattedDates);
+        $sumAfterCoupon = array_sum(array_column($calculatedDates, 'after_coupon'));
+        $dateCount = count($calculatedDates);
 
-        foreach ($formattedDates as &$fDate) {
+        foreach ($calculatedDates as &$fDate) {
             if ($manualDiscount > 0) {
                 if ($sumAfterCoupon > 0) {
                     $dateAddDiscount = round($manualDiscount * ($fDate['after_coupon'] / $sumAfterCoupon), 2);
@@ -1035,43 +1133,21 @@ class BookingController extends Controller
                 $dateAddDiscount = 0.00;
             }
             $fDate['additional_discount'] = min($dateAddDiscount, $fDate['after_coupon']);
-            $fDate['discount'] = $fDate['coupon_discount'] + $fDate['additional_discount'];
-            $fDate['net_amount'] = max(0.00, $fDate['after_coupon'] - $fDate['additional_discount']);
         }
         unset($fDate);
 
-        $totalDiscount = $totalCouponDiscount + $manualDiscount;
-        $totalAmount = max(0.00, $totalSubtotal - $totalDiscount);
+        // Calculate complete financial, tax, commission, part-payment, and cancellation breakdown
+        $pricing = $pricingCalculator->calculatePricing(
+            $turf,
+            $calculatedDates,
+            $manualDiscount,
+            $paymentMethod,
+            $paymentOption
+        );
 
-        // Part payment calculations
-        $partPaymentActive = $turf->is_part_payment_active ?? false;
-        $payableNow = $totalAmount;
-        $remainingBalance = 0.00;
-
-        if ($partPaymentActive) {
-            $partType = $turf->part_payment_type ?? 'percentage';
-            $partVal = (float)($turf->part_payment_value ?? 0.00);
-
-            if ($partType === 'percentage') {
-                $payableNow = round($totalAmount * ($partVal / 100), 2);
-            } else {
-                $payableNow = min($partVal, $totalAmount);
-            }
-            $remainingBalance = round($totalAmount - $payableNow, 2);
-        }
-
-        return response()->json([
+        return response()->json(array_merge([
             'success' => true,
-            'subtotal' => $totalSubtotal,
-            'coupon_discount' => $totalCouponDiscount,
-            'additional_discount' => $manualDiscount,
-            'discount' => $totalDiscount,
-            'total_amount' => $totalAmount,
-            'part_payment_active' => $partPaymentActive,
-            'payable_now' => $payableNow,
-            'remaining_balance' => $remainingBalance,
-            'dates' => $formattedDates,
-        ]);
+        ], $pricing));
     }
 
     /**
@@ -1162,8 +1238,14 @@ class BookingController extends Controller
     /**
      * Distribute a payment amount proportionally across active booking dates based on their remaining balances.
      */
-    private function distributePaymentToBooking($booking, float $amountToDistribute, string $paymentMethod, ?string $razorpayPaymentId = null): void
-    {
+    private function distributePaymentToBooking(
+        $booking,
+        float $amountToDistribute,
+        string $paymentMethod,
+        ?string $razorpayPaymentId = null,
+        float $gatewayCharge = 0.00,
+        float $gatewayTax = 0.00
+    ): void {
         if ($amountToDistribute <= 0) {
             return;
         }
@@ -1200,6 +1282,9 @@ class BookingController extends Controller
         $commissionCalc = new \App\Services\CommissionCalculator();
         $walletService = new \App\Services\WalletService();
 
+        $allocatedGatewayCharge = 0.00;
+        $allocatedGatewayTax = 0.00;
+
         foreach ($unpaidDates as $index => $bDate) {
             if ($remainingToDistribute <= 0) {
                 break;
@@ -1207,23 +1292,33 @@ class BookingController extends Controller
 
             if ($index === $count - 1) {
                 $paidForDate = round($remainingToDistribute, 2);
+                $dateGatewayCharge = round($gatewayCharge - $allocatedGatewayCharge, 2);
+                $dateGatewayTax = round($gatewayTax - $allocatedGatewayTax, 2);
             } else {
                 $ratio = $dateBalances[$bDate->id] / $totalRemainingBalance;
                 $paidForDate = round($actualAmountToDistribute * $ratio, 2);
                 $paidForDate = min($paidForDate, $remainingToDistribute);
+
+                $dateGatewayCharge = round($gatewayCharge * $ratio, 2);
+                $dateGatewayTax = round($gatewayTax * $ratio, 2);
+                $allocatedGatewayCharge += $dateGatewayCharge;
+                $allocatedGatewayTax += $dateGatewayTax;
             }
 
             if ($paidForDate > 0) {
-                // Calculate commission breakdown using Turf rate
+                // Calculate commission breakdown using enhanced CommissionCalculator
                 $commData = $turf
                     ? $commissionCalc->calculate($turf, $paymentMethod, $paidForDate)
                     : [
                         'rate' => 7.00,
-                        'commissionAmount' => round($paidForDate * 0.07, 2),
-                        'cashHeldAmount' => $paymentMethod === 'App' ? $paidForDate : 0.00,
-                        'turfPayoutAmount' => ($paymentMethod === 'App' ? $paidForDate : 0.00) - round($paidForDate * 0.07, 2),
+                        'commission_amount' => round($paidForDate * 0.07, 2),
+                        'commission_gst_amount' => 0.00,
+                        'commission_cgst_amount' => 0.00,
+                        'commission_sgst_amount' => 0.00,
+                        'commission_igst_amount' => 0.00,
+                        'cash_held_amount' => $paymentMethod === 'App' ? $paidForDate : 0.00,
+                        'turf_payout_amount' => ($paymentMethod === 'App' ? $paidForDate : 0.00) - round($paidForDate * 0.07, 2),
                     ];
-
 
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
@@ -1231,23 +1326,37 @@ class BookingController extends Controller
                     'payment_method' => $paymentMethod,
                     'amount' => $paidForDate,
                     'commission_percentage' => $commData['rate'],
-                    'commission_amount' => $commData['commissionAmount'],
-                    'cash_held_amount' => $commData['cashHeldAmount'],
-                    'turf_payout_amount' => $commData['turfPayoutAmount'],
+                    'commission_amount' => $commData['commission_amount'],
+                    'commission_gst_amount' => $commData['commission_gst_amount'] ?? 0.00,
+                    'commission_cgst_amount' => $commData['commission_cgst_amount'] ?? 0.00,
+                    'commission_sgst_amount' => $commData['commission_sgst_amount'] ?? 0.00,
+                    'commission_igst_amount' => $commData['commission_igst_amount'] ?? 0.00,
+                    'cash_held_amount' => $commData['cash_held_amount'],
+                    'turf_payout_amount' => $commData['turf_payout_amount'],
+                    'gateway_charge_amount' => $dateGatewayCharge,
+                    'gateway_tax_amount' => $dateGatewayTax,
                     'wallet_cleared_at' => null,
                     'status' => 'Success',
                     'paid_at' => Carbon::now(),
                 ]);
 
+                // Update this booking date's paid_amount and balance_amount
+                $currentPaidForDate = (float) Payment::where('booking_date_id', $bDate->id)
+                    ->where('status', 'Success')
+                    ->sum('amount');
+                $bDate->update([
+                    'paid_amount' => $currentPaidForDate,
+                    'balance_amount' => max(0.00, round((float)$bDate->amount - $currentPaidForDate, 2)),
+                ]);
+
                 // Check wallet clearance logic
                 $isBookingMatured = $bDate->booking_date <= Carbon::today()->format('Y-m-d');
-                $isNegativeOrZeroContribution = $commData['turfPayoutAmount'] <= 0;
+                $isNegativeOrZeroContribution = $commData['turf_payout_amount'] <= 0;
 
                 if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
-                    $walletService->applyDelta($walletOwner, $commData['turfPayoutAmount'], 'payment_settlement', $payment);
+                    $walletService->applyDelta($walletOwner, $commData['turf_payout_amount'], 'payment_settlement', $payment);
                     $payment->update(['wallet_cleared_at' => Carbon::now()]);
                 }
-
 
                 if ($razorpayPaymentId && $paymentMethod === 'App') {
                     PaymentGateway::create([
@@ -1260,6 +1369,12 @@ class BookingController extends Controller
                 $remainingToDistribute -= $paidForDate;
             }
         }
+
+        // Update overall booking gateway charge and tax totals
+        $booking->update([
+            'gateway_charge_amount' => (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('gateway_charge_amount'),
+            'gateway_tax_amount' => (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('gateway_tax_amount'),
+        ]);
 
         $this->recalculateBookingPaymentStatus($booking);
     }
@@ -1276,26 +1391,38 @@ class BookingController extends Controller
             $totalBookingAmount += (float)$bDate->amount;
             $datePaidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
 
+            $datePaymentStatus = 'Unpaid';
             if ($bDate->amount > 0 && $datePaidSum >= $bDate->amount) {
-                $bDate->update(['payment_status' => 'Paid']);
+                $datePaymentStatus = 'Paid';
                 $anyDatePaid = true;
             } elseif ($datePaidSum > 0) {
-                $bDate->update(['payment_status' => 'Partially Paid']);
+                $datePaymentStatus = 'Partially Paid';
                 $allDatesPaid = false;
                 $anyDatePaid = true;
             } else {
-                $bDate->update(['payment_status' => 'Unpaid']);
                 $allDatesPaid = false;
             }
+
+            $bDate->update([
+                'payment_status' => $datePaymentStatus,
+                'paid_amount' => $datePaidSum,
+                'balance_amount' => max(0.00, round((float)$bDate->amount - $datePaidSum, 2)),
+            ]);
         }
 
+        $totalPaidSoFar = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
+        $parentPaymentStatus = 'Unpaid';
         if ($allDatesPaid && $totalBookingAmount > 0) {
-            $booking->update(['payment_status' => 'Paid']);
+            $parentPaymentStatus = 'Paid';
         } elseif ($anyDatePaid) {
-            $booking->update(['payment_status' => 'Partially Paid']);
-        } else {
-            $booking->update(['payment_status' => 'Unpaid']);
+            $parentPaymentStatus = 'Partially Paid';
         }
+
+        $booking->update([
+            'payment_status' => $parentPaymentStatus,
+            'payable_now' => $totalPaidSoFar,
+            'balance_amount' => max(0.00, round((float)$booking->total_amount - $totalPaidSoFar, 2)),
+        ]);
     }
 
 
@@ -1575,8 +1702,13 @@ class BookingController extends Controller
                 $dateRefundDue = max(0.00, round($datePaidAmount - $dateFeeApplied, 2));
             }
 
-            $dateRefundStatus = ($datePaidAmount > 0 && $dateRefundDue > 0) ? 'Refunded' : 'Not Applicable';
-            $dateRefundedAt = ($datePaidAmount > 0 && $dateRefundDue > 0) ? $cancelledAt : null;
+            // Mark slots status as cancelled
+            $bDate->bookingSlots()->update(['status' => 'cancelled']);
+
+            $hasOnlineRefund = false;
+            $hasOfflineRefund = false;
+            $lastRazorpayRefundId = null;
+            $dateCommissionReversed = 0.00;
 
             $remainingRefundToDistribute = $dateRefundDue;
             foreach ($successfulPayments as $payment) {
@@ -1586,10 +1718,11 @@ class BookingController extends Controller
                 }
 
                 $paymentRefund = min((float)$payment->amount, $remainingRefundToDistribute);
-                $paymentRefundStatus = 'Refunded';
+                $isOnline = ($payment->payment_method === 'App');
+                $paymentRefundStatus = $isOnline ? 'Refunded' : 'Cash / Offline Refund';
 
                 $gateway = \App\Models\PaymentGateway::where('payment_id', $payment->id)->first();
-                if ($gateway && $gateway->gateway_name === 'razorpay' && $gateway->gateway_payment_id) {
+                if ($isOnline && $gateway && $gateway->gateway_name === 'razorpay' && $gateway->gateway_payment_id) {
                     if ($razorpayKey && $razorpaySecret) {
                         try {
                             $paymentId = $gateway->gateway_payment_id;
@@ -1621,10 +1754,12 @@ class BookingController extends Controller
 
                             if ($response->successful()) {
                                 $resData = $response->json();
+                                $lastRazorpayRefundId = $resData['id'] ?? null;
                                 $gateway->update([
-                                    'gateway_refund_id' => $resData['id'] ?? null,
+                                    'gateway_refund_id' => $lastRazorpayRefundId,
                                     'refund_response_payload' => $resData,
                                 ]);
+                                $hasOnlineRefund = true;
                             } else {
                                 $errBody = $response->json();
                                 if (isset($errBody['error']['description']) && str_contains(strtolower($errBody['error']['description']), 'authorized')) {
@@ -1644,10 +1779,12 @@ class BookingController extends Controller
 
                                     if ($retryRefund->successful()) {
                                         $resData = $retryRefund->json();
+                                        $lastRazorpayRefundId = $resData['id'] ?? null;
                                         $gateway->update([
-                                            'gateway_refund_id' => $resData['id'] ?? null,
+                                            'gateway_refund_id' => $lastRazorpayRefundId,
                                             'refund_response_payload' => $resData,
                                         ]);
+                                        $hasOnlineRefund = true;
                                     } else {
                                         $gateway->update(['refund_response_payload' => $retryRefund->json()]);
                                         $paymentRefundStatus = 'Failed';
@@ -1659,8 +1796,11 @@ class BookingController extends Controller
                             }
                         } catch (\Exception $e) {
                             \Illuminate\Support\Facades\Log::error('Razorpay Refund Exception: ' . $e->getMessage());
+                            $paymentRefundStatus = 'Failed';
                         }
                     }
+                } elseif (!$isOnline && $paymentRefund > 0) {
+                    $hasOfflineRefund = true;
                 }
 
                 $payment->update([
@@ -1674,6 +1814,8 @@ class BookingController extends Controller
                 if ($turfAdminOwner && $paymentRefund > 0 && (float)$payment->amount > 0) {
                     $refundRatio = $paymentRefund / (float)$payment->amount;
                     $originalPayoutContribution = (float)($payment->turf_payout_amount ?? 0);
+                    $commReversed = round(((float)($payment->commission_amount ?? 0) + (float)($payment->commission_gst_amount ?? 0)) * $refundRatio, 2);
+                    $dateCommissionReversed += $commReversed;
 
                     if ($payment->wallet_cleared_at) {
                         // Payment contribution was already applied to wallet -> Reverse it
@@ -1685,11 +1827,13 @@ class BookingController extends Controller
                     } else {
                         // Payment contribution was still pending clearance -> Shrink stored contribution proportionally
                         $newCommissionAmount = round(((float)$payment->commission_amount) * (1 - $refundRatio), 2);
+                        $newCommissionGst = round(((float)($payment->commission_gst_amount ?? 0)) * (1 - $refundRatio), 2);
                         $newCashHeldAmount = round(((float)$payment->cash_held_amount) * (1 - $refundRatio), 2);
                         $newPayoutAmount = round(((float)$payment->turf_payout_amount) * (1 - $refundRatio), 2);
 
                         $payment->update([
                             'commission_amount' => $newCommissionAmount,
+                            'commission_gst_amount' => $newCommissionGst,
                             'cash_held_amount' => $newCashHeldAmount,
                             'turf_payout_amount' => $newPayoutAmount,
                         ]);
@@ -1699,6 +1843,19 @@ class BookingController extends Controller
                 $remainingRefundToDistribute -= $paymentRefund;
             }
 
+            if ($datePaidAmount > 0 && $dateRefundDue > 0) {
+                if ($hasOnlineRefund) {
+                    $dateRefundStatus = 'Refunded';
+                } elseif ($hasOfflineRefund) {
+                    $dateRefundStatus = 'Cash / Offline Refund';
+                } else {
+                    $dateRefundStatus = 'Refunded';
+                }
+                $dateRefundedAt = $cancelledAt;
+            } else {
+                $dateRefundStatus = 'Not Applicable';
+                $dateRefundedAt = null;
+            }
 
             $bDate->update([
                 'status' => 'Cancelled',
@@ -1707,6 +1864,24 @@ class BookingController extends Controller
                 'refund_amount' => $dateRefundDue,
                 'refund_status' => $dateRefundStatus,
                 'refunded_at' => $dateRefundedAt,
+            ]);
+
+            // Create Master Cancellation Event Audit Record
+            \App\Models\BookingCancellation::create([
+                'booking_id' => $booking->id,
+                'booking_date_id' => $bDate->id,
+                'cancelled_by_user_id' => $user->id,
+                'canceller_role' => $user->roles()->pluck('name')->first() ?? 'customer',
+                'cancellation_scope' => (count($targetedDates) === $booking->bookingDates()->count()) ? 'full_booking' : 'date',
+                'reason' => $request->input('reason', 'Customer requested cancellation'),
+                'gross_cancelled_amount' => (float)$bDate->amount,
+                'turf_cancellation_fee' => $turfFee ?? 0.00,
+                'platform_cancellation_fee' => $platformFee ?? 0.00,
+                'total_cancellation_fee' => $dateFeeApplied,
+                'refund_amount' => $dateRefundDue,
+                'refund_status' => $dateRefundStatus,
+                'razorpay_refund_id' => $lastRazorpayRefundId,
+                'commission_reversed_amount' => $dateCommissionReversed,
             ]);
 
             $totalDatesCancelledNow++;
@@ -1730,7 +1905,11 @@ class BookingController extends Controller
             $parentStatus = 'Partially Cancelled';
         }
 
-        $parentRefundStatus = ($aggregateRefund > 0) ? 'Refunded' : 'Not Applicable';
+        $parentRefundStatus = 'Not Applicable';
+        if ($aggregateRefund > 0) {
+            $hasAnyOnlineRefund = $allDates->where('refund_status', 'Refunded')->isNotEmpty();
+            $parentRefundStatus = $hasAnyOnlineRefund ? 'Refunded' : 'Cash / Offline Refund';
+        }
 
         $booking->update([
             'status' => $parentStatus,

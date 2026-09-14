@@ -16,8 +16,14 @@ class Payment extends Model
         'amount',
         'commission_percentage',
         'commission_amount',
+        'commission_gst_amount',
+        'commission_cgst_amount',
+        'commission_sgst_amount',
+        'commission_igst_amount',
         'cash_held_amount',
         'turf_payout_amount',
+        'gateway_charge_amount',
+        'gateway_tax_amount',
         'wallet_cleared_at',
         'status',
         'paid_at',
@@ -30,14 +36,19 @@ class Payment extends Model
         'amount' => 'decimal:2',
         'commission_percentage' => 'decimal:2',
         'commission_amount' => 'decimal:2',
+        'commission_gst_amount' => 'decimal:2',
+        'commission_cgst_amount' => 'decimal:2',
+        'commission_sgst_amount' => 'decimal:2',
+        'commission_igst_amount' => 'decimal:2',
         'cash_held_amount' => 'decimal:2',
         'turf_payout_amount' => 'decimal:2',
+        'gateway_charge_amount' => 'decimal:2',
+        'gateway_tax_amount' => 'decimal:2',
         'wallet_cleared_at' => 'datetime',
         'paid_at' => 'datetime',
         'refunded_amount' => 'decimal:2',
         'refunded_at' => 'datetime',
     ];
-
 
     public function booking()
     {
