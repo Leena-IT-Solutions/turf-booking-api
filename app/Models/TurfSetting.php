@@ -20,6 +20,14 @@ class TurfSetting extends Model
         'country',
         'pincode',
         'gst_number',
+        'is_gst_billing_active',
+        'gst_pricing_type',
+        'gst_percentage',
+    ];
+
+    protected $casts = [
+        'is_gst_billing_active' => 'boolean',
+        'gst_percentage' => 'decimal:2',
     ];
 
     public function turf(): \Illuminate\Database\Eloquent\Relations\BelongsTo

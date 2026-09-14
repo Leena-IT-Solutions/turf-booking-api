@@ -24,6 +24,9 @@ new #[Layout('layouts.app')] class extends Component
     public $pincode = '';
 
     // Tax & Regulatory Identification
+    public $is_gst_billing_active = false;
+    public $gst_pricing_type = 'included'; // 'included' or 'excluded'
+    public $gst_percentage = 18.00;
     public $gst_number = '';
 
     #[On('global-context-updated')]
@@ -59,7 +62,12 @@ new #[Layout('layouts.app')] class extends Component
 
             $setting = TurfSetting::firstOrCreate(
                 ['turf_id' => $turf->id],
-                ['country' => 'India']
+                [
+                    'country' => 'India',
+                    'is_gst_billing_active' => false,
+                    'gst_pricing_type' => 'included',
+                    'gst_percentage' => 18.00,
+                ]
             );
 
             $this->company_name = $setting->company_name ?? '';
@@ -70,6 +78,9 @@ new #[Layout('layouts.app')] class extends Component
             $this->state = $setting->state ?? '';
             $this->country = $setting->country ?: 'India';
             $this->pincode = $setting->pincode ?? '';
+            $this->is_gst_billing_active = (bool)($setting->is_gst_billing_active ?? false);
+            $this->gst_pricing_type = $setting->gst_pricing_type ?: 'included';
+            $this->gst_percentage = (float)($setting->gst_percentage ?? 18.00);
             $this->gst_number = $setting->gst_number ?? '';
             return;
         }
@@ -100,6 +111,9 @@ new #[Layout('layouts.app')] class extends Component
             'state' => 'nullable|string|max:100',
             'country' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:15',
+            'is_gst_billing_active' => 'required|boolean',
+            'gst_pricing_type' => 'required|in:included,excluded',
+            'gst_percentage' => 'required|numeric|min:0|max:100',
             'gst_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i'],
         ], [
             'gst_number.regex' => 'Please enter a valid 15-character GSTIN format (e.g., 27AAAAA0000A1Z5).',
@@ -157,7 +171,7 @@ new #[Layout('layouts.app')] class extends Component
                     @endif
                 </div>
                 <h2 class="text-xl font-extrabold text-gray-900 tracking-tight">{{ __('Taxation & Legal Details') }}</h2>
-                <p class="text-xs text-gray-500 mt-1">{{ __('Configure registered business identity, GST number, and address stored for this turf.') }}</p>
+                <p class="text-xs text-gray-500 mt-1">{{ __('Configure registered business identity, GST billing options, and address stored for this turf.') }}</p>
             </div>
             <button wire:click="save" wire:loading.attr="disabled" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-50 text-white font-bold text-xs tracking-wider uppercase transition shadow-sm cursor-pointer shrink-0">
                 <svg wire:loading class="animate-spin -ml-1 mr-1 h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
@@ -235,7 +249,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
 
-                <!-- 2. Tax Identification Card -->
+                <!-- 2. Tax Identification & GST Billing Card -->
                 <div class="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 shadow-xs space-y-6">
                     <div class="pb-4 border-b border-gray-100 flex items-center justify-between">
                         <div class="flex items-center gap-3">
@@ -244,12 +258,107 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                             <div>
                                 <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">{{ __('Tax & GST Identification') }}</h3>
-                                <p class="text-xs text-gray-400 font-medium mt-0.5">{{ __('Goods & Services Tax identification number for statutory invoices') }}</p>
+                                <p class="text-xs text-gray-400 font-medium mt-0.5">{{ __('Goods & Services Tax configuration and statutory billing options') }}</p>
                             </div>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <div class="space-y-5">
+                        <!-- Option 1: Enable / Disable GST Billing Switch -->
+                        <div class="flex items-center justify-between p-4 sm:p-5 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-100 transition">
+                            <div class="space-y-0.5 pr-4">
+                                <div class="flex items-center gap-2">
+                                    <label class="text-xs font-bold text-gray-900 cursor-pointer">{{ __('GST Billing') }}</label>
+                                    @if ($is_gst_billing_active)
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                                            {{ __('Enabled') }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-gray-200 text-gray-600">
+                                            {{ __('Disabled') }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="text-xs text-gray-400 leading-relaxed">{{ __('Enable statutory GST calculation, breakdown, and tax invoices for customer slot bookings') }}</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input type="checkbox" wire:model.live="is_gst_billing_active" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                            </label>
+                        </div>
+
+                        <!-- Option 2: Included / Excluded option when GST billing is active -->
+                        @if ($is_gst_billing_active)
+                            <div class="p-5 sm:p-6 bg-emerald-50/40 rounded-2xl border border-emerald-200/70 space-y-5 transition-all">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-900 mb-1">{{ __('GST in Turf Slot Pricing') }}</label>
+                                    <p class="text-[11px] text-gray-500 mb-3">{{ __('Specify whether your configured turf slot pricing already includes GST or if GST should be added on top') }}</p>
+                                    
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                                        <!-- Included Option -->
+                                        <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition {{ $gst_pricing_type === 'included' ? 'border-emerald-600 bg-white shadow-xs ring-2 ring-emerald-500/10' : 'border-gray-200 bg-white/80 hover:border-gray-300' }}">
+                                            <div class="flex items-center justify-between mb-1.5">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="radio" wire:model.live="gst_pricing_type" value="included" class="text-emerald-600 focus:ring-emerald-500">
+                                                    <span class="text-xs font-bold text-gray-900">{{ __('Included (Inclusive)') }}</span>
+                                                </div>
+                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $gst_pricing_type === 'included' ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-500' }}">{{ __('Most Common') }}</span>
+                                            </div>
+                                            <p class="text-[11px] text-gray-500 leading-relaxed pl-6">
+                                                {{ __('Slot prices already include GST. The customer pays the exact displayed price, and GST is calculated within it on receipts.') }}
+                                            </p>
+                                            <div class="mt-2.5 pt-2 border-t border-gray-100 pl-6 text-[10px] font-mono font-bold text-emerald-700">
+                                                {{ __('e.g. ₹1,000 slot = ₹847.46 base + ₹152.54 GST (18%)') }}
+                                            </div>
+                                        </label>
+
+                                        <!-- Excluded Option -->
+                                        <label class="relative flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition {{ $gst_pricing_type === 'excluded' ? 'border-emerald-600 bg-white shadow-xs ring-2 ring-emerald-500/10' : 'border-gray-200 bg-white/80 hover:border-gray-300' }}">
+                                            <div class="flex items-center justify-between mb-1.5">
+                                                <div class="flex items-center gap-2">
+                                                    <input type="radio" wire:model.live="gst_pricing_type" value="excluded" class="text-emerald-600 focus:ring-emerald-500">
+                                                    <span class="text-xs font-bold text-gray-900">{{ __('Excluded (Exclusive)') }}</span>
+                                                </div>
+                                                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ $gst_pricing_type === 'excluded' ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-500' }}">{{ __('Added at Checkout') }}</span>
+                                            </div>
+                                            <p class="text-[11px] text-gray-500 leading-relaxed pl-6">
+                                                {{ __('GST is added additionally on top of the slot price when the customer proceeds to checkout and pays.') }}
+                                            </p>
+                                            <div class="mt-2.5 pt-2 border-t border-gray-100 pl-6 text-[10px] font-mono font-bold text-indigo-700">
+                                                {{ __('e.g. ₹1,000 slot + ₹180 GST (18%) = ₹1,180 total') }}
+                                            </div>
+                                        </label>
+                                    </div>
+                                    @error('gst_pricing_type') <span class="block text-[10px] text-rose-600 mt-1 font-semibold">{{ $message }}</span> @enderror
+                                </div>
+
+                                <!-- GST Rate & SAC info -->
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-900 mb-1.5">{{ __('GST Rate Percentage (%)') }}</label>
+                                        <div class="relative">
+                                            <input type="number" step="0.01" min="0" max="100" wire:model.live.debounce.300ms="gst_percentage" placeholder="18.00" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 transition shadow-2xs">
+                                            <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-gray-400 font-bold text-xs">
+                                                %
+                                            </span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-400 mt-1">{{ __('Standard rate for sports facility rental SAC 999652 is 18%.') }}</p>
+                                        @error('gst_percentage') <span class="block text-[10px] text-rose-600 mt-1 font-semibold">{{ $message }}</span> @enderror
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold text-gray-900 mb-1.5">{{ __('SAC Service Code') }}</label>
+                                        <div class="w-full px-4 py-2.5 rounded-xl border border-dashed border-gray-300 bg-gray-50/80 text-xs font-mono font-bold text-gray-700 flex items-center justify-between">
+                                            <span>999652</span>
+                                            <span class="font-sans font-normal text-gray-500 text-[11px]">{{ __('Sports Facility Rental') }}</span>
+                                        </div>
+                                        <p class="text-[11px] text-gray-400 mt-1">{{ __('Statutory service accounting code stamped on tax invoices.') }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
+
+                        <!-- GST Number Input -->
                         <div>
                             <div class="flex items-center justify-between mb-1.5">
                                 <label class="block text-xs font-bold text-gray-800">{{ __('GST Number (GSTIN)') }}</label>
@@ -258,11 +367,11 @@ new #[Layout('layouts.app')] class extends Component
                                         <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                                         </svg>
-                                        Valid GSTIN Format
+                                        {{ __('Valid GSTIN Format') }}
                                     </span>
                                 @elseif (!empty($gst_number))
                                     <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                                        15-character GSTIN
+                                        {{ __('15-character GSTIN') }}
                                     </span>
                                 @endif
                             </div>
@@ -372,10 +481,18 @@ new #[Layout('layouts.app')] class extends Component
 
                     <div class="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
                         <span class="text-[10px] font-extrabold uppercase tracking-widest text-indigo-400 flex items-center gap-1.5">
-                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span class="w-2 h-2 rounded-full {{ $is_gst_billing_active ? 'bg-emerald-400' : 'bg-slate-500' }} animate-pulse"></span>
                             {{ __('Invoice Preview') }}
                         </span>
-                        <span class="text-[10px] text-slate-400">{{ __('Customer Receipt') }}</span>
+                        @if ($is_gst_billing_active)
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                {{ __('Tax Invoice (GST)') }}
+                            </span>
+                        @else
+                            <span class="text-[10px] font-medium text-slate-400">
+                                {{ __('Standard Receipt') }}
+                            </span>
+                        @endif
                     </div>
 
                     <div class="space-y-3">
@@ -386,12 +503,26 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                         </div>
 
-                        @if ($gst_number)
-                            <div class="bg-white/5 border border-white/10 rounded-xl p-2.5">
-                                <div class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">{{ __('GSTIN / Tax ID') }}</div>
-                                <div class="text-xs font-mono font-extrabold text-emerald-400 tracking-wide mt-0.5">
-                                    {{ $gst_number }}
+                        <!-- GST & Status Badge -->
+                        @if ($is_gst_billing_active)
+                            <div class="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] uppercase font-bold text-emerald-300 tracking-wider">{{ __('GSTIN / Tax ID') }}</span>
+                                    <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200">
+                                        {{ $gst_pricing_type === 'included' ? __('GST Included') : __('GST Excluded') }}
+                                    </span>
                                 </div>
+                                <div class="text-xs font-mono font-extrabold text-emerald-400 tracking-wider">
+                                    {{ $gst_number ?: __('GSTIN Pending') }}
+                                </div>
+                                <div class="text-[10px] text-emerald-300/80">
+                                    {{ __('Rate: :rate% (SAC :sac)', ['rate' => number_format((float)$gst_percentage, 2), 'sac' => '999652']) }}
+                                </div>
+                            </div>
+                        @else
+                            <div class="bg-white/5 border border-white/10 rounded-xl p-2.5 text-[11px] text-slate-400 flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                                <span>{{ __('GST Billing is currently disabled for this turf.') }}</span>
                             </div>
                         @endif
 
@@ -439,20 +570,20 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="w-7 h-7 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xs font-bold">
                             💡
                         </div>
-                        <h4 class="text-xs font-bold text-indigo-950 uppercase tracking-wider">{{ __('Taxation Note') }}</h4>
+                        <h4 class="text-xs font-bold text-indigo-950 uppercase tracking-wider">{{ __('GST Billing Guide') }}</h4>
                     </div>
                     <ul class="text-xs text-indigo-900/80 space-y-2 leading-relaxed">
                         <li class="flex items-start gap-2">
                             <span class="text-indigo-600 font-bold">•</span>
-                            <span>{{ __('Under Indian GST laws, services related to sports and turf slot booking are categorized under SAC code 999652.') }}</span>
+                            <span><strong>{{ __('Included:') }}</strong> {{ __('If you charge ₹1,000 per hour flat, select Included so the customer is not billed extra at checkout.') }}</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="text-indigo-600 font-bold">•</span>
-                            <span>{{ __('Providing your GST number ensures compliant B2B invoicing when corporate teams book slots.') }}</span>
+                            <span><strong>{{ __('Excluded:') }}</strong> {{ __('If your base rate is ₹1,000 and GST is separate, select Excluded so GST is added to customer invoice total.') }}</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="text-indigo-600 font-bold">•</span>
-                            <span>{{ __('If you operate multiple turfs, you can customize or keep distinct legal entities for each turf location.') }}</span>
+                            <span>{{ __('Turn off GST Billing anytime if your annual turnover is below GST threshold limits.') }}</span>
                         </li>
                     </ul>
                 </div>

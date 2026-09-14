@@ -61,6 +61,7 @@ class TurfTaxationTest extends TestCase
         $response->assertSee('Company Legal Identity');
         $response->assertSee('Tax & GST Identification');
         $response->assertSee('Registered Business Address');
+        $response->assertSee('GST Billing');
     }
 
     public function test_taxation_navigation_link_is_present(): void
@@ -87,6 +88,9 @@ class TurfTaxationTest extends TestCase
             ->set('state', 'Maharashtra')
             ->set('country', 'India')
             ->set('pincode', '400001')
+            ->set('is_gst_billing_active', true)
+            ->set('gst_pricing_type', 'included')
+            ->set('gst_percentage', 18.00)
             ->set('gst_number', '27ABCDE1234F1Z5')
             ->call('save')
             ->assertHasNoErrors()
@@ -102,7 +106,44 @@ class TurfTaxationTest extends TestCase
             'state' => 'Maharashtra',
             'country' => 'India',
             'pincode' => '400001',
+            'is_gst_billing_active' => true,
+            'gst_pricing_type' => 'included',
+            'gst_percentage' => 18.00,
             'gst_number' => '27ABCDE1234F1Z5',
+        ]);
+    }
+
+    public function test_turf_admin_can_set_gst_excluded(): void
+    {
+        $this->actingAs($this->admin);
+
+        Volt::test('turf.taxation-manager')
+            ->set('is_gst_billing_active', true)
+            ->set('gst_pricing_type', 'excluded')
+            ->set('gst_percentage', 18.00)
+            ->set('gst_number', '27ABCDE1234F1Z5')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('turf_settings', [
+            'turf_id' => $this->turf->id,
+            'is_gst_billing_active' => true,
+            'gst_pricing_type' => 'excluded',
+        ]);
+    }
+
+    public function test_turf_admin_can_disable_gst_billing(): void
+    {
+        $this->actingAs($this->admin);
+
+        Volt::test('turf.taxation-manager')
+            ->set('is_gst_billing_active', false)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('turf_settings', [
+            'turf_id' => $this->turf->id,
+            'is_gst_billing_active' => false,
         ]);
     }
 
