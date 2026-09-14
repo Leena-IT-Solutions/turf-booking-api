@@ -474,10 +474,17 @@ new #[Layout('layouts.app')] class extends Component
         @endif
     </div>
 
-    <!-- RATES & TRANSPARENCY: DEFAULT COMMISSION & PAYMENT GATEWAY CHARGES -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Default Platform Commission Card -->
-        <div class="lg:col-span-5 bg-white p-6 sm:p-7 rounded-3xl border border-gray-200/80 shadow-xs flex flex-col justify-between space-y-6">
+    <!-- FEE SCHEDULE & TRANSPARENCY: DEFAULT COMMISSION & PAYMENT GATEWAY CHARGES -->
+    <div class="pt-8 mt-6 border-t border-gray-200/80 space-y-4">
+        <div class="px-2">
+            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">PRICING & FEE TRANSPARENCY</span>
+            <h2 class="text-xl font-black text-gray-900">Platform Commission & Payment Gateway Charges</h2>
+            <p class="text-xs text-gray-500">Transparent breakdown of standard booking commissions and customer payment processing fees.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Default Platform Commission Card -->
+            <div class="lg:col-span-5 bg-white p-6 sm:p-7 rounded-3xl border border-gray-200/80 shadow-xs flex flex-col justify-between space-y-6">
             <div class="space-y-4">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2.5">
