@@ -129,6 +129,9 @@ class BookingPricingCalculator
         string $paymentMethod = 'App',
         string $paymentOption = 'full'
     ): array {
+        if ($paymentMethod === 'razorpay' || $paymentMethod === 'razorpay_full' || $paymentMethod === 'razorpay_part') {
+            $paymentMethod = 'App';
+        }
         $saas = SaasSetting::first();
         $turfSetting = $turf->setting ?? $turf->turfSetting;
 
@@ -208,6 +211,8 @@ class BookingPricingCalculator
                 'subtotal' => $subtotal,
                 'coupon_discount' => $couponDiscount,
                 'additional_discount' => $additionalDiscount,
+                'discount' => round($couponDiscount + $additionalDiscount, 2),
+                'net_amount' => $dateTurfTotal,
                 'net_slot_base' => $netSlotBase,
                 'taxable_amount' => $dateTaxableAmount,
                 'turf_gst_amount' => $dateTurfGstAmount,

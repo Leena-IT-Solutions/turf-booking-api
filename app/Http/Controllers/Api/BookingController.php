@@ -953,7 +953,7 @@ class BookingController extends Controller
             'booking_type' => 'required|string|in:day,long,scattered',
             'coupons' => 'nullable|array', // key is date (YYYY-MM-DD), value is coupon code (string)
             'additional_discount' => 'nullable|numeric|min:0',
-            'payment_method' => 'nullable|string|in:offline,App,Cash,UPI,Other',
+            'payment_method' => 'nullable|string|in:offline,App,Cash,UPI,Other,razorpay',
             'payment_option' => 'nullable|string|in:full,part',
         ]);
 
