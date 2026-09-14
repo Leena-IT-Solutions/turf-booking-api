@@ -169,6 +169,15 @@ class BookingController extends Controller
                 'balance_amount' => $balanceAmount,
                 'date_paid_amount' => $datePaidAmount,
                 'date_balance_amount' => $dateBalanceAmount,
+                'booking_number' => $booking->booking_number ?? ('#' . ($booking->id ?? '')),
+                'taxable_amount' => (float)($booking->taxable_amount ?? 0),
+                'turf_gst_rate' => (float)($booking->turf_gst_rate ?? 0),
+                'turf_gst_type' => $booking->turf->gst_type ?? 'exempt',
+                'turf_gst_amount' => (float)($booking->turf_gst_amount ?? 0),
+                'platform_fee' => (float)($booking->platform_fee ?? 0),
+                'platform_fee_gst' => (float)($booking->platform_fee_gst ?? 0),
+                'customer_gstin' => $booking->customer_gstin ?? null,
+                'customer_company_name' => $booking->customer_company_name ?? null,
                 
                 'customer_name' => $booking->user->name ?? 'N/A',
                 'customer_email' => $booking->user->email ?? 'N/A',
@@ -182,6 +191,7 @@ class BookingController extends Controller
                 'cancellation_fee_applied' => ($bDate->status === 'Cancelled') ? (float)$bDate->cancellation_fee_applied : (float)$booking->cancellation_fee_applied,
                 'refund_amount' => ($bDate->status === 'Cancelled') ? (float)$bDate->refund_amount : (float)$booking->refund_amount,
                 'refund_status' => ($bDate->status === 'Cancelled') ? ($bDate->refund_status ?? 'None') : ($booking->refund_status ?? 'None'),
+                'refund_method' => ($bDate->status === 'Cancelled') ? ($bDate->refund_method ?? 'None') : ($booking->refund_method ?? 'None'),
                 'refunded_at' => ($bDate->status === 'Cancelled' && $bDate->refunded_at) ? Carbon::parse($bDate->refunded_at)->format('F d, Y h:i A') : ($booking->refunded_at ? Carbon::parse($booking->refunded_at)->format('F d, Y h:i A') : null),
                 'payments' => $bDate->payments()->where('status', 'Success')->get()->map(function ($payment) {
                     return [
