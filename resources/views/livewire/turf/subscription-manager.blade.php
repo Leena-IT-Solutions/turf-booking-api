@@ -451,13 +451,6 @@ new #[Layout('layouts.app')] class extends Component
                                             @endif
                                             <span class="text-xs font-semibold text-gray-500">/ turf / {{ $durationText }}</span>
                                         </div>
-
-                                        @if ($isOffer && $pkg->offer_max_claims)
-                                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/80 text-amber-900 border border-amber-300/80 text-[11px] font-bold">
-                                                <span>🔥</span>
-                                                <span>Only <strong>{{ $pkg->getRemainingOfferClaims() }}</strong> of {{ $pkg->offer_max_claims }} founder spots left!</span>
-                                            </div>
-                                        @endif
                                     </div>
 
                                     <!-- Order Summary Breakdown Card -->
