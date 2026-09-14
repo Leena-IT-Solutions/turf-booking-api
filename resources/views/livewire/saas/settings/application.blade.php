@@ -13,6 +13,7 @@ new #[Layout('layouts.app')] class extends Component
     public $commission_percentage = 7.00;
     public $platform_fee = 0.00;
     public $payment_gateway_percentage = 2.00;
+    public $cancellation_fee_percentage = 5.00;
     public $payout_hours = 24;
     public $payout_charges = 40.00;
     public $max_commission_due = 2000.00;
@@ -34,6 +35,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
         $this->platform_fee = (float) ($setting->platform_fee ?? 0.00);
         $this->payment_gateway_percentage = (float) ($setting->payment_gateway_percentage ?? 2.00);
+        $this->cancellation_fee_percentage = (float) ($setting->cancellation_fee_percentage ?? 5.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
         $this->payout_charges = (float) ($setting->payout_charges ?? 40.00);
         $this->max_commission_due = (float) ($setting->max_commission_due ?? 2000.00);
@@ -50,6 +52,7 @@ new #[Layout('layouts.app')] class extends Component
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'platform_fee' => 'required|numeric|min:0',
             'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
+            'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
             'max_commission_due' => 'required|numeric|min:0',
@@ -67,6 +70,7 @@ new #[Layout('layouts.app')] class extends Component
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'platform_fee' => 'required|numeric|min:0',
             'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
+            'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
             'max_commission_due' => 'required|numeric|min:0',
@@ -83,6 +87,7 @@ new #[Layout('layouts.app')] class extends Component
             'commission_percentage' => $this->commission_percentage,
             'platform_fee' => $this->platform_fee,
             'payment_gateway_percentage' => $this->payment_gateway_percentage,
+            'cancellation_fee_percentage' => $this->cancellation_fee_percentage,
             'payout_hours' => $this->payout_hours,
             'payout_charges' => $this->payout_charges,
             'max_commission_due' => $this->max_commission_due,
@@ -321,6 +326,27 @@ new #[Layout('layouts.app')] class extends Component
                                 <input wire:model.live.debounce.250ms="payment_gateway_percentage" id="gatewayPerc" type="number" step="0.01" min="0" max="100" 
                                     class="w-full pr-10 pl-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
                                     placeholder="2.00" />
+                                <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Cancellation Processing Fee Percentage -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <label for="cancellationPerc" class="text-xs font-bold text-gray-900 block cursor-pointer">
+                                {{ __('Cancellation Processing Fee') }}
+                            </label>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('Platform percentage deducted on customer cancellations to cover variable payment gateway MDR (Credit Cards/UPI) and refund processing costs.') }}
+                            </p>
+                            <x-input-error :messages="$errors->get('cancellation_fee_percentage')" class="mt-1" />
+                        </div>
+                        <div class="shrink-0 flex items-center">
+                            <div class="relative w-full sm:w-44">
+                                <input wire:model.live.debounce.250ms="cancellation_fee_percentage" id="cancellationPerc" type="number" step="0.01" min="0" max="100" 
+                                    class="w-full pr-10 pl-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
+                                    placeholder="5.00" />
                                 <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">%</span>
                             </div>
                         </div>

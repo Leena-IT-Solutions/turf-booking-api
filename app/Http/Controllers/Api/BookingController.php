@@ -174,6 +174,7 @@ class BookingController extends Controller
                 'is_cancellation_active' => $booking->turf ? (bool)$booking->turf->is_cancellation_active : false,
                 'cancellation_hours' => $booking->turf ? (int)$booking->turf->cancellation_hours : 0,
                 'cancellation_fee' => $booking->turf ? (float)$booking->turf->cancellation_fee : 0.00,
+                'cancellation_fee_percentage' => (float)(\App\Models\SaasSetting::first()?->cancellation_fee_percentage ?? 5.00),
                 'cancelled_at' => ($bDate->status === 'Cancelled' && $bDate->cancelled_at) ? Carbon::parse($bDate->cancelled_at)->format('F d, Y h:i A') : ($booking->cancelled_at ? Carbon::parse($booking->cancelled_at)->format('F d, Y h:i A') : null),
                 'cancellation_fee_applied' => ($bDate->status === 'Cancelled') ? (float)$bDate->cancellation_fee_applied : (float)$booking->cancellation_fee_applied,
                 'refund_amount' => ($bDate->status === 'Cancelled') ? (float)$bDate->refund_amount : (float)$booking->refund_amount,
@@ -1546,6 +1547,7 @@ class BookingController extends Controller
         $setting = \App\Models\SaasSetting::first();
         $razorpayKey = $setting?->razorpay_key ?: config('services.razorpay.key');
         $razorpaySecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
+        $platformFeePercentage = $setting ? (float)($setting->cancellation_fee_percentage ?? 5.00) : 0.00;
 
         $totalDatesCancelledNow = 0;
         $totalRefundProcessedNow = 0.00;
@@ -1561,8 +1563,16 @@ class BookingController extends Controller
             $dateRefundDue = 0.00;
 
             if ($datePaidAmount > 0) {
-                $dateFeeApplied = min($datePaidAmount, $cancellationFeeSetting);
-                $dateRefundDue = max(0.00, $datePaidAmount - $dateFeeApplied);
+                // 1. Platform cancellation fee to cover payment gateway MDR charges
+                $platformFee = round($datePaidAmount * ($platformFeePercentage / 100), 2);
+
+                // 2. Turf owner cancellation fee
+                $remainingForTurf = max(0.00, $datePaidAmount - $platformFee);
+                $turfFee = min($remainingForTurf, $cancellationFeeSetting);
+
+                // 3. Total fee applied (Platform Fee + Turf Owner Fee)
+                $dateFeeApplied = min($datePaidAmount, round($platformFee + $turfFee, 2));
+                $dateRefundDue = max(0.00, round($datePaidAmount - $dateFeeApplied, 2));
             }
 
             $dateRefundStatus = ($datePaidAmount > 0 && $dateRefundDue > 0) ? 'Refunded' : 'Not Applicable';

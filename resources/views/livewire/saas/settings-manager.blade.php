@@ -30,6 +30,7 @@ new #[Layout('layouts.app')] class extends Component
     public $min_slots_booking = 2;
     public $commission_percentage = 7.00;
     public $payment_gateway_percentage = 2.00;
+    public $cancellation_fee_percentage = 5.00;
     public $payout_hours = 24;
     public $payout_charges = 40.00;
     public $razorpayx_account_number = '';
@@ -54,6 +55,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => 2,
             'commission_percentage' => 7.00,
             'payment_gateway_percentage' => 2.00,
+            'cancellation_fee_percentage' => 5.00,
             'payout_hours' => 24,
             'payout_charges' => 40.00,
             'max_commission_due' => 2000.00,
@@ -81,6 +83,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->min_slots_booking = $setting->min_slots_booking ?? 1;
         $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
         $this->payment_gateway_percentage = (float) ($setting->payment_gateway_percentage ?? 2.00);
+        $this->cancellation_fee_percentage = (float) ($setting->cancellation_fee_percentage ?? 5.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
         $this->payout_charges = (float) ($setting->payout_charges ?? 40.00);
         $this->razorpayx_account_number = $setting->razorpayx_account_number;
@@ -112,6 +115,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
+            'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
             'razorpayx_account_number' => 'nullable|string|max:255',
@@ -147,6 +151,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
             'payment_gateway_percentage' => 'required|numeric|min:0|max:100',
+            'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
             'razorpayx_account_number' => 'nullable|string|max:255',
@@ -180,6 +185,7 @@ new #[Layout('layouts.app')] class extends Component
             'min_slots_booking' => $this->min_slots_booking,
             'commission_percentage' => $this->commission_percentage,
             'payment_gateway_percentage' => $this->payment_gateway_percentage,
+            'cancellation_fee_percentage' => $this->cancellation_fee_percentage,
             'payout_hours' => $this->payout_hours,
             'payout_charges' => $this->payout_charges,
             'razorpayx_account_number' => $this->razorpayx_account_number,
@@ -474,6 +480,16 @@ new #[Layout('layouts.app')] class extends Component
                                 {{ __('% deducted from commission when booking payment is collected offline.') }}
                             </span>
                             <x-input-error :messages="$errors->get('payment_gateway_percentage')" class="mt-2" />
+                        </div>
+
+                        <!-- Cancellation Processing Fee % -->
+                        <div>
+                            <x-input-label for="cancellationFeePercentage" :value="__('Cancellation Processing Fee (%)')" />
+                            <x-text-input wire:model.live.debounce.250ms="cancellation_fee_percentage" id="cancellationFeePercentage" type="number" step="0.01" min="0" max="100" class="mt-1.5 block w-full text-xs" placeholder="5.00" />
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
+                                {{ __('% deducted on online cancellations to cover payment gateway MDR and processing costs.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('cancellation_fee_percentage')" class="mt-2" />
                         </div>
 
                         <!-- Payout Cooldown Hours -->
