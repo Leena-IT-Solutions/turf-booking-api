@@ -289,6 +289,166 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     @endif
 
+    <!-- STEP 1: TURF CHECKLIST SELECTION -->
+    @php
+        $user = auth()->user();
+        $manageableLocations = $user ? $user->manageableLocations()->with(['turfs.activeSubscription.package'])->get() : collect();
+        $allTurfsCount = $manageableLocations->pluck('turfs')->flatten()->count();
+        $selectedCount = count($selectedTurfIds);
+    @endphp
+
+    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-xs space-y-5">
+        <div class="flex items-center justify-between">
+            <div class="space-y-1">
+                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">STEP 1</span>
+                <h2 class="text-xl font-black text-gray-900">Select Turfs to Subscribe / Renew</h2>
+                <p class="text-xs text-gray-500">Pick which turfs you want to include in this subscription payment.</p>
+            </div>
+            <button wire:click="toggleAllTurfs" type="button" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer">
+                {{ $selectedCount === $allTurfsCount ? 'Deselect All' : 'Select All' }}
+            </button>
+        </div>
+
+        @if ($manageableLocations->isEmpty() || $allTurfsCount === 0)
+            <div class="p-6 text-center text-gray-500 text-xs bg-gray-50 rounded-2xl border border-dashed border-gray-300">
+                No turfs available under your management. Create a location and turf first to subscribe.
+            </div>
+        @else
+            <div class="space-y-4">
+                @foreach ($manageableLocations as $loc)
+                    @if ($loc->turfs->isNotEmpty())
+                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-200/80 space-y-3">
+                            <span class="text-[11px] font-black uppercase tracking-wider text-gray-500 block">
+                                📍 {{ $loc->name }}
+                            </span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                @foreach ($loc->turfs as $turf)
+                                    @php
+                                        $isSelected = in_array($turf->id, $selectedTurfIds);
+                                        $activeSub = $turf->activeSubscription;
+                                    @endphp
+                                    <div wire:click="toggleTurf({{ $turf->id }})"
+                                        class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 {{ $isSelected ? 'bg-indigo-50/80 border-indigo-500 shadow-sm' : 'bg-white border-gray-200 opacity-80' }}">
+                                        <div class="min-w-0">
+                                            <span class="font-bold text-xs text-gray-900 block truncate">{{ $turf->name }}</span>
+                                            <span class="text-[10px] text-gray-500 block truncate mt-0.5">
+                                                Plan: {{ $activeSub ? ($activeSub->package?->name ?? 'Subscribed') : 'No Active Plan' }}
+                                            </span>
+                                            @if ($activeSub)
+                                                <span class="text-[9px] text-emerald-600 block font-semibold">Exp: {{ $activeSub->expires_at?->format('d M Y') }}</span>
+                                            @endif
+                                        </div>
+                                        <div class="h-5 w-5 rounded-md border flex items-center justify-center shrink-0 {{ $isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 ' }}">
+                                            @if ($isSelected)
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        @endif
+    </div>
+
+    <!-- STEP 2: SUBSCRIPTION PACKAGES CARDS -->
+    <div class="space-y-2">
+        <div class="px-2">
+            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">STEP 2</span>
+            <h2 class="text-xl font-black text-gray-900">Select Subscription Package</h2>
+        </div>
+
+        @php
+            $packages = SubscriptionPackage::where('is_active', true)->get();
+        @endphp
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            @forelse ($packages as $pkg)
+                @php
+                    $isOffer = $pkg->isOfferValid();
+                    $standardPrice = $billingCycle === 'yearly' ? (float)$pkg->yearly_amount : (float)$pkg->monthly_amount;
+                    $unitPrice = $billingCycle === 'yearly' ? $pkg->getEffectiveYearlyAmount() : $pkg->getEffectiveMonthlyAmount();
+                    $totalPrice = $unitPrice * $selectedCount;
+                    $durationText = $billingCycle === 'yearly' ? 'year' : 'month';
+                @endphp
+
+                <div class="bg-white rounded-3xl border {{ $isOffer ? 'border-amber-300 shadow-md ring-1 ring-amber-200' : 'border-gray-200 shadow-xs' }} hover:shadow-lg transition p-6 sm:p-8 flex flex-col justify-between space-y-6 relative overflow-hidden">
+                    @if ($isOffer)
+                        <div class="absolute -top-1 right-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-b-xl shadow-xs flex items-center gap-1">
+                            <span>{{ $pkg->offer_badge ?: 'Launch Offer' }}</span>
+                        </div>
+                    @endif
+
+                    <div class="space-y-4 pt-1">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black uppercase tracking-wider text-indigo-600">{{ $pkg->name }}</span>
+                        </div>
+
+                        <div class="space-y-1">
+                            @if ($isOffer && $unitPrice < $standardPrice)
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-3xl font-black text-amber-600">₹{{ number_format($unitPrice, 2) }}</span>
+                                    <span class="text-base text-gray-400 line-through font-bold">₹{{ number_format($standardPrice, 2) }}</span>
+                                    <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
+                                </div>
+                                @if ($pkg->offer_max_claims)
+                                    <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
+                                        <span>🔥 Only {{ $pkg->getRemainingOfferClaims() }} of {{ $pkg->offer_max_claims }} founder spots left!</span>
+                                    </div>
+                                @endif
+                            @else
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-3xl font-black text-gray-900">₹{{ number_format($unitPrice, 2) }}</span>
+                                    <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
+                                </div>
+                            @endif
+
+                            @if ($selectedCount > 0)
+                                <p class="text-xs font-bold text-indigo-600 pt-1">
+                                    Total: ₹{{ number_format($totalPrice, 2) }} for {{ $selectedCount }} turf(s)
+                                </p>
+                            @else
+                                <p class="text-xs text-amber-600 font-semibold pt-1">
+                                    Select at least 1 turf above to see total
+                                </p>
+                            @endif
+                        </div>
+
+                        @if ($pkg->description)
+                            <p class="text-xs text-gray-500 leading-relaxed">{{ $pkg->description }}</p>
+                        @endif
+
+                        @if ($pkg->features && is_array($pkg->features))
+                            <ul class="space-y-2 pt-2 border-t border-gray-100">
+                                @foreach ($pkg->features as $feat)
+                                    <li class="flex items-center gap-2 text-xs text-gray-700">
+                                        <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        <span>{{ $feat }}</span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+
+                    <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')"
+                        @if ($selectedCount === 0) disabled @endif
+                        type="button"
+                        class="w-full py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm active:scale-[0.99]' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }}">
+                        <span>Subscribe / Renew {{ $selectedCount }} Turf(s)</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                </div>
+            @empty
+                <div class="col-span-full bg-white p-12 rounded-3xl border border-gray-200 text-center text-gray-500 space-y-3">
+                    <span class="text-4xl block">📦</span>
+                    <p class="font-bold text-gray-800">No active subscription packages available at the moment.</p>
+                </div>
+            @endforelse
+        </div>
+    </div>
+
     <!-- RATES & TRANSPARENCY: DEFAULT COMMISSION & PAYMENT GATEWAY CHARGES -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Default Platform Commission Card -->
@@ -461,166 +621,6 @@ new #[Layout('layouts.app')] class extends Component
                 <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span>Gateway charges are deducted directly by Razorpay during payout settlement on online customer payments.</span>
             </div>
-        </div>
-    </div>
-
-    <!-- STEP 1: TURF CHECKLIST SELECTION -->
-    @php
-        $user = auth()->user();
-        $manageableLocations = $user ? $user->manageableLocations()->with(['turfs.activeSubscription.package'])->get() : collect();
-        $allTurfsCount = $manageableLocations->pluck('turfs')->flatten()->count();
-        $selectedCount = count($selectedTurfIds);
-    @endphp
-
-    <div class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-xs space-y-5">
-        <div class="flex items-center justify-between">
-            <div class="space-y-1">
-                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">STEP 1</span>
-                <h2 class="text-xl font-black text-gray-900">Select Turfs to Subscribe / Renew</h2>
-                <p class="text-xs text-gray-500">Pick which turfs you want to include in this subscription payment.</p>
-            </div>
-            <button wire:click="toggleAllTurfs" type="button" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition cursor-pointer">
-                {{ $selectedCount === $allTurfsCount ? 'Deselect All' : 'Select All' }}
-            </button>
-        </div>
-
-        @if ($manageableLocations->isEmpty() || $allTurfsCount === 0)
-            <div class="p-6 text-center text-gray-500 text-xs bg-gray-50 rounded-2xl border border-dashed border-gray-300">
-                No turfs available under your management. Create a location and turf first to subscribe.
-            </div>
-        @else
-            <div class="space-y-4">
-                @foreach ($manageableLocations as $loc)
-                    @if ($loc->turfs->isNotEmpty())
-                        <div class="bg-gray-50/70 p-4 rounded-2xl border border-gray-200/80 space-y-3">
-                            <span class="text-[11px] font-black uppercase tracking-wider text-gray-500 block">
-                                📍 {{ $loc->name }}
-                            </span>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                @foreach ($loc->turfs as $turf)
-                                    @php
-                                        $isSelected = in_array($turf->id, $selectedTurfIds);
-                                        $activeSub = $turf->activeSubscription;
-                                    @endphp
-                                    <div wire:click="toggleTurf({{ $turf->id }})"
-                                        class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 {{ $isSelected ? 'bg-indigo-50/80 border-indigo-500 shadow-sm' : 'bg-white border-gray-200 opacity-80' }}">
-                                        <div class="min-w-0">
-                                            <span class="font-bold text-xs text-gray-900 block truncate">{{ $turf->name }}</span>
-                                            <span class="text-[10px] text-gray-500 block truncate mt-0.5">
-                                                Plan: {{ $activeSub ? ($activeSub->package?->name ?? 'Subscribed') : 'No Active Plan' }}
-                                            </span>
-                                            @if ($activeSub)
-                                                <span class="text-[9px] text-emerald-600 block font-semibold">Exp: {{ $activeSub->expires_at?->format('d M Y') }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="h-5 w-5 rounded-md border flex items-center justify-center shrink-0 {{ $isSelected ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-gray-300 ' }}">
-                                            @if ($isSelected)
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
-                                            @endif
-                                        </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                @endforeach
-            </div>
-        @endif
-    </div>
-
-    <!-- STEP 2: SUBSCRIPTION PACKAGES CARDS -->
-    <div class="space-y-2">
-        <div class="px-2">
-            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">STEP 2</span>
-            <h2 class="text-xl font-black text-gray-900">Select Subscription Package</h2>
-        </div>
-
-        @php
-            $packages = SubscriptionPackage::where('is_active', true)->get();
-        @endphp
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            @forelse ($packages as $pkg)
-                @php
-                    $isOffer = $pkg->isOfferValid();
-                    $standardPrice = $billingCycle === 'yearly' ? (float)$pkg->yearly_amount : (float)$pkg->monthly_amount;
-                    $unitPrice = $billingCycle === 'yearly' ? $pkg->getEffectiveYearlyAmount() : $pkg->getEffectiveMonthlyAmount();
-                    $totalPrice = $unitPrice * $selectedCount;
-                    $durationText = $billingCycle === 'yearly' ? 'year' : 'month';
-                @endphp
-
-                <div class="bg-white rounded-3xl border {{ $isOffer ? 'border-amber-300 shadow-md ring-1 ring-amber-200' : 'border-gray-200 shadow-xs' }} hover:shadow-lg transition p-6 sm:p-8 flex flex-col justify-between space-y-6 relative overflow-hidden">
-                    @if ($isOffer)
-                        <div class="absolute -top-1 right-6 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-b-xl shadow-xs flex items-center gap-1">
-                            <span>{{ $pkg->offer_badge ?: 'Launch Offer' }}</span>
-                        </div>
-                    @endif
-
-                    <div class="space-y-4 pt-1">
-                        <div class="flex items-center justify-between">
-                            <span class="text-xs font-black uppercase tracking-wider text-indigo-600">{{ $pkg->name }}</span>
-                        </div>
-
-                        <div class="space-y-1">
-                            @if ($isOffer && $unitPrice < $standardPrice)
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-3xl font-black text-amber-600">₹{{ number_format($unitPrice, 2) }}</span>
-                                    <span class="text-base text-gray-400 line-through font-bold">₹{{ number_format($standardPrice, 2) }}</span>
-                                    <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
-                                </div>
-                                @if ($pkg->offer_max_claims)
-                                    <div class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold">
-                                        <span>🔥 Only {{ $pkg->getRemainingOfferClaims() }} of {{ $pkg->offer_max_claims }} founder spots left!</span>
-                                    </div>
-                                @endif
-                            @else
-                                <div class="flex items-baseline gap-1">
-                                    <span class="text-3xl font-black text-gray-900">₹{{ number_format($unitPrice, 2) }}</span>
-                                    <span class="text-xs text-gray-500">/ turf / {{ $durationText }}</span>
-                                </div>
-                            @endif
-
-                            @if ($selectedCount > 0)
-                                <p class="text-xs font-bold text-indigo-600 pt-1">
-                                    Total: ₹{{ number_format($totalPrice, 2) }} for {{ $selectedCount }} turf(s)
-                                </p>
-                            @else
-                                <p class="text-xs text-amber-600 font-semibold pt-1">
-                                    Select at least 1 turf above to see total
-                                </p>
-                            @endif
-                        </div>
-
-                        @if ($pkg->description)
-                            <p class="text-xs text-gray-500 leading-relaxed">{{ $pkg->description }}</p>
-                        @endif
-
-                        @if ($pkg->features && is_array($pkg->features))
-                            <ul class="space-y-2 pt-2 border-t border-gray-100">
-                                @foreach ($pkg->features as $feat)
-                                    <li class="flex items-center gap-2 text-xs text-gray-700">
-                                        <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                                        <span>{{ $feat }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </div>
-
-                    <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')"
-                        @if ($selectedCount === 0) disabled @endif
-                        type="button"
-                        class="w-full py-3 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm active:scale-[0.99]' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }}">
-                        <span>Subscribe / Renew {{ $selectedCount }} Turf(s)</span>
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                    </button>
-                </div>
-            @empty
-                <div class="col-span-full bg-white p-12 rounded-3xl border border-gray-200 text-center text-gray-500 space-y-3">
-                    <span class="text-4xl block">📦</span>
-                    <p class="font-bold text-gray-800">No active subscription packages available at the moment.</p>
-                </div>
-            @endforelse
         </div>
     </div>
 </div>
