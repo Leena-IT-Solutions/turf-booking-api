@@ -20,30 +20,46 @@
             </p>
 
             <!-- Toggle Switch -->
-            <div class="flex items-center justify-center gap-4 pt-6">
-                <span :class="!annual ? 'text-slate-900 font-bold' : 'text-slate-400 font-medium'" class="text-xs sm:text-sm transition duration-150">
-                    Monthly Billing
-                </span>
+            <div class="flex items-center justify-center gap-3 sm:gap-4 pt-6 select-none">
+                <button 
+                    @click="annual = false" 
+                    type="button" 
+                    :class="!annual ? 'text-slate-900 font-extrabold' : 'text-slate-400 font-medium hover:text-slate-600'" 
+                    class="text-xs sm:text-sm transition duration-150 cursor-pointer focus:outline-none"
+                >
+                    {{ __('Monthly Billing') }}
+                </button>
                 
                 <button 
                     @click="annual = !annual" 
                     type="button"
-                    class="w-13 h-7 rounded-full p-0.5 relative transition duration-300 focus:outline-none shadow-inner"
+                    class="relative inline-flex h-8 w-14 shrink-0 cursor-pointer rounded-full p-1 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                     :class="annual ? 'bg-emerald-500' : 'bg-slate-300'"
+                    role="switch"
+                    :aria-checked="annual.toString()"
                     aria-label="Toggle billing interval"
                 >
                     <span 
-                        :class="annual ? 'translate-x-6 bg-white' : 'translate-x-0 bg-white'" 
-                        class="block w-6 h-6 rounded-full transition duration-300 transform shadow-md"
+                        aria-hidden="true" 
+                        class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-300 ease-in-out"
+                        :class="annual ? 'translate-x-6' : 'translate-x-0'"
                     ></span>
                 </button>
 
                 <div class="flex items-center gap-2">
-                    <span :class="annual ? 'text-slate-900 font-bold' : 'text-slate-400 font-medium'" class="text-xs sm:text-sm transition duration-150">
-                        Annual Billing
-                    </span>
-                    <span class="text-[10px] font-black px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 shadow-2xs">
-                        SAVE UP TO 17%
+                    <button 
+                        @click="annual = true" 
+                        type="button" 
+                        :class="annual ? 'text-slate-900 font-extrabold' : 'text-slate-400 font-medium hover:text-slate-600'" 
+                        class="text-xs sm:text-sm transition duration-150 cursor-pointer focus:outline-none"
+                    >
+                        {{ __('Annual Billing') }}
+                    </button>
+                    <span 
+                        @click="annual = true"
+                        class="text-[10px] font-black px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200 shadow-2xs cursor-pointer hover:bg-emerald-100 transition-colors"
+                    >
+                        {{ __('SAVE UP TO 17%') }}
                     </span>
                 </div>
             </div>
