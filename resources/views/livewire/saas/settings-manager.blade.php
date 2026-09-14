@@ -29,6 +29,7 @@ new #[Layout('layouts.app')] class extends Component
     public $turf_search_km = 10;
     public $min_slots_booking = 2;
     public $commission_percentage = 7.00;
+    public $platform_fee = 0.00;
     public $cancellation_fee_percentage = 5.00;
     public $payout_hours = 24;
     public $payout_charges = 40.00;
@@ -53,6 +54,7 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 10,
             'min_slots_booking' => 2,
             'commission_percentage' => 7.00,
+            'platform_fee' => 0.00,
             'cancellation_fee_percentage' => 5.00,
             'payout_hours' => 24,
             'payout_charges' => 40.00,
@@ -64,13 +66,13 @@ new #[Layout('layouts.app')] class extends Component
         $this->contact_email = $setting->contact_email;
         $this->contact_mobile = $setting->contact_mobile;
         $this->address = $setting->address;
-        $this->is_maintenance_mode = $setting->is_maintenance_mode;
-        $this->current_logo_path = $setting->logo_path;
+        $this->current_logo_path = $setting->logo_url;
+        $this->is_maintenance_mode = (bool) $setting->is_maintenance_mode;
         $this->gemini_api_key = $setting->gemini_api_key;
         $this->whatsapp_token = $setting->whatsapp_token;
         $this->whatsapp_phone_number_id = $setting->whatsapp_phone_number_id;
         $this->whatsapp_business_account_id = $setting->whatsapp_business_account_id;
-        $this->whatsapp_otp_template = $setting->whatsapp_otp_template ?: 'turf_otp';
+        $this->whatsapp_otp_template = $setting->whatsapp_otp_template ?: 'registration_otp';
         $this->google_maps_api_key = $setting->google_maps_api_key;
         $this->razorpay_key = $setting->razorpay_key;
         $this->razorpay_secret = $setting->razorpay_secret;
@@ -80,6 +82,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->turf_search_km = $setting->turf_search_km ?? 5;
         $this->min_slots_booking = $setting->min_slots_booking ?? 1;
         $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
+        $this->platform_fee = (float) ($setting->platform_fee ?? 0.00);
         $this->cancellation_fee_percentage = (float) ($setting->cancellation_fee_percentage ?? 5.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
         $this->payout_charges = (float) ($setting->payout_charges ?? 40.00);
@@ -111,6 +114,7 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 'required|integer|min:1|max:100',
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
+            'platform_fee' => 'required|numeric|min:0',
             'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
@@ -146,6 +150,7 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => 'required|integer|min:1|max:100',
             'min_slots_booking' => 'required|integer|min:1|max:100',
             'commission_percentage' => 'required|numeric|min:0|max:100',
+            'platform_fee' => 'required|numeric|min:0',
             'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
@@ -179,6 +184,7 @@ new #[Layout('layouts.app')] class extends Component
             'turf_search_km' => $this->turf_search_km,
             'min_slots_booking' => $this->min_slots_booking,
             'commission_percentage' => $this->commission_percentage,
+            'platform_fee' => $this->platform_fee,
             'cancellation_fee_percentage' => $this->cancellation_fee_percentage,
             'payout_hours' => $this->payout_hours,
             'payout_charges' => $this->payout_charges,
@@ -496,6 +502,16 @@ new #[Layout('layouts.app')] class extends Component
                                 {{ __('Flat fee charged if a payout is requested before the cooldown hours elapse.') }}
                             </span>
                             <x-input-error :messages="$errors->get('payout_charges')" class="mt-2" />
+                        </div>
+
+                        <!-- Platform Fee (₹) -->
+                        <div>
+                            <x-input-label for="platformFee" :value="__('Platform Fee (₹)')" />
+                            <x-text-input wire:model.live.debounce.250ms="platform_fee" id="platformFee" type="number" step="0.01" min="0" class="mt-1.5 block w-full text-xs" placeholder="0.00" />
+                            <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
+                                {{ __('Fixed convenience platform fee charged per slot booking.') }}
+                            </span>
+                            <x-input-error :messages="$errors->get('platform_fee')" class="mt-2" />
                         </div>
 
                         <!-- Max Commission Due Limit -->

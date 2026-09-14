@@ -284,30 +284,7 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
 
-                    <!-- Row 2: Platform Fee (₹) -->
-                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div class="space-y-1 max-w-xl">
-                            <label for="platformFee" class="text-xs font-bold text-gray-900 block cursor-pointer">
-                                {{ __('Platform Fee') }}
-                            </label>
-                            <p class="text-xs text-gray-500 leading-relaxed">
-                                {{ __('Fixed convenience platform fee charged per slot booking.') }}
-                            </p>
-                            <x-input-error :messages="$errors->get('platform_fee')" class="mt-1" />
-                        </div>
-                        <div class="shrink-0 flex items-center">
-                            <div class="relative w-full sm:w-44">
-                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">₹</span>
-                                <input wire:model.live.debounce.250ms="platform_fee" id="platformFee" type="number" step="0.01" min="0" 
-                                    class="w-full pl-8 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
-                                    placeholder="0.00" />
-                            </div>
-                        </div>
-                    </div>
-
-
-
-                    <!-- Row 4: Cancellation Processing Fee Percentage -->
+                    <!-- Row 2: Cancellation Processing Fee Percentage -->
                     <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="space-y-1 max-w-xl">
                             <label for="cancellationPerc" class="text-xs font-bold text-gray-900 block cursor-pointer">
@@ -366,6 +343,27 @@ new #[Layout('layouts.app')] class extends Component
                                 <input wire:model.live.debounce.250ms="payout_charges" id="payoutCharges" type="number" step="0.01" min="0" 
                                     class="w-full pl-8 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
                                     placeholder="40.00" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Row 5: Platform Fee (₹) -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <label for="platformFee" class="text-xs font-bold text-gray-900 block cursor-pointer">
+                                {{ __('Platform Fee') }}
+                            </label>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('Fixed convenience platform fee charged per slot booking.') }}
+                            </p>
+                            <x-input-error :messages="$errors->get('platform_fee')" class="mt-1" />
+                        </div>
+                        <div class="shrink-0 flex items-center">
+                            <div class="relative w-full sm:w-44">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">₹</span>
+                                <input wire:model.live.debounce.250ms="platform_fee" id="platformFee" type="number" step="0.01" min="0" 
+                                    class="w-full pl-8 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
+                                    placeholder="0.00" />
                             </div>
                         </div>
                     </div>
