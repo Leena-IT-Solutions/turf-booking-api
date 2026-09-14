@@ -38,13 +38,11 @@ new #[Layout('layouts.app')] class extends Component
 
         $defaultCommission = $setting ? (float) $setting->commission_percentage : 7.00;
         $commissionGst = $setting ? (float) $setting->commission_gst_percentage : 18.00;
-        $effectiveCommission = round($defaultCommission * (1 + ($commissionGst / 100)), 2);
 
         return [
             'saasSetting' => $setting,
             'defaultCommission' => $defaultCommission,
             'commissionGst' => $commissionGst,
-            'effectiveCommission' => $effectiveCommission,
             'gatewayCharges' => $gatewayCharges,
         ];
     }
@@ -539,20 +537,27 @@ new #[Layout('layouts.app')] class extends Component
                     </span>
                 </div>
 
-                <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 border border-indigo-100/60">
-                    <div class="flex items-baseline gap-2">
+                <div class="p-4 rounded-2xl bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/30 border border-indigo-100/60 space-y-1.5">
+                    <div class="flex items-baseline gap-2 flex-wrap">
                         <span class="text-3xl sm:text-4xl font-black text-gray-900 font-mono tracking-tight">
                             {{ number_format($defaultCommission, 2) }}%
                         </span>
                         <span class="text-xs text-gray-500 font-medium">per booking</span>
+                        <span class="px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Inclusive of GST
+                        </span>
                     </div>
                     @if ($commissionGst > 0)
-                        <div class="mt-1 flex items-center gap-2 text-xs text-gray-600 flex-wrap">
-                            <span>+ {{ number_format($commissionGst, 2) }}% GST</span>
+                        <div class="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
+                            <span>Includes {{ number_format($commissionGst, 2) }}% GST</span>
                             @if ($saasSetting?->commission_gst_sac)
-                                <span class="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">SAC {{ $saasSetting->commission_gst_sac }}</span>
+                                <span class="text-[10px] font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">SAC {{ $saasSetting->commission_gst_sac }}</span>
                             @endif
-                            <span class="font-bold text-indigo-700">≈ {{ number_format($effectiveCommission, 2) }}% effective</span>
+                            @php
+                                $baseCommission = round($defaultCommission / (1 + ($commissionGst / 100)), 2);
+                                $gstPortion = round($defaultCommission - $baseCommission, 2);
+                            @endphp
+                            <span class="text-[11px] text-gray-500 font-mono">(Base: {{ number_format($baseCommission, 2) }}% + GST: {{ number_format($gstPortion, 2) }}%)</span>
                         </div>
                     @endif
                 </div>
@@ -583,7 +588,7 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <span class="text-xs font-bold text-gray-900">Without Subscription</span>
-                                <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-amber-100 text-amber-800 font-mono">{{ number_format($defaultCommission, 2) }}% Commission</span>
+                                <span class="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase bg-amber-100 text-amber-800 font-mono">{{ number_format($defaultCommission, 2) }}% (Incl. GST)</span>
                             </div>
                             <p class="text-[11px] text-gray-500 mt-0.5 leading-relaxed">
                                 Non-subscribed turfs incur the default baseline commission on every online booking.
