@@ -843,32 +843,35 @@ new #[Layout('layouts.app')] class extends Component
                     $paymentMethods = collect(['Unpaid / Pending']);
                 }
             @endphp
-            <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex justify-end transition">
-                <div class="w-full max-w-2xl bg-white min-h-screen p-6 sm:p-7 shadow-2xl flex flex-col justify-between border-l border-gray-200">
-                    <div class="space-y-6">
-                        
-                        <!-- 1. Drawer Header & Booking ID -->
-                        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
-                            <div>
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 uppercase tracking-wider">
-                                        Booking Ledger
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $bDetail->status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ($bDetail->status === 'Partially Cancelled' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-gray-100 text-gray-700 border border-gray-300') }}">
-                                        {{ $bDetail->status }}
-                                    </span>
-                                </div>
-                                <h2 class="text-2xl font-black text-gray-900 mt-1">
-                                    {{ $bDetail->booking_reference ?? ('#' . $bDetail->id) }}
-                                </h2>
-                                <p class="text-xs text-gray-400 mt-0.5">
-                                    Booked on {{ $bDetail->created_at ? $bDetail->created_at->format('d M Y, h:i A') : 'N/A' }} • ID #{{ $bDetail->id }}
-                                </p>
+            <div class="fixed inset-0 z-50 overflow-hidden bg-gray-900/60 backdrop-blur-xs flex justify-end transition"
+                 wire:click.self="closeDetails">
+                <div class="w-full max-w-2xl bg-white h-screen max-h-screen flex flex-col shadow-2xl border-l border-gray-200 overflow-hidden">
+                    
+                    <!-- 1. Drawer Header & Booking ID (Sticky Top) -->
+                    <div class="p-5 sm:p-6 border-b border-gray-200 bg-white flex items-center justify-between shrink-0 shadow-2xs">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 uppercase tracking-wider">
+                                    Booking Ledger
+                                </span>
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $bDetail->status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ($bDetail->status === 'Partially Cancelled' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-gray-100 text-gray-700 border border-gray-300') }}">
+                                    {{ $bDetail->status }}
+                                </span>
                             </div>
-                            <button wire:click="closeDetails" class="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                            </button>
+                            <h2 class="text-2xl font-black text-gray-900 mt-1">
+                                {{ $bDetail->booking_reference ?? ('#' . $bDetail->id) }}
+                            </h2>
+                            <p class="text-xs text-gray-400 mt-0.5">
+                                Booked on {{ $bDetail->created_at ? $bDetail->created_at->format('d M Y, h:i A') : 'N/A' }} • ID #{{ $bDetail->id }}
+                            </p>
                         </div>
+                        <button wire:click="closeDetails" class="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition cursor-pointer">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- 2. Scrollable Body Content -->
+                    <div class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-6">
 
                         <!-- 2. Customer & Contact Details + Turf & Location -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1170,24 +1173,24 @@ new #[Layout('layouts.app')] class extends Component
 
                     </div>
 
-                    <!-- Drawer Footer Actions -->
-                    <div class="pt-5 border-t border-gray-200 flex items-center gap-3 mt-6">
+                    <!-- 3. Drawer Footer Actions (Sticky Bottom) -->
+                    <div class="p-4 sm:p-5 border-t border-gray-200 bg-gray-50/90 shrink-0 flex items-center gap-3">
                         @if ($dBalance > 0 && $bDetail->status !== 'Cancelled')
                             @php $firstUnpaidDate = $bDetail->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
                             @if ($firstUnpaidDate)
-                                <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                                <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
                                     + Record Payment
                                 </button>
                             @endif
                         @endif
 
                         @if ($bDetail->status !== 'Cancelled')
-                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-3 px-5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition cursor-pointer">
+                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition cursor-pointer">
                                 Cancel Booking
                             </button>
                         @endif
 
-                        <button wire:click="closeDetails" class="py-3 px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer">
+                        <button wire:click="closeDetails" class="py-2.5 px-5 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs">
                             Close
                         </button>
                     </div>
