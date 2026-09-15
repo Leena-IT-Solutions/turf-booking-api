@@ -24,11 +24,7 @@ new #[Layout('layouts.app')] class extends Component
     public string $paymentStatusFilter = 'all';
     public string $bookingTypeFilter = 'all';
     public string $sortBy = 'newest';
-    public string $viewMode = 'table'; // 'table' or 'grid'
     public int $perPage = 15;
-
-    // Expanded Rows for Dates & Slots Levels
-    public array $expandedBookingIds = [];
 
     // Detail Drawer Modal
     public ?int $selectedBookingId = null;
@@ -64,22 +60,57 @@ new #[Layout('layouts.app')] class extends Component
     public function updatingStartDate() { $this->datePreset = 'custom'; $this->resetPage(); }
     public function updatingEndDate() { $this->datePreset = 'custom'; $this->resetPage(); }
 
-    public function toggleExpand(int $bookingId)
+    public function formatConsecutiveSlots($bookingSlots): array
     {
-        if (in_array($bookingId, $this->expandedBookingIds)) {
-            $this->expandedBookingIds = array_values(array_diff($this->expandedBookingIds, [$bookingId]));
-        } else {
-            $this->expandedBookingIds[] = $bookingId;
+        $slots = [];
+        foreach ($bookingSlots as $bs) {
+            if ($bs->slot && $bs->slot->from_time && $bs->slot->to_time) {
+                $slots[] = [
+                    'from' => substr($bs->slot->from_time, 0, 5),
+                    'to' => substr($bs->slot->to_time, 0, 5),
+                    'category' => $bs->slot->category?->name ?? 'Standard',
+                    'duration' => $bs->slot->duration ?? 30,
+                    'from_ts' => strtotime($bs->slot->from_time),
+                    'to_ts' => strtotime($bs->slot->to_time),
+                ];
+            }
         }
-    }
 
-    public function toggleExpandAll(array $currentBookingIds = [])
-    {
-        if (count($this->expandedBookingIds) >= count($currentBookingIds) && !empty($currentBookingIds)) {
-            $this->expandedBookingIds = [];
-        } else {
-            $this->expandedBookingIds = $currentBookingIds;
+        if (empty($slots)) {
+            return [];
         }
+
+        usort($slots, fn($a, $b) => $a['from_ts'] <=> $b['from_ts']);
+
+        $ranges = [];
+        $currentStart = $slots[0]['from_ts'];
+        $currentEnd = $slots[0]['to_ts'];
+        $count = 1;
+
+        for ($i = 1; $i < count($slots); $i++) {
+            if ($slots[$i]['from_ts'] === $currentEnd) {
+                // Continuous / consecutive slot
+                $currentEnd = $slots[$i]['to_ts'];
+                $count++;
+            } else {
+                $ranges[] = [
+                    'from' => date('h:i A', $currentStart),
+                    'to' => date('h:i A', $currentEnd),
+                    'slots_count' => $count,
+                ];
+                $currentStart = $slots[$i]['from_ts'];
+                $currentEnd = $slots[$i]['to_ts'];
+                $count = 1;
+            }
+        }
+
+        $ranges[] = [
+            'from' => date('h:i A', $currentStart),
+            'to' => date('h:i A', $currentEnd),
+            'slots_count' => $count,
+        ];
+
+        return $ranges;
     }
 
     public function setQuickPreset(string $preset)
@@ -358,23 +389,6 @@ new #[Layout('layouts.app')] class extends Component
                     Track, search, filter, and manage all customer slot bookings and offline payments in real-time.
                 </p>
             </div>
-
-            <!-- Header Action Controls -->
-            <div class="flex items-center gap-2">
-                <!-- View Mode Toggle -->
-                <div class="bg-gray-100 p-1 rounded-xl flex items-center border border-gray-200">
-                    <button wire:click="$set('viewMode', 'table')" type="button" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 {{ $viewMode === 'table' ? 'bg-white text-indigo-600 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-                        Table
-                    </button>
-                    <button wire:click="$set('viewMode', 'grid')" type="button" 
-                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 {{ $viewMode === 'grid' ? 'bg-white text-indigo-600 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                        Cards
-                    </button>
-                </div>
-            </div>
         </div>
 
         <!-- Flash Messages -->
@@ -623,740 +637,561 @@ new #[Layout('layouts.app')] class extends Component
             @endif
         </div>
 
-        <!-- Bookings Main Content (Table or Grid View) -->
-        @if ($viewMode === 'table')
-            <!-- COMPREHENSIVE 3-LEVEL TABLE VIEW -->
-            @php
-                $pageBookingIds = $bookings->pluck('id')->toArray();
-                $allPageExpanded = !empty($pageBookingIds) && count(array_intersect($pageBookingIds, $expandedBookingIds)) === count($pageBookingIds);
-            @endphp
-            <div class="bg-white rounded-2xl shadow-xs border border-gray-200 overflow-hidden">
-                <!-- Table Top Banner with Controls -->
-                <div class="px-5 py-3.5 bg-gray-50/70 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div class="flex items-center gap-2">
-                        <span class="font-bold text-gray-700">Level Hierarchy:</span>
-                        <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold border border-indigo-100">1. Booking</span>
-                        <span class="text-gray-400 font-bold">&rarr;</span>
-                        <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-semibold border border-amber-100">2. Booking Dates</span>
-                        <span class="text-gray-400 font-bold">&rarr;</span>
-                        <span class="px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 font-semibold border border-teal-100">3. Booking Slots</span>
-                    </div>
-                    <div>
-                        <button wire:click="toggleExpandAll(@js($pageBookingIds))" type="button"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition border {{ $allPageExpanded ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50' }} shadow-2xs">
-                            <svg class="w-4 h-4 transition-transform {{ $allPageExpanded ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                            <span>{{ $allPageExpanded ? 'Collapse All Dates & Slots' : 'Expand All Dates & Slots' }}</span>
-                        </button>
-                    </div>
-                </div>
+        <!-- Bookings Main Content: Full Width Cards -->
+        <div class="space-y-4">
+            @forelse ($bookings as $b)
+                @php
+                    $activeDates = $b->bookingDates->where('status', '!=', 'Cancelled');
+                    $totalAmount = (float)($b->total_amount > 0 ? $b->total_amount : $activeDates->sum('amount'));
+                    $paidSum = (float)$b->payments->where('status', 'Success')->sum('amount');
+                    $balance = max(0.00, $totalAmount - $paidSum);
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <!-- LEVEL 1: BOOKING LEVEL HEADER -->
-                        <thead class="bg-gray-100/80 text-gray-600 uppercase tracking-wider font-extrabold border-b border-gray-200 text-[11px]">
-                            <tr>
-                                <th class="w-10 px-3 py-3.5 text-center">#</th>
-                                <th class="px-4 py-3.5 whitespace-nowrap">Booking & Time</th>
-                                <th class="px-4 py-3.5 min-w-[200px]">Customer</th>
-                                <th class="px-4 py-3.5 min-w-[180px]">Turf & Type</th>
-                                <th class="px-4 py-3.5 min-w-[160px]">Dates & Sessions</th>
-                                <th class="px-4 py-3.5 min-w-[220px]">Financial Breakdown</th>
-                                <th class="px-4 py-3.5 whitespace-nowrap">Statuses</th>
-                                <th class="px-4 py-3.5 text-right whitespace-nowrap">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200 text-gray-700">
-                            @forelse ($bookings as $b)
-                                @php
-                                    $isExpanded = in_array($b->id, $expandedBookingIds);
-                                    $activeDates = $b->bookingDates->where('status', '!=', 'Cancelled');
-                                    $totalAmount = (float)($b->total_amount > 0 ? $b->total_amount : $activeDates->sum('amount'));
-                                    $paidSum = (float)$b->payments->where('status', 'Success')->sum('amount');
-                                    $balance = max(0.00, $totalAmount - $paidSum);
+                    // Collect all booking slots across dates to compute overall timing or datewise timing
+                    $allSlots = $b->bookingDates->flatMap(fn($bd) => $bd->bookingSlots);
+                    $consecutiveRanges = $this->formatConsecutiveSlots($allSlots);
 
-                                    $totalSlotsCount = $b->bookingDates->sum(fn($bd) => $bd->bookingSlots->count());
-                                    $datesCount = $b->bookingDates->count();
-                                    $cancelledDatesCount = $b->bookingDates->where('status', 'Cancelled')->count();
-                                @endphp
+                    $dateList = $b->bookingDates->pluck('booking_date')->toArray();
+                @endphp
 
-                                <!-- LEVEL 1: BOOKING MASTER ROW -->
-                                <tr class="transition {{ $isExpanded ? 'bg-indigo-50/25' : 'hover:bg-gray-50/70' }}">
-                                    <!-- Expand/Collapse Chevron -->
-                                    <td class="px-3 py-4 text-center align-top">
-                                        <button wire:click="toggleExpand({{ $b->id }})" type="button" 
-                                            title="{{ $isExpanded ? 'Hide Dates & Slots' : 'Show Dates & Slots' }}"
-                                            class="w-7 h-7 inline-flex items-center justify-center rounded-lg border border-gray-200 hover:border-indigo-400 bg-white hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 transition shadow-2xs cursor-pointer">
-                                            <svg class="w-4 h-4 transition-transform duration-200 {{ $isExpanded ? 'rotate-90 text-indigo-600' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                                            </svg>
-                                        </button>
-                                    </td>
-
-                                    <!-- 1. Booking Reference & Booked At Timestamp -->
-                                    <td class="px-4 py-4 align-top whitespace-nowrap">
-                                        <div class="font-black text-gray-900 text-sm tracking-tight">
-                                            {{ $b->booking_reference ?? ('#' . $b->id) }}
-                                        </div>
-                                        <div class="text-[11px] text-gray-500 mt-1 flex items-center gap-1.5">
-                                            <span class="text-gray-400">Booked:</span>
-                                            <span class="font-medium text-gray-700">{{ $b->created_at ? $b->created_at->format('d M Y, h:i A') : 'N/A' }}</span>
-                                        </div>
-                                        <div class="mt-1">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-gray-100 text-gray-600 border border-gray-200">
-                                                ID #{{ $b->id }}
-                                            </span>
-                                        </div>
-                                    </td>
-
-                                    <!-- 2. Customer Details -->
-                                    <td class="px-4 py-4 align-top">
-                                        <div class="flex items-start gap-2.5">
-                                            <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-black flex items-center justify-center text-xs shrink-0 border border-indigo-200 mt-0.5">
-                                                {{ strtoupper(substr($b->user?->name ?? 'G', 0, 1)) }}
-                                            </div>
-                                            <div class="space-y-0.5 min-w-0">
-                                                <div class="font-bold text-gray-900 text-xs truncate">
-                                                    {{ $b->user?->name ?? 'Manual / Guest User' }}
-                                                </div>
-                                                <div class="text-[11px] text-gray-600 font-medium flex items-center gap-1">
-                                                    <svg class="w-3 h-3 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                                                    <span>{{ $b->user?->mobile ?? 'No Mobile' }}</span>
-                                                </div>
-                                                @if ($b->user?->email)
-                                                    <div class="text-[10px] text-gray-400 truncate max-w-[170px]" title="{{ $b->user->email }}">
-                                                        {{ $b->user->email }}
-                                                    </div>
-                                                @endif
-                                                @if ($b->customer_gstin || $b->customer_company_name)
-                                                    <div class="mt-1 pt-1 border-t border-gray-100 text-[10px] text-indigo-700 font-semibold">
-                                                        🏢 {{ $b->customer_company_name ?? 'B2B' }} (GSTIN: {{ $b->customer_gstin ?? 'N/A' }})
-                                                    </div>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <!-- 3. Turf & Location & Booking Type -->
-                                    <td class="px-4 py-4 align-top">
-                                        <div class="font-extrabold text-gray-900 text-xs">
-                                            {{ $b->turf?->name ?? 'Turf' }}
-                                        </div>
-                                        <div class="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1">
-                                            <span>📍 {{ $b->turf?->location?->name ?? 'Main Location' }}</span>
-                                        </div>
-                                        <div class="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                                                {{ ucfirst($b->booking_type ?? 'day') }}
-                                            </span>
-                                            @if ($b->turf?->type)
-                                                <span class="text-[10px] text-gray-500">({{ $b->turf->type }})</span>
-                                            @endif
-                                        </div>
-                                    </td>
-
-                                    <!-- 4. Dates & Sessions Level Summary -->
-                                    <td class="px-4 py-4 align-top">
-                                        <div class="flex items-center gap-1.5">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                                📅 {{ $datesCount }} {{ \Illuminate\Support\Str::plural('Date', $datesCount) }}
-                                            </span>
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
-                                                ⏰ {{ $totalSlotsCount }} {{ \Illuminate\Support\Str::plural('Slot', $totalSlotsCount) }}
-                                            </span>
-                                        </div>
-                                        <div class="text-[11px] text-gray-600 mt-1.5 font-medium">
-                                            @php
-                                                $dateList = $b->bookingDates->pluck('booking_date')->toArray();
-                                            @endphp
-                                            @if (count($dateList) === 1)
-                                                <span>{{ $dateList[0] }}</span>
-                                            @elseif (count($dateList) > 1)
-                                                <span>{{ $dateList[0] }} &rarr; {{ end($dateList) }}</span>
-                                            @else
-                                                <span class="text-gray-400 italic">No dates</span>
-                                            @endif
-                                        </div>
-                                        @if ($cancelledDatesCount > 0)
-                                            <div class="text-[10px] text-red-600 font-bold mt-0.5">
-                                                ⚠️ {{ $cancelledDatesCount }} date(s) cancelled
-                                            </div>
-                                        @endif
-                                    </td>
-
-                                    <!-- 5. Financial Breakdown -->
-                                    <td class="px-4 py-4 align-top">
-                                        <div class="space-y-1">
-                                            <!-- Total & Balance Highlights -->
-                                            <div class="flex items-center justify-between gap-2">
-                                                <span class="font-extrabold text-gray-900 text-xs">Total: ₹{{ number_format($totalAmount, 2) }}</span>
-                                                <span class="font-bold text-[11px] {{ $balance > 0 ? 'text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200' : 'text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200' }}">
-                                                    {{ $balance > 0 ? ('Due: ₹' . number_format($balance, 2)) : 'Paid in Full' }}
-                                                </span>
-                                            </div>
-                                            <!-- Sub-breakdown details -->
-                                            <div class="text-[10px] text-gray-500 space-y-0.5 pt-1 border-t border-gray-100">
-                                                <div class="flex items-center justify-between">
-                                                    <span>Taxable Base:</span>
-                                                    <span class="font-medium text-gray-700">₹{{ number_format($b->taxable_amount ?? 0, 2) }}</span>
-                                                </div>
-                                                @if ((float)$b->coupon_discount > 0 || (float)$b->additional_discount > 0)
-                                                    <div class="flex items-center justify-between text-emerald-600 font-medium">
-                                                        <span>Discounts:</span>
-                                                        <span>-₹{{ number_format(((float)$b->coupon_discount + (float)$b->additional_discount), 2) }}</span>
-                                                    </div>
-                                                @endif
-                                                @if ((float)$b->turf_gst_amount > 0)
-                                                    <div class="flex items-center justify-between">
-                                                        <span>Turf GST ({{ (float)$b->turf_gst_rate }}%):</span>
-                                                        <span class="font-medium text-gray-700">₹{{ number_format($b->turf_gst_amount, 2) }}</span>
-                                                    </div>
-                                                @endif
-                                                @if ((float)$b->platform_fee > 0)
-                                                    <div class="flex items-center justify-between">
-                                                        <span>Platform Fee:</span>
-                                                        <span class="font-medium text-gray-700">₹{{ number_format(((float)$b->platform_fee + (float)$b->platform_fee_gst), 2) }}</span>
-                                                    </div>
-                                                @endif
-                                                <div class="flex items-center justify-between text-emerald-700 font-bold pt-0.5">
-                                                    <span>Paid Amount:</span>
-                                                    <span>₹{{ number_format($paidSum, 2) }}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-
-                                    <!-- 6. Statuses -->
-                                    <td class="px-4 py-4 align-top whitespace-nowrap">
-                                        <div class="space-y-1.5">
-                                            <!-- Booking Status Badge -->
-                                            <div>
-                                                @if ($b->status === 'Confirmed')
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                                        ● Confirmed
-                                                    </span>
-                                                @elseif ($b->status === 'Partially Cancelled')
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                                                        ● Partially Cancelled
-                                                    </span>
-                                                @else
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-700 border border-gray-300">
-                                                        ● Cancelled
-                                                    </span>
-                                                @endif
-                                            </div>
-
-                                            <!-- Payment Status Badge -->
-                                            <div>
-                                                @if ($b->payment_status === 'Paid')
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                        ✓ Paid
-                                                    </span>
-                                                @elseif ($b->payment_status === 'Partially Paid')
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                                        ⏳ Partially Paid
-                                                    </span>
-                                                @else
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
-                                                        ✕ Unpaid
-                                                    </span>
-                                                @endif
-                                            </div>
-
-                                            <!-- Refund Audit (if cancelled) -->
-                                            @if ($b->refund_status && $b->refund_status !== 'Not Applicable')
-                                                <div class="text-[10px] font-semibold text-purple-700">
-                                                    Refund: {{ $b->refund_status }} (₹{{ number_format($b->refund_amount ?? 0, 2) }})
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </td>
-
-                                    <!-- 7. Actions -->
-                                    <td class="px-4 py-4 align-top text-right whitespace-nowrap">
-                                        <div class="flex flex-col items-end gap-1.5">
-                                            <button wire:click="viewDetails({{ $b->id }})" type="button" 
-                                                class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
-                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                                Ledger
-                                            </button>
-
-                                            @if ($balance > 0 && $b->status !== 'Cancelled')
-                                                @php $firstUnpaidDate = $b->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
-                                                @if ($firstUnpaidDate)
-                                                    <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" type="button" 
-                                                        class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer">
-                                                        + Record Pay
-                                                    </button>
-                                                @endif
-                                            @endif
-
-                                            <button wire:click="toggleExpand({{ $b->id }})" type="button" 
-                                                class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 mt-0.5">
-                                                <span>{{ $isExpanded ? 'Collapse' : 'Expand Levels' }}</span>
-                                                <svg class="w-3 h-3 transition-transform {{ $isExpanded ? 'rotate-180' : '' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-
-                                <!-- LEVEL 2 & LEVEL 3 EXPANDED CONTAINER ROW -->
-                                @if ($isExpanded)
-                                    <tr class="bg-indigo-50/20">
-                                        <td colspan="8" class="p-0">
-                                            <div class="p-4 sm:p-5 border-y border-indigo-100 space-y-4">
-                                                
-                                                <!-- Level Header Banner -->
-                                                <div class="flex items-center justify-between pb-2 border-b border-indigo-100">
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                                                        <h4 class="font-black text-gray-900 text-xs uppercase tracking-wider">
-                                                            Booking Dates & Slots Hierarchy for {{ $b->booking_reference ?? ('#' . $b->id) }}
-                                                        </h4>
-                                                    </div>
-                                                    <span class="text-[11px] text-gray-500 font-medium">
-                                                        Total {{ $datesCount }} {{ \Illuminate\Support\Str::plural('Date', $datesCount) }} • {{ $totalSlotsCount }} {{ \Illuminate\Support\Str::plural('Slot', $totalSlotsCount) }}
-                                                    </span>
-                                                </div>
-
-                                                <!-- LEVEL 2: DATES ACCORDION / LIST -->
-                                                <div class="space-y-3">
-                                                    @foreach ($b->bookingDates as $bdIndex => $bd)
-                                                        @php
-                                                            $bdPaidSum = (float) Payment::where('booking_date_id', $bd->id)->where('status', 'Success')->sum('amount');
-                                                            $bdBalance = max(0.00, (float)$bd->amount - $bdPaidSum);
-                                                            $dateCarbon = Carbon::parse($bd->booking_date);
-                                                        @endphp
-                                                        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-2xs">
-                                                            
-                                                            <!-- LEVEL 2: BOOKING DATE HEADER ROW (ALL COLUMNS) -->
-                                                            <div class="p-3.5 bg-gradient-to-r from-gray-50 to-amber-50/30 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-                                                                <!-- Date & Day -->
-                                                                <div class="flex items-center gap-3">
-                                                                    <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-xs shrink-0 border border-amber-200">
-                                                                        {{ $bdIndex + 1 }}
-                                                                    </span>
-                                                                    <div>
-                                                                        <div class="font-extrabold text-gray-900 text-xs sm:text-sm flex items-center gap-2">
-                                                                            <span>📅 {{ $dateCarbon->format('d M Y') }}</span>
-                                                                            <span class="text-xs font-semibold text-gray-500">({{ $dateCarbon->format('l') }})</span>
-                                                                        </div>
-                                                                        <div class="text-[10px] text-gray-500 mt-0.5">
-                                                                            Booking Date ID: #{{ $bd->id }}
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-
-                                                                <!-- Date Financial Breakdown -->
-                                                                <div class="flex flex-wrap items-center gap-4 text-xs">
-                                                                    <div>
-                                                                        <span class="text-[10px] uppercase font-bold text-gray-400 block">Date Amount</span>
-                                                                        <span class="font-black text-gray-900">₹{{ number_format($bd->amount, 2) }}</span>
-                                                                    </div>
-                                                                    <div>
-                                                                        <span class="text-[10px] uppercase font-bold text-gray-400 block">Paid</span>
-                                                                        <span class="font-bold text-emerald-700">₹{{ number_format($bdPaidSum, 2) }}</span>
-                                                                    </div>
-                                                                    <div>
-                                                                        <span class="text-[10px] uppercase font-bold text-gray-400 block">Balance</span>
-                                                                        <span class="font-bold {{ $bdBalance > 0 ? 'text-amber-700' : 'text-gray-400' }}">
-                                                                            ₹{{ number_format($bdBalance, 2) }}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <!-- Date Statuses -->
-                                                                    <div>
-                                                                        <span class="text-[10px] uppercase font-bold text-gray-400 block">Date Status</span>
-                                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ $bd->status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-100 text-gray-600 border border-gray-300' }}">
-                                                                            {{ $bd->status }}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <div>
-                                                                        <span class="text-[10px] uppercase font-bold text-gray-400 block">Payment</span>
-                                                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ $bd->payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ($bd->payment_status === 'Partially Paid' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200') }}">
-                                                                            {{ $bd->payment_status }}
-                                                                        </span>
-                                                                    </div>
-
-                                                                    <!-- Date Level Action -->
-                                                                    @if ($bdBalance > 0 && $bd->status !== 'Cancelled')
-                                                                        <div>
-                                                                            <button wire:click="openPaymentModal({{ $bd->id }})" type="button"
-                                                                                class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition shadow-2xs">
-                                                                                Pay Date
-                                                                            </button>
-                                                                        </div>
-                                                                    @endif
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Date Cancellation / Refund Audit (if cancelled) -->
-                                                            @if ($bd->status === 'Cancelled' || (float)$bd->cancellation_fee_applied > 0 || (float)$bd->refund_amount > 0)
-                                                                <div class="px-4 py-2 bg-red-50/50 border-b border-red-100 flex flex-wrap items-center justify-between text-[11px] text-red-800">
-                                                                    <div class="flex items-center gap-2">
-                                                                        <span>⚠️ <strong>Cancelled Date Audit:</strong></span>
-                                                                        <span>Fee: ₹{{ number_format($bd->cancellation_fee_applied ?? 0, 2) }}</span>
-                                                                        <span>•</span>
-                                                                        <span>Refund: ₹{{ number_format($bd->refund_amount ?? 0, 2) }} ({{ $bd->refund_status ?? 'N/A' }})</span>
-                                                                    </div>
-                                                                    <div class="text-[10px] text-gray-500">
-                                                                        {{ $bd->cancelled_at ? Carbon::parse($bd->cancelled_at)->format('d M Y, h:i A') : '' }}
-                                                                    </div>
-                                                                </div>
-                                                            @endif
-
-                                                            <!-- LEVEL 3: BOOKING SLOTS LEVEL (SUB-TABLE) -->
-                                                            <div class="p-3 bg-white">
-                                                                <div class="text-[10px] font-bold uppercase tracking-wider text-teal-800 mb-2 flex items-center gap-1.5">
-                                                                    <span class="w-2 h-2 rounded-full bg-teal-500"></span>
-                                                                    <span>Booked Slots Level ({{ $bd->bookingSlots->count() }} {{ \Illuminate\Support\Str::plural('Slot', $bd->bookingSlots->count()) }}):</span>
-                                                                </div>
-
-                                                                @if ($bd->bookingSlots->isNotEmpty())
-                                                                    <div class="overflow-x-auto rounded-lg border border-gray-200">
-                                                                        <table class="w-full text-left text-xs bg-white">
-                                                                            <thead class="bg-teal-50/60 text-teal-900 uppercase tracking-wider font-bold text-[10px] border-b border-gray-200">
-                                                                                <tr>
-                                                                                    <th class="px-3 py-2 w-12 text-center">#</th>
-                                                                                    <th class="px-3 py-2">Slot Time Window</th>
-                                                                                    <th class="px-3 py-2">Duration</th>
-                                                                                    <th class="px-3 py-2">Category</th>
-                                                                                    <th class="px-3 py-2">Slot Status</th>
-                                                                                    <th class="px-3 py-2 text-right">Estimated Rate</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody class="divide-y divide-gray-100 text-[11px] text-gray-700">
-                                                                                @foreach ($bd->bookingSlots as $sIndex => $bs)
-                                                                                    @php
-                                                                                        $fromFormatted = $bs->slot?->from_time ? date('h:i A', strtotime($bs->slot->from_time)) : 'N/A';
-                                                                                        $toFormatted = $bs->slot?->to_time ? date('h:i A', strtotime($bs->slot->to_time)) : 'N/A';
-                                                                                        $slotDuration = $bs->slot?->duration ?? 60;
-                                                                                        $slotCategory = $bs->slot?->category?->name ?? 'Standard';
-                                                                                        $avgSlotPrice = $bd->bookingSlots->count() > 0 ? ($bd->amount / $bd->bookingSlots->count()) : 0;
-                                                                                    @endphp
-                                                                                    <tr class="hover:bg-gray-50/50">
-                                                                                        <td class="px-3 py-2 text-center text-gray-400 font-bold">
-                                                                                            {{ $sIndex + 1 }}
-                                                                                        </td>
-                                                                                        <td class="px-3 py-2 font-bold text-gray-900 whitespace-nowrap">
-                                                                                            ⏰ {{ $fromFormatted }} &rarr; {{ $toFormatted }}
-                                                                                        </td>
-                                                                                        <td class="px-3 py-2 text-gray-600 whitespace-nowrap">
-                                                                                            {{ $slotDuration }} mins
-                                                                                        </td>
-                                                                                        <td class="px-3 py-2 whitespace-nowrap">
-                                                                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
-                                                                                                {{ $slotCategory }}
-                                                                                            </span>
-                                                                                        </td>
-                                                                                        <td class="px-3 py-2 whitespace-nowrap">
-                                                                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ $bs->status === 'Confirmed' || $bs->status === 'Booked' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-300' }}">
-                                                                                                {{ $bs->status ?? 'Booked' }}
-                                                                                            </span>
-                                                                                        </td>
-                                                                                        <td class="px-3 py-2 text-right font-bold text-gray-900 whitespace-nowrap">
-                                                                                            ₹{{ number_format($avgSlotPrice, 2) }}
-                                                                                        </td>
-                                                                                    </tr>
-                                                                                @endforeach
-                                                                            </tbody>
-                                                                        </table>
-                                                                    </div>
-                                                                @else
-                                                                    <p class="text-xs text-gray-400 italic">No specific slot intervals recorded for this date.</p>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endif
-                            @empty
-                                <tr>
-                                    <td colspan="8" class="px-6 py-12 text-center text-gray-500">
-                                        <div class="max-w-xs mx-auto space-y-2">
-                                            <span class="text-3xl block">📭</span>
-                                            @if (empty($manageableTurfIds))
-                                                <p class="font-bold text-gray-700">You don't have any turfs or bookings yet.</p>
-                                                <a href="{{ route('turf.turfs') }}" class="inline-block text-xs font-bold text-indigo-600 hover:underline">Add your first turf</a>
-                                            @else
-                                                <p class="font-bold text-gray-700">No bookings matched your search or filters.</p>
-                                                <button wire:click="clearFilters" class="text-xs font-bold text-indigo-600 hover:underline">Clear all filters</button>
-                                            @endif
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination Footer -->
-                <div class="p-4 border-t border-gray-100 bg-gray-50/50">
-                    {{ $bookings->links() }}
-                </div>
-            </div>
-
-        @else
-            <!-- GRID / CARD VIEW -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                @forelse ($bookings as $b)
-                    @php
-                        $activeDates = $b->bookingDates->where('status', '!=', 'Cancelled');
-                        $totalAmount = (float)$activeDates->sum('amount');
-                        $paidSum = (float)$b->payments->where('status', 'Success')->sum('amount');
-                        $balance = max(0.00, $totalAmount - $paidSum);
-                        $progress = $totalAmount > 0 ? min(100, round(($paidSum / $totalAmount) * 100)) : 0;
-                    @endphp
-
-                    <div class="bg-white rounded-2xl border border-gray-200 p-5 shadow-xs flex flex-col justify-between space-y-4 hover:border-indigo-400 transition">
-                        <div>
-                            <!-- Card Header -->
-                            <div class="flex items-start justify-between gap-2 border-b border-gray-100 pb-3">
-                                <div>
-                                    <span class="text-xs font-bold text-gray-900">{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
-                                    <h3 class="font-extrabold text-sm text-gray-900 mt-0.5">{{ $b->user?->name ?? 'Manual / Guest' }}</h3>
-                                    <p class="text-xs text-gray-500">{{ $b->user?->mobile ?? $b->user?->email ?? '' }}</p>
+                <div class="bg-white rounded-2xl border border-gray-200/90 hover:border-indigo-400/80 shadow-xs hover:shadow-md transition-all duration-200 p-5 sm:p-6">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                        
+                        <!-- Col 1: Booking ID & Timestamp -->
+                        <div class="flex items-start gap-3.5 lg:w-1/5 shrink-0">
+                            <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-black text-sm shrink-0">
+                                #
+                            </div>
+                            <div>
+                                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Booking ID</span>
+                                <div class="text-base font-black text-gray-900 tracking-tight mt-0.5">
+                                    {{ $b->booking_reference ?? ('#' . $b->id) }}
                                 </div>
-                                <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800 ' : 'bg-gray-200 text-gray-700 ' }}">
-                                    {{ $b->status }}
+                                <div class="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
+                                    <span>📅 {{ $b->created_at ? $b->created_at->format('d M Y, h:i A') : 'N/A' }}</span>
+                                </div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 mt-1.5 uppercase">
+                                    {{ ucfirst($b->booking_type ?? 'day') }}
                                 </span>
                             </div>
+                        </div>
 
-                            <!-- Dates & Turf -->
-                            <div class="mt-3 space-y-1.5 text-xs">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-gray-500">Turf & Location:</span>
-                                    <span class="font-bold text-gray-800 text-right">{{ $b->turf?->name }} ({{ $b->turf?->location?->name ?? 'Main' }})</span>
-                                </div>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-gray-500">Type:</span>
-                                    <span class="font-bold text-indigo-700 uppercase text-[10px]">{{ $b->booking_type ?? 'day' }}</span>
-                                </div>
+                        <!-- Col 2: Customer Details -->
+                        <div class="flex items-start gap-3 lg:w-1/4 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5">
+                            <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                {{ strtoupper(substr($b->user?->name ?? 'G', 0, 1)) }}
                             </div>
-
-                            <!-- Level 2 & 3: Dates & Booked Slots Summary -->
-                            <div class="mt-3 pt-2.5 border-t border-gray-100 space-y-2">
-                                <div class="flex items-center justify-between text-[11px]">
-                                    <span class="font-bold text-amber-800">📅 Session Dates ({{ $b->bookingDates->count() }}):</span>
-                                    <span class="text-teal-800 font-bold">⏰ {{ $b->bookingDates->sum(fn($bd) => $bd->bookingSlots->count()) }} Slots</span>
+                            <div class="min-w-0 space-y-0.5">
+                                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Customer Details</span>
+                                <div class="font-extrabold text-sm text-gray-900 truncate">
+                                    {{ $b->user?->name ?? 'Guest / Manual User' }}
                                 </div>
-                                <div class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
-                                    @foreach ($b->bookingDates as $cBd)
-                                        @php
-                                            $cBdCarbon = Carbon::parse($cBd->booking_date);
-                                        @endphp
-                                        <div class="p-2 rounded-lg bg-gray-50 border border-gray-100 text-[11px]">
-                                            <div class="flex items-center justify-between font-bold text-gray-900">
-                                                <span>{{ $cBdCarbon->format('d M Y') }} ({{ $cBdCarbon->format('D') }})</span>
-                                                <span>₹{{ number_format($cBd->amount, 2) }}</span>
-                                            </div>
-                                            <!-- Slots on this date -->
-                                            <div class="mt-1 flex flex-wrap gap-1">
-                                                @foreach ($cBd->bookingSlots as $cBs)
-                                                    @if ($cBs->slot)
-                                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-teal-50 text-teal-800 border border-teal-100 font-medium">
-                                                            {{ date('h:i A', strtotime($cBs->slot->from_time)) }}-{{ date('h:i A', strtotime($cBs->slot->to_time)) }}
-                                                        </span>
-                                                    @endif
-                                                @endforeach
-                                            </div>
+                                <div class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                    <span>{{ $b->user?->mobile ?? 'No contact' }}</span>
+                                </div>
+                                @if ($b->user?->email)
+                                    <div class="text-[11px] text-gray-400 truncate max-w-[200px]" title="{{ $b->user->email }}">
+                                        {{ $b->user->email }}
+                                    </div>
+                                @endif
+                                @if ($b->customer_gstin || $b->customer_company_name)
+                                    <div class="text-[10px] text-indigo-700 font-semibold mt-0.5">
+                                        🏢 {{ $b->customer_company_name ?? 'B2B' }} ({{ $b->customer_gstin }})
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Col 3: Booking Date -->
+                        <div class="lg:w-1/5 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5 space-y-1">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Booking Date</span>
+                            @if (count($dateList) === 1)
+                                @php $cdObj = Carbon::parse($dateList[0]); @endphp
+                                <div class="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
+                                    <span>📅 {{ $cdObj->format('d M Y') }}</span>
+                                </div>
+                                <span class="text-xs font-semibold text-gray-500">
+                                    {{ $cdObj->format('l') }}
+                                </span>
+                            @elseif (count($dateList) > 1)
+                                <div class="font-extrabold text-sm text-gray-900">
+                                    📅 {{ Carbon::parse($dateList[0])->format('d M') }} &rarr; {{ Carbon::parse(end($dateList))->format('d M Y') }}
+                                </div>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                    {{ count($dateList) }} Dates Total
+                                </span>
+                            @else
+                                <span class="text-xs text-gray-400 italic">No date recorded</span>
+                            @endif
+
+                            <div class="text-[11px] text-gray-500 pt-1">
+                                Turf: <strong class="text-gray-800">{{ $b->turf?->name }}</strong>
+                            </div>
+                        </div>
+
+                        <!-- Col 4: Timing (Consecutive Slots from - to) -->
+                        <div class="lg:w-1/4 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5 space-y-1">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Timing (Slots Range)</span>
+                            
+                            @if (!empty($consecutiveRanges))
+                                <div class="space-y-1.5">
+                                    @foreach ($consecutiveRanges as $range)
+                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-teal-50/80 border border-teal-200 text-teal-900 font-extrabold text-xs shadow-2xs">
+                                            <span>⏰ {{ $range['from'] }} - {{ $range['to'] }}</span>
+                                            @if ($range['slots_count'] > 1)
+                                                <span class="text-[10px] font-bold px-1.5 py-0.2 bg-teal-200/60 rounded text-teal-800">
+                                                    {{ $range['slots_count'] }} slots
+                                                </span>
+                                            @endif
                                         </div>
                                     @endforeach
                                 </div>
-                            </div>
-
-                            <!-- Payment Progress Bar -->
-                            <div class="mt-3 space-y-1">
-                                <div class="flex items-center justify-between text-xs font-bold">
-                                    <span class="text-gray-700">₹{{ number_format($paidSum, 2) }} paid</span>
-                                    <span class="text-gray-500">Total: ₹{{ number_format($totalAmount, 2) }}</span>
-                                </div>
-                                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
-                                    <div class="h-full bg-emerald-500 rounded-full transition-all" style="width: {{ $progress }}%"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Card Action Footer -->
-                        <div class="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
-                            <button wire:click="viewDetails({{ $b->id }})" type="button" 
-                                class="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition text-center">
-                                View Details
-                            </button>
-
-                            @if ($balance > 0 && $b->status !== 'Cancelled')
-                                @php $firstUnpaidDate = $b->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
-                                @if ($firstUnpaidDate)
-                                    <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" type="button" 
-                                        class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition text-center shadow-xs">
-                                        + Record Pay
-                                    </button>
-                                @endif
+                            @else
+                                <span class="text-xs text-gray-400 italic">No slot timings recorded</span>
                             @endif
-                        </div>
-                    </div>
-                @empty
-                    <div class="col-span-full bg-white p-12 rounded-2xl border border-gray-200 text-center text-gray-500 space-y-2">
-                        <span class="text-3xl block">📭</span>
-                        @if (empty($manageableTurfIds))
-                            <p class="font-bold text-gray-700">You don't have any turfs or bookings yet.</p>
-                            <a href="{{ route('turf.turfs') }}" class="inline-block text-xs font-bold text-indigo-600 hover:underline">Add your first turf</a>
-                        @else
-                            <p class="font-bold text-gray-700">No bookings found matching your search.</p>
-                        @endif
-                    </div>
-                @endforelse
-            </div>
 
-            <div class="mt-4">
-                {{ $bookings->links() }}
-            </div>
-        @endif
+                            <div class="text-[11px] text-gray-500 pt-1 flex items-center gap-1">
+                                <span>Total Booked: <strong>{{ $allSlots->count() }} {{ \Illuminate\Support\Str::plural('slot', $allSlots->count()) }}</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Col 5: Financials, Status & Action -->
+                        <div class="flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5 shrink-0">
+                            <div class="text-left lg:text-right space-y-1">
+                                <div class="text-sm font-black text-gray-900">
+                                    ₹{{ number_format($totalAmount, 2) }}
+                                </div>
+                                <div>
+                                    @if ($b->payment_status === 'Paid')
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            ✓ Paid
+                                        </span>
+                                    @elseif ($b->payment_status === 'Partially Paid')
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            Due: ₹{{ number_format($balance, 2) }}
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                            Unpaid
+                                        </span>
+                                    @endif
+                                </div>
+                                <div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ $b->status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ($b->status === 'Partially Cancelled' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-gray-100 text-gray-600 border border-gray-300') }}">
+                                        {{ $b->status }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-1.5">
+                                <button wire:click="viewDetails({{ $b->id }})" type="button" 
+                                    class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs hover:shadow-md cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                    View Details
+                                </button>
+
+                                @if ($balance > 0 && $b->status !== 'Cancelled')
+                                    @php $firstUnpaidDate = $b->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
+                                    @if ($firstUnpaidDate)
+                                        <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" type="button" 
+                                            class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition text-center shadow-2xs">
+                                            + Pay
+                                        </button>
+                                    @endif
+                                @endif
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            @empty
+                <div class="bg-white p-12 rounded-2xl border border-gray-200 text-center text-gray-500 space-y-2">
+                    <span class="text-3xl block">📭</span>
+                    @if (empty($manageableTurfIds))
+                        <p class="font-bold text-gray-700">You don't have any turfs or bookings yet.</p>
+                        <a href="{{ route('turf.turfs') }}" class="inline-block text-xs font-bold text-indigo-600 hover:underline">Add your first turf</a>
+                    @else
+                        <p class="font-bold text-gray-700">No bookings found matching your search or filters.</p>
+                        <button wire:click="clearFilters" class="text-xs font-bold text-indigo-600 hover:underline">Clear all filters</button>
+                    @endif
+                </div>
+            @endforelse
+        </div>
+
+        <!-- Pagination -->
+        <div class="mt-4">
+            {{ $bookings->links() }}
+        </div>
 
     </div>
 
     <!-- DETAILS DRAWER MODAL -->
     @if ($showDetailModal && $selectedBookingId)
         @php
-            $bDetail = Booking::with(['turf', 'user', 'bookingDates.bookingSlots.slot', 'payments'])->find($selectedBookingId);
+            $bDetail = Booking::with(['turf.location', 'user', 'bookingDates.bookingSlots.slot.category', 'payments'])->find($selectedBookingId);
         @endphp
         @if ($bDetail)
+            @php
+                $dActiveDates = $bDetail->bookingDates->where('status', '!=', 'Cancelled');
+                $dTotalAmount = (float)($bDetail->total_amount > 0 ? $bDetail->total_amount : $dActiveDates->sum('amount'));
+                $dPaidSum = (float)$bDetail->payments->where('status', 'Success')->sum('amount');
+                $dBalance = max(0.00, $dTotalAmount - $dPaidSum);
+
+                // Collect distinct payment methods used
+                $paymentMethods = $bDetail->payments->where('status', 'Success')->pluck('payment_method')->unique()->filter()->values();
+                if ($paymentMethods->isEmpty()) {
+                    $paymentMethods = collect(['Unpaid / Pending']);
+                }
+            @endphp
             <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex justify-end transition">
-                <div class="w-full max-w-xl bg-white min-h-screen p-6 shadow-2xl flex flex-col justify-between border-l border-gray-200">
+                <div class="w-full max-w-2xl bg-white min-h-screen p-6 sm:p-7 shadow-2xl flex flex-col justify-between border-l border-gray-200">
                     <div class="space-y-6">
-                        <!-- Modal Header -->
-                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                        
+                        <!-- 1. Drawer Header & Booking ID -->
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-200">
                             <div>
-                                <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">Booking Ledger</span>
-                                <h2 class="text-xl font-black text-gray-900">{{ $bDetail->booking_reference ?? ('#' . $bDetail->id) }}</h2>
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100 uppercase tracking-wider">
+                                        Booking Ledger
+                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold {{ $bDetail->status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ($bDetail->status === 'Partially Cancelled' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-gray-100 text-gray-700 border border-gray-300') }}">
+                                        {{ $bDetail->status }}
+                                    </span>
+                                </div>
+                                <h2 class="text-2xl font-black text-gray-900 mt-1">
+                                    {{ $bDetail->booking_reference ?? ('#' . $bDetail->id) }}
+                                </h2>
+                                <p class="text-xs text-gray-400 mt-0.5">
+                                    Booked on {{ $bDetail->created_at ? $bDetail->created_at->format('d M Y, h:i A') : 'N/A' }} • ID #{{ $bDetail->id }}
+                                </p>
                             </div>
-                            <button wire:click="closeDetails" class="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <button wire:click="closeDetails" class="p-2 text-gray-400 hover:text-gray-600 rounded-xl hover:bg-gray-100 transition">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                             </button>
                         </div>
 
-                        <!-- Financial Summary Box -->
-                        @php
-                            $dActiveDates = $bDetail->bookingDates->where('status', '!=', 'Cancelled');
-                            $dTotalAmount = (float)$dActiveDates->sum('amount');
-                            $dPaidSum = (float)$bDetail->payments->where('status', 'Success')->sum('amount');
-                            $dBalance = max(0.00, $dTotalAmount - $dPaidSum);
-                        @endphp
+                        <!-- 2. Customer & Contact Details + Turf & Location -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Customer Details -->
+                            <div class="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/80 space-y-1.5">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Customer & Contact</span>
+                                <div class="font-black text-sm text-gray-900">
+                                    {{ $bDetail->user?->name ?? 'Guest User' }}
+                                </div>
+                                <div class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                    <span>{{ $bDetail->user?->mobile ?? 'No contact mobile' }}</span>
+                                </div>
+                                @if ($bDetail->user?->email)
+                                    <div class="text-xs text-gray-500 truncate" title="{{ $bDetail->user->email }}">
+                                        ✉️ {{ $bDetail->user->email }}
+                                    </div>
+                                @endif
+                                @if ($bDetail->customer_gstin || $bDetail->customer_company_name)
+                                    <div class="pt-2 border-t border-gray-200 text-xs text-indigo-700 font-semibold">
+                                        🏢 {{ $bDetail->customer_company_name ?? 'B2B Client' }}
+                                        <div class="text-[11px] text-gray-500">GSTIN: {{ $bDetail->customer_gstin ?? 'N/A' }}</div>
+                                    </div>
+                                @endif
+                            </div>
 
-                        <div class="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-3">
-                            <div class="grid grid-cols-3 gap-2 text-center">
-                                <div class="p-2 rounded-lg bg-white border border-gray-100">
-                                    <span class="text-[10px] font-bold text-gray-400 uppercase">Total</span>
-                                    <p class="text-sm font-black text-gray-900 mt-0.5">₹{{ number_format($dTotalAmount, 2) }}</p>
+                            <!-- Turf & Location -->
+                            <div class="p-4 rounded-2xl bg-gray-50/80 border border-gray-200/80 space-y-1.5">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Turf & Location</span>
+                                <div class="font-black text-sm text-gray-900">
+                                    {{ $bDetail->turf?->name }}
                                 </div>
-                                <div class="p-2 rounded-lg bg-white border border-gray-100">
-                                    <span class="text-[10px] font-bold text-emerald-600 uppercase">Paid</span>
-                                    <p class="text-sm font-black text-emerald-600 mt-0.5">₹{{ number_format($dPaidSum, 2) }}</p>
+                                <div class="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                                    <span>📍 {{ $bDetail->turf?->location?->name ?? 'Main Location' }}</span>
                                 </div>
-                                <div class="p-2 rounded-lg bg-white border border-gray-100">
-                                    <span class="text-[10px] font-bold text-amber-600 uppercase">Balance</span>
-                                    <p class="text-sm font-black text-amber-600 mt-0.5">₹{{ number_format($dBalance, 2) }}</p>
+                                <div class="pt-1.5 flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-100 uppercase">
+                                        {{ ucfirst($bDetail->booking_type ?? 'day') }} Session
+                                    </span>
+                                    @if ($bDetail->turf?->type)
+                                        <span class="text-xs text-gray-500">({{ $bDetail->turf->type }})</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Customer & Turf Overview -->
-                        <div class="grid grid-cols-2 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                            <div>
-                                <span class="text-[10px] font-bold uppercase text-gray-400">Customer Info</span>
-                                <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $bDetail->user?->name ?? 'Guest User' }}</p>
-                                <p class="text-xs text-gray-500">{{ $bDetail->user?->mobile ?? 'No Mobile' }}</p>
-                                <p class="text-xs text-gray-500 truncate">{{ $bDetail->user?->email ?? '' }}</p>
+                        <!-- 3. Paid Amount & Balance Amount Breakup + Mode of Payment -->
+                        <div class="p-4 rounded-2xl bg-gradient-to-br from-gray-50 to-indigo-50/20 border border-gray-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Payment & Balance Breakup</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[11px] text-gray-400">Mode:</span>
+                                    @foreach ($paymentMethods as $pm)
+                                        <span class="px-2 py-0.5 rounded bg-white text-gray-800 border border-gray-200 text-xs font-bold shadow-2xs">
+                                            {{ $pm }}
+                                        </span>
+                                    @endforeach
+                                </div>
                             </div>
-                            <div>
-                                <span class="text-[10px] font-bold uppercase text-gray-400">Turf & Session Type</span>
-                                <p class="text-sm font-bold text-gray-900 mt-0.5">{{ $bDetail->turf?->name }}</p>
-                                <span class="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-100 text-indigo-800">
-                                    {{ ucfirst($bDetail->booking_type) }} Session
-                                </span>
+
+                            <div class="grid grid-cols-3 gap-3 text-center">
+                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Booking</span>
+                                    <p class="text-base font-black text-gray-900 mt-0.5">₹{{ number_format($dTotalAmount, 2) }}</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Total Paid</span>
+                                    <p class="text-base font-black text-emerald-600 mt-0.5">₹{{ number_format($dPaidSum, 2) }}</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold {{ $dBalance > 0 ? 'text-amber-600' : 'text-gray-400' }} uppercase tracking-wider">Balance Due</span>
+                                    <p class="text-base font-black {{ $dBalance > 0 ? 'text-amber-600' : 'text-gray-400' }} mt-0.5">₹{{ number_format($dBalance, 2) }}</p>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Dates & Slots Timeline -->
-                        <div>
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Booked Dates & Slots</h3>
-                            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                                @foreach ($bDetail->bookingDates as $bd)
+                        <!-- 4. Booking Slots Datewise List with Timing (Consecutive First & Last from - to) -->
+                        <div class="space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
+                                    <span>📅 Booked Dates & Slot Timings</span>
+                                    <span class="text-gray-400">({{ $bDetail->bookingDates->count() }} {{ \Illuminate\Support\Str::plural('date', $bDetail->bookingDates->count()) }})</span>
+                                </h3>
+                            </div>
+
+                            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                @foreach ($bDetail->bookingDates as $dIndex => $bd)
                                     @php
+                                        $bdDateCarbon = Carbon::parse($bd->booking_date);
                                         $bdPaidSum = (float) Payment::where('booking_date_id', $bd->id)->where('status', 'Success')->sum('amount');
+                                        $bdBalance = max(0.00, (float)$bd->amount - $bdPaidSum);
+                                        $dateRanges = $this->formatConsecutiveSlots($bd->bookingSlots);
                                     @endphp
-                                    <div class="p-3 rounded-xl border border-gray-100 bg-white flex items-center justify-between">
-                                        <div>
-                                            <div class="font-bold text-xs text-gray-900">📅 {{ $bd->booking_date }}</div>
-                                            <div class="text-[11px] text-gray-500 mt-0.5">
-                                                Slots: 
-                                                @foreach ($bd->bookingSlots as $bs)
-                                                    @if ($bs->slot)
-                                                        {{ date('h:i A', strtotime($bs->slot->from_time)) }} - {{ date('h:i A', strtotime($bs->slot->to_time)) }}@if (!$loop->last), @endif
-                                                    @endif
-                                                @endforeach
+                                    <div class="p-3.5 rounded-xl border border-gray-200 bg-white hover:border-indigo-200 transition shadow-2xs space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center gap-2">
+                                                <span class="w-6 h-6 rounded-md bg-amber-100 text-amber-800 text-xs font-black flex items-center justify-center">
+                                                    {{ $dIndex + 1 }}
+                                                </span>
+                                                <div>
+                                                    <span class="font-extrabold text-xs text-gray-900">
+                                                        📅 {{ $bdDateCarbon->format('d M Y') }} ({{ $bdDateCarbon->format('l') }})
+                                                    </span>
+                                                    <span class="text-[10px] text-gray-400 ml-1">ID #{{ $bd->id }}</span>
+                                                </div>
+                                            </div>
+                                            <div class="text-right">
+                                                <span class="font-black text-xs text-gray-900">₹{{ number_format($bd->amount, 2) }}</span>
+                                                <span class="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold {{ $bd->payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : ($bd->payment_status === 'Partially Paid' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700') }}">
+                                                    {{ $bd->payment_status }}
+                                                </span>
                                             </div>
                                         </div>
-                                        <div class="text-right">
-                                            <div class="font-bold text-xs text-gray-900">₹{{ number_format($bd->amount, 2) }}</div>
-                                            <span class="text-[10px] font-bold {{ $bd->payment_status === 'Paid' ? 'text-emerald-600' : ($bd->payment_status === 'Partially Paid' ? 'text-amber-600' : 'text-red-600') }}">
-                                                {{ $bd->payment_status }} (Paid: ₹{{ number_format($bdPaidSum, 2) }})
-                                            </span>
+
+                                        <!-- Consecutive Timings (from - to) -->
+                                        <div class="pt-1.5 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                                            <span class="text-[10px] font-bold uppercase text-gray-400">Timing:</span>
+                                            @if (!empty($dateRanges))
+                                                @foreach ($dateRanges as $range)
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-50 border border-teal-200 text-teal-900 text-xs font-black">
+                                                        ⏰ {{ $range['from'] }} - {{ $range['to'] }}
+                                                        @if ($range['slots_count'] > 1)
+                                                            <span class="text-[10px] text-teal-700 font-bold">({{ $range['slots_count'] }} slots)</span>
+                                                        @endif
+                                                    </span>
+                                                @endforeach
+                                            @else
+                                                <span class="text-xs text-gray-400 italic">No slot timing recorded</span>
+                                            @endif
                                         </div>
                                     </div>
                                 @endforeach
                             </div>
                         </div>
 
-                        <!-- Payments Ledger -->
-                        <div>
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">Payments History</h3>
+                        <!-- 5. Complete Financial Breakup Sections -->
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-600">Complete Financial Breakup</h3>
+                            
+                            <!-- Financial Table Matrix -->
+                            <div class="rounded-2xl border border-gray-200 overflow-hidden text-xs divide-y divide-gray-100 bg-white">
+                                
+                                <!-- Base Taxable & Discounts -->
+                                <div class="p-3 bg-gray-50/50 flex items-center justify-between">
+                                    <span class="text-gray-600 font-medium">Taxable Base Amount:</span>
+                                    <span class="font-extrabold text-gray-900">₹{{ number_format($bDetail->taxable_amount ?? 0, 2) }}</span>
+                                </div>
+
+                                @if ((float)$bDetail->coupon_discount > 0 || (float)$bDetail->additional_discount > 0)
+                                    <div class="p-3 bg-emerald-50/40 flex items-center justify-between text-emerald-800">
+                                        <span>Coupon / Additional Discounts:</span>
+                                        <span class="font-extrabold">-₹{{ number_format(((float)$bDetail->coupon_discount + (float)$bDetail->additional_discount), 2) }}</span>
+                                    </div>
+                                @endif
+
+                                <!-- GST Breakup -->
+                                <div class="p-3 space-y-1.5 bg-white">
+                                    <div class="flex items-center justify-between font-bold text-gray-800">
+                                        <span>GST Breakup (Rate: {{ (float)$bDetail->turf_gst_rate }}%):</span>
+                                        <span>₹{{ number_format($bDetail->turf_gst_amount ?? 0, 2) }}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                        <div class="flex justify-between">
+                                            <span>CGST:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_cgst_amount ?? 0, 2) }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>SGST:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_sgst_amount ?? 0, 2) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Platform Fee Breakup -->
+                                <div class="p-3 space-y-1.5 bg-white">
+                                    <div class="flex items-center justify-between font-bold text-gray-800">
+                                        <span>Platform Fee with Breakup:</span>
+                                        <span>₹{{ number_format(((float)$bDetail->platform_fee + (float)$bDetail->platform_fee_gst), 2) }}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                        <div class="flex justify-between">
+                                            <span>Base Fee:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee ?? 0, 2) }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Fee GST:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_gst ?? 0, 2) }}</span>
+                                        </div>
+                                        @if ((float)$bDetail->platform_fee_cgst > 0)
+                                            <div class="flex justify-between">
+                                                <span>Fee CGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_cgst, 2) }}</span>
+                                            </div>
+                                        @endif
+                                        @if ((float)$bDetail->platform_fee_sgst > 0)
+                                            <div class="flex justify-between">
+                                                <span>Fee SGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_sgst, 2) }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Platform Commission Breakup -->
+                                <div class="p-3 space-y-1.5 bg-white">
+                                    <div class="flex items-center justify-between font-bold text-gray-800">
+                                        <span>Platform Commission Breakup (Rate: {{ (float)$bDetail->commission_rate }}%):</span>
+                                        <span>₹{{ number_format(((float)$bDetail->commission_amount + (float)$bDetail->commission_gst_amount), 2) }}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                        <div class="flex justify-between">
+                                            <span>Commission Base:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_amount ?? 0, 2) }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Commission GST:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_gst_amount ?? 0, 2) }}</span>
+                                        </div>
+                                        <div class="flex justify-between col-span-2 pt-1 border-t border-gray-100 text-indigo-700 font-bold">
+                                            <span>Estimated Turf Payout:</span>
+                                            <span>₹{{ number_format($bDetail->turf_payout_amount ?? 0, 2) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Payment Gateway Charges Breakup -->
+                                <div class="p-3 space-y-1.5 bg-white">
+                                    <div class="flex items-center justify-between font-bold text-gray-800">
+                                        <span>Payment Gateway Charges Breakup:</span>
+                                        <span>₹{{ number_format(((float)$bDetail->gateway_charge_amount + (float)$bDetail->gateway_tax_amount), 2) }}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                        <div class="flex justify-between">
+                                            <span>Gateway Fee:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->gateway_charge_amount ?? 0, 2) }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Gateway Tax:</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->gateway_tax_amount ?? 0, 2) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Cancellation & Refund Breakup -->
+                                <div class="p-3 space-y-1.5 {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'bg-red-50/50' : 'bg-white' }}">
+                                    <div class="flex items-center justify-between font-bold {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'text-red-900' : 'text-gray-800' }}">
+                                        <span>Cancellation & Refund Breakup:</span>
+                                        <span>{{ $bDetail->refund_status ?? 'Not Applicable' }}</span>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-600 pl-2">
+                                        <div class="flex justify-between">
+                                            <span>Cancellation Fee Applied:</span>
+                                            <span class="font-semibold text-gray-800">₹{{ number_format($bDetail->cancellation_fee_applied ?? 0, 2) }}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>Refund Amount:</span>
+                                            <span class="font-semibold text-purple-700">₹{{ number_format($bDetail->refund_amount ?? 0, 2) }}</span>
+                                        </div>
+                                        @if ($bDetail->cancelled_at)
+                                            <div class="flex justify-between col-span-2 text-gray-400 text-[10px]">
+                                                <span>Cancelled On:</span>
+                                                <span>{{ Carbon::parse($bDetail->cancelled_at)->format('d M Y, h:i A') }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                <!-- Grand Total Row -->
+                                <div class="p-3.5 bg-gray-900 text-white flex items-center justify-between font-black text-sm">
+                                    <span>Grand Total Amount:</span>
+                                    <span>₹{{ number_format($dTotalAmount, 2) }}</span>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- 6. Payments History Ledger -->
+                        <div class="space-y-2.5">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-600">Payments Audit Log</h3>
                             <div class="space-y-2">
                                 @forelse ($bDetail->payments as $pay)
-                                    <div class="p-3 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-between text-xs">
-                                        <div>
-                                            <span class="font-bold text-gray-900">₹{{ number_format($pay->amount, 2) }}</span>
-                                            <span class="ml-2 text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-700">
+                                    <div class="p-3 rounded-xl bg-gray-50 border border-gray-200 flex items-center justify-between text-xs">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-black text-gray-900">₹{{ number_format($pay->amount, 2) }}</span>
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-200 text-gray-800">
                                                 {{ $pay->payment_method }}
                                             </span>
+                                            <span class="text-[10px] font-semibold text-emerald-700">({{ $pay->status }})</span>
                                         </div>
-                                        <div class="text-gray-400 text-[10px]">
-                                            {{ $pay->paid_at ? Carbon::parse($pay->paid_at)->format('d M, h:i A') : '' }}
+                                        <div class="text-gray-400 text-[11px]">
+                                            {{ $pay->paid_at ? Carbon::parse($pay->paid_at)->format('d M Y, h:i A') : '' }}
                                         </div>
                                     </div>
                                 @empty
-                                    <p class="text-xs text-gray-400">No payment records found.</p>
+                                    <p class="text-xs text-gray-400 italic">No payments recorded yet.</p>
                                 @endforelse
                             </div>
                         </div>
+
                     </div>
 
                     <!-- Drawer Footer Actions -->
-                    <div class="pt-4 border-t border-gray-100 flex items-center gap-2">
+                    <div class="pt-5 border-t border-gray-200 flex items-center gap-3 mt-6">
                         @if ($dBalance > 0 && $bDetail->status !== 'Cancelled')
                             @php $firstUnpaidDate = $bDetail->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
                             @if ($firstUnpaidDate)
-                                <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs">
-                                    + Record Pay
+                                <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                                    + Record Payment
                                 </button>
                             @endif
                         @endif
 
                         @if ($bDetail->status !== 'Cancelled')
-                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition">
-                                Cancel
+                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-3 px-5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition cursor-pointer">
+                                Cancel Booking
                             </button>
                         @endif
 
-                        <button wire:click="closeDetails" class="py-2.5 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition">
+                        <button wire:click="closeDetails" class="py-3 px-5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer">
                             Close
                         </button>
                     </div>
+
                 </div>
             </div>
         @endif
