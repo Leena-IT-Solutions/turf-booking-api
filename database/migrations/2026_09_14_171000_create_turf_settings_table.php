@@ -20,9 +20,13 @@ return new class extends Migration
             $table->text('address')->nullable();
             $table->string('city')->nullable();
             $table->string('state')->nullable();
+            $table->string('state_code', 10)->nullable();
             $table->string('country')->default('India');
             $table->string('pincode')->nullable();
             $table->string('gst_number')->nullable();
+            $table->boolean('is_gst_billing_active')->default(false);
+            $table->string('gst_pricing_type', 20)->default('included');
+            $table->decimal('gst_percentage', 5, 2)->default(18.00);
             $table->timestamps();
         });
     }

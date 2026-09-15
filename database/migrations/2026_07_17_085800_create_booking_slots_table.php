@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('booking_date_id')->constrained('booking_dates')->cascadeOnDelete();
             $table->foreignId('slot_id')->constrained()->cascadeOnDelete();
+            $table->string('status', 20)->default('active');
             $table->timestamps();
         });
     }

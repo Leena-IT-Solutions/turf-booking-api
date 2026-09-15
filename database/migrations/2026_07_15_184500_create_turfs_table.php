@@ -49,6 +49,7 @@ return new class extends Migration
             $table->boolean('is_slots_verified')->default(false);
             $table->boolean('is_pricing_verified')->default(false);
 
+            $table->text('share_message_template')->nullable();
             $table->timestamps();
         });
     }

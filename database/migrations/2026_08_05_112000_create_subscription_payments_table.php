@@ -14,6 +14,8 @@ return new class extends Migration
         Schema::create('subscription_payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->json('turf_ids');
+            $table->unsignedInteger('turf_count')->default(1);
             $table->foreignId('subscription_package_id')->constrained('subscription_packages')->onDelete('cascade');
             $table->string('billing_cycle')->default('monthly'); // 'monthly' or 'yearly'
             $table->decimal('amount', 10, 2);

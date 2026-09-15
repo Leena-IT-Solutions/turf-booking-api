@@ -13,8 +13,9 @@ return new class extends Migration
     {
         Schema::create('turf_subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('turf_id')->constrained()->cascadeOnDelete();
             $table->foreignId('subscription_package_id')->nullable()->constrained('subscription_packages')->onDelete('set null');
+            $table->foreignId('subscription_payment_id')->constrained()->cascadeOnDelete();
             $table->string('billing_cycle')->default('monthly'); // 'monthly' or 'yearly'
             $table->decimal('price', 10, 2);
             $table->decimal('commission_percentage', 5, 2);

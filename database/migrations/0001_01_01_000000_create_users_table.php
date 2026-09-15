@@ -14,11 +14,23 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('email')->unique();
-            $table->string('mobile')->unique();
+            $table->string('email')->nullable()->unique();
+            $table->string('mobile')->nullable()->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->boolean('is_quick_created')->default(false);
             $table->rememberToken();
+            $table->decimal('commission_wallet_balance', 12, 2)->default(0.00);
+            $table->timestamp('commission_due_since')->nullable();
+            $table->string('payout_method')->nullable();
+            $table->string('bank_account_name')->nullable();
+            $table->string('bank_account_number')->nullable();
+            $table->string('bank_ifsc')->nullable();
+            $table->string('upi_id')->nullable();
+            $table->string('razorpay_contact_id')->nullable();
+            $table->string('razorpay_fund_account_id')->nullable();
+            $table->string('payout_schedule')->default('manual');
+            $table->unsignedTinyInteger('payout_schedule_day')->nullable();
             $table->timestamps();
         });
 
