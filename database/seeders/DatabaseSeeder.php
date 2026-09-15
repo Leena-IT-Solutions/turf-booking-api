@@ -39,18 +39,5 @@ class DatabaseSeeder extends Seeder
         $sandeep->roles()->sync(
             \App\Models\Role::whereIn('name', ['saas-admin', 'customer'])->pluck('id')->toArray()
         );
-
-        $leena = User::firstOrCreate([
-            'email' => 'leenaadam28@gmail.com',
-        ], [
-            'name' => 'Leena Adam',
-            'mobile' => '9769409405',
-            'password' => Hash::make('password'),
-        ]);
-
-        $leena->roles()->sync(
-            \App\Models\Role::whereIn('name', ['saas-admin', 'customer'])->pluck('id')->toArray()
-        );
-
     }
 }
