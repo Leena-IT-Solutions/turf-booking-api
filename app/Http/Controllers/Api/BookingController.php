@@ -137,12 +137,28 @@ class BookingController extends Controller
             if ($booking) {
                 $totalBookingAmount = (float) ($booking->total_amount > 0 ? $booking->total_amount : BookingDate::where('booking_id', $booking->id)->sum('amount'));
                 $totalPaidAmount = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
+                if ($booking->payment_status === 'Paid') {
+                    $balanceAmount = 0.00;
+                    if ($totalPaidAmount < $totalBookingAmount) {
+                        $totalPaidAmount = $totalBookingAmount;
+                    }
+                } else {
+                    $balanceAmount = max(0.00, $totalBookingAmount - $totalPaidAmount);
+                }
+            } else {
+                $balanceAmount = 0.00;
             }
-            $balanceAmount = max(0.00, $totalBookingAmount - $totalPaidAmount);
 
             // Date-specific payment metrics
             $datePaidAmount = (float) $bDate->payments()->where('status', 'Success')->sum('amount');
-            $dateBalanceAmount = max(0.00, (float)$bDate->amount - $datePaidAmount);
+            if ($bDate->payment_status === 'Paid' || ($booking && $booking->payment_status === 'Paid')) {
+                $dateBalanceAmount = 0.00;
+                if ($datePaidAmount < (float)$bDate->amount) {
+                    $datePaidAmount = (float)$bDate->amount;
+                }
+            } else {
+                $dateBalanceAmount = max(0.00, (float)$bDate->amount - $datePaidAmount);
+            }
 
             return [
                 'id' => $bDate->id,
@@ -1421,8 +1437,8 @@ class BookingController extends Controller
 
             $bDate->update([
                 'payment_status' => $datePaymentStatus,
-                'paid_amount' => $datePaidSum,
-                'balance_amount' => max(0.00, round((float)$bDate->amount - $datePaidSum, 2)),
+                'paid_amount' => ($datePaymentStatus === 'Paid' && $datePaidSum < (float)$bDate->amount) ? (float)$bDate->amount : $datePaidSum,
+                'balance_amount' => ($datePaymentStatus === 'Paid') ? 0.00 : max(0.00, round((float)$bDate->amount - $datePaidSum, 2)),
             ]);
         }
 
@@ -1436,8 +1452,8 @@ class BookingController extends Controller
 
         $booking->update([
             'payment_status' => $parentPaymentStatus,
-            'payable_now' => $totalPaidSoFar,
-            'balance_amount' => max(0.00, round((float)$booking->total_amount - $totalPaidSoFar, 2)),
+            'payable_now' => ($parentPaymentStatus === 'Paid' && $totalPaidSoFar < (float)$booking->total_amount) ? (float)$booking->total_amount : $totalPaidSoFar,
+            'balance_amount' => ($parentPaymentStatus === 'Paid') ? 0.00 : max(0.00, round((float)$booking->total_amount - $totalPaidSoFar, 2)),
         ]);
     }
 

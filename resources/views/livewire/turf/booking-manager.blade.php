@@ -644,7 +644,14 @@ new #[Layout('layouts.app')] class extends Component
                     $activeDates = $b->bookingDates->where('status', '!=', 'Cancelled');
                     $totalAmount = (float)($b->total_amount > 0 ? $b->total_amount : $activeDates->sum('amount'));
                     $paidSum = (float)$b->payments->where('status', 'Success')->sum('amount');
-                    $balance = max(0.00, $totalAmount - $paidSum);
+                    if ($b->payment_status === 'Paid') {
+                        $balance = 0.00;
+                        if ($paidSum < $totalAmount) {
+                            $paidSum = $totalAmount;
+                        }
+                    } else {
+                        $balance = max(0.00, $totalAmount - $paidSum);
+                    }
 
                     // Collect all booking slots across dates to compute overall timing or datewise timing
                     $allSlots = $b->bookingDates->flatMap(fn($bd) => $bd->bookingSlots);
@@ -825,7 +832,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
                             </div>
 
-                            @if ($balance > 0 && $b->status !== 'Cancelled')
+                            @if ($balance > 0 && $b->payment_status !== 'Paid' && $b->status !== 'Cancelled')
                                 <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold shadow-2xs">
                                     <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                     <span>Due: <strong class="text-amber-900">₹{{ number_format($balance, 2) }}</strong></span>
@@ -835,7 +842,7 @@ new #[Layout('layouts.app')] class extends Component
 
                         <!-- Right: Action Buttons (Pinned to the far right edge of the card) -->
                         <div class="flex items-center gap-2.5 ml-auto">
-                            @if ($balance > 0 && $b->status !== 'Cancelled')
+                            @if ($balance > 0 && $b->payment_status !== 'Paid' && $b->status !== 'Cancelled')
                                 @php $firstUnpaidDate = $b->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
                                 @if ($firstUnpaidDate)
                                     <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" type="button" 
@@ -885,7 +892,14 @@ new #[Layout('layouts.app')] class extends Component
                 $dActiveDates = $bDetail->bookingDates->where('status', '!=', 'Cancelled');
                 $dTotalAmount = (float)($bDetail->total_amount > 0 ? $bDetail->total_amount : $dActiveDates->sum('amount'));
                 $dPaidSum = (float)$bDetail->payments->where('status', 'Success')->sum('amount');
-                $dBalance = max(0.00, $dTotalAmount - $dPaidSum);
+                if ($bDetail->payment_status === 'Paid') {
+                    $dBalance = 0.00;
+                    if ($dPaidSum < $dTotalAmount) {
+                        $dPaidSum = $dTotalAmount;
+                    }
+                } else {
+                    $dBalance = max(0.00, $dTotalAmount - $dPaidSum);
+                }
 
                 // Collect distinct payment methods used
                 $paymentMethods = $bDetail->payments->where('status', 'Success')->pluck('payment_method')->unique()->filter()->values();
@@ -1012,7 +1026,14 @@ new #[Layout('layouts.app')] class extends Component
                                     @php
                                         $bdDateCarbon = Carbon::parse($bd->booking_date);
                                         $bdPaidSum = (float) Payment::where('booking_date_id', $bd->id)->where('status', 'Success')->sum('amount');
-                                        $bdBalance = max(0.00, (float)$bd->amount - $bdPaidSum);
+                                        if ($bd->payment_status === 'Paid' || $bDetail->payment_status === 'Paid') {
+                                            $bdBalance = 0.00;
+                                            if ($bdPaidSum < (float)$bd->amount) {
+                                                $bdPaidSum = (float)$bd->amount;
+                                            }
+                                        } else {
+                                            $bdBalance = max(0.00, (float)$bd->amount - $bdPaidSum);
+                                        }
                                         $dateRanges = $this->formatConsecutiveSlots($bd->bookingSlots);
                                     @endphp
                                     <div class="p-3.5 rounded-xl border border-gray-200 bg-white hover:border-indigo-200 transition shadow-2xs space-y-2">
@@ -1225,7 +1246,7 @@ new #[Layout('layouts.app')] class extends Component
 
                     <!-- 3. Drawer Footer Actions (Sticky Bottom) -->
                     <div class="p-4 sm:p-5 border-t border-gray-200 bg-gray-50/90 shrink-0 flex items-center gap-3">
-                        @if ($dBalance > 0 && $bDetail->status !== 'Cancelled')
+                        @if ($dBalance > 0 && $bDetail->payment_status !== 'Paid' && $bDetail->status !== 'Cancelled')
                             @php $firstUnpaidDate = $bDetail->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
                             @if ($firstUnpaidDate)
                                 <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
