@@ -38,27 +38,6 @@ class SliderImageSeeder extends Seeder
                 'color' => [16, 185, 129],
                 'filename' => 'manage_turf_business.png',
             ],
-            [
-                'title' => 'Unleash Your Game - Premium Turf Booking',
-                'link_url' => 'https://example.com/bookings',
-                'order' => 3,
-                'color' => [79, 70, 229], // Indigo 600
-                'filename' => 'slide_1.png',
-            ],
-            [
-                'title' => 'Exclusive Summer Discounts - Save up to 30%',
-                'link_url' => 'https://example.com/offers',
-                'order' => 4,
-                'color' => [16, 185, 129], // Emerald 500
-                'filename' => 'slide_2.png',
-            ],
-            [
-                'title' => 'Rain or Shine - Play on All-Weather Indoors',
-                'link_url' => 'https://example.com/locations',
-                'order' => 5,
-                'color' => [245, 158, 11], // Amber 500
-                'filename' => 'slide_3.png',
-            ],
         ];
 
         // Truncate existing slides
