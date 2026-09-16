@@ -792,58 +792,25 @@ new #[Layout('layouts.app')] class extends Component
                                 @endif
                             </div>
 
-                            <!-- Timing & Slots -->
-                            <div class="space-y-2">
-                                <div>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Timing</span>
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        @if (!empty($consecutiveRanges))
-                                            @foreach ($consecutiveRanges as $range)
-                                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-teal-50/90 border border-teal-200/80 text-teal-900 font-extrabold text-xs shadow-2xs">
-                                                    <svg class="w-3.5 h-3.5 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                    <span>{{ $range['from'] }} - {{ $range['to'] }}</span>
-                                                    @if ($range['slots_count'] > 1)
-                                                        <span class="text-[10px] font-bold px-1.5 py-0.5 bg-teal-200/70 rounded-md text-teal-800">
-                                                            {{ $range['slots_count'] }} slots
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                            @endforeach
-                                        @else
-                                            <span class="text-xs text-slate-400 italic">No slot timings</span>
-                                        @endif
-                                        
-                                        <span class="text-[11px] font-semibold text-slate-500">
-                                            ({{ $allSlots->count() }} {{ \Illuminate\Support\Str::plural('slot', $allSlots->count()) }})
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <!-- Individual Booked Slots -->
-                                <div>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Slots</span>
-                                    <div class="flex flex-wrap items-center gap-1.5">
-                                        @php
-                                            $sortedAllSlots = $allSlots->sortBy(fn($bs) => $bs->slot?->from_time ?? '');
-                                            $displaySlots = $sortedAllSlots->take(4);
-                                            $remainingCount = $sortedAllSlots->count() - 4;
-                                        @endphp
-                                        @forelse ($displaySlots as $bs)
-                                            @if ($bs->slot)
-                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200/90 text-slate-700 text-[11px] font-semibold">
-                                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
-                                                    <span>{{ date('h:i A', strtotime($bs->slot->from_time)) }} - {{ date('h:i A', strtotime($bs->slot->to_time)) }}</span>
-                                                </span>
-                                            @endif
-                                        @empty
-                                            <span class="text-xs text-slate-400 italic">No slots</span>
-                                        @endforelse
-                                        @if ($remainingCount > 0)
-                                            <span class="inline-flex items-center px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100 text-[10px] font-bold">
-                                                +{{ $remainingCount }} more
-                                            </span>
-                                        @endif
-                                    </div>
+                            <!-- Session Timing -->
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Timing</span>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @if (!empty($consecutiveRanges))
+                                        @foreach ($consecutiveRanges as $range)
+                                            <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-50/90 border border-teal-200/80 text-teal-900 font-extrabold text-xs shadow-2xs">
+                                                <svg class="w-3.5 h-3.5 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <span>{{ $range['from'] }} - {{ $range['to'] }}</span>
+                                                @if ($range['slots_count'] > 1)
+                                                    <span class="text-[10px] font-bold px-1.5 py-0.5 bg-teal-200/80 rounded-md text-teal-800">
+                                                        {{ $range['slots_count'] }} slots
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <span class="text-xs text-slate-400 italic">No slot timings</span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
