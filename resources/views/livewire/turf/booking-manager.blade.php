@@ -1017,7 +1017,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </h3>
                             </div>
 
-                            <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                            <div class="space-y-2.5">
                                 @foreach ($bDetail->bookingDates as $dIndex => $bd)
                                     @php
                                         $bdDateCarbon = Carbon::parse($bd->booking_date);
