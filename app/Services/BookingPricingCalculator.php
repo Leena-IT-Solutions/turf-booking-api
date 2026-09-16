@@ -276,7 +276,23 @@ class BookingPricingCalculator
         $totalTurfPayout = 0.00;
         $totalEstimatedRefund = 0.00;
 
+        $platformFeeTotal = round($platformFee + $platformFeeGst, 2);
+        $runningFeeSum = 0.00;
+
         foreach ($processedDates as $index => &$pDate) {
+            // Allocate platform fee to date so date_total reflects customer's total price
+            if ($index === $dateCount - 1) {
+                $datePlatformFee = round($platformFeeTotal - $runningFeeSum, 2);
+            } else {
+                $ratio = ($totalTurfTotal > 0) ? ($pDate['turf_total'] / $totalTurfTotal) : (1.0 / $dateCount);
+                $datePlatformFee = round($platformFeeTotal * $ratio, 2);
+            }
+            $runningFeeSum += $datePlatformFee;
+
+            $dateTotal = round($pDate['turf_total'] + $datePlatformFee, 2);
+            $pDate['date_total'] = $dateTotal;
+            $pDate['platform_fee_portion'] = $datePlatformFee;
+
             // Allocate paid_amount and balance_amount
             if ($index === $dateCount - 1) {
                 $datePaid = round($payableNow - $runningPaidSum, 2);
@@ -303,10 +319,10 @@ class BookingPricingCalculator
             $dateCommIgst = $commResult['commission_igst_amount'];
             $dateTotalCommDeduction = $commResult['total_commission_deduction'];
 
-            // Cash held for this date = paid amount if App, otherwise 0
-            $dateCashHeld = ($paymentMethod === 'App') ? $datePaid : 0.00;
+            // Cash held for this date = paid amount for turf if App (excluding SaaS platform fee), otherwise 0
+            $dateTurfCashHeld = ($paymentMethod === 'App') ? min($datePaid, $pDate['turf_total']) : 0.00;
             // Payout contribution = cash held minus commission deduction
-            $datePayoutAmount = round($dateCashHeld - $dateTotalCommDeduction, 2);
+            $datePayoutAmount = round($dateTurfCashHeld - $dateTotalCommDeduction, 2);
 
             // Date Cancellation Policy Snapshot & Prospective Estimated Refund
             $dateTurfFeeSnapshot = min($cancellationTurfFee, $pDate['turf_total']);
@@ -322,7 +338,7 @@ class BookingPricingCalculator
             $pDate['commission_sgst_amount'] = $dateCommSgst;
             $pDate['commission_igst_amount'] = $dateCommIgst;
             $pDate['turf_payout_amount'] = $datePayoutAmount;
-            $pDate['cash_held_amount'] = $dateCashHeld;
+            $pDate['cash_held_amount'] = $dateTurfCashHeld;
             $pDate['cancellation_turf_fee'] = $dateTurfFeeSnapshot;
             $pDate['cancellation_platform_fee'] = $datePlatformFeeSnapshot;
             $pDate['estimated_refund_amount'] = $dateEstimatedRefund;

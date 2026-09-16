@@ -436,4 +436,59 @@ class BookingCalculationAndTaxTest extends TestCase
             'refund_status' => 'Cash / Offline Refund',
         ]);
     }
+
+    public function test_platform_fee_online_booking_records_exact_paid_amount(): void
+    {
+        // Set platform fee = 10.00
+        $saas = \App\Models\SaasSetting::first();
+        if ($saas) {
+            $saas->update(['platform_fee' => 10.00, 'is_gst_billing_active' => false]);
+        }
+
+        $dateStr = now()->addDays(5)->format('Y-m-d');
+
+        $response = $this->actingAs($this->customer)->postJson("/api/turfs/{$this->turf->id}/bookings", [
+            'slot_ids' => [$this->slot1->id, $this->slot2->id],
+            'booking_dates' => [$dateStr],
+            'booking_type' => 'day',
+            'payment_method' => 'App',
+            'payment_option' => 'full',
+            'razorpay_payment_id' => 'pay_test_1010',
+        ]);
+
+        $response->assertOk();
+
+        $booking = \App\Models\Booking::where('user_id', $this->customer->id)->latest()->first();
+        $this->assertNotNull($booking);
+
+        // Total amount must be base slots (500*2 = 1000) + platform fee (10) = 1010.00
+        $this->assertEquals(1010.00, (float)$booking->total_amount);
+        $this->assertEquals('Paid', $booking->payment_status);
+        $this->assertEquals(0.00, (float)$booking->balance_amount);
+
+        // BookingDate checks
+        $bDate = $booking->bookingDates->first();
+        $this->assertNotNull($bDate);
+        $this->assertEquals(1010.00, (float)$bDate->amount);
+        $this->assertEquals(1010.00, (float)$bDate->paid_amount);
+        $this->assertEquals(0.00, (float)$bDate->balance_amount);
+        $this->assertEquals('Paid', $bDate->payment_status);
+
+        // Payment record checks
+        $payment = \App\Models\Payment::where('booking_id', $booking->id)->first();
+        $this->assertNotNull($payment);
+        $this->assertEquals(1010.00, (float)$payment->amount);
+        $this->assertEquals('Success', $payment->status);
+
+        // API endpoint /api/bookings checks
+        $apiResponse = $this->actingAs($this->customer)->getJson('/api/bookings');
+        $apiResponse->assertOk();
+        $bookingData = collect($apiResponse->json('data'))->firstWhere('id', $bDate->id);
+        $this->assertNotNull($bookingData);
+        $this->assertEquals(1010.00, $bookingData['amount']);
+        $this->assertEquals(1010.00, $bookingData['date_paid_amount']);
+        $this->assertEquals(0.00, $bookingData['date_balance_amount']);
+        $this->assertEquals(1010.00, $bookingData['total_paid_amount']);
+        $this->assertEquals('Paid', $bookingData['payment_status']);
+    }
 }

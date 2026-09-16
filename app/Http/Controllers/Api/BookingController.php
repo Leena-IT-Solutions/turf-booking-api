@@ -135,7 +135,7 @@ class BookingController extends Controller
             $totalBookingAmount = 0.00;
             $totalPaidAmount = 0.00;
             if ($booking) {
-                $totalBookingAmount = (float) BookingDate::where('booking_id', $booking->id)->sum('amount');
+                $totalBookingAmount = (float) ($booking->total_amount > 0 ? $booking->total_amount : BookingDate::where('booking_id', $booking->id)->sum('amount'));
                 $totalPaidAmount = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
             }
             $balanceAmount = max(0.00, $totalBookingAmount - $totalPaidAmount);
@@ -824,7 +824,7 @@ class BookingController extends Controller
 
                 $bookingDate = $booking->bookingDates()->create([
                     'booking_date' => $calcDate['date'],
-                    'amount' => $pDate['turf_total'] ?? $calcDate['after_coupon'],
+                    'amount' => $pDate['date_total'] ?? ($pDate['turf_total'] ?? $calcDate['after_coupon']),
                     'taxable_amount' => $pDate['taxable_amount'] ?? 0.00,
                     'turf_gst_amount' => $pDate['turf_gst_amount'] ?? 0.00,
                     'turf_cgst_amount' => $pDate['turf_cgst_amount'] ?? 0.00,
@@ -1213,7 +1213,7 @@ class BookingController extends Controller
             return response()->json(['message' => $lockError], 422);
         }
 
-        $totalAmount = (float) BookingDate::where('booking_id', $booking->id)->where('status', '!=', 'Cancelled')->sum('amount');
+        $totalAmount = (float)($booking->total_amount > 0 ? $booking->total_amount : BookingDate::where('booking_id', $booking->id)->where('status', '!=', 'Cancelled')->sum('amount'));
 
         $totalPaid = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
         $totalRemaining = max(0.00, $totalAmount - $totalPaid);
@@ -1316,19 +1316,25 @@ class BookingController extends Controller
             }
 
             if ($paidForDate > 0) {
-                // Calculate commission breakdown using enhanced CommissionCalculator
+                // Calculate commission breakdown strictly on turf's taxable earnings, excluding platform fee
+                $turfTaxableBase = min($paidForDate, (float)($bDate->taxable_amount > 0 ? $bDate->taxable_amount : $paidForDate));
                 $commData = $turf
-                    ? $commissionCalc->calculate($turf, $paymentMethod, $paidForDate)
+                    ? $commissionCalc->calculate($turf, $paymentMethod, $turfTaxableBase)
                     : [
                         'rate' => 7.00,
-                        'commission_amount' => round($paidForDate * 0.07, 2),
+                        'commission_amount' => round($turfTaxableBase * 0.07, 2),
                         'commission_gst_amount' => 0.00,
                         'commission_cgst_amount' => 0.00,
                         'commission_sgst_amount' => 0.00,
                         'commission_igst_amount' => 0.00,
-                        'cash_held_amount' => $paymentMethod === 'App' ? $paidForDate : 0.00,
-                        'turf_payout_amount' => ($paymentMethod === 'App' ? $paidForDate : 0.00) - round($paidForDate * 0.07, 2),
+                        'total_commission_deduction' => round($turfTaxableBase * 0.07, 2),
+                        'cash_held_amount' => $paymentMethod === 'App' ? $turfTaxableBase : 0.00,
+                        'turf_payout_amount' => ($paymentMethod === 'App' ? $turfTaxableBase : 0.00) - round($turfTaxableBase * 0.07, 2),
                     ];
+
+                $turfShareWithGst = round($turfTaxableBase + (float)$bDate->turf_gst_amount, 2);
+                $cashHeld = $paymentMethod === 'App' ? min($paidForDate, $turfShareWithGst) : 0.00;
+                $payoutContribution = round($cashHeld - ($commData['total_commission_deduction'] ?? $commData['commission_amount']), 2);
 
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
@@ -1341,8 +1347,8 @@ class BookingController extends Controller
                     'commission_cgst_amount' => $commData['commission_cgst_amount'] ?? 0.00,
                     'commission_sgst_amount' => $commData['commission_sgst_amount'] ?? 0.00,
                     'commission_igst_amount' => $commData['commission_igst_amount'] ?? 0.00,
-                    'cash_held_amount' => $commData['cash_held_amount'],
-                    'turf_payout_amount' => $commData['turf_payout_amount'],
+                    'cash_held_amount' => $cashHeld,
+                    'turf_payout_amount' => $payoutContribution,
                     'gateway_charge_amount' => $dateGatewayCharge,
                     'gateway_tax_amount' => $dateGatewayTax,
                     'wallet_cleared_at' => null,

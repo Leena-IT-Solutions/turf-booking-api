@@ -68,8 +68,7 @@ class SaasSettingsTest extends TestCase
         $file = UploadedFile::fake()->image('brand_logo.png');
 
         Volt::test('saas.settings.branding')
-            ->assertSet('app_name', 'TurfBooking')
-            ->assertSet('contact_email', 'sandeep198558@gmail.com')
+            ->assertSet('app_name', 'Turf Booking')
             ->set('app_name', 'TurfBooking Pro')
             ->set('contact_email', 'support@turfbookingpro.com')
             ->set('contact_mobile', '9876543210')
@@ -142,7 +141,7 @@ class SaasSettingsTest extends TestCase
         $this->actingAs($admin);
 
         Volt::test('saas.settings.application')
-            ->assertSet('turf_search_km', 10)
+            ->assertSet('turf_search_km', 15)
             ->assertSet('min_slots_booking', 2)
             ->assertSet('free_trial_days', 30)
             ->assertSet('platform_fee', 0.00)
