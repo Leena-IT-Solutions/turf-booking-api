@@ -35,32 +35,5 @@ class SubscriptionPackageSeeder extends Seeder
                 ],
             ]
         );
-
-        // Pro Multi-Court Plan
-        SubscriptionPackage::updateOrCreate(
-            ['name' => 'Pro Multi-Court Partner'],
-            [
-                'description' => 'Designed for busy multi-court sports facilities with advanced analytics, custom coupons, and priority listing.',
-                'monthly_amount' => 5000.00,
-                'yearly_amount' => 50000.00,
-                'is_active' => true,
-                'sort_order' => 2,
-                'is_offer_active' => true,
-                'offer_badge' => '⚡ Early Bird Special',
-                'offer_monthly_amount' => 1999.00,
-                'offer_yearly_amount' => 19999.00,
-                'offer_max_claims' => 50,
-                'offer_claimed_count' => 0,
-                'offer_expires_at' => null,
-                'features' => [
-                    'All Standard Partner Features',
-                    'Multi-Pitch Simultaneous Scheduler',
-                    'Custom Turf Promos & Coupons Generator',
-                    'Customer Database & Export Reports',
-                    'Featured Partner Badge on Player App',
-                    'Zero Booking Commission',
-                ],
-            ]
-        );
     }
 }
