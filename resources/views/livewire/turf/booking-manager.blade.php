@@ -63,8 +63,15 @@ new #[Layout('layouts.app')] class extends Component
     public function formatConsecutiveSlots($bookingSlots): array
     {
         $slots = [];
+        $seen = [];
         foreach ($bookingSlots as $bs) {
             if ($bs->slot && $bs->slot->from_time && $bs->slot->to_time) {
+                $timeKey = $bs->slot->from_time . '_' . $bs->slot->to_time;
+                if (isset($seen[$timeKey])) {
+                    continue;
+                }
+                $seen[$timeKey] = true;
+
                 $slots[] = [
                     'from' => substr($bs->slot->from_time, 0, 5),
                     'to' => substr($bs->slot->to_time, 0, 5),
@@ -653,9 +660,20 @@ new #[Layout('layouts.app')] class extends Component
                         $balance = max(0.00, $totalAmount - $paidSum);
                     }
 
-                    // Collect all booking slots across dates to compute overall timing or datewise timing
+                    // For long / scattered bookings, slot timings per session remain identical across dates.
+                    // Aggregate distinct daily consecutive ranges across all booking dates so duplicate intervals aren't created.
+                    $dailyRanges = [];
+                    foreach ($b->bookingDates as $bd) {
+                        $ranges = $this->formatConsecutiveSlots($bd->bookingSlots);
+                        foreach ($ranges as $r) {
+                            $rKey = $r['from'] . '-' . $r['to'] . '-' . $r['slots_count'];
+                            if (!isset($dailyRanges[$rKey])) {
+                                $dailyRanges[$rKey] = $r;
+                            }
+                        }
+                    }
+                    $consecutiveRanges = array_values($dailyRanges);
                     $allSlots = $b->bookingDates->flatMap(fn($bd) => $bd->bookingSlots);
-                    $consecutiveRanges = $this->formatConsecutiveSlots($allSlots);
 
                     $dateList = $b->bookingDates->pluck('booking_date')->toArray();
                 @endphp
