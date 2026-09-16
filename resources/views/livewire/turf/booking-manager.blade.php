@@ -996,37 +996,7 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                         </div>
 
-                        <!-- 3. Paid Amount & Balance Amount Breakup + Mode of Payment -->
-                        <div class="p-4 rounded-2xl bg-gradient-to-br from-gray-50 to-indigo-50/20 border border-gray-200 space-y-3">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Payment & Balance Breakup</span>
-                                <div class="flex items-center gap-1.5">
-                                    <span class="text-[11px] text-gray-400">Mode:</span>
-                                    @foreach ($paymentMethods as $pm)
-                                        <span class="px-2 py-0.5 rounded bg-white text-gray-800 border border-gray-200 text-xs font-bold shadow-2xs">
-                                            {{ $pm }}
-                                        </span>
-                                    @endforeach
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-3 gap-3 text-center">
-                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
-                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Booking</span>
-                                    <p class="text-base font-black text-gray-900 mt-0.5">₹{{ number_format($dTotalAmount, 2) }}</p>
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
-                                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Total Paid</span>
-                                    <p class="text-base font-black text-emerald-600 mt-0.5">₹{{ number_format($dPaidSum, 2) }}</p>
-                                </div>
-                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
-                                    <span class="text-[10px] font-bold {{ $dBalance > 0 ? 'text-amber-600' : 'text-gray-400' }} uppercase tracking-wider">Balance Due</span>
-                                    <p class="text-base font-black {{ $dBalance > 0 ? 'text-amber-600' : 'text-gray-400' }} mt-0.5">₹{{ number_format($dBalance, 2) }}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 4. Booking Slots Datewise List with Timing (Consecutive First & Last from - to) -->
+                        <!-- 3. Booking Slots Datewise List with Timing (Consecutive First & Last from - to) -->
                         <div class="space-y-2.5">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-xs font-bold uppercase tracking-wider text-gray-600 flex items-center gap-1.5">
@@ -1125,6 +1095,36 @@ new #[Layout('layouts.app')] class extends Component
                                         </div>
                                     </div>
                                 @endforeach
+                            </div>
+                        </div>
+
+                        <!-- 4. Paid Amount & Balance Amount Breakup + Mode of Payment -->
+                        <div class="p-4 rounded-2xl bg-gradient-to-br from-gray-50 to-indigo-50/20 border border-gray-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Payment & Balance Breakup</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-[11px] text-gray-400">Mode:</span>
+                                    @foreach ($paymentMethods as $pm)
+                                        <span class="px-2 py-0.5 rounded bg-white text-gray-800 border border-gray-200 text-xs font-bold shadow-2xs">
+                                            {{ $pm }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-3 text-center">
+                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Booking</span>
+                                    <p class="text-base font-black text-gray-900 mt-0.5">₹{{ number_format($dTotalAmount, 2) }}</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Total Paid</span>
+                                    <p class="text-base font-black text-emerald-600 mt-0.5">₹{{ number_format($dPaidSum, 2) }}</p>
+                                </div>
+                                <div class="p-3 rounded-xl bg-white border border-gray-200 shadow-2xs">
+                                    <span class="text-[10px] font-bold {{ $dBalance > 0 ? 'text-amber-600' : 'text-gray-400' }} uppercase tracking-wider">Balance Due</span>
+                                    <p class="text-base font-black {{ $dBalance > 0 ? 'text-amber-600' : 'text-gray-400' }} mt-0.5">₹{{ number_format($dBalance, 2) }}</p>
+                                </div>
                             </div>
                         </div>
 
