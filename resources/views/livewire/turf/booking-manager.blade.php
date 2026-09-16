@@ -653,148 +653,192 @@ new #[Layout('layouts.app')] class extends Component
                     $dateList = $b->bookingDates->pluck('booking_date')->toArray();
                 @endphp
 
-                <div class="bg-white rounded-2xl border border-gray-200/90 hover:border-indigo-400/80 shadow-xs hover:shadow-md transition-all duration-200 p-5 sm:p-6">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
-                        
-                        <!-- Col 1: Booking ID & Timestamp -->
-                        <div class="flex items-start gap-3.5 lg:w-1/5 shrink-0">
-                            <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-700 font-black text-sm shrink-0">
-                                #
-                            </div>
-                            <div>
-                                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Booking ID</span>
-                                <div class="text-base font-black text-gray-900 tracking-tight mt-0.5">
-                                    {{ $b->booking_reference ?? ('#' . $b->id) }}
-                                </div>
-                                <div class="text-[11px] text-gray-500 mt-1 flex items-center gap-1">
-                                    <span>📅 {{ $b->created_at ? $b->created_at->format('d M Y, h:i A') : 'N/A' }}</span>
-                                </div>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-600 mt-1.5 uppercase">
-                                    {{ ucfirst($b->booking_type ?? 'day') }}
-                                </span>
-                            </div>
+                <div class="bg-white rounded-2xl border border-slate-200/90 hover:border-indigo-400/80 shadow-xs hover:shadow-md transition-all duration-200 overflow-hidden group">
+                    <!-- 1. Header Bar: Ref, Type, Turf, Timestamp & Status Badges -->
+                    <div class="px-5 py-3 bg-slate-50/70 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                            <!-- Booking ID Badge -->
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50/90 text-indigo-700 font-mono font-black text-xs border border-indigo-200/60 shadow-2xs">
+                                <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
+                                <span>{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
+                            </span>
+
+                            <!-- Booking Type Badge -->
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase tracking-wider {{ $b->booking_type === 'long' ? 'bg-amber-100/70 text-amber-800 border border-amber-200/60' : ($b->booking_type === 'scattered' ? 'bg-purple-100/70 text-purple-800 border border-purple-200/60' : 'bg-slate-100 text-slate-700 border border-slate-200/60') }}">
+                                {{ ucfirst($b->booking_type ?? 'day') }}
+                            </span>
+
+                            <!-- Turf Name Badge -->
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/50">
+                                <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2h2a2.5 2.5 0 002.5-2.5V10a2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span>{{ $b->turf?->name ?? 'Turf' }}</span>
+                            </span>
+
+                            <!-- Timestamp -->
+                            <span class="text-[11px] text-slate-400 font-medium hidden sm:inline-flex items-center gap-1">
+                                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                <span>{{ $b->created_at ? $b->created_at->format('d M Y, h:i A') : 'N/A' }}</span>
+                            </span>
                         </div>
 
-                        <!-- Col 2: Customer Details -->
-                        <div class="flex items-start gap-3 lg:w-1/4 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5">
-                            <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 text-slate-700 font-bold flex items-center justify-center text-xs shrink-0 mt-0.5">
+                        <!-- Right: Badges -->
+                        <div class="flex items-center gap-2 shrink-0">
+                            <!-- Payment Status Badge -->
+                            @if ($b->payment_status === 'Paid')
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    Paid
+                                </span>
+                            @elseif ($b->payment_status === 'Partially Paid')
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    Due: ₹{{ number_format($balance, 2) }}
+                                </span>
+                            @else
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    Unpaid
+                                </span>
+                            @endif
+
+                            <!-- Booking Status Badge -->
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold {{ $b->status === 'Confirmed' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : ($b->status === 'Partially Cancelled' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-slate-100 text-slate-600 border border-slate-300') }}">
+                                @if ($b->status === 'Confirmed')
+                                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                @endif
+                                {{ $b->status }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Main Card Body -->
+                    <div class="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-12 gap-5 items-center">
+                        
+                        <!-- Col A: Customer Details (xl:col-span-4) -->
+                        <div class="xl:col-span-4 flex items-start gap-3.5 min-w-0">
+                            <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white font-black flex items-center justify-center text-sm shrink-0 shadow-xs ring-2 ring-indigo-50">
                                 {{ strtoupper(substr($b->user?->name ?? 'G', 0, 1)) }}
                             </div>
-                            <div class="min-w-0 space-y-0.5">
-                                <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Customer Details</span>
-                                <div class="font-extrabold text-sm text-gray-900 truncate">
+                            <div class="min-w-0 flex-1 space-y-1">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Customer</span>
+                                <div class="font-extrabold text-sm text-slate-900 truncate" title="{{ $b->user?->name ?? 'Guest User' }}">
                                     {{ $b->user?->name ?? 'Guest / Manual User' }}
                                 </div>
-                                <div class="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-                                    <svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
-                                    <span>{{ $b->user?->mobile ?? 'No contact' }}</span>
-                                </div>
-                                @if ($b->user?->email)
-                                    <div class="text-[11px] text-gray-400 truncate max-w-[200px]" title="{{ $b->user->email }}">
-                                        {{ $b->user->email }}
-                                    </div>
-                                @endif
-                                @if ($b->customer_gstin || $b->customer_company_name)
-                                    <div class="text-[10px] text-indigo-700 font-semibold mt-0.5">
-                                        🏢 {{ $b->customer_company_name ?? 'B2B' }} ({{ $b->customer_gstin }})
-                                    </div>
-                                @endif
-                            </div>
-                        </div>
-
-                        <!-- Col 3: Booking Date -->
-                        <div class="lg:w-1/5 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5 space-y-1">
-                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Booking Date</span>
-                            @if (count($dateList) === 1)
-                                @php $cdObj = Carbon::parse($dateList[0]); @endphp
-                                <div class="font-extrabold text-sm text-gray-900 flex items-center gap-1.5">
-                                    <span>📅 {{ $cdObj->format('d M Y') }}</span>
-                                </div>
-                                <span class="text-xs font-semibold text-gray-500">
-                                    {{ $cdObj->format('l') }}
-                                </span>
-                            @elseif (count($dateList) > 1)
-                                <div class="font-extrabold text-sm text-gray-900">
-                                    📅 {{ Carbon::parse($dateList[0])->format('d M') }} &rarr; {{ Carbon::parse(end($dateList))->format('d M Y') }}
-                                </div>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                    {{ count($dateList) }} Dates Total
-                                </span>
-                            @else
-                                <span class="text-xs text-gray-400 italic">No date recorded</span>
-                            @endif
-
-                            <div class="text-[11px] text-gray-500 pt-1">
-                                Turf: <strong class="text-gray-800">{{ $b->turf?->name }}</strong>
-                            </div>
-                        </div>
-
-                        <!-- Col 4: Timing (Consecutive Slots from - to) -->
-                        <div class="lg:w-1/4 shrink-0 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5 space-y-1">
-                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Timing (Slots Range)</span>
-                            
-                            @if (!empty($consecutiveRanges))
-                                <div class="space-y-1.5">
-                                    @foreach ($consecutiveRanges as $range)
-                                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-teal-50/80 border border-teal-200 text-teal-900 font-extrabold text-xs shadow-2xs">
-                                            <span>⏰ {{ $range['from'] }} - {{ $range['to'] }}</span>
-                                            @if ($range['slots_count'] > 1)
-                                                <span class="text-[10px] font-bold px-1.5 py-0.2 bg-teal-200/60 rounded text-teal-800">
-                                                    {{ $range['slots_count'] }} slots
-                                                </span>
-                                            @endif
+                                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                                    @if ($b->user?->mobile)
+                                        @php
+                                            $cleanPhone = preg_replace('/[^0-9]/', '', $b->user->mobile);
+                                            $waPhone = strlen($cleanPhone) === 10 ? '91' . $cleanPhone : $cleanPhone;
+                                        @endphp
+                                        <div class="inline-flex items-center gap-1.5 text-slate-700 font-medium">
+                                            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                            <a href="tel:{{ $b->user->mobile }}" class="hover:text-indigo-600 transition">{{ $b->user->mobile }}</a>
+                                            <a href="https://wa.me/{{ $waPhone }}" target="_blank" class="text-emerald-600 hover:text-emerald-700 transition" title="Message on WhatsApp">
+                                                <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.006c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.274.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.045.072.045.419-.099.824zm-3.423-14.416c-6.627 0-12 5.373-12 12 0 2.159.57 4.197 1.583 5.961l-1.683 6.161 6.309-1.654c1.724.943 3.697 1.482 5.791 1.482 6.627 0 12-5.373 12-12s-5.373-12-12-12z"/></svg>
+                                            </a>
                                         </div>
-                                    @endforeach
-                                </div>
-                            @else
-                                <span class="text-xs text-gray-400 italic">No slot timings recorded</span>
-                            @endif
-
-                            <div class="text-[11px] text-gray-500 pt-1 flex items-center gap-1">
-                                <span>Total Booked: <strong>{{ $allSlots->count() }} {{ \Illuminate\Support\Str::plural('slot', $allSlots->count()) }}</strong></span>
-                            </div>
-                        </div>
-
-                        <!-- Col 5: Financials, Status & Action -->
-                        <div class="flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 lg:border-l border-gray-100 pt-3 lg:pt-0 lg:pl-5 shrink-0">
-                            <div class="text-left lg:text-right space-y-1">
-                                <div class="text-sm font-black text-gray-900">
-                                    ₹{{ number_format($totalAmount, 2) }}
-                                </div>
-                                <div>
-                                    @if ($b->payment_status === 'Paid')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            ✓ Paid
-                                        </span>
-                                    @elseif ($b->payment_status === 'Partially Paid')
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                            Due: ₹{{ number_format($balance, 2) }}
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-700 border border-red-200">
-                                            Unpaid
-                                        </span>
+                                    @endif
+                                    @if ($b->user?->email)
+                                        <div class="inline-flex items-center gap-1.5 text-slate-500 truncate max-w-[220px]" title="{{ $b->user->email }}">
+                                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                                            <a href="mailto:{{ $b->user->email }}" class="hover:text-indigo-600 truncate">{{ $b->user->email }}</a>
+                                        </div>
                                     @endif
                                 </div>
-                                <div>
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {{ $b->status === 'Confirmed' ? 'bg-blue-50 text-blue-700 border border-blue-200' : ($b->status === 'Partially Cancelled' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-gray-100 text-gray-600 border border-gray-300') }}">
-                                        {{ $b->status }}
+                                @if ($b->customer_gstin || $b->customer_company_name)
+                                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50/70 border border-indigo-100 text-[10px] text-indigo-700 font-semibold mt-1">
+                                        <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                        <span>{{ $b->customer_company_name ?? 'B2B' }} ({{ $b->customer_gstin }})</span>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
+                        <!-- Col B: Date & Time Slots (xl:col-span-5) -->
+                        <div class="xl:col-span-5 flex flex-col justify-center space-y-2.5 border-t md:border-t-0 md:border-l border-slate-100 md:pl-5">
+                            <!-- Booking Dates -->
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Session Date</span>
+                                @if (count($dateList) === 1)
+                                    @php $cdObj = Carbon::parse($dateList[0]); @endphp
+                                    <div class="flex items-center gap-2">
+                                        <div class="inline-flex items-center gap-1.5 font-extrabold text-sm text-slate-900">
+                                            <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            <span>{{ $cdObj->format('d M Y') }}</span>
+                                        </div>
+                                        <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200/60">
+                                            {{ $cdObj->format('l') }}
+                                        </span>
+                                    </div>
+                                @elseif (count($dateList) > 1)
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div class="inline-flex items-center gap-1.5 font-extrabold text-sm text-slate-900">
+                                            <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            <span>{{ Carbon::parse($dateList[0])->format('d M') }} &rarr; {{ Carbon::parse(end($dateList))->format('d M Y') }}</span>
+                                        </div>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                            {{ count($dateList) }} Dates
+                                        </span>
+                                    </div>
+                                @else
+                                    <span class="text-xs text-slate-400 italic">No date recorded</span>
+                                @endif
+                            </div>
+
+                            <!-- Timing / Slots Range -->
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Timing & Slots</span>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @if (!empty($consecutiveRanges))
+                                        @foreach ($consecutiveRanges as $range)
+                                            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-teal-50/90 border border-teal-200/80 text-teal-900 font-extrabold text-xs shadow-2xs">
+                                                <svg class="w-3.5 h-3.5 text-teal-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                <span>{{ $range['from'] }} - {{ $range['to'] }}</span>
+                                                @if ($range['slots_count'] > 1)
+                                                    <span class="text-[10px] font-bold px-1.5 py-0.5 bg-teal-200/70 rounded-md text-teal-800">
+                                                        {{ $range['slots_count'] }} slots
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    @else
+                                        <span class="text-xs text-slate-400 italic">No slot timings</span>
+                                    @endif
+                                    
+                                    <span class="text-[11px] font-semibold text-slate-500">
+                                        ({{ $allSlots->count() }} {{ \Illuminate\Support\Str::plural('slot', $allSlots->count()) }})
                                     </span>
                                 </div>
                             </div>
 
-                            <div class="flex flex-col gap-1.5">
+                        </div>
+
+                        <!-- Col C: Financials & Action Buttons (xl:col-span-3) -->
+                        <div class="xl:col-span-3 flex flex-row xl:flex-col items-center xl:items-end justify-between xl:justify-center gap-3 border-t xl:border-t-0 xl:border-l border-slate-100 pt-4 xl:pt-0 xl:pl-5">
+                            <div class="text-left xl:text-right">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Amount</span>
+                                <div class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                                    ₹{{ number_format($totalAmount, 2) }}
+                                </div>
+                                @if ($balance > 0 && $b->status !== 'Cancelled')
+                                    <div class="text-xs font-bold text-amber-600">
+                                        Due: ₹{{ number_format($balance, 2) }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div class="flex items-center gap-2">
                                 <button wire:click="viewDetails({{ $b->id }})" type="button" 
-                                    class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs hover:shadow-md cursor-pointer">
+                                    class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs hover:shadow-md cursor-pointer shrink-0">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                    View Details
+                                    <span>Details</span>
                                 </button>
 
                                 @if ($balance > 0 && $b->status !== 'Cancelled')
                                     @php $firstUnpaidDate = $b->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
                                     @if ($firstUnpaidDate)
                                         <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" type="button" 
-                                            class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition text-center shadow-2xs">
+                                            class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs hover:shadow-md cursor-pointer shrink-0" title="Record Payment">
                                             + Pay
                                         </button>
                                     @endif
