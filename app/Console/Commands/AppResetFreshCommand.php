@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class AppResetFreshCommand extends Command
@@ -63,10 +65,30 @@ class AppResetFreshCommand extends Command
         Artisan::call('storage:link');
         $this->info('   ✅ Storage link active.');
 
-        // 3. Migrate fresh & seed
+        // 3. Drop all tables safely (immune to dots in database names like turf.infoleena.com) & migrate fresh
         $this->newLine();
-        $this->line('🔄 <fg=yellow>Step 3/4:</> Running migrate:fresh --seed...');
-        $exitCode = Artisan::call('migrate:fresh', [
+        $this->line('🔄 <fg=yellow>Step 3/4:</> Dropping all tables safely and running migrations...');
+
+        Schema::disableForeignKeyConstraints();
+        try {
+            // Fetch tables in currently active DB without schema prefix
+            $rawTables = DB::select("SHOW FULL TABLES WHERE Table_type = 'BASE TABLE'");
+            if (!empty($rawTables)) {
+                $quotedTableNames = [];
+                foreach ($rawTables as $row) {
+                    $rowArray = (array) $row;
+                    $tableName = reset($rowArray);
+                    $quotedTableNames[] = '`' . str_replace('`', '``', $tableName) . '`';
+                }
+                if (!empty($quotedTableNames)) {
+                    DB::statement('DROP TABLE ' . implode(', ', $quotedTableNames));
+                }
+            }
+        } finally {
+            Schema::enableForeignKeyConstraints();
+        }
+
+        $exitCode = Artisan::call('migrate', [
             '--seed' => true,
             '--force' => true,
         ], $this->output);
