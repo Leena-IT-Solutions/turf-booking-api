@@ -42,4 +42,9 @@ return [
         'scheme' => 'https',
     ],
 
+    'razorpay' => [
+        'key' => env('RAZORPAY_KEY', 'rzp_live_TdA0suhdYSbqZy'),
+        'secret' => env('RAZORPAY_SECRET', 'N5aqTWfquuJouMspqn3NELj0'),
+    ],
+
 ];

@@ -502,6 +502,8 @@ class BookingController extends Controller
             'amount_received' => 'nullable|numeric|min:0', // for manager
             'customer_id' => 'nullable|exists:users,id', // for manager
             'razorpay_payment_id' => 'nullable|string',
+            'razorpay_order_id' => 'nullable|string',
+            'razorpay_signature' => 'nullable|string',
             'customer_gstin' => 'nullable|string|max:15',
             'customer_company_name' => 'nullable|string|max:150',
         ]);
@@ -892,6 +894,9 @@ class BookingController extends Controller
             $gatewayCharge = 0.00;
             $gatewayTax = 0.00;
             $rzpPaymentId = $request->input('razorpay_payment_id');
+            $rzpOrderId = $request->input('razorpay_order_id');
+            $rzpSignature = $request->input('razorpay_signature');
+            $rzpPayload = null;
 
             if ($isStaffOrAdmin && $customerId) {
                 // Manager/Admin booking for customer:
@@ -916,19 +921,27 @@ class BookingController extends Controller
                                         ->get("https://api.razorpay.com/v1/payments/{$rzpPaymentId}");
                                     if ($fetch->successful()) {
                                         $pData = $fetch->json();
-                                        if (isset($pData['fee'])) {
-                                            $gatewayCharge = round($pData['fee'] / 100, 2);
-                                        }
-                                        if (isset($pData['tax'])) {
-                                            $gatewayTax = round($pData['tax'] / 100, 2);
+                                        $rzpPayload = $pData;
+                                        if (empty($rzpOrderId) && !empty($pData['order_id'])) {
+                                            $rzpOrderId = $pData['order_id'];
                                         }
                                         if (($pData['status'] ?? '') === 'authorized') {
-                                            \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
+                                            $captureRes = \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
                                                 ->asForm()
                                                 ->post("https://api.razorpay.com/v1/payments/{$rzpPaymentId}/capture", [
                                                     'amount' => $pData['amount'],
                                                     'currency' => $pData['currency'] ?? 'INR',
                                                 ]);
+                                            if ($captureRes->successful()) {
+                                                $pData = $captureRes->json();
+                                                $rzpPayload = $pData;
+                                            }
+                                        }
+                                        if (isset($pData['fee']) && (float)$pData['fee'] > 0) {
+                                            $gatewayCharge = round((float)$pData['fee'] / 100, 2);
+                                        }
+                                        if (isset($pData['tax']) && (float)$pData['tax'] > 0) {
+                                            $gatewayTax = round((float)$pData['tax'] / 100, 2);
                                         }
                                     }
                                 } catch (\Exception $e) {
@@ -937,10 +950,12 @@ class BookingController extends Controller
                             }
                         }
 
-                        // If gateway charge is 0 (e.g. Razorpay test mode returning fee: 0, fake/simulated test payment ID, or missing keys),
-                        // calculate realistic simulated gateway fee & tax using active PaymentGatewayCharge rules
+                        // If gateway charge is 0 (e.g. UPI transactions with 0% MDR under RBI mandate, test mode returning fee: 0, or missing keys),
+                        // calculate realistic gateway fee & tax using active PaymentGatewayCharge rules
                         if ($gatewayCharge <= 0.00 && $paidAmount > 0) {
-                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
+                            $payMethod = strtolower($rzpPayload['method'] ?? 'upi');
+                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', $payMethod)->first()
+                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
                                 ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->first();
                             $chargePct = $chargeRule ? (float)$chargeRule->charge_percentage : 2.00;
                             $taxPct = $chargeRule ? (float)$chargeRule->tax_percentage : 18.00;
@@ -949,7 +964,17 @@ class BookingController extends Controller
                             $gatewayTax = round($gatewayCharge * ($taxPct / 100), 2);
                         }
 
-                        $this->distributePaymentToBooking($booking, $paidAmount, 'App', $rzpPaymentId, $gatewayCharge, $gatewayTax);
+                        $this->distributePaymentToBooking(
+                            $booking,
+                            $paidAmount,
+                            'App',
+                            $rzpPaymentId,
+                            $gatewayCharge,
+                            $gatewayTax,
+                            $rzpOrderId,
+                            $rzpSignature,
+                            $rzpPayload
+                        );
                     }
                 }
             }
@@ -1288,7 +1313,10 @@ class BookingController extends Controller
         string $paymentMethod,
         ?string $razorpayPaymentId = null,
         float $gatewayCharge = 0.00,
-        float $gatewayTax = 0.00
+        float $gatewayTax = 0.00,
+        ?string $razorpayOrderId = null,
+        ?string $razorpaySignature = null,
+        ?array $responsePayload = null
     ): void {
         if ($amountToDistribute <= 0) {
             return;
@@ -1412,7 +1440,10 @@ class BookingController extends Controller
                     PaymentGateway::create([
                         'payment_id' => $payment->id,
                         'gateway_name' => 'razorpay',
+                        'gateway_order_id' => $razorpayOrderId ?? ($responsePayload['order_id'] ?? null),
                         'gateway_payment_id' => $razorpayPaymentId,
+                        'gateway_signature' => $razorpaySignature,
+                        'response_payload' => $responsePayload,
                     ]);
                 }
 
@@ -1980,4 +2011,74 @@ class BookingController extends Controller
             'booking' => $booking->fresh(['bookingDates', 'payments.paymentGateway'])
         ]);
     }
+
+    /**
+     * Create a Razorpay order for mobile checkout.
+     */
+    public function createRazorpayOrder(Request $request, Turf $turf): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'currency' => 'nullable|string|size:3',
+        ]);
+
+        $amount = (float) $validated['amount'];
+        $amountInPaise = (int) round($amount * 100);
+
+        $setting = \App\Models\SaasSetting::first();
+        $rzpKey = $setting?->razorpay_key ?: config('services.razorpay.key');
+        $rzpSecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
+
+        if (!$rzpKey || !$rzpSecret) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Payment gateway keys are not configured.',
+                'order_id' => null,
+                'key' => $rzpKey,
+            ]);
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
+                ->post('https://api.razorpay.com/v1/orders', [
+                    'amount' => $amountInPaise,
+                    'currency' => $validated['currency'] ?? 'INR',
+                    'receipt' => 'bkg_' . time() . '_' . auth()->id(),
+                    'notes' => [
+                        'turf_id' => $turf->id,
+                        'turf_name' => $turf->name,
+                        'user_id' => auth()->id(),
+                    ],
+                ]);
+
+            if ($response->successful()) {
+                $orderData = $response->json();
+                return response()->json([
+                    'success' => true,
+                    'order_id' => $orderData['id'],
+                    'amount' => $orderData['amount'],
+                    'currency' => $orderData['currency'],
+                    'key' => $rzpKey,
+                ]);
+            }
+
+            \Illuminate\Support\Facades\Log::error('Razorpay order creation failed: ' . $response->body());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create payment order from gateway.',
+                'error' => $response->json(),
+                'key' => $rzpKey,
+            ], 400);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Razorpay order exception: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Exception during order creation.',
+                'error' => $e->getMessage(),
+                'key' => $rzpKey,
+            ], 500);
+        }
+    }
 }
+
