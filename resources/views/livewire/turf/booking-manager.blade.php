@@ -1159,7 +1159,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <span>GST Breakup (Rate: {{ (float)$bDetail->turf_gst_rate }}%):</span>
                                         <span>₹{{ number_format($bDetail->turf_gst_amount ?? 0, 2) }}</span>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                    <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
                                             <span>CGST:</span>
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_cgst_amount ?? 0, 2) }}</span>
@@ -1177,7 +1177,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <span>Platform Fee with Breakup:</span>
                                         <span>₹{{ number_format(((float)$bDetail->platform_fee + (float)$bDetail->platform_fee_gst), 2) }}</span>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                    <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
                                             <span>Base Fee:</span>
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee ?? 0, 2) }}</span>
@@ -1207,7 +1207,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <span>Platform Commission Breakup (Rate: {{ (float)$bDetail->commission_rate }}%):</span>
                                         <span>₹{{ number_format(((float)$bDetail->commission_amount + (float)$bDetail->commission_gst_amount), 2) }}</span>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                    <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
                                             <span>Commission Base:</span>
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_amount ?? 0, 2) }}</span>
@@ -1216,7 +1216,7 @@ new #[Layout('layouts.app')] class extends Component
                                             <span>Commission GST:</span>
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_gst_amount ?? 0, 2) }}</span>
                                         </div>
-                                        <div class="flex justify-between col-span-2 pt-1 border-t border-gray-100 text-indigo-700 font-bold">
+                                        <div class="flex justify-between pt-1 border-t border-gray-100 text-indigo-700 font-bold">
                                             <span>Estimated Turf Payout:</span>
                                             <span>₹{{ number_format($bDetail->turf_payout_amount ?? 0, 2) }}</span>
                                         </div>
@@ -1229,7 +1229,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <span>Payment Gateway Charges Breakup:</span>
                                         <span>₹{{ number_format(((float)$bDetail->gateway_charge_amount + (float)$bDetail->gateway_tax_amount), 2) }}</span>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-500 pl-2">
+                                    <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
                                             <span>Gateway Fee:</span>
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->gateway_charge_amount ?? 0, 2) }}</span>
@@ -1247,7 +1247,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <span>Cancellation & Refund Breakup:</span>
                                         <span>{{ $bDetail->refund_status ?? 'Not Applicable' }}</span>
                                     </div>
-                                    <div class="grid grid-cols-2 gap-2 text-[11px] text-gray-600 pl-2">
+                                    <div class="space-y-1 text-[11px] text-gray-600 pl-2">
                                         <div class="flex justify-between">
                                             <span>Cancellation Fee Applied:</span>
                                             <span class="font-semibold text-gray-800">₹{{ number_format($bDetail->cancellation_fee_applied ?? 0, 2) }}</span>
@@ -1257,7 +1257,7 @@ new #[Layout('layouts.app')] class extends Component
                                             <span class="font-semibold text-purple-700">₹{{ number_format($bDetail->refund_amount ?? 0, 2) }}</span>
                                         </div>
                                         @if ($bDetail->cancelled_at)
-                                            <div class="flex justify-between col-span-2 text-gray-400 text-[10px]">
+                                            <div class="flex justify-between text-gray-400 text-[10px] pt-0.5 border-t border-gray-100">
                                                 <span>Cancelled On:</span>
                                                 <span>{{ Carbon::parse($bDetail->cancelled_at)->format('d M Y, h:i A') }}</span>
                                             </div>
