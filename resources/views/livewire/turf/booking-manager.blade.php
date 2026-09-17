@@ -1149,6 +1149,12 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Financial Table Matrix -->
                             <div class="rounded-2xl border border-gray-200 overflow-hidden text-xs divide-y divide-gray-100 bg-white">
                                 
+                                <!-- Grand Total Row at Top -->
+                                <div class="p-3.5 bg-gray-900 text-white flex items-center justify-between font-black text-sm">
+                                    <span class="tracking-wide">Grand Total Amount:</span>
+                                    <span class="text-base tracking-wide">₹{{ number_format($dTotalAmount, 2) }}</span>
+                                </div>
+
                                 <!-- Actual Amount & Taxable Base -->
                                 <div class="p-3 bg-gray-50/50 flex items-center justify-between">
                                     <span class="text-gray-600 font-medium">Actual Booking Amount:</span>
@@ -1174,19 +1180,70 @@ new #[Layout('layouts.app')] class extends Component
                                         <span>₹{{ number_format($bDetail->turf_gst_amount ?? 0, 2) }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-500 pl-2">
-                                        <div class="flex justify-between">
-                                            <span>CGST:</span>
-                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_cgst_amount ?? 0, 2) }}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span>SGST:</span>
-                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_sgst_amount ?? 0, 2) }}</span>
-                                        </div>
+                                        @if ($isInterState)
+                                            <div class="flex justify-between">
+                                                <span>IGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_gst_amount ?? 0, 2) }}</span>
+                                            </div>
+                                        @else
+                                            <div class="flex justify-between">
+                                                <span>CGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_cgst_amount ?? 0, 2) }}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>SGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->turf_sgst_amount ?? 0, 2) }}</span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
 
+                                @php
+                                    $bPlatformFeeTotal = (float)($bDetail->platform_fee ?? 0) + (float)($bDetail->platform_fee_gst ?? 0);
+                                    $bCommissionTotal = (float)($bDetail->commission_amount ?? 0) + (float)($bDetail->commission_gst_amount ?? 0);
+
+                                    $bGatewayCharge = (float)$bDetail->gateway_charge_amount;
+                                    $bGatewayTax = (float)$bDetail->gateway_tax_amount;
+                                    $hasOnlinePayment = $bDetail->payments->where('status', 'Success')->contains(function ($p) {
+                                        return in_array($p->payment_method, ['App', 'razorpay', 'Online']);
+                                    }) || in_array($bDetail->payment_status ?? '', ['Paid', 'Partially Paid']);
+
+                                    // If online payment was made during testing but gateway charges were 0, compute fallback from PaymentGatewayCharge
+                                    if (($bGatewayCharge <= 0 && $bGatewayTax <= 0) && $hasOnlinePayment && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
+                                        $onlinePaidAmt = (float)$bDetail->payments->where('status', 'Success')->whereIn('payment_method', ['App', 'razorpay', 'Online'])->sum('amount');
+                                        if ($onlinePaidAmt <= 0 && (float)$dPaidSum > 0 && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
+                                            $onlinePaidAmt = (float)$dPaidSum;
+                                        }
+                                        if ($onlinePaidAmt > 0) {
+                                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
+                                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->first();
+                                            $cPct = $chargeRule ? (float)$chargeRule->charge_percentage : 2.00;
+                                            $tPct = $chargeRule ? (float)$chargeRule->tax_percentage : 18.00;
+                                            $bGatewayCharge = round($onlinePaidAmt * ($cPct / 100), 2);
+                                            $bGatewayTax = round($bGatewayCharge * ($tPct / 100), 2);
+                                        }
+                                    }
+                                    $bGatewayTotal = $bGatewayCharge + $bGatewayTax;
+
+                                    // Total Deductions = Platform Fee + Platform Commission + Payment Gateway Charges
+                                    $totalDeductions = round($bPlatformFeeTotal + $bCommissionTotal + $bGatewayTotal, 2);
+
+                                    // Turf Payout = Total Paid Amount - Total Deductions
+                                    $effectivePaidAmt = (float)$dPaidSum > 0 ? (float)$dPaidSum : (float)$dTotalAmount;
+                                    $turfPayoutCalculated = round(max(0.00, $effectivePaidAmt - $totalDeductions), 2);
+                                @endphp
+
+                                <!-- Grouped Deductions Header -->
+                                <div class="p-3 bg-amber-50/70 border-l-4 border-l-amber-500 flex items-center justify-between font-bold text-amber-950">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs uppercase tracking-wider text-amber-900 font-extrabold">Total Deductions</span>
+                                        <span class="text-[10px] text-amber-700 font-medium">Platform Fee (₹{{ number_format($bPlatformFeeTotal, 2) }}) + Commission (₹{{ number_format($bCommissionTotal, 2) }}) + Gateway (₹{{ number_format($bGatewayTotal, 2) }})</span>
+                                    </div>
+                                    <span class="text-sm font-black text-rose-700">-₹{{ number_format($totalDeductions, 2) }}</span>
+                                </div>
+
                                 <!-- Platform Fee Breakup -->
-                                <div class="p-3 space-y-1.5 bg-white">
+                                <div class="p-3 space-y-1.5 bg-white pl-4">
                                     <div class="flex items-center justify-between font-bold text-gray-800">
                                         <div class="flex items-center space-x-1.5">
                                             <span>Platform Fee with Breakup:</span>
@@ -1194,7 +1251,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 {{ $isInterState ? 'Inter-State' : 'Intra-State' }}
                                             </span>
                                         </div>
-                                        <span>₹{{ number_format(((float)$bDetail->platform_fee + (float)$bDetail->platform_fee_gst), 2) }}</span>
+                                        <span>₹{{ number_format($bPlatformFeeTotal, 2) }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
@@ -1224,7 +1281,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
 
                                 <!-- Platform Commission Breakup -->
-                                <div class="p-3 space-y-1.5 bg-white">
+                                <div class="p-3 space-y-1.5 bg-white pl-4">
                                     <div class="flex items-center justify-between font-bold text-gray-800">
                                         <div class="flex items-center space-x-1.5">
                                             <span>Platform Commission Breakup (Rate: {{ (float)$bDetail->commission_rate }}%):</span>
@@ -1232,7 +1289,7 @@ new #[Layout('layouts.app')] class extends Component
                                                 {{ $isInterState ? 'Inter-State' : 'Intra-State' }}
                                             </span>
                                         </div>
-                                        <span>₹{{ number_format(((float)$bDetail->commission_amount + (float)$bDetail->commission_gst_amount), 2) }}</span>
+                                        <span>₹{{ number_format($bCommissionTotal, 2) }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
@@ -1258,41 +1315,14 @@ new #[Layout('layouts.app')] class extends Component
                                                 <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_sgst_amount ?? 0, 2) }}</span>
                                             </div>
                                         @endif
-                                        <div class="flex justify-between pt-1 border-t border-gray-100 text-indigo-700 font-bold">
-                                            <span>Estimated Turf Payout:</span>
-                                            <span>₹{{ number_format($bDetail->turf_payout_amount ?? 0, 2) }}</span>
-                                        </div>
                                     </div>
                                 </div>
 
                                 <!-- Payment Gateway Charges Breakup -->
-                                @php
-                                    $bGatewayCharge = (float)$bDetail->gateway_charge_amount;
-                                    $bGatewayTax = (float)$bDetail->gateway_tax_amount;
-                                    $hasOnlinePayment = $bDetail->payments->where('status', 'Success')->contains(function ($p) {
-                                        return in_array($p->payment_method, ['App', 'razorpay', 'Online']);
-                                    }) || in_array($bDetail->payment_status ?? '', ['Paid', 'Partially Paid']);
-
-                                    // If online payment was made during testing but gateway charges were 0, compute fallback from PaymentGatewayCharge
-                                    if (($bGatewayCharge <= 0 && $bGatewayTax <= 0) && $hasOnlinePayment && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
-                                        $onlinePaidAmt = (float)$bDetail->payments->where('status', 'Success')->whereIn('payment_method', ['App', 'razorpay', 'Online'])->sum('amount');
-                                        if ($onlinePaidAmt <= 0 && (float)$dPaidSum > 0 && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
-                                            $onlinePaidAmt = (float)$dPaidSum;
-                                        }
-                                        if ($onlinePaidAmt > 0) {
-                                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
-                                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->first();
-                                            $cPct = $chargeRule ? (float)$chargeRule->charge_percentage : 2.00;
-                                            $tPct = $chargeRule ? (float)$chargeRule->tax_percentage : 18.00;
-                                            $bGatewayCharge = round($onlinePaidAmt * ($cPct / 100), 2);
-                                            $bGatewayTax = round($bGatewayCharge * ($tPct / 100), 2);
-                                        }
-                                    }
-                                @endphp
-                                <div class="p-3 space-y-1.5 bg-white">
+                                <div class="p-3 space-y-1.5 bg-white pl-4">
                                     <div class="flex items-center justify-between font-bold text-gray-800">
                                         <span>Payment Gateway Charges Breakup:</span>
-                                        <span>₹{{ number_format(($bGatewayCharge + $bGatewayTax), 2) }}</span>
+                                        <span>₹{{ number_format($bGatewayTotal, 2) }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
@@ -1310,7 +1340,7 @@ new #[Layout('layouts.app')] class extends Component
                                 <div class="p-3 space-y-1.5 {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'bg-red-50/50' : 'bg-white' }}">
                                     <div class="flex items-center justify-between font-bold {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'text-red-900' : 'text-gray-800' }}">
                                         <span>Cancellation & Refund Breakup:</span>
-                                        <span>{{ $bDetail->refund_status ?? 'Not Applicable' }}</span>
+                                        <span>{{ $bDetail->refund_status ?? 'None' }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-600 pl-2">
                                         <div class="flex justify-between">
@@ -1330,10 +1360,13 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                 </div>
 
-                                <!-- Grand Total Row -->
-                                <div class="p-3.5 bg-gray-900 text-white flex items-center justify-between font-black text-sm">
-                                    <span>Grand Total Amount:</span>
-                                    <span>₹{{ number_format($dTotalAmount, 2) }}</span>
+                                <!-- Estimated Turf Payout at Bottom -->
+                                <div class="p-3.5 bg-indigo-900 text-white flex items-center justify-between font-black text-sm">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs uppercase tracking-wider text-indigo-200 font-bold">Estimated Turf Payout</span>
+                                        <span class="text-[10px] text-indigo-300 font-normal">Total Paid (₹{{ number_format($effectivePaidAmt, 2) }}) - Total Deductions (₹{{ number_format($totalDeductions, 2) }})</span>
+                                    </div>
+                                    <span class="text-base tracking-wide text-white font-black">₹{{ number_format($turfPayoutCalculated, 2) }}</span>
                                 </div>
 
                             </div>
