@@ -937,10 +937,10 @@ class BookingController extends Controller
                                                 $rzpPayload = $pData;
                                             }
                                         }
-                                        if (isset($pData['fee']) && (float)$pData['fee'] > 0) {
+                                        if (isset($pData['fee'])) {
                                             $gatewayCharge = round((float)$pData['fee'] / 100, 2);
                                         }
-                                        if (isset($pData['tax']) && (float)$pData['tax'] > 0) {
+                                        if (isset($pData['tax'])) {
                                             $gatewayTax = round((float)$pData['tax'] / 100, 2);
                                         }
                                     }
@@ -948,20 +948,6 @@ class BookingController extends Controller
                                     \Illuminate\Support\Facades\Log::error('Razorpay auto-capture/fee fetch error on store: ' . $e->getMessage());
                                 }
                             }
-                        }
-
-                        // If gateway charge is 0 (e.g. UPI transactions with 0% MDR under RBI mandate, test mode returning fee: 0, or missing keys),
-                        // calculate realistic gateway fee & tax using active PaymentGatewayCharge rules
-                        if ($gatewayCharge <= 0.00 && $paidAmount > 0) {
-                            $payMethod = strtolower($rzpPayload['method'] ?? 'upi');
-                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', $payMethod)->first()
-                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
-                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->first();
-                            $chargePct = $chargeRule ? (float)$chargeRule->charge_percentage : 2.00;
-                            $taxPct = $chargeRule ? (float)$chargeRule->tax_percentage : 18.00;
-
-                            $gatewayCharge = round($paidAmount * ($chargePct / 100), 2);
-                            $gatewayTax = round($gatewayCharge * ($taxPct / 100), 2);
                         }
 
                         $this->distributePaymentToBooking(

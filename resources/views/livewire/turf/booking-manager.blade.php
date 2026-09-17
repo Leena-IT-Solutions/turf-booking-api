@@ -1202,28 +1202,9 @@ new #[Layout('layouts.app')] class extends Component
                                     $bPlatformFeeTotal = (float)($bDetail->platform_fee ?? 0) + (float)($bDetail->platform_fee_gst ?? 0);
                                     $bCommissionTotal = (float)($bDetail->commission_amount ?? 0) + (float)($bDetail->commission_gst_amount ?? 0);
 
-                                    $bGatewayCharge = (float)$bDetail->gateway_charge_amount;
-                                    $bGatewayTax = (float)$bDetail->gateway_tax_amount;
-                                    $hasOnlinePayment = $bDetail->payments->where('status', 'Success')->contains(function ($p) {
-                                        return in_array($p->payment_method, ['App', 'razorpay', 'Online']);
-                                    }) || in_array($bDetail->payment_status ?? '', ['Paid', 'Partially Paid']);
-
-                                    // If online payment was made during testing but gateway charges were 0, compute fallback from PaymentGatewayCharge
-                                    if (($bGatewayCharge <= 0 && $bGatewayTax <= 0) && $hasOnlinePayment && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
-                                        $onlinePaidAmt = (float)$bDetail->payments->where('status', 'Success')->whereIn('payment_method', ['App', 'razorpay', 'Online'])->sum('amount');
-                                        if ($onlinePaidAmt <= 0 && (float)$dPaidSum > 0 && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
-                                            $onlinePaidAmt = (float)$dPaidSum;
-                                        }
-                                        if ($onlinePaidAmt > 0) {
-                                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
-                                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->first();
-                                            $cPct = $chargeRule ? (float)$chargeRule->charge_percentage : 2.00;
-                                            $tPct = $chargeRule ? (float)$chargeRule->tax_percentage : 18.00;
-                                            $bGatewayCharge = round($onlinePaidAmt * ($cPct / 100), 2);
-                                            $bGatewayTax = round($bGatewayCharge * ($tPct / 100), 2);
-                                        }
-                                    }
-                                    $bGatewayTotal = $bGatewayCharge + $bGatewayTax;
+                                    $bGatewayCharge = (float)($bDetail->gateway_charge_amount ?? 0);
+                                    $bGatewayTax = (float)($bDetail->gateway_tax_amount ?? 0);
+                                    $bGatewayTotal = round($bGatewayCharge + $bGatewayTax, 2);
 
                                     // Total Deductions = Platform Fee + Platform Commission + Payment Gateway Charges
                                     $totalDeductions = round($bPlatformFeeTotal + $bCommissionTotal + $bGatewayTotal, 2);
