@@ -13,6 +13,7 @@ class BookingDate extends Model
         'booking_id',
         'booking_date',
         'status',
+        'actual_amount',
         'amount',
         'coupon_discount',
         'additional_discount',
@@ -43,6 +44,7 @@ class BookingDate extends Model
 
     protected $casts = [
         'booking_date' => 'string',
+        'actual_amount' => 'decimal:2',
         'amount' => 'decimal:2',
         'coupon_discount' => 'decimal:2',
         'additional_discount' => 'decimal:2',

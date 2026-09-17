@@ -186,6 +186,10 @@ class BookingController extends Controller
                 'date_paid_amount' => $datePaidAmount,
                 'date_balance_amount' => $dateBalanceAmount,
                 'booking_number' => $booking->booking_number ?? ('#' . ($booking->id ?? '')),
+                'actual_amount' => (float)($bDate->actual_amount > 0 ? $bDate->actual_amount : ($booking->actual_amount ?? ($bDate->amount))),
+                'booking_actual_amount' => (float)($booking->actual_amount ?? 0),
+                'coupon_discount' => (float)($booking->coupon_discount ?? 0),
+                'additional_discount' => (float)($booking->additional_discount ?? 0),
                 'taxable_amount' => (float)($booking->taxable_amount ?? 0),
                 'turf_gst_rate' => (float)($booking->turf_gst_rate ?? 0),
                 'turf_gst_type' => $booking->turf->gst_type ?? 'exempt',
@@ -797,6 +801,7 @@ class BookingController extends Controller
                 'booking_type' => $bookingType,
                 'status' => 'Confirmed',
                 'payment_status' => 'Pending',
+                'actual_amount' => $pricing['actual_amount'] ?? ($pricing['subtotal'] ?? 0.00),
                 'coupon_discount' => $pricing['coupon_discount'],
                 'additional_discount' => $pricing['additional_discount'],
                 'taxable_amount' => $pricing['taxable_amount'],
@@ -840,6 +845,7 @@ class BookingController extends Controller
 
                 $bookingDate = $booking->bookingDates()->create([
                     'booking_date' => $calcDate['date'],
+                    'actual_amount' => $pDate['actual_amount'] ?? ($pDate['subtotal'] ?? ($calcDate['subtotal'] ?? 0.00)),
                     'amount' => $pDate['date_total'] ?? ($pDate['turf_total'] ?? $calcDate['after_coupon']),
                     'taxable_amount' => $pDate['taxable_amount'] ?? 0.00,
                     'turf_gst_amount' => $pDate['turf_gst_amount'] ?? 0.00,

@@ -1135,10 +1135,10 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Financial Table Matrix -->
                             <div class="rounded-2xl border border-gray-200 overflow-hidden text-xs divide-y divide-gray-100 bg-white">
                                 
-                                <!-- Base Taxable & Discounts -->
+                                <!-- Actual Amount & Taxable Base -->
                                 <div class="p-3 bg-gray-50/50 flex items-center justify-between">
-                                    <span class="text-gray-600 font-medium">Taxable Base Amount:</span>
-                                    <span class="font-extrabold text-gray-900">₹{{ number_format($bDetail->taxable_amount ?? 0, 2) }}</span>
+                                    <span class="text-gray-600 font-medium">Actual Booking Amount:</span>
+                                    <span class="font-extrabold text-gray-900">₹{{ number_format(($bDetail->actual_amount && (float)$bDetail->actual_amount > 0) ? (float)$bDetail->actual_amount : ((float)($bDetail->taxable_amount ?? 0) + (float)($bDetail->turf_gst_amount ?? 0) + (float)($bDetail->coupon_discount ?? 0) + (float)($bDetail->additional_discount ?? 0)), 2) }}</span>
                                 </div>
 
                                 @if ((float)$bDetail->coupon_discount > 0 || (float)$bDetail->additional_discount > 0)
@@ -1147,6 +1147,11 @@ new #[Layout('layouts.app')] class extends Component
                                         <span class="font-extrabold">-₹{{ number_format(((float)$bDetail->coupon_discount + (float)$bDetail->additional_discount), 2) }}</span>
                                     </div>
                                 @endif
+
+                                <div class="p-3 bg-gray-50/50 flex items-center justify-between">
+                                    <span class="text-gray-600 font-medium">Taxable Base Amount:</span>
+                                    <span class="font-extrabold text-gray-900">₹{{ number_format($bDetail->taxable_amount ?? 0, 2) }}</span>
+                                </div>
 
                                 <!-- GST Breakup -->
                                 <div class="p-3 space-y-1.5 bg-white">

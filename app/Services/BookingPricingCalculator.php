@@ -208,6 +208,7 @@ class BookingPricingCalculator
             $processedDates[] = [
                 'date' => $item['date'] ?? '',
                 'day_name' => $item['day_name'] ?? '',
+                'actual_amount' => $subtotal,
                 'subtotal' => $subtotal,
                 'coupon_discount' => $couponDiscount,
                 'additional_discount' => $additionalDiscount,
@@ -360,6 +361,7 @@ class BookingPricingCalculator
 
         return [
             // Slot Subtotals & Discounts
+            'actual_amount' => round($totalGrossSubtotal, 2),
             'subtotal' => round($totalGrossSubtotal, 2),
             'coupon_discount' => round($totalCouponDiscount, 2),
             'additional_discount' => round($totalAdditionalDiscount, 2),

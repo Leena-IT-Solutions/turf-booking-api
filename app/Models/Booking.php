@@ -17,6 +17,7 @@ class Booking extends Model
         'booking_type',
         'status',
         'payment_status',
+        'actual_amount',
         'coupon_discount',
         'additional_discount',
         'taxable_amount',
@@ -59,6 +60,7 @@ class Booking extends Model
 
     protected $casts = [
         'date_of_booking' => 'datetime',
+        'actual_amount' => 'decimal:2',
         'coupon_discount' => 'decimal:2',
         'additional_discount' => 'decimal:2',
         'taxable_amount' => 'decimal:2',
