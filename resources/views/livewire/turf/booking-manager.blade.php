@@ -1336,30 +1336,6 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                 </div>
 
-                                <!-- Cancellation & Refund Breakup -->
-                                <div class="p-3 space-y-1.5 {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'bg-red-50/50' : 'bg-white' }}">
-                                    <div class="flex items-center justify-between font-bold {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'text-red-900' : 'text-gray-800' }}">
-                                        <span>Cancellation & Refund Breakup:</span>
-                                        <span>{{ $bDetail->refund_status ?? 'None' }}</span>
-                                    </div>
-                                    <div class="space-y-1 text-[11px] text-gray-600 pl-2">
-                                        <div class="flex justify-between">
-                                            <span>Cancellation Fee Applied:</span>
-                                            <span class="font-semibold text-gray-800">₹{{ number_format($bDetail->cancellation_fee_applied ?? 0, 2) }}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span>Refund Amount:</span>
-                                            <span class="font-semibold text-purple-700">₹{{ number_format($bDetail->refund_amount ?? 0, 2) }}</span>
-                                        </div>
-                                        @if ($bDetail->cancelled_at)
-                                            <div class="flex justify-between text-gray-400 text-[10px] pt-0.5 border-t border-gray-100">
-                                                <span>Cancelled On:</span>
-                                                <span>{{ Carbon::parse($bDetail->cancelled_at)->format('d M Y, h:i A') }}</span>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
-
                                 <!-- Estimated Turf Payout at Bottom -->
                                 <div class="p-3.5 bg-indigo-900 text-white flex items-center justify-between font-black text-sm">
                                     <div class="flex flex-col">
@@ -1395,6 +1371,88 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                         </div>
 
+                        <!-- 7. Booking Cancellation & Refund Section -->
+                        <div class="space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-gray-600">Booking Cancellation & Refunds</h3>
+                                @if ($bDetail->status === 'Cancelled')
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-red-100 text-red-700 border border-red-200">
+                                        Cancelled
+                                    </span>
+                                @elseif ($bDetail->status === 'Partially Cancelled')
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-700 border border-amber-200">
+                                        Partially Cancelled
+                                    </span>
+                                @else
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                        Active Booking
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="rounded-2xl border {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white' }} overflow-hidden text-xs divide-y divide-gray-100 shadow-2xs">
+                                
+                                <div class="p-3 bg-gray-50/50 flex items-center justify-between">
+                                    <span class="text-gray-600 font-medium">Refund Status:</span>
+                                    <span class="font-extrabold {{ $bDetail->refund_status === 'Refunded' ? 'text-emerald-700' : ($bDetail->status === 'Cancelled' ? 'text-red-700' : 'text-gray-800') }}">
+                                        {{ $bDetail->refund_status ?? 'None' }}
+                                    </span>
+                                </div>
+
+                                <div class="p-3 flex items-center justify-between bg-white">
+                                    <span class="text-gray-600">Cancellation Fee Applied:</span>
+                                    <span class="font-bold text-gray-900">₹{{ number_format($bDetail->cancellation_fee_applied ?? 0, 2) }}</span>
+                                </div>
+
+                                <div class="p-3 flex items-center justify-between bg-white">
+                                    <span class="text-gray-600">Refund Amount:</span>
+                                    <span class="font-bold text-purple-700">₹{{ number_format($bDetail->refund_amount ?? 0, 2) }}</span>
+                                </div>
+
+                                @if ($bDetail->refund_method && $bDetail->refund_method !== 'None')
+                                    <div class="p-3 flex items-center justify-between bg-white text-[11px]">
+                                        <span class="text-gray-500">Refund Method:</span>
+                                        <span class="font-semibold text-gray-700">{{ $bDetail->refund_method }}</span>
+                                    </div>
+                                @endif
+
+                                @if ($bDetail->cancelled_at)
+                                    <div class="p-3 flex items-center justify-between bg-gray-50/50 text-[11px]">
+                                        <span class="text-gray-500">Cancelled On:</span>
+                                        <span class="font-medium text-gray-700">{{ Carbon::parse($bDetail->cancelled_at)->format('d M Y, h:i A') }}</span>
+                                    </div>
+                                @endif
+
+                                @if ($bDetail->refunded_at)
+                                    <div class="p-3 flex items-center justify-between bg-gray-50/50 text-[11px]">
+                                        <span class="text-gray-500">Refund Processed On:</span>
+                                        <span class="font-medium text-gray-700">{{ Carbon::parse($bDetail->refunded_at)->format('d M Y, h:i A') }}</span>
+                                    </div>
+                                @endif
+
+                                <!-- Cancellation Action Button Row -->
+                                @if ($bDetail->status !== 'Cancelled')
+                                    <div class="p-3 bg-gray-50/80 flex items-center justify-between gap-3">
+                                        <p class="text-[11px] text-gray-500">Need to cancel booking or specific slots?</p>
+                                        <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                            Cancel Booking
+                                        </button>
+                                    </div>
+                                @else
+                                    <div class="p-3 bg-red-50/50 flex items-center gap-2 text-[11px] text-red-700 font-medium">
+                                        <svg class="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                        </svg>
+                                        <span>This booking has been cancelled.</span>
+                                    </div>
+                                @endif
+
+                            </div>
+                        </div>
+
                     </div>
 
                     <!-- 3. Drawer Footer Actions (Sticky Bottom) -->
@@ -1406,12 +1464,6 @@ new #[Layout('layouts.app')] class extends Component
                                     + Record Payment
                                 </button>
                             @endif
-                        @endif
-
-                        @if ($bDetail->status !== 'Cancelled')
-                            <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2.5 px-4 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition cursor-pointer">
-                                Cancel Booking
-                            </button>
                         @endif
 
                         <button wire:click="closeDetails" class="py-2.5 px-5 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs">
