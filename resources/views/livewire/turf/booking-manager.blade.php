@@ -899,7 +899,7 @@ new #[Layout('layouts.app')] class extends Component
     <!-- DETAILS DRAWER MODAL -->
     @if ($showDetailModal && $selectedBookingId)
         @php
-            $bDetail = Booking::with(['turf.location', 'user', 'bookingDates.bookingSlots.slot.category', 'payments'])->find($selectedBookingId);
+            $bDetail = Booking::with(['turf.location', 'turf.setting', 'turf.turfSetting', 'user', 'bookingDates.bookingSlots.slot.category', 'payments'])->find($selectedBookingId);
         @endphp
         @if ($bDetail)
             @php
@@ -913,6 +913,20 @@ new #[Layout('layouts.app')] class extends Component
                     }
                 } else {
                     $dBalance = max(0.00, $dTotalAmount - $dPaidSum);
+                }
+
+                // Determine Inter-State vs Intra-State for SaaS taxes
+                $isInterState = false;
+                if ((float)$bDetail->platform_fee_igst > 0 || (float)$bDetail->commission_igst_amount > 0) {
+                    $isInterState = true;
+                } elseif ((float)$bDetail->platform_fee_cgst > 0 || (float)$bDetail->platform_fee_sgst > 0 || (float)$bDetail->commission_cgst_amount > 0 || (float)$bDetail->commission_sgst_amount > 0) {
+                    $isInterState = false;
+                } else {
+                    $saasSetting = \App\Models\SaasSetting::first();
+                    $saasStateCode = trim((string)($saasSetting?->state_code ?? '27'));
+                    $turfSetting = $bDetail->turf?->setting ?? $bDetail->turf?->turfSetting;
+                    $turfStateCode = trim((string)($turfSetting?->state_code ?? $saasStateCode));
+                    $isInterState = ($saasStateCode !== '' && $turfStateCode !== '' && $saasStateCode !== $turfStateCode);
                 }
 
                 // Collect distinct payment methods used
@@ -1174,7 +1188,12 @@ new #[Layout('layouts.app')] class extends Component
                                 <!-- Platform Fee Breakup -->
                                 <div class="p-3 space-y-1.5 bg-white">
                                     <div class="flex items-center justify-between font-bold text-gray-800">
-                                        <span>Platform Fee with Breakup:</span>
+                                        <div class="flex items-center space-x-1.5">
+                                            <span>Platform Fee with Breakup:</span>
+                                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded {{ $isInterState ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200' }}">
+                                                {{ $isInterState ? 'Inter-State' : 'Intra-State' }}
+                                            </span>
+                                        </div>
                                         <span>₹{{ number_format(((float)$bDetail->platform_fee + (float)$bDetail->platform_fee_gst), 2) }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-500 pl-2">
@@ -1186,16 +1205,19 @@ new #[Layout('layouts.app')] class extends Component
                                             <span>Fee GST:</span>
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_gst ?? 0, 2) }}</span>
                                         </div>
-                                        @if ((float)$bDetail->platform_fee_cgst > 0)
+                                        @if ($isInterState)
+                                            <div class="flex justify-between">
+                                                <span>Fee IGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format((float)$bDetail->platform_fee_igst > 0 ? $bDetail->platform_fee_igst : ((float)$bDetail->platform_fee_gst), 2) }}</span>
+                                            </div>
+                                        @else
                                             <div class="flex justify-between">
                                                 <span>Fee CGST:</span>
-                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_cgst, 2) }}</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_cgst ?? 0, 2) }}</span>
                                             </div>
-                                        @endif
-                                        @if ((float)$bDetail->platform_fee_sgst > 0)
                                             <div class="flex justify-between">
                                                 <span>Fee SGST:</span>
-                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_sgst, 2) }}</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->platform_fee_sgst ?? 0, 2) }}</span>
                                             </div>
                                         @endif
                                     </div>
@@ -1204,7 +1226,12 @@ new #[Layout('layouts.app')] class extends Component
                                 <!-- Platform Commission Breakup -->
                                 <div class="p-3 space-y-1.5 bg-white">
                                     <div class="flex items-center justify-between font-bold text-gray-800">
-                                        <span>Platform Commission Breakup (Rate: {{ (float)$bDetail->commission_rate }}%):</span>
+                                        <div class="flex items-center space-x-1.5">
+                                            <span>Platform Commission Breakup (Rate: {{ (float)$bDetail->commission_rate }}%):</span>
+                                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded {{ $isInterState ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-blue-50 text-blue-700 border border-blue-200' }}">
+                                                {{ $isInterState ? 'Inter-State' : 'Intra-State' }}
+                                            </span>
+                                        </div>
                                         <span>₹{{ number_format(((float)$bDetail->commission_amount + (float)$bDetail->commission_gst_amount), 2) }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-500 pl-2">
@@ -1216,6 +1243,21 @@ new #[Layout('layouts.app')] class extends Component
                                             <span>Commission GST:</span>
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_gst_amount ?? 0, 2) }}</span>
                                         </div>
+                                        @if ($isInterState)
+                                            <div class="flex justify-between">
+                                                <span>Commission IGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format((float)$bDetail->commission_igst_amount > 0 ? $bDetail->commission_igst_amount : ((float)$bDetail->commission_gst_amount), 2) }}</span>
+                                            </div>
+                                        @else
+                                            <div class="flex justify-between">
+                                                <span>Commission CGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_cgst_amount ?? 0, 2) }}</span>
+                                            </div>
+                                            <div class="flex justify-between">
+                                                <span>Commission SGST:</span>
+                                                <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->commission_sgst_amount ?? 0, 2) }}</span>
+                                            </div>
+                                        @endif
                                         <div class="flex justify-between pt-1 border-t border-gray-100 text-indigo-700 font-bold">
                                             <span>Estimated Turf Payout:</span>
                                             <span>₹{{ number_format($bDetail->turf_payout_amount ?? 0, 2) }}</span>
