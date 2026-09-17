@@ -937,6 +937,18 @@ class BookingController extends Controller
                             }
                         }
 
+                        // If gateway charge is 0 (e.g. Razorpay test mode returning fee: 0, fake/simulated test payment ID, or missing keys),
+                        // calculate realistic simulated gateway fee & tax using active PaymentGatewayCharge rules
+                        if ($gatewayCharge <= 0.00 && $paidAmount > 0) {
+                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
+                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->first();
+                            $chargePct = $chargeRule ? (float)$chargeRule->charge_percentage : 2.00;
+                            $taxPct = $chargeRule ? (float)$chargeRule->tax_percentage : 18.00;
+
+                            $gatewayCharge = round($paidAmount * ($chargePct / 100), 2);
+                            $gatewayTax = round($gatewayCharge * ($taxPct / 100), 2);
+                        }
+
                         $this->distributePaymentToBooking($booking, $paidAmount, 'App', $rzpPaymentId, $gatewayCharge, $gatewayTax);
                     }
                 }

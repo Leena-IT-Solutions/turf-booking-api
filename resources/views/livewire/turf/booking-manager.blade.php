@@ -1266,19 +1266,42 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
 
                                 <!-- Payment Gateway Charges Breakup -->
+                                @php
+                                    $bGatewayCharge = (float)$bDetail->gateway_charge_amount;
+                                    $bGatewayTax = (float)$bDetail->gateway_tax_amount;
+                                    $hasOnlinePayment = $bDetail->payments->where('status', 'Success')->contains(function ($p) {
+                                        return in_array($p->payment_method, ['App', 'razorpay', 'Online']);
+                                    }) || in_array($bDetail->payment_status ?? '', ['Paid', 'Partially Paid']);
+
+                                    // If online payment was made during testing but gateway charges were 0, compute fallback from PaymentGatewayCharge
+                                    if (($bGatewayCharge <= 0 && $bGatewayTax <= 0) && $hasOnlinePayment && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
+                                        $onlinePaidAmt = (float)$bDetail->payments->where('status', 'Success')->whereIn('payment_method', ['App', 'razorpay', 'Online'])->sum('amount');
+                                        if ($onlinePaidAmt <= 0 && (float)$dPaidSum > 0 && !in_array($paymentMethods->first() ?? '', ['Cash', 'offline'])) {
+                                            $onlinePaidAmt = (float)$dPaidSum;
+                                        }
+                                        if ($onlinePaidAmt > 0) {
+                                            $chargeRule = \App\Models\PaymentGatewayCharge::where('is_active', true)->where('code', 'upi')->first()
+                                                ?? \App\Models\PaymentGatewayCharge::where('is_active', true)->first();
+                                            $cPct = $chargeRule ? (float)$chargeRule->charge_percentage : 2.00;
+                                            $tPct = $chargeRule ? (float)$chargeRule->tax_percentage : 18.00;
+                                            $bGatewayCharge = round($onlinePaidAmt * ($cPct / 100), 2);
+                                            $bGatewayTax = round($bGatewayCharge * ($tPct / 100), 2);
+                                        }
+                                    }
+                                @endphp
                                 <div class="p-3 space-y-1.5 bg-white">
                                     <div class="flex items-center justify-between font-bold text-gray-800">
                                         <span>Payment Gateway Charges Breakup:</span>
-                                        <span>₹{{ number_format(((float)$bDetail->gateway_charge_amount + (float)$bDetail->gateway_tax_amount), 2) }}</span>
+                                        <span>₹{{ number_format(($bGatewayCharge + $bGatewayTax), 2) }}</span>
                                     </div>
                                     <div class="space-y-1 text-[11px] text-gray-500 pl-2">
                                         <div class="flex justify-between">
                                             <span>Gateway Fee:</span>
-                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->gateway_charge_amount ?? 0, 2) }}</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bGatewayCharge, 2) }}</span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Gateway Tax:</span>
-                                            <span class="font-semibold text-gray-700">₹{{ number_format($bDetail->gateway_tax_amount ?? 0, 2) }}</span>
+                                            <span class="font-semibold text-gray-700">₹{{ number_format($bGatewayTax, 2) }}</span>
                                         </div>
                                     </div>
                                 </div>
