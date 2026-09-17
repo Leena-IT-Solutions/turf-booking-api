@@ -899,7 +899,7 @@ new #[Layout('layouts.app')] class extends Component
     <!-- DETAILS DRAWER MODAL -->
     @if ($showDetailModal && $selectedBookingId)
         @php
-            $bDetail = Booking::with(['turf.location', 'turf.setting', 'turf.turfSetting', 'user', 'bookingDates.bookingSlots.slot.category', 'payments'])->find($selectedBookingId);
+            $bDetail = Booking::with(['turf.location', 'turf.setting', 'user', 'bookingDates.bookingSlots.slot.category', 'payments'])->find($selectedBookingId);
         @endphp
         @if ($bDetail)
             @php
@@ -924,7 +924,7 @@ new #[Layout('layouts.app')] class extends Component
                 } else {
                     $saasSetting = \App\Models\SaasSetting::first();
                     $saasStateCode = trim((string)($saasSetting?->state_code ?? '27'));
-                    $turfSetting = $bDetail->turf?->setting ?? $bDetail->turf?->turfSetting;
+                    $turfSetting = $bDetail->turf?->setting;
                     $turfStateCode = trim((string)($turfSetting?->state_code ?? $saasStateCode));
                     $isInterState = ($saasStateCode !== '' && $turfStateCode !== '' && $saasStateCode !== $turfStateCode);
                 }

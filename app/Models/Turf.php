@@ -152,5 +152,10 @@ class Turf extends Model
     {
         return $this->hasOne(TurfSetting::class);
     }
+
+    public function turfSetting(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(TurfSetting::class);
+    }
 }
 
