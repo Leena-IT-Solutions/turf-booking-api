@@ -45,6 +45,64 @@ new class extends Component
         $this->showDetailModal = false;
         $this->selectedBookingId = null;
     }
+
+    public function formatConsecutiveSlots($bookingSlots): array
+    {
+        $slots = [];
+        $seen = [];
+        foreach ($bookingSlots as $bs) {
+            if ($bs->slot && $bs->slot->from_time && $bs->slot->to_time) {
+                $timeKey = $bs->slot->from_time . '_' . $bs->slot->to_time;
+                if (isset($seen[$timeKey])) {
+                    continue;
+                }
+                $seen[$timeKey] = true;
+
+                $slots[] = [
+                    'from' => substr($bs->slot->from_time, 0, 5),
+                    'to' => substr($bs->slot->to_time, 0, 5),
+                    'from_ts' => strtotime($bs->slot->from_time),
+                    'to_ts' => strtotime($bs->slot->to_time),
+                ];
+            }
+        }
+
+        if (empty($slots)) {
+            return [];
+        }
+
+        usort($slots, fn($a, $b) => $a['from_ts'] <=> $b['from_ts']);
+
+        $ranges = [];
+        $currentStart = $slots[0]['from_ts'];
+        $currentEnd = $slots[0]['to_ts'];
+        $count = 1;
+
+        for ($i = 1; $i < count($slots); $i++) {
+            if ($slots[$i]['from_ts'] === $currentEnd) {
+                // Continuous / consecutive slot
+                $currentEnd = $slots[$i]['to_ts'];
+                $count++;
+            } else {
+                $ranges[] = [
+                    'from' => date('h:i A', $currentStart),
+                    'to' => date('h:i A', $currentEnd),
+                    'slots_count' => $count,
+                ];
+                $currentStart = $slots[$i]['from_ts'];
+                $currentEnd = $slots[$i]['to_ts'];
+                $count = 1;
+            }
+        }
+
+        $ranges[] = [
+            'from' => date('h:i A', $currentStart),
+            'to' => date('h:i A', $currentEnd),
+            'slots_count' => $count,
+        ];
+
+        return $ranges;
+    }
 }; ?>
 
 <div class="space-y-6">
@@ -237,19 +295,23 @@ new class extends Component
                         }
                     }
 
-                    // Collect slot summaries
-                    $slotsSummary = [];
+                    // Collect distinct consecutive session timing ranges across booking dates
+                    $dailyRanges = [];
                     foreach ($b->bookingDates as $bDate) {
-                        foreach ($bDate->bookingSlots as $bSlot) {
-                            if ($bSlot->slot) {
-                                $from = date('h:i A', strtotime($bSlot->slot->from_time));
-                                $to = date('h:i A', strtotime($bSlot->slot->to_time));
-                                $slotsSummary[] = "$from - $to";
+                        $ranges = $this->formatConsecutiveSlots($bDate->bookingSlots);
+                        foreach ($ranges as $r) {
+                            $rKey = $r['from'] . '-' . $r['to'];
+                            if (!isset($dailyRanges[$rKey])) {
+                                $dailyRanges[$rKey] = $r;
                             }
                         }
                     }
-                    $slotsSummary = array_unique($slotsSummary);
-                    $slotTimeText = !empty($slotsSummary) ? implode(', ', array_slice($slotsSummary, 0, 2)) . (count($slotsSummary) > 2 ? ' +' . (count($slotsSummary) - 2) . ' more' : '') : 'N/A';
+                    $consecutiveRanges = array_values($dailyRanges);
+                    $timingParts = [];
+                    foreach ($consecutiveRanges as $cr) {
+                        $timingParts[] = $cr['from'] . ' - ' . $cr['to'];
+                    }
+                    $timingText = !empty($timingParts) ? implode(', ', $timingParts) : 'N/A';
 
                     $turfPhoto = $b->turf?->photos->first()?->photo_url ?? null;
                 @endphp
@@ -323,8 +385,8 @@ new class extends Component
                                     <span class="font-bold text-gray-900 block truncate text-xs sm:text-sm">📅 {{ $formattedDateRange }}</span>
                                 </div>
                                 <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Time Slot</span>
-                                    <span class="font-bold text-indigo-600 block truncate text-xs sm:text-sm">⏰ {{ $slotTimeText }}</span>
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Timing</span>
+                                    <span class="font-bold text-indigo-600 block truncate text-xs sm:text-sm" title="{{ $timingText }}">⏰ {{ $timingText }}</span>
                                 </div>
                                 <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
                                     <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Total Amount</span>
@@ -435,22 +497,30 @@ new class extends Component
                             <p class="text-indigo-700 font-medium">{{ $modalBooking->turf?->address ?? 'N/A' }}</p>
                         </div>
 
-                        <!-- Date & Slot Breakdown -->
+                        <!-- Date & Timing Breakdown -->
                         <div class="space-y-3">
-                            <h4 class="font-black text-gray-900 uppercase text-[10px] tracking-wider">Scheduled Slots</h4>
+                            <h4 class="font-black text-gray-900 uppercase text-[10px] tracking-wider">Scheduled Timing</h4>
                             <div class="space-y-2">
                                 @foreach ($modalBooking->bookingDates as $bDate)
                                     <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                         <div>
                                             <span class="font-bold text-gray-900 text-xs block">📅 {{ Carbon::parse($bDate->booking_date)->format('D, M d, Y') }}</span>
                                             <div class="flex items-center gap-1.5 flex-wrap mt-1">
-                                                @foreach ($bDate->bookingSlots as $bSlot)
-                                                    @if ($bSlot->slot)
-                                                        <span class="px-2 py-0.5 rounded-lg bg-indigo-100 text-indigo-800 text-[10px] font-bold">
-                                                            {{ date('h:i A', strtotime($bSlot->slot->from_time)) }} - {{ date('h:i A', strtotime($bSlot->slot->to_time)) }}
+                                                @php
+                                                    $modalRanges = $this->formatConsecutiveSlots($bDate->bookingSlots);
+                                                @endphp
+                                                @if (!empty($modalRanges))
+                                                    @foreach ($modalRanges as $mRange)
+                                                        <span class="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 text-[11px] font-bold inline-flex items-center gap-1">
+                                                            <span>⏰ {{ $mRange['from'] }} - {{ $mRange['to'] }}</span>
+                                                            @if ($mRange['slots_count'] > 1)
+                                                                <span class="text-[9px] font-semibold text-indigo-600">({{ $mRange['slots_count'] }} slots)</span>
+                                                            @endif
                                                         </span>
-                                                    @endif
-                                                @endforeach
+                                                    @endforeach
+                                                @else
+                                                    <span class="text-xs text-gray-400 italic">No timings scheduled</span>
+                                                @endif
                                             </div>
                                         </div>
                                         <div class="text-right shrink-0">
