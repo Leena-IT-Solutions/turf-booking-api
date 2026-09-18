@@ -466,6 +466,7 @@ new class extends Component
         @php
             $modalBooking = Booking::with([
                 'turf.location',
+                'turf.setting',
                 'bookingDates.bookingSlots.slot',
                 'payments'
             ])->find($selectedBookingId);
@@ -556,26 +557,189 @@ new class extends Component
                             </div>
                         </div>
 
-                        <!-- Payment & Financial Summary -->
+                        <!-- Bill Breakup & Financial Summary -->
                         @php
-                            $modalTotal = (float) $modalBooking->bookingDates->sum('amount');
+                            $modalBookingTotal = (float) $modalBooking->bookingDates->sum('amount');
+                            $modalTotal = (float) ($modalBooking->total_amount > 0 ? $modalBooking->total_amount : $modalBookingTotal);
                             $modalPaid = (float) $modalBooking->payments->where('status', 'Success')->sum('amount');
-                            $modalBalance = max(0.00, $modalTotal - $modalPaid);
+                            if ($modalPaid == 0.00 && $modalBooking->payment_status === 'Paid') {
+                                $modalPaid = $modalTotal;
+                            }
+                            $modalBalance = max(0.00, round($modalTotal - $modalPaid, 2));
+
+                            // 1. Actual Amount
+                            $bDiscount = (float)($modalBooking->coupon_discount ?? 0) + (float)($modalBooking->additional_discount ?? 0);
+                            $bActualAmount = (float)($modalBooking->actual_amount ?? 0);
+                            if ($bActualAmount <= 0) {
+                                $bTaxable = (float)($modalBooking->taxable_amount ?? 0);
+                                $bGst = (float)($modalBooking->turf_gst_amount ?? 0);
+                                if ($bTaxable > 0 || $bGst > 0) {
+                                    $bActualAmount = round($bTaxable + $bGst + $bDiscount, 2);
+                                } else {
+                                    $bActualAmount = $modalTotal > 0 ? $modalTotal : $modalBookingTotal;
+                                }
+                            }
+
+                            // 2. Taxable Amount
+                            $bTaxableAmount = (float)($modalBooking->taxable_amount ?? 0);
+                            if ($bTaxableAmount <= 0 && (float)($modalBooking->turf_gst_amount ?? 0) == 0) {
+                                $bTaxableAmount = max(0.00, round($bActualAmount - $bDiscount, 2));
+                            }
+
+                            // 3. GST Breakup
+                            $bTurfGst = (float)($modalBooking->turf_gst_amount ?? 0);
+                            $bGstRate = (float)($modalBooking->turf_gst_rate ?? 0);
+                            if ($bGstRate <= 0 && $bTaxableAmount > 0 && $bTurfGst > 0) {
+                                $bGstRate = round(($bTurfGst / $bTaxableAmount) * 100, 1);
+                            }
+
+                            // Determine GST Inter-State vs Intra-State
+                            $isInterState = false;
+                            if ((float)($modalBooking->platform_fee_igst ?? 0) > 0) {
+                                $isInterState = true;
+                            } elseif ((float)($modalBooking->platform_fee_cgst ?? 0) > 0 || (float)($modalBooking->platform_fee_sgst ?? 0) > 0) {
+                                $isInterState = false;
+                            } else {
+                                $saasSetting = \App\Models\SaasSetting::first();
+                                $saasStateCode = trim((string)($saasSetting?->state_code ?? '27'));
+                                $turfSetting = $modalBooking->turf?->setting;
+                                $turfStateCode = trim((string)($turfSetting?->state_code ?? $saasStateCode));
+                                $isInterState = ($saasStateCode !== '' && $turfStateCode !== '' && $saasStateCode !== $turfStateCode);
+                            }
+
+                            $bCgst = (float)($modalBooking->turf_cgst_amount ?? 0);
+                            $bSgst = (float)($modalBooking->turf_sgst_amount ?? 0);
+                            if ($bCgst <= 0 && $bSgst <= 0 && $bTurfGst > 0 && !$isInterState) {
+                                $halfGst = round($bTurfGst / 2, 2);
+                                $bCgst = $halfGst;
+                                $bSgst = round($bTurfGst - $halfGst, 2);
+                            }
+
+                            // 4. Platform Fee
+                            $bPlatformFeeBase = (float)($modalBooking->platform_fee ?? 0);
+                            $bPlatformFeeGst = (float)($modalBooking->platform_fee_gst ?? 0);
+                            $bPlatformFeeTotal = round($bPlatformFeeBase + $bPlatformFeeGst, 2);
                         @endphp
-                        <div class="bg-gray-900 text-white p-5 rounded-2xl space-y-3 shadow-md">
-                            <h4 class="font-black text-indigo-300 uppercase text-[10px] tracking-wider">Payment Summary</h4>
-                            <div class="grid grid-cols-3 gap-2 text-center">
-                                <div>
-                                    <span class="text-[9px] uppercase font-bold text-gray-400 block">Total</span>
-                                    <span class="text-base font-black">₹{{ number_format($modalTotal, 2) }}</span>
+
+                        <div class="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-sm divide-y divide-slate-100">
+                            <!-- Bill Breakup Header -->
+                            <div class="px-4 py-3 bg-slate-50/90 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 rounded-lg bg-emerald-600/10 text-emerald-700 flex items-center justify-center">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z"/>
+                                        </svg>
+                                    </div>
+                                    <h4 class="font-black text-slate-800 uppercase text-[11px] tracking-wider">Bill Breakup</h4>
                                 </div>
-                                <div>
-                                    <span class="text-[9px] uppercase font-bold text-emerald-400 block">Paid</span>
-                                    <span class="text-base font-black text-emerald-400">₹{{ number_format($modalPaid, 2) }}</span>
+                                <span class="text-[10px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                                    GST Invoice Summary
+                                </span>
+                            </div>
+
+                            <!-- 1. Actual Amount -->
+                            <div class="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-slate-50/40 transition">
+                                <span class="text-slate-600 font-medium">Actual Amount</span>
+                                <span class="font-extrabold text-slate-900">₹{{ number_format($bActualAmount, 2) }}</span>
+                            </div>
+
+                            <!-- 2. Discount -->
+                            <div class="px-4 py-2.5 flex items-center justify-between text-xs hover:bg-slate-50/40 transition">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="text-slate-600 font-medium">Discount</span>
+                                    @if ($bDiscount > 0)
+                                        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60">Applied</span>
+                                    @endif
                                 </div>
-                                <div>
-                                    <span class="text-[9px] uppercase font-bold text-rose-400 block">Balance</span>
-                                    <span class="text-base font-black text-rose-400">₹{{ number_format($modalBalance, 2) }}</span>
+                                <span class="font-extrabold {{ $bDiscount > 0 ? 'text-emerald-600' : 'text-slate-400' }}">
+                                    {{ $bDiscount > 0 ? '-₹' . number_format($bDiscount, 2) : '₹0.00' }}
+                                </span>
+                            </div>
+
+                            <!-- 3. Taxable Amount -->
+                            <div class="px-4 py-2.5 flex items-center justify-between text-xs bg-slate-50/40 hover:bg-slate-50 transition">
+                                <span class="text-slate-700 font-bold">Taxable Amount</span>
+                                <span class="font-extrabold text-slate-900">₹{{ number_format($bTaxableAmount, 2) }}</span>
+                            </div>
+
+                            <!-- 4. GST Breakup on Taxable Amount -->
+                            <div class="px-4 py-2.5 space-y-2 bg-white">
+                                <div class="flex items-center justify-between text-xs">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-slate-700 font-bold">GST Breakup on Taxable Amount</span>
+                                        @if ($bGstRate > 0)
+                                            <span class="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                                                {{ $bGstRate }}%
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <span class="font-extrabold text-slate-900">₹{{ number_format($bTurfGst, 2) }}</span>
+                                </div>
+                                <div class="px-3 py-2 space-y-1 text-[11px] text-slate-600 bg-slate-50/80 rounded-xl border border-slate-100">
+                                    @if ($isInterState)
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-slate-500">IGST ({{ $bGstRate }}%):</span>
+                                            <span class="font-bold text-slate-800">₹{{ number_format($bTurfGst, 2) }}</span>
+                                        </div>
+                                    @else
+                                        @php
+                                            $halfRate = $bGstRate > 0 ? ($bGstRate / 2) : 0;
+                                        @endphp
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-slate-500">CGST ({{ $halfRate }}%):</span>
+                                            <span class="font-bold text-slate-800">₹{{ number_format($bCgst, 2) }}</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-slate-500">SGST ({{ $halfRate }}%):</span>
+                                            <span class="font-bold text-slate-800">₹{{ number_format($bSgst, 2) }}</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- 5. Platform Fee -->
+                            <div class="px-4 py-2.5 space-y-1 bg-white">
+                                <div class="flex items-center justify-between text-xs">
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="text-slate-600 font-medium">Platform Fee</span>
+                                        @if ($bPlatformFeeGst > 0)
+                                            <span class="text-[10px] text-slate-400 font-medium">(incl. GST)</span>
+                                        @endif
+                                    </div>
+                                    <span class="font-extrabold text-slate-900">₹{{ number_format($bPlatformFeeTotal, 2) }}</span>
+                                </div>
+                                @if ($bPlatformFeeGst > 0)
+                                    <div class="flex justify-between items-center text-[10px] text-slate-400 pl-2">
+                                        <span>Base Fee: ₹{{ number_format($bPlatformFeeBase, 2) }}</span>
+                                        <span>Fee GST: ₹{{ number_format($bPlatformFeeGst, 2) }}</span>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- 6. Total Amount, Paid Amount & Balance Summary -->
+                            <div class="p-3.5 bg-slate-50 border-t border-slate-200/90 space-y-2.5">
+                                <div class="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                                    <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Total Amount</span>
+                                    <span class="text-base font-black text-slate-900">₹{{ number_format($modalTotal, 2) }}</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-center pt-0.5">
+                                    <div class="bg-emerald-50/90 p-2.5 rounded-xl border border-emerald-200/80">
+                                        <div class="flex items-center justify-center gap-1">
+                                            <span class="text-[10px] uppercase font-bold text-emerald-800 block">Paid Amount</span>
+                                            <svg class="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm font-black text-emerald-700 block mt-0.5">₹{{ number_format($modalPaid, 2) }}</span>
+                                    </div>
+                                    <div class="bg-slate-100/90 p-2.5 rounded-xl border border-slate-200/80">
+                                        <span class="text-[10px] uppercase font-bold {{ $modalBalance > 0 ? 'text-rose-700' : 'text-slate-600' }} block">
+                                            {{ $modalBalance > 0 ? 'Balance Due' : 'Balance' }}
+                                        </span>
+                                        <span class="text-sm font-black {{ $modalBalance > 0 ? 'text-rose-600' : 'text-slate-800' }} block mt-0.5">
+                                            ₹{{ number_format($modalBalance, 2) }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

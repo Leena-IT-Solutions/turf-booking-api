@@ -169,4 +169,71 @@ class CustomerDashboardBookingsTest extends TestCase
             ->set('search', 'NonExistentTurfName1234')
             ->assertSee('You dont have booking yet!');
     }
+
+    public function test_booking_details_modal_renders_bill_breakup(): void
+    {
+        $user = User::factory()->create();
+        $location = Location::create([
+            'name' => 'Marvel Sports Club',
+            'user_id' => $user->id,
+            'address' => 'Sarvodaya Nagar, Bethel Street, Ambernath West 421505'
+        ]);
+
+        $turf = Turf::create([
+            'user_id' => $user->id,
+            'name' => 'Cricket Turf',
+            'location_id' => $location->id,
+            'address' => 'Sarvodaya Nagar, Bethel Street, Ambernath West 421505',
+            'type' => 'Cricket',
+        ]);
+
+        $booking = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => Carbon::now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+            'actual_amount' => 1000.00,
+            'coupon_discount' => 100.00,
+            'taxable_amount' => 900.00,
+            'turf_gst_rate' => 18.00,
+            'turf_gst_amount' => 162.00,
+            'turf_cgst_amount' => 81.00,
+            'turf_sgst_amount' => 81.00,
+            'platform_fee' => 10.00,
+            'platform_fee_gst' => 1.80,
+            'total_amount' => 1073.80,
+            'payable_now' => 1073.80,
+        ]);
+
+        BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => Carbon::today('Asia/Kolkata')->toDateString(),
+            'amount' => 1073.80,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test('dashboard.customer-bookings')
+            ->call('viewDetails', $booking->id)
+            ->assertSee('Bill Breakup')
+            ->assertSee('Actual Amount')
+            ->assertSee('₹1,000.00')
+            ->assertSee('Discount')
+            ->assertSee('-₹100.00')
+            ->assertSee('Taxable Amount')
+            ->assertSee('₹900.00')
+            ->assertSee('GST Breakup on Taxable Amount')
+            ->assertSee('18%')
+            ->assertSee('₹162.00')
+            ->assertSee('CGST')
+            ->assertSee('₹81.00')
+            ->assertSee('SGST')
+            ->assertSee('Platform Fee')
+            ->assertSee('₹11.80')
+            ->assertSee('Paid Amount');
+    }
 }
+
