@@ -316,21 +316,25 @@ new class extends Component
                     $turfPhoto = $b->turf?->photos->first()?->photo_url ?? null;
                 @endphp
 
-                <div class="w-full bg-white rounded-3xl border border-gray-100 shadow-lg shadow-gray-100/60 overflow-hidden flex flex-col justify-between hover:shadow-xl hover:border-indigo-200 transition duration-200 group">
+                <div class="w-full bg-white rounded-3xl border border-emerald-100/80 shadow-lg shadow-emerald-950/5 overflow-hidden flex flex-col justify-between hover:shadow-xl hover:border-emerald-300 transition duration-200 group">
                     <div>
-                        <!-- Card Header Banner (Light & Clean Modern Theme) -->
-                        <div class="p-5 sm:p-6 bg-gradient-to-r from-slate-50 via-white to-indigo-50/40 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative">
-                            <div class="space-y-1.5">
+                        <!-- Card Header Banner (Eloquent Emerald & Teal Sports Turf Theme) -->
+                        <div class="p-5 sm:p-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+                            <!-- Ambient Glow Accents -->
+                            <div class="absolute -right-8 -top-8 w-48 h-48 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none"></div>
+                            <div class="absolute right-36 -bottom-10 w-36 h-36 bg-cyan-300/15 rounded-full blur-xl pointer-events-none"></div>
+
+                            <div class="relative z-10 space-y-1.5">
                                 <div class="flex items-center gap-2">
-                                    <span class="inline-flex items-center gap-1 text-[11px] font-mono font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-200/60 shadow-2xs">
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-mono font-black uppercase tracking-wider text-white bg-white/15 px-2.5 py-0.5 rounded-lg border border-white/25 backdrop-blur-md shadow-2xs">
                                         Ref #BK-{{ str_pad($b->id, 5, '0', STR_PAD_LEFT) }}
                                     </span>
                                 </div>
-                                <h3 class="text-lg sm:text-xl font-black tracking-tight text-gray-900 group-hover:text-indigo-600 transition">
+                                <h3 class="text-lg sm:text-xl font-black tracking-tight text-white group-hover:text-emerald-100 transition">
                                     {{ $b->turf?->name ?? 'Turf' }}
                                 </h3>
-                                <p class="text-xs text-gray-500 flex items-center gap-1.5 font-medium">
-                                    <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <p class="text-xs text-emerald-100 flex items-center gap-1.5 font-medium">
+                                    <svg class="w-3.5 h-3.5 text-emerald-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     </svg>
@@ -338,39 +342,39 @@ new class extends Component
                                 </p>
                             </div>
 
-                            <div class="flex flex-wrap items-center gap-2 shrink-0">
+                            <div class="relative z-10 flex flex-wrap items-center gap-2 shrink-0">
                                 <!-- Booking Status Badge -->
                                 @if ($b->status === 'Confirmed')
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white/20 text-white border border-white/30 backdrop-blur-md shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-300"></span>
                                         Confirmed
                                     </span>
                                 @elseif ($b->status === 'Cancelled')
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-500/80 text-white border border-rose-300/40 backdrop-blur-md shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
                                         Cancelled
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-400/80 text-amber-950 border border-amber-300/50 backdrop-blur-md shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-950"></span>
                                         {{ $b->status }}
                                     </span>
                                 @endif
 
                                 <!-- Payment Status Badge -->
                                 @if ($b->payment_status === 'Paid')
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
-                                        <svg class="w-3 h-3 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                                    <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-white text-emerald-950 shadow-sm">
+                                        <svg class="w-3 h-3 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
                                         Paid
                                     </span>
                                 @elseif ($b->payment_status === 'Partially Paid')
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-amber-300 text-amber-950 shadow-sm">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-950 animate-pulse"></span>
                                         Partial
                                     </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 shadow-2xs">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-rose-400 text-rose-950 shadow-sm">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-950"></span>
                                         Unpaid
                                     </span>
                                 @endif
@@ -386,7 +390,7 @@ new class extends Component
                                 </div>
                                 <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
                                     <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Timing</span>
-                                    <span class="font-bold text-indigo-600 block truncate text-xs sm:text-sm" title="{{ $timingText }}">⏰ {{ $timingText }}</span>
+                                    <span class="font-bold text-teal-700 block truncate text-xs sm:text-sm" title="{{ $timingText }}">⏰ {{ $timingText }}</span>
                                 </div>
                                 <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
                                     <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Total Amount</span>
@@ -417,7 +421,7 @@ new class extends Component
                             <span>Booked on {{ Carbon::parse($b->date_of_booking)->format('M d, Y') }}</span>
                         </div>
                         <button wire:click="viewDetails({{ $b->id }})" type="button"
-                            class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition duration-150 shadow-md shadow-indigo-600/20 cursor-pointer">
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white font-bold text-xs rounded-xl transition duration-150 shadow-md shadow-emerald-600/20 cursor-pointer">
                             <span>View Ticket</span>
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
