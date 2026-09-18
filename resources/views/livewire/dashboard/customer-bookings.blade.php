@@ -216,7 +216,7 @@ new class extends Component
 
     <!-- Customer Bookings Cards List -->
     @if ($bookings->isNotEmpty())
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div class="space-y-4 sm:space-y-6 w-full">
             @foreach ($bookings as $b)
                 @php
                     $activeDates = $b->bookingDates->where('status', '!=', 'Cancelled');
@@ -254,20 +254,20 @@ new class extends Component
                     $turfPhoto = $b->turf?->photos->first()?->photo_url ?? null;
                 @endphp
 
-                <div class="bg-white rounded-3xl border border-gray-100 shadow-lg shadow-gray-100/60 overflow-hidden flex flex-col justify-between hover:shadow-xl hover:border-indigo-200 transition duration-200 group">
+                <div class="w-full bg-white rounded-3xl border border-gray-100 shadow-lg shadow-gray-100/60 overflow-hidden flex flex-col justify-between hover:shadow-xl hover:border-indigo-200 transition duration-200 group">
                     <div>
                         <!-- Card Header Banner -->
-                        <div class="p-5 sm:p-6 bg-gradient-to-r from-gray-900 via-slate-800 to-indigo-950 text-white flex items-start justify-between gap-4 relative overflow-hidden">
-                            <div class="absolute right-0 top-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                        <div class="p-5 sm:p-6 bg-gradient-to-r from-gray-900 via-slate-800 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
+                            <div class="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
                             <div class="relative z-10 space-y-1">
                                 <span class="text-[10px] font-black uppercase tracking-widest text-indigo-300">
                                     Ref #BK-{{ str_pad($b->id, 5, '0', STR_PAD_LEFT) }}
                                 </span>
-                                <h3 class="text-lg font-black tracking-tight text-white group-hover:text-indigo-200 transition">
+                                <h3 class="text-lg sm:text-xl font-black tracking-tight text-white group-hover:text-indigo-200 transition">
                                     {{ $b->turf?->name ?? 'Turf' }}
                                 </h3>
-                                <p class="text-xs text-gray-300 flex items-center gap-1 font-medium">
+                                <p class="text-xs text-gray-300 flex items-center gap-1.5 font-medium">
                                     <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
@@ -276,7 +276,7 @@ new class extends Component
                                 </p>
                             </div>
 
-                            <div class="relative z-10 flex flex-col items-end gap-1.5 shrink-0">
+                            <div class="relative z-10 flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 shrink-0">
                                 <!-- Booking Status Badge -->
                                 @if ($b->status === 'Confirmed')
                                     <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-md">
@@ -294,15 +294,15 @@ new class extends Component
 
                                 <!-- Payment Status Badge -->
                                 @if ($b->payment_status === 'Paid')
-                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-400 text-gray-950">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-400 text-gray-950 font-bold">
                                         Paid
                                     </span>
                                 @elseif ($b->payment_status === 'Partially Paid')
-                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-gray-950">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-gray-950 font-bold">
                                         Partial
                                     </span>
                                 @else
-                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-400 text-gray-950">
+                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-400 text-gray-950 font-bold">
                                         Unpaid
                                     </span>
                                 @endif
@@ -311,40 +311,45 @@ new class extends Component
 
                         <!-- Card Body Details -->
                         <div class="p-5 sm:p-6 space-y-4">
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                    <span class="text-[10px] font-black uppercase text-gray-400 block mb-0.5">Booking Date</span>
-                                    <span class="font-bold text-gray-900 block truncate">📅 {{ $formattedDateRange }}</span>
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs">
+                                <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Booking Date</span>
+                                    <span class="font-bold text-gray-900 block truncate text-xs sm:text-sm">📅 {{ $formattedDateRange }}</span>
                                 </div>
-                                <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100">
-                                    <span class="text-[10px] font-black uppercase text-gray-400 block mb-0.5">Time Slot</span>
-                                    <span class="font-bold text-indigo-600 block truncate">⏰ {{ $slotTimeText }}</span>
+                                <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Time Slot</span>
+                                    <span class="font-bold text-indigo-600 block truncate text-xs sm:text-sm">⏰ {{ $slotTimeText }}</span>
                                 </div>
-                            </div>
-
-                            <!-- Pricing Breakdown -->
-                            <div class="flex items-center justify-between pt-2 border-t border-gray-100 text-xs">
-                                <div>
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Total Amount</span>
-                                    <span class="text-lg font-black text-gray-900">₹{{ number_format($totalAmount, 2) }}</span>
+                                <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
+                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Total Amount</span>
+                                    <span class="text-base sm:text-lg font-black text-gray-900 truncate">₹{{ number_format($totalAmount, 2) }}</span>
                                 </div>
-
-                                <div class="text-right">
-                                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Paid Amount</span>
-                                    <span class="text-sm font-bold text-emerald-600">₹{{ number_format($paidSum, 2) }}</span>
-                                    @if ($balance > 0 && $b->status !== 'Cancelled')
-                                        <span class="text-[10px] font-bold text-rose-500 block">Bal: ₹{{ number_format($balance, 2) }}</span>
-                                    @endif
+                                <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-2xl border border-gray-100 flex flex-col justify-center">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <div>
+                                            <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1">Paid Amount</span>
+                                            <span class="text-sm sm:text-base font-bold text-emerald-600 truncate">₹{{ number_format($paidSum, 2) }}</span>
+                                        </div>
+                                        @if ($balance > 0 && $b->status !== 'Cancelled')
+                                            <div class="text-right">
+                                                <span class="text-[10px] font-black uppercase tracking-wider text-rose-400 block mb-1">Balance</span>
+                                                <span class="text-xs sm:text-sm font-black text-rose-600 truncate">₹{{ number_format($balance, 2) }}</span>
+                                            </div>
+                                        @endif
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Card Footer Actions -->
-                    <div class="p-4 sm:px-6 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between gap-3">
-                        <span class="text-[11px] text-gray-400 font-medium">Booked on {{ Carbon::parse($b->date_of_booking)->format('M d, Y') }}</span>
+                    <div class="p-4 sm:px-6 bg-gray-50/70 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 text-[11px] text-gray-500 font-medium self-start sm:self-center">
+                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span>Booked on {{ Carbon::parse($b->date_of_booking)->format('M d, Y') }}</span>
+                        </div>
                         <button wire:click="viewDetails({{ $b->id }})" type="button"
-                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition duration-150 shadow-md shadow-indigo-600/20 cursor-pointer">
+                            class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition duration-150 shadow-md shadow-indigo-600/20 cursor-pointer">
                             <span>View Ticket</span>
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
