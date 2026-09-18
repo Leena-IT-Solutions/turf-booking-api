@@ -256,19 +256,19 @@ new class extends Component
 
                 <div class="w-full bg-white rounded-3xl border border-gray-100 shadow-lg shadow-gray-100/60 overflow-hidden flex flex-col justify-between hover:shadow-xl hover:border-indigo-200 transition duration-200 group">
                     <div>
-                        <!-- Card Header Banner -->
-                        <div class="p-5 sm:p-6 bg-gradient-to-r from-gray-900 via-slate-800 to-indigo-950 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative overflow-hidden">
-                            <div class="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                            <div class="relative z-10 space-y-1">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-indigo-300">
-                                    Ref #BK-{{ str_pad($b->id, 5, '0', STR_PAD_LEFT) }}
-                                </span>
-                                <h3 class="text-lg sm:text-xl font-black tracking-tight text-white group-hover:text-indigo-200 transition">
+                        <!-- Card Header Banner (Light & Clean Modern Theme) -->
+                        <div class="p-5 sm:p-6 bg-gradient-to-r from-slate-50 via-white to-indigo-50/40 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative">
+                            <div class="space-y-1.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 text-[11px] font-mono font-black uppercase tracking-wider text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-200/60 shadow-2xs">
+                                        Ref #BK-{{ str_pad($b->id, 5, '0', STR_PAD_LEFT) }}
+                                    </span>
+                                </div>
+                                <h3 class="text-lg sm:text-xl font-black tracking-tight text-gray-900 group-hover:text-indigo-600 transition">
                                     {{ $b->turf?->name ?? 'Turf' }}
                                 </h3>
-                                <p class="text-xs text-gray-300 flex items-center gap-1.5 font-medium">
-                                    <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <p class="text-xs text-gray-500 flex items-center gap-1.5 font-medium">
+                                    <svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                     </svg>
@@ -276,33 +276,39 @@ new class extends Component
                                 </p>
                             </div>
 
-                            <div class="relative z-10 flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 shrink-0">
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">
                                 <!-- Booking Status Badge -->
                                 @if ($b->status === 'Confirmed')
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-md">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                                         Confirmed
                                     </span>
                                 @elseif ($b->status === 'Cancelled')
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-400/30 backdrop-blur-md">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                         Cancelled
                                     </span>
                                 @else
-                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/30 backdrop-blur-md">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                         {{ $b->status }}
                                     </span>
                                 @endif
 
                                 <!-- Payment Status Badge -->
                                 @if ($b->payment_status === 'Paid')
-                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-400 text-gray-950 font-bold">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
+                                        <svg class="w-3 h-3 text-emerald-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
                                         Paid
                                     </span>
                                 @elseif ($b->payment_status === 'Partially Paid')
-                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-400 text-gray-950 font-bold">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                                         Partial
                                     </span>
                                 @else
-                                    <span class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-400 text-gray-950 font-bold">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200 shadow-2xs">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                         Unpaid
                                     </span>
                                 @endif
