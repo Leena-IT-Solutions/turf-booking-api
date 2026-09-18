@@ -83,6 +83,14 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Administrator') }}</span>
                         </a>
+                        <a href="{{ route('saas.turfs') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('saas.turfs') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.turfs') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="2" />
+                                <line x1="12" y1="4" x2="12" y2="20" stroke-width="1.75" />
+                                <circle cx="12" cy="12" r="3" stroke-width="1.75" />
+                            </svg>
+                            <span class="ms-3">{{ __('Turfs Directory') }}</span>
+                        </a>
                         <a href="{{ route('saas.users') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('saas.users') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.users') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -455,6 +463,14 @@ new class extends Component
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="ms-3">{{ __('Administrator') }}</span>
+                        </a>
+                        <a href="{{ route('saas.turfs') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('saas.turfs') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.turfs') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="2" />
+                                <line x1="12" y1="4" x2="12" y2="20" stroke-width="1.75" />
+                                <circle cx="12" cy="12" r="3" stroke-width="1.75" />
+                            </svg>
+                            <span class="ms-3">{{ __('Turfs Directory') }}</span>
                         </a>
                         <a href="{{ route('saas.users') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('saas.users') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('saas.users') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
