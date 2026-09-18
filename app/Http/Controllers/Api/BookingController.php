@@ -1747,25 +1747,37 @@ class BookingController extends Controller
         $totalRefundProcessedNow = 0.00;
         $totalFeeAppliedNow = 0.00;
 
+        $totalBookingPlatformFee = (float)($booking->platform_fee ?? 0) + (float)($booking->platform_fee_gst ?? 0);
+        $allActiveDatesCount = $booking->bookingDates()->where('status', '!=', 'Cancelled')->count();
+
         foreach ($targetedDates as $bDate) {
             $successfulPayments = Payment::where('booking_date_id', $bDate->id)
                 ->where('status', 'Success')
                 ->get();
 
             $datePaidAmount = (float)$successfulPayments->sum('amount');
+            if ($datePaidAmount <= 0 && $booking->payment_status === 'Paid') {
+                $datePaidAmount = (float)$bDate->amount;
+            }
             $dateFeeApplied = 0.00;
             $dateRefundDue = 0.00;
 
             if ($datePaidAmount > 0) {
+                // Booking platform fee is non-refundable; exclude it from customer refund
+                $datePlatformFee = ($allActiveDatesCount > 0) ? round($totalBookingPlatformFee / $allActiveDatesCount, 2) : 0.00;
+                $datePlatformFee = min($datePaidAmount, $datePlatformFee);
+
+                $refundableBase = max(0.00, $datePaidAmount - $datePlatformFee);
                 // 1. Platform cancellation fee to cover payment gateway MDR charges
-                $platformFee = round($datePaidAmount * ($platformFeePercentage / 100), 2);
+                $platformFee = round($refundableBase * ($platformFeePercentage / 100), 2);
 
                 // 2. Turf owner cancellation fee
-                $remainingForTurf = max(0.00, $datePaidAmount - $platformFee);
-                $turfFee = min($remainingForTurf, $cancellationFeeSetting);
+                $remainingForTurf = max(0.00, $refundableBase - $platformFee);
+                $slotCount = $bDate->bookingSlots()->count();
+                $turfFee = min($remainingForTurf, $cancellationFeeSetting * ($slotCount > 0 ? $slotCount : 1));
 
-                // 3. Total fee applied (Platform Fee + Turf Owner Fee)
-                $dateFeeApplied = min($datePaidAmount, round($platformFee + $turfFee, 2));
+                // 3. Total deductions applied (Non-refundable platform fee + Platform Cancellation Fee + Turf Owner Fee)
+                $dateFeeApplied = min($datePaidAmount, round($datePlatformFee + $platformFee + $turfFee, 2));
                 $dateRefundDue = max(0.00, round($datePaidAmount - $dateFeeApplied, 2));
             }
 

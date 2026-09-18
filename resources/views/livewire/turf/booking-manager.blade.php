@@ -337,17 +337,31 @@ new #[Layout('layouts.app')] class extends Component
             $saas = \App\Models\SaasSetting::first();
             $platformFeePercentage = $saas ? (float)($saas->cancellation_fee_percentage ?? 5.00) : 0.00;
 
+            $totalPlatformFee = (float)($booking->platform_fee ?? 0) + (float)($booking->platform_fee_gst ?? 0);
+            $allActiveDates = $booking->bookingDates->where('status', '!=', 'Cancelled');
+            $activeDatesCount = $allActiveDates->count();
+
             foreach ($this->cancelDateIds as $bdId) {
                 $bDate = $booking->bookingDates->firstWhere('id', $bdId);
                 if (!$bDate || $bDate->status === 'Cancelled') continue;
 
                 $slotCount = $bDate->bookingSlots->count();
                 $datePaidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
+                if ($datePaidSum <= 0 && $booking->payment_status === 'Paid') {
+                    $datePaidSum = (float)$bDate->amount;
+                }
 
-                $platformFee = round($datePaidSum * ($platformFeePercentage / 100), 2);
-                $remainingForTurf = max(0.00, $datePaidSum - $platformFee);
+                // Platform fee is non-refundable; exclude it from customer refund
+                $datePlatformFee = ($activeDatesCount > 0) ? round($totalPlatformFee / $activeDatesCount, 2) : 0.00;
+                $datePlatformFee = min($datePaidSum, $datePlatformFee);
+
+                $refundableBase = max(0.00, $datePaidSum - $datePlatformFee);
+                $saasFee = round($refundableBase * ($platformFeePercentage / 100), 2);
+                $remainingForTurf = max(0.00, $refundableBase - $saasFee);
                 $turfFee = min($remainingForTurf, $cancellationFeePerSlot * $slotCount);
-                $dateFee = min($datePaidSum, round($platformFee + $turfFee, 2));
+
+                // Total deductions applied = Non-refundable platform fee + SaaS fee + Turf fee
+                $dateFee = min($datePaidSum, round($datePlatformFee + $saasFee + $turfFee, 2));
                 $refundForDate = max(0.00, round($datePaidSum - $dateFee, 2));
 
                 $bDate->update([
@@ -1493,25 +1507,81 @@ new #[Layout('layouts.app')] class extends Component
                                 @endif
                             </div>
 
-                            <!-- Refund & Financial Log Breakdown Card -->
+                            <!-- Refund & Financial Breakdown Card -->
+                            @php
+                                $bPaidSum = (float)$bDetail->payments->where('status', 'Success')->sum('amount');
+                                if ($bPaidSum <= 0 && $bDetail->payment_status === 'Paid') {
+                                    $bPaidSum = (float)($bDetail->total_amount > 0 ? $bDetail->total_amount : $bDetail->bookingDates->sum('amount'));
+                                }
+
+                                $bPlatformFeeTotal = (float)($bDetail->platform_fee ?? 0) + (float)($bDetail->platform_fee_gst ?? 0);
+                                $bPlatformFeeExcluded = min($bPaidSum, $bPlatformFeeTotal);
+
+                                $bActiveSlotsCount = 0;
+                                foreach ($activeBookingDates as $abd) {
+                                    $bActiveSlotsCount += $abd->bookingSlots->count();
+                                }
+
+                                $bRefundableBase = max(0.00, $bPaidSum - $bPlatformFeeExcluded);
+                                $bEstSaasFee = round($bRefundableBase * ($saasCancellationFeePerc / 100), 2);
+                                $bRemainingAfterSaas = max(0.00, $bRefundableBase - $bEstSaasFee);
+                                $bEstTurfFee = min($bRemainingAfterSaas, $cancellationFeePerSlot * $bActiveSlotsCount);
+                                $bEstTotalDeductions = round($bPlatformFeeExcluded + $bEstSaasFee + $bEstTurfFee, 2);
+                                $bEstRefund = max(0.00, round($bPaidSum - $bEstTotalDeductions, 2));
+                            @endphp
+
                             <div class="rounded-2xl border {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white' }} overflow-hidden text-xs divide-y divide-gray-100 shadow-2xs">
                                 
                                 <div class="p-3 bg-gray-50/50 flex items-center justify-between">
                                     <span class="text-gray-600 font-medium">Refund Status:</span>
                                     <span class="font-extrabold {{ $bDetail->refund_status === 'Refunded' ? 'text-emerald-700' : ($bDetail->status === 'Cancelled' ? 'text-red-700' : 'text-gray-800') }}">
-                                        {{ $bDetail->refund_status ?? 'None' }}
+                                        {{ $bDetail->refund_status ?? ($bDetail->status === 'Cancelled' ? 'None' : 'Not Cancelled (Active)') }}
                                     </span>
                                 </div>
 
                                 <div class="p-3 flex items-center justify-between bg-white">
-                                    <span class="text-gray-600">Cancellation Fee Applied:</span>
-                                    <span class="font-bold text-gray-900">₹{{ number_format($bDetail->cancellation_fee_applied ?? 0, 2) }}</span>
+                                    <span class="text-gray-600 font-medium">Total Paid Amount:</span>
+                                    <span class="font-bold text-gray-900">₹{{ number_format($bPaidSum, 2) }}</span>
                                 </div>
 
-                                <div class="p-3 flex items-center justify-between bg-white">
-                                    <span class="text-gray-600">Refund Amount:</span>
-                                    <span class="font-bold text-purple-700">₹{{ number_format($bDetail->refund_amount ?? 0, 2) }}</span>
-                                </div>
+                                @if ($bPlatformFeeExcluded > 0)
+                                    <div class="p-3 flex items-center justify-between bg-rose-50/20 text-[11px]">
+                                        <span class="text-gray-600 flex items-center gap-1">
+                                            <span>Platform Fee:</span>
+                                            <span class="text-[10px] text-rose-600 font-bold">(Non-refundable)</span>
+                                        </span>
+                                        <span class="font-bold text-rose-600">-₹{{ number_format($bPlatformFeeExcluded, 2) }}</span>
+                                    </div>
+                                @endif
+
+                                @if ($bDetail->status !== 'Cancelled')
+                                    <!-- Prospective/Estimated Breakdown for Active Booking -->
+                                    <div class="p-3 flex items-center justify-between bg-white text-[11px]">
+                                        <span class="text-gray-600">SaaS Platform Charge ({{ number_format($saasCancellationFeePerc, 2) }}%):</span>
+                                        <span class="font-bold text-rose-600">-₹{{ number_format($bEstSaasFee, 2) }}</span>
+                                    </div>
+
+                                    <div class="p-3 flex items-center justify-between bg-white text-[11px]">
+                                        <span class="text-gray-600">Turf Cancellation Fee (₹{{ number_format($cancellationFeePerSlot, 2) }} × {{ $bActiveSlotsCount }} slot(s)):</span>
+                                        <span class="font-bold text-rose-600">-₹{{ number_format($bEstTurfFee, 2) }}</span>
+                                    </div>
+
+                                    <div class="p-3 flex items-center justify-between bg-purple-50/40 border-t border-purple-100/60">
+                                        <span class="text-gray-900 font-bold">Estimated Refund to Customer:</span>
+                                        <span class="font-black text-purple-700 text-sm">₹{{ number_format($bEstRefund, 2) }}</span>
+                                    </div>
+                                @else
+                                    <!-- Applied Breakdown for Cancelled Booking -->
+                                    <div class="p-3 flex items-center justify-between bg-white">
+                                        <span class="text-gray-600">Cancellation Fee Applied:</span>
+                                        <span class="font-bold text-rose-600">-₹{{ number_format($bDetail->cancellation_fee_applied ?? 0, 2) }}</span>
+                                    </div>
+
+                                    <div class="p-3 flex items-center justify-between bg-purple-50/40 border-t border-purple-100/60">
+                                        <span class="text-gray-900 font-bold">Refund Amount Processed:</span>
+                                        <span class="font-black text-purple-700 text-sm">₹{{ number_format($bDetail->refund_amount ?? 0, 2) }}</span>
+                                    </div>
+                                @endif
 
                                 @if ($bDetail->refund_method && $bDetail->refund_method !== 'None')
                                     <div class="p-3 flex items-center justify-between bg-white text-[11px]">
@@ -1634,13 +1704,26 @@ new #[Layout('layouts.app')] class extends Component
                 $calcSlotsCount = 0;
                 foreach ($selectedDates as $sd) {
                     $calcSlotsCount += $sd->bookingSlots->count();
-                    $calcPaidSum += (float) \App\Models\Payment::where('booking_date_id', $sd->id)->where('status', 'Success')->sum('amount');
+                    $datePaid = (float) \App\Models\Payment::where('booking_date_id', $sd->id)->where('status', 'Success')->sum('amount');
+                    if ($datePaid <= 0 && $cBooking->payment_status === 'Paid') {
+                        $datePaid = (float)$sd->amount;
+                    }
+                    $calcPaidSum += $datePaid;
                 }
-                $calcSaasFee = round($calcPaidSum * ($mSaasPerc / 100), 2);
-                $calcRemainingTurf = max(0.00, $calcPaidSum - $calcSaasFee);
+
+                $cPlatformFeeTotal = (float)($cBooking->platform_fee ?? 0) + (float)($cBooking->platform_fee_gst ?? 0);
+                $allActiveDatesCount = $cBooking->bookingDates->where('status', '!=', 'Cancelled')->count();
+                $calcPlatformFeePortion = ($allActiveDatesCount > 0) 
+                    ? round($cPlatformFeeTotal * ($selectedDates->count() / $allActiveDatesCount), 2)
+                    : 0.00;
+                $calcPlatformFeePortion = min($calcPaidSum, $calcPlatformFeePortion);
+
+                $calcRefundableBase = max(0.00, $calcPaidSum - $calcPlatformFeePortion);
+                $calcSaasFee = round($calcRefundableBase * ($mSaasPerc / 100), 2);
+                $calcRemainingTurf = max(0.00, $calcRefundableBase - $calcSaasFee);
                 $calcTurfFee = min($calcRemainingTurf, $mTurfFeePerSlot * $calcSlotsCount);
-                $calcTotalFee = min($calcPaidSum, round($calcSaasFee + $calcTurfFee, 2));
-                $calcRefund = max(0.00, round($calcPaidSum - $calcTotalFee, 2));
+                $calcTotalDeductions = round($calcPlatformFeePortion + $calcSaasFee + $calcTurfFee, 2);
+                $calcRefund = max(0.00, round($calcPaidSum - $calcTotalDeductions, 2));
             @endphp
             <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4">
                 <div class="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 border border-gray-200">
@@ -1694,12 +1777,24 @@ new #[Layout('layouts.app')] class extends Component
 
                     <!-- Live refund preview box -->
                     @if (!empty($cancelDateIds) && $selectedDates->count() > 0)
-                        <div class="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-1.5 text-xs">
-                            <span class="font-bold text-amber-900 text-[11px] uppercase tracking-wider block">Estimated Refund Breakdown</span>
+                        <div class="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-1.5 text-xs">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-amber-900 text-[11px] uppercase tracking-wider block">Estimated Refund Breakdown</span>
+                                <span class="text-[10px] text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md font-semibold">Platform Fee Excluded</span>
+                            </div>
                             <div class="flex items-center justify-between text-gray-600">
                                 <span>Paid Amount for Selected ({{ $selectedDates->count() }} date(s), {{ $calcSlotsCount }} slot(s)):</span>
                                 <span class="font-bold text-gray-900">₹{{ number_format($calcPaidSum, 2) }}</span>
                             </div>
+                            @if ($calcPlatformFeePortion > 0)
+                                <div class="flex items-center justify-between text-gray-600 text-[11px]">
+                                    <span class="flex items-center gap-1">
+                                        <span>- Platform Fee:</span>
+                                        <span class="text-[10px] text-rose-600 font-bold">(Non-refundable)</span>
+                                    </span>
+                                    <span class="font-bold text-rose-600">-₹{{ number_format($calcPlatformFeePortion, 2) }}</span>
+                                </div>
+                            @endif
                             <div class="flex items-center justify-between text-gray-600 text-[11px]">
                                 <span>- SaaS Platform Charge ({{ number_format($mSaasPerc, 2) }}%):</span>
                                 <span class="font-semibold text-rose-600">-₹{{ number_format($calcSaasFee, 2) }}</span>
