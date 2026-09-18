@@ -120,7 +120,7 @@ new #[Layout('layouts.guest')] class extends Component
 
         event(new Registered($user));
 
-        Auth::login($user);
+        Auth::login($user, remember: true);
 
         $this->redirect(route('dashboard', absolute: false), navigate: true);
     }
