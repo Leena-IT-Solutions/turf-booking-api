@@ -1234,15 +1234,6 @@ new #[Layout('layouts.app')] class extends Component
                                     $turfPayoutCalculated = round(max(0.00, $effectivePaidAmt - $totalDeductions), 2);
                                 @endphp
 
-                                <!-- Grouped Deductions Header -->
-                                <div class="p-3 bg-amber-50/70 border-l-4 border-l-amber-500 flex items-center justify-between font-bold text-amber-950">
-                                    <div class="flex flex-col">
-                                        <span class="text-xs uppercase tracking-wider text-amber-900 font-extrabold">Total Deductions</span>
-                                        <span class="text-[10px] text-amber-700 font-medium">Platform Fee (₹{{ number_format($bPlatformFeeTotal, 2) }}) + Commission (₹{{ number_format($bCommissionTotal, 2) }}) + Gateway (₹{{ number_format($bGatewayTotal, 2) }})</span>
-                                    </div>
-                                    <span class="text-sm font-black text-rose-700">-₹{{ number_format($totalDeductions, 2) }}</span>
-                                </div>
-
                                 <!-- Platform Fee Breakup -->
                                 <div class="p-3 space-y-1.5 bg-white pl-4">
                                     <div class="flex items-center justify-between font-bold text-gray-800">
@@ -1335,6 +1326,15 @@ new #[Layout('layouts.app')] class extends Component
                                             <span class="font-semibold text-gray-700">₹{{ number_format($bGatewayTax, 2) }}</span>
                                         </div>
                                     </div>
+                                </div>
+
+                                <!-- Total Deductions Summary (Directly above Estimated Turf Payout) -->
+                                <div class="p-3 bg-amber-50/70 border-l-4 border-l-amber-500 flex items-center justify-between font-bold text-amber-950">
+                                    <div class="flex flex-col">
+                                        <span class="text-xs uppercase tracking-wider text-amber-900 font-extrabold">Total Deductions</span>
+                                        <span class="text-[10px] text-amber-700 font-medium">Platform Fee (₹{{ number_format($bPlatformFeeTotal, 2) }}) + Commission (₹{{ number_format($bCommissionTotal, 2) }}) + Gateway (₹{{ number_format($bGatewayTotal, 2) }})</span>
+                                    </div>
+                                    <span class="text-sm font-black text-rose-700">-₹{{ number_format($totalDeductions, 2) }}</span>
                                 </div>
 
                                 <!-- Estimated Turf Payout at Bottom -->
