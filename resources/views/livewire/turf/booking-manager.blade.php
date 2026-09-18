@@ -334,15 +334,21 @@ new #[Layout('layouts.app')] class extends Component
         try {
             $turf = $booking->turf;
             $cancellationFeePerSlot = (float)($turf->cancellation_fee ?? 0.00);
+            $saas = \App\Models\SaasSetting::first();
+            $platformFeePercentage = $saas ? (float)($saas->cancellation_fee_percentage ?? 5.00) : 0.00;
 
             foreach ($this->cancelDateIds as $bdId) {
                 $bDate = $booking->bookingDates->firstWhere('id', $bdId);
                 if (!$bDate || $bDate->status === 'Cancelled') continue;
 
                 $slotCount = $bDate->bookingSlots->count();
-                $dateFee = $cancellationFeePerSlot * $slotCount;
                 $datePaidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
-                $refundForDate = max(0.00, $datePaidSum - $dateFee);
+
+                $platformFee = round($datePaidSum * ($platformFeePercentage / 100), 2);
+                $remainingForTurf = max(0.00, $datePaidSum - $platformFee);
+                $turfFee = min($remainingForTurf, $cancellationFeePerSlot * $slotCount);
+                $dateFee = min($datePaidSum, round($platformFee + $turfFee, 2));
+                $refundForDate = max(0.00, round($datePaidSum - $dateFee, 2));
 
                 $bDate->update([
                     'status' => 'Cancelled',
@@ -1353,7 +1359,48 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
 
                         <!-- 7. Booking Cancellation & Refund Section -->
-                        <div class="space-y-2.5">
+                        @php
+                            $bTurf = $bDetail->turf;
+                            $bSaas = \App\Models\SaasSetting::first();
+                            $saasCancellationFeePerc = $bSaas ? (float)($bSaas->cancellation_fee_percentage ?? 5.00) : 5.00;
+                            
+                            // Turf Admin Policy Settings
+                            $isCancellationActive = $bTurf ? (bool)$bTurf->is_cancellation_active : false;
+                            $cancellationHours = $bTurf ? (int)($bTurf->cancellation_hours ?? 48) : 48;
+                            $cancellationFeePerSlot = $bTurf ? (float)($bTurf->cancellation_fee ?? 0.00) : 0.00;
+
+                            // Calculate earliest upcoming slot time for active booking dates
+                            $earliestSlotTime = null;
+                            $activeBookingDates = $bDetail->bookingDates->where('status', '!=', 'Cancelled');
+                            foreach ($activeBookingDates as $abDate) {
+                                foreach ($abDate->bookingSlots as $bSlot) {
+                                    $slot = $bSlot->slot;
+                                    $timeStr = $slot && $slot->from_time ? $slot->from_time : '00:00:00';
+                                    $dateStr = $abDate->booking_date instanceof \Carbon\Carbon 
+                                        ? $abDate->booking_date->format('Y-m-d') 
+                                        : (string)$abDate->booking_date;
+                                    try {
+                                        $dt = \Carbon\Carbon::parse($dateStr . ' ' . $timeStr, 'Asia/Kolkata');
+                                        if ($earliestSlotTime === null || $dt->lt($earliestSlotTime)) {
+                                            $earliestSlotTime = $dt;
+                                        }
+                                    } catch (\Exception $e) {}
+                                }
+                                if ($earliestSlotTime === null && $abDate->booking_date) {
+                                    try {
+                                        $dt = \Carbon\Carbon::parse((string)$abDate->booking_date, 'Asia/Kolkata')->startOfDay();
+                                        if ($earliestSlotTime === null || $dt->lt($earliestSlotTime)) {
+                                            $earliestSlotTime = $dt;
+                                        }
+                                    } catch (\Exception $e) {}
+                                }
+                            }
+                            $nowKolkata = \Carbon\Carbon::now('Asia/Kolkata');
+                            $hoursRemaining = $earliestSlotTime ? $nowKolkata->diffInHours($earliestSlotTime, false) : null;
+                            $isWithinWindow = ($hoursRemaining !== null && $hoursRemaining >= $cancellationHours);
+                        @endphp
+
+                        <div class="space-y-3">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-xs font-bold uppercase tracking-wider text-gray-600">Booking Cancellation & Refunds</h3>
                                 @if ($bDetail->status === 'Cancelled')
@@ -1371,6 +1418,82 @@ new #[Layout('layouts.app')] class extends Component
                                 @endif
                             </div>
 
+                            <!-- Cancellation Policy Card (SaaS & Turf Admin) -->
+                            <div class="rounded-2xl border {{ $isCancellationActive ? 'border-rose-100 bg-gradient-to-b from-rose-50/40 via-white to-white' : 'border-gray-200 bg-gray-50/60' }} p-3.5 space-y-3 shadow-2xs">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg {{ $isCancellationActive ? 'bg-rose-100 text-rose-700' : 'bg-gray-200 text-gray-600' }} flex items-center justify-center text-xs font-black">
+                                            🛡️
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs font-bold text-gray-900 leading-tight">Cancellation Policy</h4>
+                                            <p class="text-[10px] text-gray-400 font-medium">SaaS Platform & Turf Admin</p>
+                                        </div>
+                                    </div>
+                                    @if ($isCancellationActive)
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            Cancellation Allowed
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            Cancellation Not Allowed
+                                        </span>
+                                    @endif
+                                </div>
+
+                                @if ($isCancellationActive)
+                                    <!-- Policy Metrics: Window, Turf Fee, SaaS Charge -->
+                                    <div class="grid grid-cols-3 gap-2">
+                                        <!-- 1. Cancellation Window (Hours) -->
+                                        <div class="p-2.5 rounded-xl bg-white border border-gray-100 shadow-2xs text-center space-y-0.5">
+                                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Window</span>
+                                            <div class="text-xs font-black text-gray-900">{{ $cancellationHours }} hrs</div>
+                                            <span class="text-[9px] text-gray-400 block leading-tight">prior to slot time</span>
+                                        </div>
+
+                                        <!-- 2. Turf Cancellation Fee (Per Slot) -->
+                                        <div class="p-2.5 rounded-xl bg-white border border-gray-100 shadow-2xs text-center space-y-0.5">
+                                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Turf Fee</span>
+                                            <div class="text-xs font-black text-rose-600">₹{{ number_format($cancellationFeePerSlot, 2) }}</div>
+                                            <span class="text-[9px] text-gray-400 block leading-tight">per slot deduction</span>
+                                        </div>
+
+                                        <!-- 3. SaaS Platform Refund Charge -->
+                                        <div class="p-2.5 rounded-xl bg-white border border-gray-100 shadow-2xs text-center space-y-0.5">
+                                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">SaaS Charge</span>
+                                            <div class="text-xs font-black text-indigo-600">{{ number_format($saasCancellationFeePerc, 2) }}%</div>
+                                            <span class="text-[9px] text-gray-400 block leading-tight">of paid amount</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Window Eligibility Status (for active bookings) -->
+                                    @if ($bDetail->status !== 'Cancelled' && $hoursRemaining !== null)
+                                        <div class="px-2.5 py-1.5 rounded-xl {{ $isWithinWindow ? 'bg-emerald-50 border border-emerald-100 text-emerald-800' : 'bg-amber-50 border border-amber-200 text-amber-800' }} text-[11px] flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-1.5">
+                                                <span>{{ $isWithinWindow ? '✅' : '⚠️' }}</span>
+                                                <span class="font-medium">
+                                                    @if ($isWithinWindow)
+                                                        Eligible for cancellation: <strong class="font-bold">{{ round($hoursRemaining, 1) }} hrs</strong> remaining before cutoff.
+                                                    @elseif ($hoursRemaining > 0)
+                                                        Cutoff passed: Session starts in <strong class="font-bold">{{ round($hoursRemaining, 1) }} hrs</strong> (< {{ $cancellationHours }} hrs required).
+                                                    @else
+                                                        Session already started or concluded.
+                                                    @endif
+                                                </span>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @else
+                                    <div class="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200/60 text-[11px] text-rose-700 flex items-center gap-2">
+                                        <span class="text-sm">🚫</span>
+                                        <span>Customer self-cancellation is <strong>disabled</strong> by the turf admin for this venue.</span>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Refund & Financial Log Breakdown Card -->
                             <div class="rounded-2xl border {{ $bDetail->status === 'Cancelled' || $bDetail->status === 'Partially Cancelled' ? 'border-red-200 bg-red-50/30' : 'border-gray-200 bg-white' }} overflow-hidden text-xs divide-y divide-gray-100 shadow-2xs">
                                 
                                 <div class="p-3 bg-gray-50/50 flex items-center justify-between">
@@ -1495,28 +1618,72 @@ new #[Layout('layouts.app')] class extends Component
     <!-- CANCEL BOOKING MODAL -->
     @if ($showCancelModal && $cancelBookingId)
         @php
-            $cBooking = Booking::with('bookingDates')->find($cancelBookingId);
+            $cBooking = Booking::with(['turf', 'bookingDates.bookingSlots'])->find($cancelBookingId);
         @endphp
         @if ($cBooking)
+            @php
+                $cTurf = $cBooking->turf;
+                $cSaas = \App\Models\SaasSetting::first();
+                $mSaasPerc = $cSaas ? (float)($cSaas->cancellation_fee_percentage ?? 5.00) : 5.00;
+                $mTurfFeePerSlot = $cTurf ? (float)($cTurf->cancellation_fee ?? 0.00) : 0.00;
+                $mHours = $cTurf ? (int)($cTurf->cancellation_hours ?? 48) : 48;
+
+                // Live calculation of preview deductions for selected dates
+                $selectedDates = $cBooking->bookingDates->whereIn('id', $cancelDateIds)->where('status', '!=', 'Cancelled');
+                $calcPaidSum = 0.00;
+                $calcSlotsCount = 0;
+                foreach ($selectedDates as $sd) {
+                    $calcSlotsCount += $sd->bookingSlots->count();
+                    $calcPaidSum += (float) \App\Models\Payment::where('booking_date_id', $sd->id)->where('status', 'Success')->sum('amount');
+                }
+                $calcSaasFee = round($calcPaidSum * ($mSaasPerc / 100), 2);
+                $calcRemainingTurf = max(0.00, $calcPaidSum - $calcSaasFee);
+                $calcTurfFee = min($calcRemainingTurf, $mTurfFeePerSlot * $calcSlotsCount);
+                $calcTotalFee = min($calcPaidSum, round($calcSaasFee + $calcTurfFee, 2));
+                $calcRefund = max(0.00, round($calcPaidSum - $calcTotalFee, 2));
+            @endphp
             <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-                <div class="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl space-y-4 border border-gray-200">
+                <div class="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl space-y-4 border border-gray-200">
                     <div class="flex items-center justify-between pb-3 border-b border-gray-100">
-                        <h3 class="font-black text-lg text-red-600">Cancel Booking Dates</h3>
-                        <button wire:click="closeCancelModal" class="text-gray-400 hover:text-gray-600">✕</button>
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-sm font-bold">
+                                ⚠️
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-base text-gray-900">Cancel Booking Dates</h3>
+                                <p class="text-[11px] text-gray-500">Booking {{ $cBooking->booking_reference ?? ('#' . $cBooking->id) }}</p>
+                            </div>
+                        </div>
+                        <button wire:click="closeCancelModal" class="w-7 h-7 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex items-center justify-center transition cursor-pointer">✕</button>
+                    </div>
+
+                    <!-- Policy summary header inside modal -->
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-1 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-gray-700">Cancellation Policy Rules</span>
+                            <span class="font-semibold text-slate-500">Cutoff Window: {{ $mHours }} hrs</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-gray-600">
+                            <span>• SaaS Platform Fee: <strong class="text-indigo-600">{{ number_format($mSaasPerc, 2) }}%</strong></span>
+                            <span>• Turf Fee: <strong class="text-rose-600">₹{{ number_format($mTurfFeePerSlot, 2) }} / slot</strong></span>
+                        </div>
                     </div>
 
                     <p class="text-xs text-gray-600">
-                        Select the session dates you wish to cancel for booking <strong class="text-gray-900">{{ $cBooking->booking_reference ?? ('#' . $cBooking->id) }}</strong>:
+                        Select the session dates you wish to cancel:
                     </p>
 
                     <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
                         @foreach ($cBooking->bookingDates as $bd)
-                            <label class="flex items-center justify-between p-3 rounded-xl border border-gray-200 cursor-pointer text-xs">
-                                <div class="flex items-center gap-2">
+                            <label class="flex items-center justify-between p-3 rounded-xl border {{ in_array($bd->id, $cancelDateIds) ? 'border-red-300 bg-red-50/30' : 'border-gray-200 bg-white' }} cursor-pointer text-xs transition">
+                                <div class="flex items-center gap-2.5">
                                     <input type="checkbox" value="{{ $bd->id }}" wire:model.live="cancelDateIds" 
                                         {{ $bd->status === 'Cancelled' ? 'disabled' : '' }} 
                                         class="rounded text-red-600 focus:ring-red-500">
-                                    <span class="font-bold text-gray-900">{{ $bd->booking_date }}</span>
+                                    <div>
+                                        <span class="font-bold text-gray-900 block">{{ $bd->booking_date }}</span>
+                                        <span class="text-[10px] text-gray-400">{{ $bd->bookingSlots->count() }} slot(s)</span>
+                                    </div>
                                 </div>
                                 <span class="font-bold {{ $bd->status === 'Cancelled' ? 'text-gray-400' : 'text-emerald-600' }}">
                                     {{ $bd->status === 'Cancelled' ? 'Already Cancelled' : ('₹' . number_format($bd->amount, 2)) }}
@@ -1525,9 +1692,34 @@ new #[Layout('layouts.app')] class extends Component
                         @endforeach
                     </div>
 
+                    <!-- Live refund preview box -->
+                    @if (!empty($cancelDateIds) && $selectedDates->count() > 0)
+                        <div class="p-3 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-1.5 text-xs">
+                            <span class="font-bold text-amber-900 text-[11px] uppercase tracking-wider block">Estimated Refund Breakdown</span>
+                            <div class="flex items-center justify-between text-gray-600">
+                                <span>Paid Amount for Selected ({{ $selectedDates->count() }} date(s), {{ $calcSlotsCount }} slot(s)):</span>
+                                <span class="font-bold text-gray-900">₹{{ number_format($calcPaidSum, 2) }}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-gray-600 text-[11px]">
+                                <span>- SaaS Platform Charge ({{ number_format($mSaasPerc, 2) }}%):</span>
+                                <span class="font-semibold text-rose-600">-₹{{ number_format($calcSaasFee, 2) }}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-gray-600 text-[11px]">
+                                <span>- Turf Cancellation Fee (₹{{ number_format($mTurfFeePerSlot, 2) }} × {{ $calcSlotsCount }} slot(s)):</span>
+                                <span class="font-semibold text-rose-600">-₹{{ number_format($calcTurfFee, 2) }}</span>
+                            </div>
+                            <div class="pt-1.5 border-t border-amber-200/60 flex items-center justify-between font-bold">
+                                <span class="text-gray-900">Estimated Refund to Customer:</span>
+                                <span class="text-sm font-black text-purple-700">₹{{ number_format($calcRefund, 2) }}</span>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="pt-3 border-t border-gray-100 flex justify-end gap-2">
-                        <button wire:click="closeCancelModal" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold">Keep Booking</button>
-                        <button wire:click="submitCancellation" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-xs">
+                        <button wire:click="closeCancelModal" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition cursor-pointer">Keep Booking</button>
+                        <button wire:click="submitCancellation" 
+                            {{ empty($cancelDateIds) ? 'disabled' : '' }}
+                            class="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition cursor-pointer">
                             Confirm Cancellation
                         </button>
                     </div>
