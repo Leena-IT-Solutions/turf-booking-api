@@ -28,7 +28,15 @@ class BookingController extends Controller
         $filter = $request->query('filter', 'upcoming');
         $today = Carbon::today('Asia/Kolkata')->toDateString();
         
-        $query = BookingDate::with(['booking.turf', 'booking.user', 'bookingSlots.slot', 'payments']);
+        $query = BookingDate::with([
+            'booking.turf',
+            'booking.user',
+            'booking.bookingDates.bookingSlots',
+            'booking.bookingDates.payments',
+            'bookingSlots.slot',
+            'payments',
+            'bookingCancellations',
+        ]);
 
         $personal = $request->query('personal', false);
         $selectedTurfId = $request->query('turf_id');
@@ -160,6 +168,110 @@ class BookingController extends Controller
                 $dateBalanceAmount = max(0.00, (float)$bDate->amount - $datePaidAmount);
             }
 
+            // Calculate cancellation breakup (prospective for active, historical for cancelled)
+            $isCancelled = ($bDate->status === 'Cancelled');
+            $latestCancel = $isCancelled ? $bDate->bookingCancellations->sortByDesc('id')->first() : null;
+
+            if ($isCancelled && $latestCancel) {
+                $cBreakup = $latestCancel->deductions_breakup;
+                $cancellationBreakup = [
+                    'gross_paid' => (float)($cBreakup['gross'] ?? $datePaidAmount),
+                    'turf_cancellation_fee' => (float)($cBreakup['turf_cancellation_fee'] ?? 0),
+                    'platform_fee_retained' => (float)($cBreakup['platform_fee_retained'] ?? 0),
+                    'saas_cancellation_fee' => (float)($cBreakup['saas_cancellation_fee'] ?? 0),
+                    'total_deductions' => (float)($cBreakup['total'] ?? $bDate->cancellation_fee_applied),
+                    'refund_amount' => (float)($cBreakup['refund'] ?? $bDate->refund_amount),
+                ];
+            } elseif ($isCancelled) {
+                $cancellationBreakup = [
+                    'gross_paid' => (float)$datePaidAmount,
+                    'turf_cancellation_fee' => (float)$bDate->cancellation_fee_applied,
+                    'platform_fee_retained' => 0.00,
+                    'saas_cancellation_fee' => 0.00,
+                    'total_deductions' => (float)$bDate->cancellation_fee_applied,
+                    'refund_amount' => (float)$bDate->refund_amount,
+                ];
+            } else {
+                $allActiveDates = $booking ? $booking->bookingDates->where('status', '!=', 'Cancelled') : collect([$bDate]);
+                $allActiveDatesCount = max(1, $allActiveDates->count());
+                $totalBookingPlatformFee = (float)($booking?->platform_fee ?? 0) + (float)($booking?->platform_fee_gst ?? 0);
+                $datePlatformFee = round($totalBookingPlatformFee / $allActiveDatesCount, 2);
+                $datePlatformFee = min($datePaidAmount, $datePlatformFee);
+
+                $refundableBase = max(0.00, $datePaidAmount - $datePlatformFee);
+                $platformFeePercentage = (float)(\App\Models\SaasSetting::first()?->cancellation_fee_percentage ?? 5.00);
+                $saasFee = round($refundableBase * ($platformFeePercentage / 100), 2);
+
+                $remainingForTurf = max(0.00, $refundableBase - $saasFee);
+                $slotCount = $bDate->bookingSlots ? $bDate->bookingSlots->count() : 1;
+                $cancellationFeeSetting = $booking?->turf ? (float)$booking->turf->cancellation_fee : 0.00;
+                $turfFee = min($remainingForTurf, $cancellationFeeSetting * max(1, $slotCount));
+
+                $totalDeductions = min($datePaidAmount, round($datePlatformFee + $saasFee + $turfFee, 2));
+                $estimatedRefund = max(0.00, round($datePaidAmount - $totalDeductions, 2));
+
+                $cancellationBreakup = [
+                    'gross_paid' => (float)$datePaidAmount,
+                    'turf_cancellation_fee' => (float)$turfFee,
+                    'platform_fee_retained' => (float)$datePlatformFee,
+                    'saas_cancellation_fee' => (float)$saasFee,
+                    'total_deductions' => (float)$totalDeductions,
+                    'refund_amount' => (float)$estimatedRefund,
+                ];
+            }
+
+            $activeDates = $booking ? $booking->bookingDates->where('status', '!=', 'Cancelled') : collect([$bDate]);
+            $activeDatesCount = $activeDates->count();
+
+            $allDatesBreakup = null;
+            if ($activeDatesCount > 1) {
+                $totGross = 0.00;
+                $totTurf = 0.00;
+                $totPlat = 0.00;
+                $totSaas = 0.00;
+                $totDed = 0.00;
+                $totRef = 0.00;
+
+                $totalBookingPlatformFee = (float)($booking?->platform_fee ?? 0) + (float)($booking?->platform_fee_gst ?? 0);
+                $platformFeePercentage = (float)(\App\Models\SaasSetting::first()?->cancellation_fee_percentage ?? 5.00);
+                $cancellationFeeSetting = $booking?->turf ? (float)$booking->turf->cancellation_fee : 0.00;
+
+                foreach ($activeDates as $actD) {
+                    $actPaid = (float)$actD->payments()->where('status', 'Success')->sum('amount');
+                    if ($actD->payment_status === 'Paid' || ($booking && $booking->payment_status === 'Paid')) {
+                        if ($actPaid < (float)$actD->amount) {
+                            $actPaid = (float)$actD->amount;
+                        }
+                    }
+                    $actPlatFee = min($actPaid, round($totalBookingPlatformFee / $activeDatesCount, 2));
+                    $actRefundBase = max(0.00, $actPaid - $actPlatFee);
+                    $actSaasFee = round($actRefundBase * ($platformFeePercentage / 100), 2);
+                    $actRemTurf = max(0.00, $actRefundBase - $actSaasFee);
+                    $actSlots = $actD->bookingSlots ? $actD->bookingSlots->count() : 1;
+                    $actTurfFee = min($actRemTurf, $cancellationFeeSetting * max(1, $actSlots));
+                    $actDed = min($actPaid, round($actPlatFee + $actSaasFee + $actTurfFee, 2));
+                    $actRef = max(0.00, round($actPaid - $actDed, 2));
+
+                    $totGross += $actPaid;
+                    $totTurf += $actTurfFee;
+                    $totPlat += $actPlatFee;
+                    $totSaas += $actSaasFee;
+                    $totDed += $actDed;
+                    $totRef += $actRef;
+                }
+
+                $allDatesBreakup = [
+                    'gross_paid' => round($totGross, 2),
+                    'turf_cancellation_fee' => round($totTurf, 2),
+                    'platform_fee_retained' => round($totPlat, 2),
+                    'saas_cancellation_fee' => round($totSaas, 2),
+                    'total_deductions' => round($totDed, 2),
+                    'refund_amount' => round($totRef, 2),
+                ];
+            } else {
+                $allDatesBreakup = $cancellationBreakup;
+            }
+
             return [
                 'id' => $bDate->id,
                 'booking_id' => $booking->id ?? null,
@@ -207,6 +319,9 @@ class BookingController extends Controller
                 'cancellation_hours' => $booking->turf ? (int)$booking->turf->cancellation_hours : 0,
                 'cancellation_fee' => $booking->turf ? (float)$booking->turf->cancellation_fee : 0.00,
                 'cancellation_fee_percentage' => (float)(\App\Models\SaasSetting::first()?->cancellation_fee_percentage ?? 5.00),
+                'active_dates_count' => $activeDatesCount,
+                'cancellation_breakup' => $cancellationBreakup,
+                'all_dates_cancellation_breakup' => $allDatesBreakup,
                 'cancelled_at' => ($bDate->status === 'Cancelled' && $bDate->cancelled_at) ? Carbon::parse($bDate->cancelled_at)->format('F d, Y h:i A') : ($booking->cancelled_at ? Carbon::parse($booking->cancelled_at)->format('F d, Y h:i A') : null),
                 'cancellation_fee_applied' => ($bDate->status === 'Cancelled') ? (float)$bDate->cancellation_fee_applied : (float)$booking->cancellation_fee_applied,
                 'refund_amount' => ($bDate->status === 'Cancelled') ? (float)$bDate->refund_amount : (float)$booking->refund_amount,
@@ -1962,9 +2077,11 @@ class BookingController extends Controller
                 'canceller_role' => $user->roles()->pluck('name')->first() ?? 'customer',
                 'cancellation_scope' => (count($targetedDates) === $booking->bookingDates()->count()) ? 'full_booking' : 'date',
                 'reason' => $request->input('reason', 'Customer requested cancellation'),
-                'gross_cancelled_amount' => (float)$bDate->amount,
+                'gross_cancelled_amount' => $datePaidAmount,
                 'turf_cancellation_fee' => $turfFee ?? 0.00,
-                'platform_cancellation_fee' => $platformFee ?? 0.00,
+                'platform_fee_retained' => $datePlatformFee ?? 0.00,
+                'saas_cancellation_fee' => $platformFee ?? 0.00,
+                'platform_cancellation_fee' => round(($platformFee ?? 0.00) + ($datePlatformFee ?? 0.00), 2),
                 'total_cancellation_fee' => $dateFeeApplied,
                 'refund_amount' => $dateRefundDue,
                 'refund_status' => $dateRefundStatus,

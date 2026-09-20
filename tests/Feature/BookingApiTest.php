@@ -101,7 +101,7 @@ class BookingApiTest extends TestCase
         $data = $response->json('data');
         $this->assertCount(1, $data);
         $this->assertEquals($tomorrowFormatted, $data[0]['booking_date']);
-        $this->assertEquals('₹1,500', $data[0]['price']);
+        $this->assertEquals('₹1,500.00', $data[0]['price']);
 
         // Fetch past
         $responsePast = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=past');
@@ -109,7 +109,7 @@ class BookingApiTest extends TestCase
         $dataPast = $responsePast->json('data');
         $this->assertCount(1, $dataPast);
         $this->assertEquals($yesterdayFormatted, $dataPast[0]['booking_date']);
-        $this->assertEquals('₹2,000', $dataPast[0]['price']);
+        $this->assertEquals('₹2,000.00', $dataPast[0]['price']);
     }
 
     public function test_booking_preview_and_manager_record_payment(): void
@@ -907,5 +907,72 @@ class BookingApiTest extends TestCase
         $this->assertEquals('Partially Cancelled', $freshBooking->status);
         $this->assertEquals(100.00, $freshBooking->cancellation_fee_applied);
         $this->assertEquals(400.00, $freshBooking->refund_amount);
+    }
+
+    public function test_cancellation_breakup_exposed_in_api(): void
+    {
+        $admin = User::factory()->create();
+        $role = \App\Models\Role::firstOrCreate(['name' => 'turf-admin'], ['display_name' => 'Turf Admin']);
+        $admin->roles()->sync([$role->id]);
+
+        $customer = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Breakup Arena',
+            'address' => 'Mumbai',
+        ]);
+
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Breakup Turf',
+            'type' => 'cricket',
+            'is_cancellation_active' => true,
+            'cancellation_hours' => 2,
+            'cancellation_fee' => 50.00,
+        ]);
+
+        $booking = Booking::create([
+            'user_id' => $customer->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+            'total_amount' => 502.00,
+            'platform_fee' => 2.00,
+            'platform_fee_gst' => 0.00,
+            'additional_discount' => 0.00,
+        ]);
+
+        $date = $booking->bookingDates()->create([
+            'booking_date' => now()->addDays(2)->toDateString(),
+            'amount' => 502.00,
+            'additional_discount' => 0.00,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $date->id,
+            'payment_method' => 'App',
+            'amount' => 502.00,
+            'status' => 'Success',
+            'paid_at' => now(),
+        ]);
+
+        $response = $this->actingAs($customer, 'sanctum')->getJson('/api/bookings?filter=upcoming');
+        $response->assertStatus(200);
+
+        $data = $response->json('data');
+        $this->assertNotEmpty($data);
+        $this->assertArrayHasKey('cancellation_breakup', $data[0]);
+        $breakup = $data[0]['cancellation_breakup'];
+        $this->assertEquals(502.00, $breakup['gross_paid']);
+        $this->assertEquals(2.00, $breakup['platform_fee_retained']);
+        $this->assertEquals(50.00, $breakup['turf_cancellation_fee']);
+        $this->assertGreaterThan(0, $breakup['total_deductions']);
+        $this->assertGreaterThan(0, $breakup['refund_amount']);
     }
 }
