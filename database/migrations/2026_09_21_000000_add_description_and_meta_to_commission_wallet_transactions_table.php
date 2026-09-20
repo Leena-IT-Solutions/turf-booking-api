@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('commission_wallet_transactions', function (Blueprint $table) {
-            $table->string('description')->nullable()->after('type');
-            $table->json('meta')->nullable()->after('balance_after');
+            if (!Schema::hasColumn('commission_wallet_transactions', 'description')) {
+                $table->string('description')->nullable()->after('type');
+            }
+            if (!Schema::hasColumn('commission_wallet_transactions', 'meta')) {
+                $table->json('meta')->nullable()->after('balance_after');
+            }
         });
     }
 
@@ -23,7 +27,16 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('commission_wallet_transactions', function (Blueprint $table) {
-            $table->dropColumn(['description', 'meta']);
+            $columnsToDrop = [];
+            if (Schema::hasColumn('commission_wallet_transactions', 'description')) {
+                $columnsToDrop[] = 'description';
+            }
+            if (Schema::hasColumn('commission_wallet_transactions', 'meta')) {
+                $columnsToDrop[] = 'meta';
+            }
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
+            }
         });
     }
 };
