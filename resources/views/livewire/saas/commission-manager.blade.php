@@ -36,10 +36,12 @@ new #[Layout('layouts.app')] class extends Component
             $q->where('status', 'Success');
         })->sum('platform_fee');
 
-        // 3. Cancellation Fees earned by SaaS platform (SaaS cancellation charge + retained platform fee)
-        $totalCancellationFeeEarned = (float) BookingCancellation::sum('platform_cancellation_fee');
-        if ($totalCancellationFeeEarned <= 0) {
-            $totalCancellationFeeEarned = (float) (BookingCancellation::sum('saas_cancellation_fee') + BookingCancellation::sum('platform_fee_retained'));
+        // 3. Pure SaaS Cancellation Fee charge (strictly SaaS cancellation fee, excluding retained platform fee)
+        $totalCancellationFeeEarned = (float) BookingCancellation::sum('saas_cancellation_fee');
+        if ($totalCancellationFeeEarned <= 0 && BookingCancellation::count() > 0) {
+            $totalCancellationFeeEarned = (float) BookingCancellation::all()->sum(function($c) {
+                return (float) ($c->deductions_breakup['saas_cancellation_fee'] ?? 0);
+            });
         }
 
         // 4. Combined Total SaaS Booking & Cancellation Revenue
@@ -231,7 +233,7 @@ new #[Layout('layouts.app')] class extends Component
             <div class="text-3xl font-black text-amber-600">
                 ₹{{ number_format($totalCancellationFeeEarned, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500">SaaS cancellation charges & retained fees</p>
+            <p class="text-[11px] text-gray-500">SaaS cancellation charges on refunds</p>
         </div>
     </div>
 
