@@ -22,6 +22,11 @@ class BookingCancellation extends Model
         'total_cancellation_fee',
         'refund_amount',
         'refund_status',
+        'resolution_mode',
+        'disbursement_channel',
+        'offline_reference',
+        'resolved_by_user_id',
+        'resolved_at',
         'razorpay_refund_id',
         'commission_reversed_amount',
     ];
@@ -33,6 +38,7 @@ class BookingCancellation extends Model
         'total_cancellation_fee' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'commission_reversed_amount' => 'decimal:2',
+        'resolved_at' => 'datetime',
     ];
 
     public function booking()
@@ -48,5 +54,10 @@ class BookingCancellation extends Model
     public function cancelledByUser()
     {
         return $this->belongsTo(User::class, 'cancelled_by_user_id');
+    }
+
+    public function resolvedByUser()
+    {
+        return $this->belongsTo(User::class, 'resolved_by_user_id');
     }
 }
