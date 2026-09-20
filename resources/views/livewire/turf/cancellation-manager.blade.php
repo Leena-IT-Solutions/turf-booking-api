@@ -18,15 +18,21 @@ new #[Layout('layouts.app')] class extends Component
     use WithPagination;
 
     // --- Tab ---
-    public string $activeTab = 'cancellations'; // 'active_bookings' | 'cancellations'
+    public string $activeTab = 'active_bookings'; // 'active_bookings' | 'cancellations'
 
     // --- Active Bookings Filters ---
     public string $bookingSearch = '';
-    public string $bookingDateFilter = '';
+    public string $bookingDatePreset = 'today';
+    public string $bookingStartDate = '';
+    public string $bookingEndDate = '';
+    public string $bookingPaymentStatus = 'all';
 
     // --- Cancellation Table Filters ---
     public string $cancelSearch = '';
     public string $cancelStatusFilter = 'all';
+    public string $cancelDatePreset = 'all';
+    public string $cancelStartDate = '';
+    public string $cancelEndDate = '';
 
     // --- Cancel Modal ---
     public bool $showCancelModal = false;
@@ -42,20 +48,100 @@ new #[Layout('layouts.app')] class extends Component
     public string $customRefundAmount = '';
     public string $offlineReference = '';
 
+    public function mount()
+    {
+        $this->activeTab = request()->query('tab', 'active_bookings');
+        $this->setBookingDatePreset('today');
+    }
+
     #[On('global-context-updated')]
     public function refreshContext()
     {
         $this->resetPage();
     }
 
-    public function updatingBookingSearch() { $this->resetPage(); }
-    public function updatingCancelSearch() { $this->resetPage(); }
-    public function updatingCancelStatusFilter() { $this->resetPage(); }
+    public function updatingBookingSearch() { $this->resetPage('bookingsPage'); }
+    public function updatingBookingPaymentStatus() { $this->resetPage('bookingsPage'); }
+    public function updatingCancelSearch() { $this->resetPage('cancelsPage'); }
+    public function updatingCancelStatusFilter() { $this->resetPage('cancelsPage'); }
 
     public function switchTab(string $tab)
     {
         $this->activeTab = $tab;
         $this->resetPage();
+    }
+
+    public function setBookingDatePreset(string $preset)
+    {
+        $this->bookingDatePreset = $preset;
+        $now = Carbon::now('Asia/Kolkata');
+
+        if ($preset === 'today') {
+            $this->bookingStartDate = $now->toDateString();
+            $this->bookingEndDate = $now->toDateString();
+        } elseif ($preset === 'tomorrow') {
+            $this->bookingStartDate = $now->copy()->addDay()->toDateString();
+            $this->bookingEndDate = $now->copy()->addDay()->toDateString();
+        } elseif ($preset === 'yesterday') {
+            $this->bookingStartDate = $now->copy()->subDay()->toDateString();
+            $this->bookingEndDate = $now->copy()->subDay()->toDateString();
+        } elseif ($preset === 'this_week') {
+            $this->bookingStartDate = $now->copy()->startOfWeek()->toDateString();
+            $this->bookingEndDate = $now->copy()->endOfWeek()->toDateString();
+        } elseif ($preset === 'upcoming') {
+            $this->bookingStartDate = $now->toDateString();
+            $this->bookingEndDate = $now->copy()->addMonths(3)->toDateString();
+        } elseif ($preset === 'this_weekend') {
+            $this->bookingStartDate = $now->copy()->startOfWeek()->addDays(5)->toDateString(); // Saturday
+            $this->bookingEndDate = $now->copy()->startOfWeek()->addDays(6)->toDateString();   // Sunday
+        } elseif ($preset === 'this_month') {
+            $this->bookingStartDate = $now->copy()->startOfMonth()->toDateString();
+            $this->bookingEndDate = $now->copy()->endOfMonth()->toDateString();
+        } else { // 'all'
+            $this->bookingStartDate = '';
+            $this->bookingEndDate = '';
+        }
+
+        $this->resetPage('bookingsPage');
+    }
+
+    public function updatedBookingStartDate()
+    {
+        $this->bookingDatePreset = 'custom';
+        $this->bookingEndDate = $this->bookingStartDate;
+        $this->resetPage('bookingsPage');
+    }
+
+    public function clearBookingFilters()
+    {
+        $this->bookingSearch = '';
+        $this->bookingPaymentStatus = 'all';
+        $this->setBookingDatePreset('today');
+    }
+
+    public function setCancelDatePreset(string $preset)
+    {
+        $this->cancelDatePreset = $preset;
+        $now = Carbon::now('Asia/Kolkata');
+
+        if ($preset === 'today') {
+            $this->cancelStartDate = $now->toDateString();
+            $this->cancelEndDate = $now->toDateString();
+        } elseif ($preset === 'yesterday') {
+            $this->cancelStartDate = $now->copy()->subDay()->toDateString();
+            $this->cancelEndDate = $now->copy()->subDay()->toDateString();
+        } elseif ($preset === 'this_week') {
+            $this->cancelStartDate = $now->copy()->startOfWeek()->toDateString();
+            $this->cancelEndDate = $now->copy()->endOfWeek()->toDateString();
+        } elseif ($preset === 'this_month') {
+            $this->cancelStartDate = $now->copy()->startOfMonth()->toDateString();
+            $this->cancelEndDate = $now->copy()->endOfMonth()->toDateString();
+        } else {
+            $this->cancelStartDate = '';
+            $this->cancelEndDate = '';
+        }
+
+        $this->resetPage('cancelsPage');
     }
 
     // --- Cancel Modal Methods ---
@@ -258,11 +344,35 @@ new #[Layout('layouts.app')] class extends Component
                     });
                 }
 
-                if ($this->bookingDateFilter) {
+                if ($this->bookingStartDate && $this->bookingEndDate) {
+                    if ($this->bookingStartDate === $this->bookingEndDate) {
+                        $abQuery->whereHas('bookingDates', function ($q) {
+                            $q->where('booking_date', $this->bookingStartDate)
+                              ->where('status', '!=', 'Cancelled');
+                        });
+                    } else {
+                        $abQuery->whereHas('bookingDates', function ($q) {
+                            $q->whereBetween('booking_date', [$this->bookingStartDate, $this->bookingEndDate])
+                              ->where('status', '!=', 'Cancelled');
+                        });
+                    }
+                } elseif ($this->bookingStartDate) {
                     $abQuery->whereHas('bookingDates', function ($q) {
-                        $q->where('booking_date', $this->bookingDateFilter)
+                        $q->where('booking_date', '>=', $this->bookingStartDate)
                           ->where('status', '!=', 'Cancelled');
                     });
+                }
+
+                if ($this->bookingPaymentStatus !== 'all') {
+                    if ($this->bookingPaymentStatus === 'Paid') {
+                        $abQuery->where('payment_status', 'Paid');
+                    } elseif ($this->bookingPaymentStatus === 'Partially Paid') {
+                        $abQuery->where('payment_status', 'Partially Paid');
+                    } elseif ($this->bookingPaymentStatus === 'Unpaid') {
+                        $abQuery->where(function ($q) {
+                            $q->where('payment_status', 'Unpaid')->orWhereNull('payment_status');
+                        });
+                    }
                 }
 
                 $activeBookings = $abQuery->orderBy('created_at', 'desc')->paginate(10, ['*'], 'bookingsPage');
@@ -287,6 +397,16 @@ new #[Layout('layouts.app')] class extends Component
 
                 if ($this->cancelStatusFilter !== 'all') {
                     $cQuery->where('refund_status', $this->cancelStatusFilter);
+                }
+
+                if ($this->cancelStartDate && $this->cancelEndDate) {
+                    if ($this->cancelStartDate === $this->cancelEndDate) {
+                        $cQuery->whereDate('created_at', $this->cancelStartDate);
+                    } else {
+                        $cQuery->whereBetween(DB::raw('DATE(created_at)'), [$this->cancelStartDate, $this->cancelEndDate]);
+                    }
+                } elseif ($this->cancelStartDate) {
+                    $cQuery->whereDate('created_at', '>=', $this->cancelStartDate);
                 }
 
                 $cancellations = $cQuery->orderByDesc('created_at')->paginate(15, ['*'], 'cancelsPage');
@@ -329,13 +449,114 @@ new #[Layout('layouts.app')] class extends Component
             {{-- ============================================================ --}}
             @if ($this->activeTab === 'active_bookings')
                 <div class="space-y-4">
-                    {{-- Filters --}}
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <div class="relative flex-1">
-                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                            <input wire:model.live.debounce.300ms="bookingSearch" type="text" placeholder="Search by booking #, customer name or mobile..." class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition">
+                    {{-- Filter & Search Panel --}}
+                    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 sm:p-5 space-y-4">
+                        
+                        {{-- Quick Date Filter Preset Chips --}}
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3.5">
+                            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 me-1 shrink-0 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    Dates:
+                                </span>
+                                <button wire:click="setBookingDatePreset('today')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'today' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    Today
+                                </button>
+                                <button wire:click="setBookingDatePreset('tomorrow')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'tomorrow' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    Tomorrow
+                                </button>
+                                <button wire:click="setBookingDatePreset('yesterday')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'yesterday' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    Yesterday
+                                </button>
+                                <button wire:click="setBookingDatePreset('this_week')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'this_week' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    This Week
+                                </button>
+                                <button wire:click="setBookingDatePreset('upcoming')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'upcoming' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    Upcoming
+                                </button>
+                                <button wire:click="setBookingDatePreset('this_weekend')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'this_weekend' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    This Weekend
+                                </button>
+                                <button wire:click="setBookingDatePreset('this_month')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'this_month' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    This Month
+                                </button>
+                                <button wire:click="setBookingDatePreset('all')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $bookingDatePreset === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    All Dates
+                                </button>
+                            </div>
+
+                            {{-- Reset Button --}}
+                            @if ($bookingSearch !== '' || $bookingPaymentStatus !== 'all' || $bookingDatePreset !== 'today')
+                                <button wire:click="clearBookingFilters" type="button" 
+                                    class="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 shrink-0">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    Reset Filters
+                                </button>
+                            @endif
                         </div>
-                        <input wire:model.live="bookingDateFilter" type="date" class="px-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
+
+                        {{-- Search & Controls Row --}}
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                            <div class="sm:col-span-6 relative">
+                                <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Search Customer / Booking #</label>
+                                <div class="relative">
+                                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                    <input wire:model.live.debounce.300ms="bookingSearch" type="text" placeholder="Search by booking #, customer name or mobile..." class="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition">
+                                </div>
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Date</label>
+                                <input wire:model.live="bookingStartDate" type="date" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
+                            </div>
+
+                            <div class="sm:col-span-3">
+                                <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-1">Payment Status</label>
+                                <select wire:model.live="bookingPaymentStatus" class="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
+                                    <option value="all">All Payments</option>
+                                    <option value="Paid">Paid (Full)</option>
+                                    <option value="Partially Paid">Partially Paid</option>
+                                    <option value="Unpaid">Unpaid</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {{-- Active Filter Feedback badge --}}
+                        <div class="flex items-center gap-2 text-xs text-gray-500 pt-1">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-100 font-medium text-gray-700">
+                                <svg class="w-3.5 h-3.5 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                @if ($bookingDatePreset === 'today')
+                                    Showing bookings for: <strong class="text-indigo-700">Today ({{ Carbon::today('Asia/Kolkata')->format('d M Y') }})</strong>
+                                @elseif ($bookingDatePreset === 'tomorrow')
+                                    Showing bookings for: <strong class="text-indigo-700">Tomorrow ({{ Carbon::tomorrow('Asia/Kolkata')->format('d M Y') }})</strong>
+                                @elseif ($bookingDatePreset === 'yesterday')
+                                    Showing bookings for: <strong class="text-indigo-700">Yesterday ({{ Carbon::yesterday('Asia/Kolkata')->format('d M Y') }})</strong>
+                                @elseif ($bookingDatePreset === 'this_week')
+                                    Showing bookings for: <strong class="text-indigo-700">This Week ({{ Carbon::now('Asia/Kolkata')->startOfWeek()->format('d M') }} – {{ Carbon::now('Asia/Kolkata')->endOfWeek()->format('d M Y') }})</strong>
+                                @elseif ($bookingDatePreset === 'upcoming')
+                                    Showing bookings for: <strong class="text-indigo-700">Upcoming (From Today onwards)</strong>
+                                @elseif ($bookingDatePreset === 'this_weekend')
+                                    Showing bookings for: <strong class="text-indigo-700">This Weekend</strong>
+                                @elseif ($bookingDatePreset === 'this_month')
+                                    Showing bookings for: <strong class="text-indigo-700">This Month ({{ Carbon::now('Asia/Kolkata')->format('M Y') }})</strong>
+                                @elseif ($bookingDatePreset === 'all')
+                                    Showing bookings for: <strong class="text-indigo-700">All Dates</strong>
+                                @else
+                                    Showing bookings for: <strong class="text-indigo-700">{{ $bookingStartDate ? Carbon::parse($bookingStartDate)->format('d M Y') : 'Custom' }}</strong>
+                                @endif
+                            </span>
+                            @if ($activeBookings->total() > 0)
+                                <span>• Found <strong class="text-gray-900">{{ $activeBookings->total() }}</strong> booking{{ $activeBookings->total() > 1 ? 's' : '' }}</span>
+                            @endif
+                        </div>
                     </div>
 
                     {{-- Bookings List --}}
@@ -420,19 +641,58 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     {{-- Filters --}}
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <div class="relative flex-1">
-                            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                            <input wire:model.live.debounce.300ms="cancelSearch" type="text" placeholder="Search by booking #, customer name or mobile..." class="w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition">
+                    <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 sm:p-5 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
+                            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 me-1 shrink-0 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                    Cancelled Date:
+                                </span>
+                                <button wire:click="setCancelDatePreset('all')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $cancelDatePreset === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    All Dates
+                                </button>
+                                <button wire:click="setCancelDatePreset('today')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $cancelDatePreset === 'today' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    Today
+                                </button>
+                                <button wire:click="setCancelDatePreset('yesterday')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $cancelDatePreset === 'yesterday' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    Yesterday
+                                </button>
+                                <button wire:click="setCancelDatePreset('this_week')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $cancelDatePreset === 'this_week' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    This Week
+                                </button>
+                                <button wire:click="setCancelDatePreset('this_month')" type="button" 
+                                    class="px-3 py-1.5 rounded-xl text-xs font-semibold transition shrink-0 {{ $cancelDatePreset === 'this_month' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                                    This Month
+                                </button>
+                            </div>
+
+                            @if ($cancelSearch !== '' || $cancelStatusFilter !== 'all' || $cancelDatePreset !== 'all')
+                                <button wire:click="$set('cancelSearch', ''); $set('cancelStatusFilter', 'all'); setCancelDatePreset('all');" type="button" 
+                                    class="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 shrink-0">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    Reset Filters
+                                </button>
+                            @endif
                         </div>
-                        <select wire:model.live="cancelStatusFilter" class="px-4 py-2.5 text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
-                            <option value="all">All Statuses</option>
-                            <option value="Pending Resolution">⏳ Pending Resolution</option>
-                            <option value="Refunded">✅ Refunded</option>
-                            <option value="Compensated">💰 Compensated</option>
-                            <option value="Forfeited">🚫 Forfeited</option>
-                            <option value="Cash / Offline Refund">💵 Offline Refund</option>
-                        </select>
+
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="relative flex-1">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                <input wire:model.live.debounce.300ms="cancelSearch" type="text" placeholder="Search by booking #, customer name or mobile..." class="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition">
+                            </div>
+                            <select wire:model.live="cancelStatusFilter" class="px-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
+                                <option value="all">All Statuses</option>
+                                <option value="Pending Resolution">⏳ Pending Resolution</option>
+                                <option value="Refunded">✅ Refunded</option>
+                                <option value="Compensated">💰 Compensated</option>
+                                <option value="Forfeited">🚫 Forfeited</option>
+                                <option value="Cash / Offline Refund">💵 Offline Refund</option>
+                            </select>
+                        </div>
                     </div>
 
                     {{-- Cancellation Cards --}}
