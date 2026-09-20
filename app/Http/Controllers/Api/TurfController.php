@@ -88,98 +88,135 @@ class TurfController extends Controller
                 $q->where('is_active', true);
             }])
             ->get()
-            ->map(function ($turf) use ($currentDay, $currentTime, $getRateForTime) {
-                $wizard = is_array($turf->pricing_wizard_data) 
-                    ? $turf->pricing_wizard_data 
-                    : json_decode($turf->pricing_wizard_data, true);
-
-                // 1. Try to get current time rate from pricing wizard
-                $rate = $getRateForTime($wizard, $currentDay, $currentTime);
-
-                // 2. Fall back to active slot pivot rate if wizard is not set or doesn't match
-                if ($rate === null) {
-                    $activeSlot = $turf->slots->first(function ($slot) use ($currentTime) {
-                        $from = date('H:i', strtotime($slot->from_time));
-                        $to = date('H:i', strtotime($slot->to_time));
-                        if ($from > $to) {
-                            return ($currentTime >= $from || $currentTime < $to);
-                        }
-                        return ($currentTime >= $from && $currentTime < $to);
-                    });
-
-                    if ($activeSlot && isset($activeSlot->pivot->$currentDay)) {
-                        $slotPrice = (float)$activeSlot->pivot->$currentDay;
-                        $duration = intval($activeSlot->duration ?: 60);
-                        if ($duration > 0) {
-                            $rate = ($slotPrice / $duration) * 60;
-                        }
-                    }
-                }
-
-                // 3. Set formatted price text (with standard 1,000 fallback if no rate exists)
-                if ($rate === null || $rate <= 0) {
-                    $priceText = '₹1,000 / hr'; 
-                } else {
-                    $priceText = '₹' . number_format($rate) . ' / hr';
-                }
-
-                // Get all photo URLs
-                $imageUrls = $turf->photos->map(function ($p) {
-                    return asset('storage/' . $p->photo);
-                })->toArray();
-
-                $saasMobile = \App\Models\SaasSetting::first()?->contact_mobile;
-                $contactNumber = $turf->location?->contact_number 
-                    ?: ($turf->location?->user?->mobile 
-                    ?: ($saasMobile ?: '9664588677'));
-
-                return [
-                    'id' => $turf->id,
-                    'name' => $turf->name,
-                    'type' => $turf->type,
-                    'description' => $turf->description ?? 'No description provided.',
-                    'area' => $turf->area,
-                    'location_name' => $turf->location?->name ?? '',
-                    'location_address' => $turf->location?->address ?? '',
-                    'latitude' => $turf->location?->latitude ? (float)$turf->location->latitude : null,
-                    'longitude' => $turf->location?->longitude ? (float)$turf->location->longitude : null,
-                    'contact_number' => $contactNumber,
-                    'whatsapp_number' => $contactNumber,
-                    'price_text' => $priceText,
-                    'rating' => $turf->reviews_avg_rating !== null ? number_format($turf->reviews_avg_rating, 1) : '0.0',
-                    'reviews_count' => $turf->reviews_count,
-                    'image_url' => count($imageUrls) > 0 ? $imageUrls[0] : null,
-                    'image_urls' => $imageUrls,
-                    'sports' => $turf->sports->map(fn($s) => [
-                        'id' => $s->id,
-                        'name' => $s->name,
-                        'icon' => $s->icon,
-                    ])->values()->toArray(),
-                    'facilities' => $turf->facilities->map(fn($f) => [
-                        'id' => $f->id,
-                        'name' => $f->name,
-                        'icon' => $f->icon,
-                    ])->values()->toArray(),
-                    'equipments' => $turf->turfEquipments->map(fn($e) => [
-                        'id' => $e->id,
-                        'name' => $e->name,
-                        'icon' => $e->icon,
-                    ])->values()->toArray(),
-                    'is_online_payment_active' => (bool)$turf->is_online_payment_active,
-                    'is_part_payment_active' => (bool)$turf->is_part_payment_active,
-                    'is_pay_at_location_active' => (bool)$turf->is_pay_at_location_active,
-                    'part_payment_type' => $turf->part_payment_type,
-                    'part_payment_value' => $turf->part_payment_value ? (float)$turf->part_payment_value : null,
-                    'is_booking_open' => (bool)($turf->is_booking_open ?? true),
-                    'booking_open_days' => (int)($turf->booking_open_days ?? 30),
-                    'is_cancellation_active' => (bool)($turf->is_cancellation_active ?? false),
-                    'cancellation_hours' => (int)($turf->cancellation_hours ?? 0),
-                    'cancellation_fee' => (float)($turf->cancellation_fee ?? 0.00),
-                    'cancellation_fee_percentage' => (float)(\App\Models\SaasSetting::first()?->cancellation_fee_percentage ?? 5.00),
-                    'share_message_template' => $turf->share_message_template,
-                ];
+            ->map(function ($turf) use ($now, $getRateForTime) {
+                return $this->formatTurfData($turf, $now, $getRateForTime);
             });
 
         return response()->json($turfs);
+    }
+
+    public function show(Turf $turf): JsonResponse
+    {
+        $now = Carbon::now('Asia/Kolkata');
+        $turf->loadMissing([
+            'location.user',
+            'slots',
+            'facilities',
+            'turfEquipments',
+            'sports',
+            'photos' => fn($q) => $q->where('is_active', true)
+        ]);
+        $turf->loadAvg('reviews', 'rating');
+        $turf->loadCount('reviews');
+
+        $getRateForTime = function ($wizard, $day, $time) {
+            if (!$wizard) return null;
+            $sameWeek = $wizard['sameRateThroughoutWeek'] ?? 'yes';
+            if ($sameWeek === 'yes') {
+                $sameDay = $wizard['sameRateThroughoutDayAll'] ?? 'yes';
+                if ($sameDay === 'yes') {
+                    return isset($wizard['flatRateAll']) && $wizard['flatRateAll'] !== '' ? (float)$wizard['flatRateAll'] : null;
+                }
+            }
+            return null;
+        };
+
+        return response()->json($this->formatTurfData($turf, $now, $getRateForTime));
+    }
+
+    private function formatTurfData(Turf $turf, Carbon $now, callable $getRateForTime): array
+    {
+        $currentDay = strtolower($now->format('D'));
+        $currentTime = $now->format('H:i');
+
+        $wizard = is_array($turf->pricing_wizard_data) 
+            ? $turf->pricing_wizard_data 
+            : json_decode($turf->pricing_wizard_data, true);
+
+        // 1. Try to get current time rate from pricing wizard
+        $rate = $getRateForTime($wizard, $currentDay, $currentTime);
+
+        // 2. Fall back to active slot pivot rate if wizard is not set or doesn't match
+        if ($rate === null) {
+            $activeSlot = $turf->slots->first(function ($slot) use ($currentTime) {
+                $from = date('H:i', strtotime($slot->from_time));
+                $to = date('H:i', strtotime($slot->to_time));
+                if ($from > $to) {
+                    return ($currentTime >= $from || $currentTime < $to);
+                }
+                return ($currentTime >= $from && $currentTime < $to);
+            });
+
+            if ($activeSlot && isset($activeSlot->pivot->$currentDay)) {
+                $slotPrice = (float)$activeSlot->pivot->$currentDay;
+                $duration = intval($activeSlot->duration ?: 60);
+                if ($duration > 0) {
+                    $rate = ($slotPrice / $duration) * 60;
+                }
+            }
+        }
+
+        // 3. Set formatted price text (with standard 1,000 fallback if no rate exists)
+        if ($rate === null || $rate <= 0) {
+            $priceText = '₹1,000 / hr'; 
+        } else {
+            $priceText = '₹' . number_format($rate) . ' / hr';
+        }
+
+        // Get all photo URLs
+        $imageUrls = $turf->photos->map(function ($p) {
+            return asset('storage/' . $p->photo);
+        })->toArray();
+
+        $saasMobile = \App\Models\SaasSetting::first()?->contact_mobile;
+        $contactNumber = $turf->location?->contact_number 
+            ?: ($turf->location?->user?->mobile 
+            ?: ($saasMobile ?: '9664588677'));
+
+        return [
+            'id' => $turf->id,
+            'name' => $turf->name,
+            'type' => $turf->type,
+            'description' => $turf->description ?? 'No description provided.',
+            'area' => $turf->area,
+            'location_name' => $turf->location?->name ?? '',
+            'location_address' => $turf->location?->address ?? '',
+            'latitude' => $turf->location?->latitude ? (float)$turf->location->latitude : null,
+            'longitude' => $turf->location?->longitude ? (float)$turf->location->longitude : null,
+            'contact_number' => $contactNumber,
+            'whatsapp_number' => $contactNumber,
+            'price_text' => $priceText,
+            'rating' => $turf->reviews_avg_rating !== null ? number_format($turf->reviews_avg_rating, 1) : '0.0',
+            'reviews_count' => $turf->reviews_count,
+            'image_url' => count($imageUrls) > 0 ? $imageUrls[0] : null,
+            'image_urls' => $imageUrls,
+            'sports' => $turf->sports->map(fn($s) => [
+                'id' => $s->id,
+                'name' => $s->name,
+                'icon' => $s->icon,
+            ])->values()->toArray(),
+            'facilities' => $turf->facilities->map(fn($f) => [
+                'id' => $f->id,
+                'name' => $f->name,
+                'icon' => $f->icon,
+            ])->values()->toArray(),
+            'equipments' => $turf->turfEquipments->map(fn($e) => [
+                'id' => $e->id,
+                'name' => $e->name,
+                'icon' => $e->icon,
+            ])->values()->toArray(),
+            'is_online_payment_active' => (bool)$turf->is_online_payment_active,
+            'is_part_payment_active' => (bool)$turf->is_part_payment_active,
+            'is_pay_at_location_active' => (bool)$turf->is_pay_at_location_active,
+            'part_payment_type' => $turf->part_payment_type,
+            'part_payment_value' => $turf->part_payment_value ? (float)$turf->part_payment_value : null,
+            'is_booking_open' => (bool)($turf->is_booking_open ?? true),
+            'booking_open_days' => (int)($turf->booking_open_days ?? 30),
+            'is_cancellation_active' => (bool)($turf->is_cancellation_active ?? false),
+            'cancellation_hours' => (int)($turf->cancellation_hours ?? 0),
+            'cancellation_fee' => (float)($turf->cancellation_fee ?? 0.00),
+            'cancellation_fee_percentage' => (float)(\App\Models\SaasSetting::first()?->cancellation_fee_percentage ?? 5.00),
+            'share_message_template' => $turf->share_message_template,
+        ];
     }
 }

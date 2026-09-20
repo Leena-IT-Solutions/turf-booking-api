@@ -1365,6 +1365,11 @@ class BookingController extends Controller
 
         return response()->json(array_merge([
             'success' => true,
+            'is_online_payment_active' => (bool)$turf->is_online_payment_active,
+            'is_part_payment_active' => (bool)$turf->is_part_payment_active,
+            'is_pay_at_location_active' => (bool)$turf->is_pay_at_location_active,
+            'part_payment_type' => $turf->part_payment_type,
+            'part_payment_value' => $turf->part_payment_value ? (float)$turf->part_payment_value : null,
         ], $pricing));
     }
 
