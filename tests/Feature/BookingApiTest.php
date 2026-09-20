@@ -1141,4 +1141,46 @@ class BookingApiTest extends TestCase
         $this->assertEquals($bookingCancelled->id, $cancelledData[0]['id']);
         $this->assertEquals('Cancelled', $cancelledData[0]['status']);
     }
+
+    public function test_booking_dated_today_appears_only_in_upcoming_not_past(): void
+    {
+        $user = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        $bookingToday = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDateToday = BookingDate::create([
+            'booking_id' => $bookingToday->id,
+            'booking_date' => \Carbon\Carbon::today('Asia/Kolkata')->toDateString(),
+            'amount' => 1000,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        $resUpcoming = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=upcoming');
+        $resUpcoming->assertStatus(200);
+        $upcomingIds = collect($resUpcoming->json('data'))->pluck('id');
+        $this->assertTrue($upcomingIds->contains($bDateToday->id), 'Today\'s booking should appear in upcoming');
+
+        $resPast = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=past');
+        $resPast->assertStatus(200);
+        $pastIds = collect($resPast->json('data'))->pluck('id');
+        $this->assertFalse($pastIds->contains($bDateToday->id), 'Today\'s booking should NOT appear in past');
+    }
 }

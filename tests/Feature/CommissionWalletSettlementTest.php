@@ -101,11 +101,12 @@ class CommissionWalletSettlementTest extends TestCase
         $bookingId = $response->json('booking.id');
 
 
+        // Full commission is charged once, upfront, on whichever payment settles the date first.
         $onlinePayment = Payment::where('booking_id', $bookingId)->first();
         $this->assertEquals(300.00, (float)$onlinePayment->amount);
-        $this->assertEquals(21.00, (float)$onlinePayment->commission_amount); // 7% of 300
+        $this->assertEquals(70.00, (float)$onlinePayment->commission_amount); // full 7% of 1000, charged first time
         $this->assertEquals(300.00, (float)$onlinePayment->cash_held_amount);
-        $this->assertEquals(279.00, (float)$onlinePayment->turf_payout_amount); // 300 - 21
+        $this->assertEquals(230.00, (float)$onlinePayment->turf_payout_amount); // 300 - 70
 
         // 2. Manager records remaining ₹700 offline Cash payment
         $bookingDate = BookingDate::where('booking_id', $bookingId)->first();
@@ -118,13 +119,14 @@ class CommissionWalletSettlementTest extends TestCase
 
         $recordResponse->assertStatus(200);
 
+        // No commission is re-charged on the second (offline) payment — it was already fully charged above.
         $offlinePayment = Payment::where('booking_id', $bookingId)->where('payment_method', 'Cash')->first();
         $this->assertEquals(700.00, (float)$offlinePayment->amount);
-        $this->assertEquals(49.00, (float)$offlinePayment->commission_amount); // 7% of 700
+        $this->assertEquals(0.00, (float)$offlinePayment->commission_amount);
         $this->assertEquals(0.00, (float)$offlinePayment->cash_held_amount);
-        $this->assertEquals(-49.00, (float)$offlinePayment->turf_payout_amount);
+        $this->assertEquals(0.00, (float)$offlinePayment->turf_payout_amount);
 
-        // Net Wallet Balance = +279.00 (online) - 49.00 (offline) = 230.00
+        // Net Wallet Balance = +230.00 (online, after full commission) + 0.00 (offline) = 230.00
         $this->turfAdmin->refresh();
         $this->assertEquals(230.00, (float)$this->turfAdmin->commission_wallet_balance);
 
@@ -187,6 +189,97 @@ class CommissionWalletSettlementTest extends TestCase
             ->where('type', 'commission_debit')->first();
         $this->assertNotNull($commTx);
         $this->assertEquals(-70.00, (float)$commTx->amount);
+
+        \Carbon\Carbon::setTestNow();
+    }
+
+    public function test_commission_charged_once_in_full_when_booking_split_across_online_and_offline_payments()
+    {
+        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-09-12 10:00:00'));
+
+        SaasSetting::first()->update([
+            'commission_percentage' => 8.00,
+            'platform_fee' => 2.00,
+            'platform_fee_type' => 'fixed',
+            'platform_fee_gst_percentage' => 0.00,
+            'min_slots_booking' => 2,
+        ]);
+
+        $location = Location::create([
+            'user_id' => $this->turfAdmin->id,
+            'name' => 'Split Payment Arena',
+            'address' => '456 Cross St, Mumbai',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Split Payment Turf',
+            'type' => 'Football',
+            'is_active' => true,
+            'is_part_payment_active' => true,
+            'part_payment_type' => 'percentage',
+            'part_payment_value' => 50,
+        ]);
+
+        $category = \App\Models\SlotCategory::create(['name' => 'Cheap']);
+        $slotA = Slot::create([
+            'slot_category_id' => $category->id,
+            'name' => '6-7 AM Slot',
+            'from_time' => '06:00:00',
+            'to_time' => '07:00:00',
+            'duration' => 60,
+        ]);
+        $slotB = Slot::create([
+            'slot_category_id' => $category->id,
+            'name' => '7-8 AM Slot',
+            'from_time' => '07:00:00',
+            'to_time' => '08:00:00',
+            'duration' => 60,
+        ]);
+        foreach ([$slotA, $slotB] as $slot) {
+            $turf->slots()->attach($slot->id, [
+                'is_active' => true,
+                'mon' => 5.00, 'tue' => 5.00, 'wed' => 5.00,
+                'thu' => 5.00, 'fri' => 5.00, 'sat' => 5.00, 'sun' => 5.00,
+            ]);
+        }
+
+        $customer = User::factory()->create();
+        $bookingDate = now()->addDay()->format('Y-m-d');
+
+        // Base = 2 slots x Rs 5 = Rs 10 (taxable). + Rs 2 platform fee = Rs 12 total. 50% part payment = Rs 6 online.
+        $response = $this->actingAs($customer, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings", [
+            'slot_ids' => [$slotA->id, $slotB->id],
+            'booking_dates' => [$bookingDate],
+            'booking_type' => 'day',
+            'payment_method' => 'App',
+            'payment_option' => 'part',
+            'amount_received' => 6.00,
+        ]);
+        $response->assertStatus(200);
+        $bookingId = $response->json('booking.id');
+
+        $bDate = BookingDate::where('booking_id', $bookingId)->first();
+        $this->assertEquals(10.00, (float)$bDate->taxable_amount);
+        $this->assertEquals(6.00, (float)$bDate->balance_amount);
+
+        // Remaining Rs 6 collected at venue (Pay at Venue / Cash), recorded by turf staff
+        $recordResponse = $this->actingAs($this->turfAdmin, 'sanctum')->postJson("/api/booking-dates/{$bDate->id}/payments", [
+            'payment_method' => 'Cash',
+            'amount' => 6.00,
+        ]);
+        $recordResponse->assertStatus(200);
+
+        $payments = Payment::where('booking_id', $bookingId)->orderBy('id')->get();
+        $this->assertCount(2, $payments);
+
+        $totalCommission = round((float)$payments->sum('commission_amount'), 2);
+        // Commission must total 8% of the Rs 10 taxable base (Rs 0.80), charged in FULL on the first
+        // payment only — NOT 8% of each Rs 6 installment (Rs 0.48 + Rs 0.48 = Rs 0.96), which would
+        // double-charge commission on Rs 2 of taxable earnings shared between both payments, and NOT
+        // split proportionally either — the second (offline) payment must carry zero commission.
+        $this->assertEquals(0.80, $totalCommission);
+        $this->assertEquals(0.80, (float)$payments[0]->commission_amount);
+        $this->assertEquals(0.00, (float)$payments[1]->commission_amount);
 
         \Carbon\Carbon::setTestNow();
     }
