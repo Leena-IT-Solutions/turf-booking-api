@@ -84,7 +84,7 @@ class TurfController extends Controller
             ->where('is_active', true)
             ->withAvg('reviews', 'rating')
             ->withCount('reviews')
-            ->with(['location', 'slots', 'facilities', 'turfEquipments', 'sports', 'photos' => function ($q) {
+            ->with(['location.user', 'slots', 'facilities', 'turfEquipments', 'sports', 'photos' => function ($q) {
                 $q->where('is_active', true);
             }])
             ->get()
@@ -128,6 +128,11 @@ class TurfController extends Controller
                     return asset('storage/' . $p->photo);
                 })->toArray();
 
+                $saasMobile = \App\Models\SaasSetting::first()?->contact_mobile;
+                $contactNumber = $turf->location?->contact_number 
+                    ?: ($turf->location?->user?->mobile 
+                    ?: ($saasMobile ?: '9664588677'));
+
                 return [
                     'id' => $turf->id,
                     'name' => $turf->name,
@@ -138,6 +143,8 @@ class TurfController extends Controller
                     'location_address' => $turf->location?->address ?? '',
                     'latitude' => $turf->location?->latitude ? (float)$turf->location->latitude : null,
                     'longitude' => $turf->location?->longitude ? (float)$turf->location->longitude : null,
+                    'contact_number' => $contactNumber,
+                    'whatsapp_number' => $contactNumber,
                     'price_text' => $priceText,
                     'rating' => $turf->reviews_avg_rating !== null ? number_format($turf->reviews_avg_rating, 1) : '0.0',
                     'reviews_count' => $turf->reviews_count,
