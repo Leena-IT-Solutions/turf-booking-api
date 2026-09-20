@@ -18,6 +18,8 @@ class BookingCancellation extends Model
         'reason',
         'gross_cancelled_amount',
         'turf_cancellation_fee',
+        'platform_fee_retained',
+        'saas_cancellation_fee',
         'platform_cancellation_fee',
         'total_cancellation_fee',
         'refund_amount',
@@ -34,12 +36,37 @@ class BookingCancellation extends Model
     protected $casts = [
         'gross_cancelled_amount' => 'decimal:2',
         'turf_cancellation_fee' => 'decimal:2',
+        'platform_fee_retained' => 'decimal:2',
+        'saas_cancellation_fee' => 'decimal:2',
         'platform_cancellation_fee' => 'decimal:2',
         'total_cancellation_fee' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'commission_reversed_amount' => 'decimal:2',
         'resolved_at' => 'datetime',
     ];
+
+    public function getDeductionsBreakupAttribute(): array
+    {
+        $turfFee = (float) $this->turf_cancellation_fee;
+        $platformFeeRetained = (float) ($this->platform_fee_retained ?? 0);
+        $saasFee = (float) ($this->saas_cancellation_fee ?? 0);
+
+        // Fallback for older records where platform_fee_retained wasn't separated
+        if ($platformFeeRetained <= 0 && $saasFee <= 0 && $this->platform_cancellation_fee > 0) {
+            $bookingPlatFee = (float) ($this->booking?->platform_fee ?? 0) + (float) ($this->booking?->platform_fee_gst ?? 0);
+            $platformFeeRetained = min((float) $this->platform_cancellation_fee, $bookingPlatFee);
+            $saasFee = max(0.00, round((float) $this->platform_cancellation_fee - $platformFeeRetained, 2));
+        }
+
+        return [
+            'turf_cancellation_fee' => $turfFee,
+            'platform_fee_retained' => $platformFeeRetained,
+            'saas_cancellation_fee' => $saasFee,
+            'total' => (float) $this->total_cancellation_fee,
+            'gross' => (float) $this->gross_cancelled_amount,
+            'refund' => (float) $this->refund_amount,
+        ];
+    }
 
     public function booking()
     {

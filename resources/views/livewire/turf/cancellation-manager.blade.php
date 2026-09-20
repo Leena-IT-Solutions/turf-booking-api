@@ -761,6 +761,24 @@ new #[Layout('layouts.app')] class extends Component
                                                 <div class="text-xs text-gray-500">Gross Paid</div>
                                                 <div class="text-lg font-bold text-gray-900">₹{{ number_format($c->gross_cancelled_amount, 2) }}</div>
 
+                                                @php $cardBreakup = $c->deductions_breakup; @endphp
+                                                @if ($cardBreakup['total'] > 0)
+                                                    <div class="text-[11px] text-gray-500 bg-gray-50/90 p-2 rounded-xl border border-gray-200/70 sm:text-right text-left space-y-0.5">
+                                                        <div class="font-semibold text-gray-700">Deductions: <strong class="text-red-600">-₹{{ number_format($cardBreakup['total'], 2) }}</strong></div>
+                                                        <div class="text-[10px] text-gray-500 flex flex-wrap gap-x-1.5 sm:justify-end">
+                                                            @if($cardBreakup['turf_cancellation_fee'] > 0)
+                                                                <span>Turf: <strong class="text-gray-700">₹{{ number_format($cardBreakup['turf_cancellation_fee'], 0) }}</strong></span>
+                                                            @endif
+                                                            @if($cardBreakup['platform_fee_retained'] > 0)
+                                                                <span>• Plat: <strong class="text-gray-700">₹{{ number_format($cardBreakup['platform_fee_retained'], 0) }}</strong></span>
+                                                            @endif
+                                                            @if($cardBreakup['saas_cancellation_fee'] > 0)
+                                                                <span>• SaaS: <strong class="text-gray-700">₹{{ number_format($cardBreakup['saas_cancellation_fee'], 0) }}</strong></span>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endif
+
                                                 @if (!$isPending)
                                                     <div class="text-xs text-gray-500">Refund Issued</div>
                                                     <div class="text-base font-bold {{ $c->refund_amount > 0 ? 'text-emerald-600' : 'text-gray-400' }}">₹{{ number_format($c->refund_amount, 2) }}</div>
@@ -918,12 +936,53 @@ new #[Layout('layouts.app')] class extends Component
                             {{-- Option 2: Standard Policy --}}
                             <label class="flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition {{ $resolutionMode === 'standard_policy' ? 'border-emerald-400 bg-emerald-50/50 ring-1 ring-emerald-200' : 'border-gray-200 hover:border-emerald-300' }}">
                                 <input type="radio" wire:model.live="resolutionMode" value="standard_policy" class="mt-0.5 text-emerald-600 focus:ring-emerald-500">
-                                <div>
+                                <div class="w-full">
                                     <span class="text-sm font-semibold text-gray-900">Standard Policy Refund</span>
                                     <p class="text-xs text-gray-500 mt-0.5">Deducts non-refundable platform fee, SaaS cancellation fee %, and turf fee per slot.</p>
-                                    <div class="mt-1 text-xs space-y-0.5">
-                                        <p class="text-gray-600">Total Deductions: <strong class="text-red-600">₹{{ number_format($resolveCancel->total_cancellation_fee, 2) }}</strong></p>
-                                        <p class="text-emerald-600 font-medium">Net Refund: ₹{{ number_format($resolveCancel->refund_amount, 2) }}</p>
+
+                                    @php $breakup = $resolveCancel->deductions_breakup; @endphp
+                                    <div class="mt-2.5 p-3 rounded-xl bg-white/95 border border-emerald-200/60 text-xs space-y-1.5 shadow-2xs">
+                                        <div class="font-semibold text-gray-700 flex items-center justify-between border-b border-gray-100 pb-1.5">
+                                            <span>Amount Collected (Paid):</span>
+                                            <span class="text-gray-900 font-bold">₹{{ number_format($breakup['gross'], 2) }}</span>
+                                        </div>
+                                        <div class="space-y-1 text-gray-600 pl-0.5">
+                                            @if ($breakup['turf_cancellation_fee'] > 0)
+                                                <div class="flex items-center justify-between">
+                                                    <span class="flex items-center gap-1.5">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                                                        Turf Cancellation Fee:
+                                                    </span>
+                                                    <span class="text-red-600 font-medium">-₹{{ number_format($breakup['turf_cancellation_fee'], 2) }}</span>
+                                                </div>
+                                            @endif
+                                            @if ($breakup['platform_fee_retained'] > 0)
+                                                <div class="flex items-center justify-between">
+                                                    <span class="flex items-center gap-1.5">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                        Non-Refundable Platform Fee:
+                                                    </span>
+                                                    <span class="text-red-600 font-medium">-₹{{ number_format($breakup['platform_fee_retained'], 2) }}</span>
+                                                </div>
+                                            @endif
+                                            @if ($breakup['saas_cancellation_fee'] > 0)
+                                                <div class="flex items-center justify-between">
+                                                    <span class="flex items-center gap-1.5">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>
+                                                        SaaS Cancellation Fee (%):
+                                                    </span>
+                                                    <span class="text-red-600 font-medium">-₹{{ number_format($breakup['saas_cancellation_fee'], 2) }}</span>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="border-t border-gray-100 pt-1.5 flex items-center justify-between font-semibold">
+                                            <span class="text-gray-700">Total Deductions:</span>
+                                            <span class="text-red-600 font-bold">-₹{{ number_format($breakup['total'], 2) }}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                                            <span>Net Refund to Customer:</span>
+                                            <span class="text-sm">₹{{ number_format($breakup['refund'], 2) }}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </label>
