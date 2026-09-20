@@ -237,54 +237,71 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     </div>
 
-    <!-- TABS & TABLE -->
-    <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-4">
-            <!-- Tabs -->
-            <div class="flex flex-wrap items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
-                <button wire:click="$set('activeTab', 'bookings')" type="button"
-                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'bookings' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                    📊 Bookings Revenue (Commission & Platform Fee)
-                </button>
-                <button wire:click="$set('activeTab', 'cancellations')" type="button"
-                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'cancellations' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                    ❌ Cancellation Fees
-                </button>
-                <button wire:click="$set('activeTab', 'turfs')" type="button"
-                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'turfs' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                    🏢 Turf Managers
-                </button>
-                <button wire:click="$set('activeTab', 'settlements')" type="button"
-                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'settlements' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                    💳 Debt Settlements
-                </button>
-            </div>
-
-            <!-- Filters -->
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="relative">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search..."
-                           class="w-48 sm:w-64 pl-9 pr-3 py-2 text-xs rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-emerald-500">
-                    <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    <!-- TABS & TABLE CARD -->
+    <div class="bg-white rounded-3xl border border-gray-200 shadow-xs overflow-hidden">
+        <!-- Control Bar: Tabs & Search/Filters -->
+        <div class="p-6 border-b border-gray-100 space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <!-- Segmented Tabs -->
+                <div class="inline-flex flex-wrap p-1 bg-gray-100 rounded-2xl border border-gray-200/70 self-start">
+                    <button wire:click="$set('activeTab', 'bookings')" type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'bookings' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-800' }}">
+                        <svg class="w-3.5 h-3.5 {{ $activeTab === 'bookings' ? 'text-emerald-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span>Bookings</span>
+                    </button>
+                    <button wire:click="$set('activeTab', 'cancellations')" type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'cancellations' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-800' }}">
+                        <svg class="w-3.5 h-3.5 {{ $activeTab === 'cancellations' ? 'text-rose-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Cancellations</span>
+                    </button>
+                    <button wire:click="$set('activeTab', 'turfs')" type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'turfs' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-800' }}">
+                        <svg class="w-3.5 h-3.5 {{ $activeTab === 'turfs' ? 'text-indigo-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                        <span>Turf Managers</span>
+                    </button>
+                    <button wire:click="$set('activeTab', 'settlements')" type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'settlements' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-800' }}">
+                        <svg class="w-3.5 h-3.5 {{ $activeTab === 'settlements' ? 'text-amber-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                        </svg>
+                        <span>Debt Settlements</span>
+                    </button>
                 </div>
 
-                @if ($activeTab === 'bookings')
-                    <select wire:model.live="paymentMethodFilter" class="py-2 px-3 text-xs rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="all">All Methods</option>
-                        <option value="App">Online (App)</option>
-                        <option value="Pay at Venue">Pay at Venue (Cash)</option>
-                    </select>
+                <!-- Filters & Search Toolbar -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <div class="relative min-w-[180px] flex-1 sm:flex-initial">
+                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search records..."
+                               class="w-full sm:w-56 h-10 pl-9 pr-3 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition">
+                        <svg class="w-4 h-4 text-gray-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
 
-                    <select wire:model.live="datePreset" class="py-2 px-3 text-xs rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-emerald-500">
-                        <option value="all">All Time</option>
-                        <option value="today">Today</option>
-                        <option value="yesterday">Yesterday</option>
-                        <option value="week">This Week</option>
-                        <option value="month">This Month</option>
-                    </select>
-                @endif
+                    @if ($activeTab === 'bookings')
+                        <select wire:model.live="paymentMethodFilter" class="h-10 py-2 px-3 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition cursor-pointer">
+                            <option value="all">All Methods</option>
+                            <option value="App">Online (App)</option>
+                            <option value="Pay at Venue">Pay at Venue (Cash)</option>
+                        </select>
+
+                        <select wire:model.live="datePreset" class="h-10 py-2 px-3 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition cursor-pointer">
+                            <option value="all">All Time</option>
+                            <option value="today">Today</option>
+                            <option value="yesterday">Yesterday</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                        </select>
+                    @endif
+                </div>
             </div>
         </div>
+
+        <div class="p-6">
 
         @if ($activeTab === 'bookings')
             <!-- Bookings Revenue Table -->
@@ -552,5 +569,6 @@ new #[Layout('layouts.app')] class extends Component
                 {{ $settlements->links() }}
             </div>
         @endif
+        </div>
     </div>
 </div>
