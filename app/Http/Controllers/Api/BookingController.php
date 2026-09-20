@@ -1125,6 +1125,19 @@ class BookingController extends Controller
                             $rzpPayload
                         );
                     }
+                } elseif ($paymentMethod === 'offline' || $paymentOption === 'pay_at_location') {
+                    // Customer chose Pay at Location:
+                    // The customer will pay the turf owner directly at the venue (offline).
+                    // Distribute full payment to booking with paymentMethod 'offline', which records the payment,
+                    // calculates SaaS commission & platform fee, and debits the Total SaaS Cut from the turf owner's wallet.
+                    $this->distributePaymentToBooking(
+                        $booking,
+                        (float)$pricing['total_amount'],
+                        'offline',
+                        null,
+                        0.00,
+                        0.00
+                    );
                 }
             }
 
@@ -1510,6 +1523,8 @@ class BookingController extends Controller
 
         $allocatedGatewayCharge = 0.00;
         $allocatedGatewayTax = 0.00;
+        $totalPlatformFeeWithGst = round((float)$booking->platform_fee + (float)$booking->platform_fee_gst, 2);
+        $allocatedPlatformFee = 0.00;
 
         foreach ($unpaidDates as $index => $bDate) {
             if ($remainingToDistribute <= 0) {
@@ -1520,6 +1535,7 @@ class BookingController extends Controller
                 $paidForDate = round($remainingToDistribute, 2);
                 $dateGatewayCharge = round($gatewayCharge - $allocatedGatewayCharge, 2);
                 $dateGatewayTax = round($gatewayTax - $allocatedGatewayTax, 2);
+                $datePlatformFee = round($totalPlatformFeeWithGst - $allocatedPlatformFee, 2);
             } else {
                 $ratio = $dateBalances[$bDate->id] / $totalRemainingBalance;
                 $paidForDate = round($actualAmountToDistribute * $ratio, 2);
@@ -1529,6 +1545,9 @@ class BookingController extends Controller
                 $dateGatewayTax = round($gatewayTax * $ratio, 2);
                 $allocatedGatewayCharge += $dateGatewayCharge;
                 $allocatedGatewayTax += $dateGatewayTax;
+
+                $datePlatformFee = round($totalPlatformFeeWithGst * ($paidForDate / $actualAmountToDistribute), 2);
+                $allocatedPlatformFee += $datePlatformFee;
             }
 
             if ($paidForDate > 0) {
@@ -1551,7 +1570,14 @@ class BookingController extends Controller
                 $turfShareWithGst = round($turfTaxableBase + (float)$bDate->turf_gst_amount, 2);
                 $cashHeld = $paymentMethod === 'App' ? min($paidForDate, $turfShareWithGst) : 0.00;
                 $dateGatewayTotal = round($dateGatewayCharge + $dateGatewayTax, 2);
-                $payoutContribution = round($cashHeld - ($commData['total_commission_deduction'] ?? $commData['commission_amount']) - $dateGatewayTotal, 2);
+
+                // For offline payment, customer pays turf owner directly. The platform did not collect funds online.
+                // Therefore, the SaaS Commission and the Platform Fee must be debited from the turf owner's wallet.
+                // For online payment (App), the platform fee was already retained at the gateway level.
+                $effectivePlatformFee = $paymentMethod === 'App' ? 0.00 : $datePlatformFee;
+                $commDeduction = (float)($commData['total_commission_deduction'] ?? $commData['commission_amount']);
+                $totalSaaSCutForDate = round($commDeduction + $effectivePlatformFee, 2);
+                $payoutContribution = round($cashHeld - $totalSaaSCutForDate - $dateGatewayTotal, 2);
 
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
@@ -1587,7 +1613,8 @@ class BookingController extends Controller
                 $isNegativeOrZeroContribution = $payoutContribution <= 0;
 
                 if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
-                    $walletService->applyDelta($walletOwner, $payoutContribution, 'payment_settlement', $payment);
+                    $txType = $payoutContribution < 0 ? 'commission_debit' : 'payment_settlement';
+                    $walletService->applyDelta($walletOwner, $payoutContribution, $txType, $payment);
                     $payment->update(['wallet_cleared_at' => Carbon::now()]);
                 }
 

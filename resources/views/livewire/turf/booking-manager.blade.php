@@ -377,26 +377,63 @@ new #[Layout('layouts.app')] class extends Component
                 $unpaidDates = $bookingDates->filter(fn($d) => ($dateBalances[$d->id] ?? 0) > 0)->values();
                 $count = $unpaidDates->count();
 
+                $turf = $booking->turf;
+                $walletOwner = $turf?->location?->user ?? null;
+                $commissionCalc = new \App\Services\CommissionCalculator();
+                $walletService = new \App\Services\WalletService();
+                $totalPlatformFeeWithGst = round((float)$booking->platform_fee + (float)$booking->platform_fee_gst, 2);
+                $allocatedPlatformFee = 0.00;
+
                 foreach ($unpaidDates as $index => $bDate) {
                     if ($remainingToDistribute <= 0) break;
 
                     if ($index === $count - 1) {
                         $paidForDate = round($remainingToDistribute, 2);
+                        $datePlatformFee = round($totalPlatformFeeWithGst - $allocatedPlatformFee, 2);
                     } else {
                         $ratio = $dateBalances[$bDate->id] / $totalRemainingBalance;
                         $paidForDate = round($actualAmountToDistribute * $ratio, 2);
                         $paidForDate = min($paidForDate, $remainingToDistribute);
+                        $datePlatformFee = round($totalPlatformFeeWithGst * ($paidForDate / $actualAmountToDistribute), 2);
+                        $allocatedPlatformFee += $datePlatformFee;
                     }
 
                     if ($paidForDate > 0) {
-                        Payment::create([
+                        $turfTaxableBase = min($paidForDate, (float)($bDate->taxable_amount > 0 ? $bDate->taxable_amount : $paidForDate));
+                        $commData = $turf
+                            ? $commissionCalc->calculate($turf, $this->paymentMethod, $turfTaxableBase)
+                            : [
+                                'rate' => 7.00,
+                                'commission_amount' => round($turfTaxableBase * 0.07, 2),
+                                'commission_gst_amount' => 0.00,
+                                'total_commission_deduction' => round($turfTaxableBase * 0.07, 2),
+                            ];
+
+                        $commDeduction = (float)($commData['total_commission_deduction'] ?? $commData['commission_amount']);
+                        $totalSaaSCutForDate = round($commDeduction + $datePlatformFee, 2);
+                        $payoutContribution = -$totalSaaSCutForDate;
+
+                        $payment = Payment::create([
                             'booking_id' => $booking->id,
                             'booking_date_id' => $bDate->id,
                             'payment_method' => $this->paymentMethod,
                             'amount' => $paidForDate,
+                            'commission_percentage' => $commData['rate'] ?? 7.00,
+                            'commission_amount' => $commData['commission_amount'] ?? 0.00,
+                            'commission_gst_amount' => $commData['commission_gst_amount'] ?? 0.00,
+                            'cash_held_amount' => 0.00,
+                            'turf_payout_amount' => $payoutContribution,
+                            'gateway_charge_amount' => 0.00,
+                            'gateway_tax_amount' => 0.00,
+                            'wallet_cleared_at' => Carbon::now(),
                             'status' => 'Success',
                             'paid_at' => Carbon::now(),
                         ]);
+
+                        if ($walletOwner && $payoutContribution < 0) {
+                            $walletService->applyDelta($walletOwner, $payoutContribution, 'commission_debit', $payment);
+                        }
+
                         $remainingToDistribute -= $paidForDate;
                     }
                 }

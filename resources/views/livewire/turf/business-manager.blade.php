@@ -521,9 +521,21 @@ new #[Layout('layouts.app')] class extends Component
                                 </td>
                                 <td class="p-3">
                                     @if ($tx->type === 'payment_settlement')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            + Payout Credit
+                                        @if ((float)$tx->amount >= 0)
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                + Payout Credit
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                - Platform Fee & Commission
+                                            </span>
+                                        @endif
+                                    @elseif ($tx->type === 'commission_debit' || $tx->type === 'offline_commission_debit')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            - Platform Fee & Commission
                                         </span>
                                     @elseif ($tx->type === 'refund_adjustment')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -552,7 +564,12 @@ new #[Layout('layouts.app')] class extends Component
                                     @endif
                                 </td>
                                 <td class="p-3">
-                                    @if ($tx->type === 'payment_settlement')
+                                    @if ($tx->type === 'commission_debit' || $tx->type === 'offline_commission_debit' || ($tx->type === 'payment_settlement' && (float)$tx->amount < 0))
+                                        <div class="font-bold text-gray-900">
+                                            Booking #{{ $tx->reference?->booking_id ?? ($tx->reference?->id ?? $tx->reference_id) }} Platform Fee & Commission
+                                        </div>
+                                        <div class="text-[11px] text-gray-400">Pay at Location booking charges debited from wallet</div>
+                                    @elseif ($tx->type === 'payment_settlement')
                                         <div class="font-bold text-gray-900">
                                             Booking #{{ $tx->reference?->booking_id ?? $tx->reference_id }} Session Earnings
                                         </div>

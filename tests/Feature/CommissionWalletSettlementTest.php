@@ -130,4 +130,58 @@ class CommissionWalletSettlementTest extends TestCase
 
         \Carbon\Carbon::setTestNow();
     }
+
+    public function test_pay_at_location_offline_booking_debits_platform_fee_and_commission_from_wallet()
+    {
+        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-09-12 10:00:00'));
+
+        SaasSetting::first()->update([
+            'platform_fee' => 2.00,
+            'platform_fee_type' => 'fixed',
+            'platform_fee_gst_percentage' => 0.00,
+        ]);
+
+        $this->turf->update([
+            'is_pay_at_location_active' => true,
+        ]);
+
+        $customer = User::factory()->create();
+        $bookingDate = now()->format('Y-m-d');
+
+        // Customer chooses "Pay at Location" (offline)
+        $response = $this->actingAs($customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
+            'slot_ids' => [$this->slot->id],
+            'booking_dates' => [$bookingDate],
+            'booking_type' => 'day',
+            'payment_method' => 'offline',
+            'payment_option' => 'full',
+        ]);
+
+        $response->assertStatus(200);
+        $bookingId = $response->json('booking.id');
+
+        $booking = Booking::with(['bookingDates', 'payments'])->find($bookingId);
+        $this->assertEquals('Paid', $booking->payment_status);
+        $this->assertEquals(0.00, (float)$booking->balance_amount);
+        $this->assertCount(1, $booking->payments);
+
+        $payment = $booking->payments->first();
+        $this->assertEquals('offline', $payment->payment_method);
+        // Base is 1000. 7% commission is 70. Platform fee is 2. Total SaaS Cut = 72.
+        $this->assertEquals(70.00, (float)$payment->commission_amount);
+        $this->assertEquals(-72.00, (float)$payment->turf_payout_amount);
+
+        // Turf owner wallet balance should be debited -72.00
+        $this->turfAdmin->refresh();
+        $this->assertEquals(-72.00, (float)$this->turfAdmin->commission_wallet_balance);
+
+        // CommissionWalletTransaction should be recorded as commission_debit
+        $tx = \App\Models\CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)->first();
+        $this->assertNotNull($tx);
+        $this->assertEquals('commission_debit', $tx->type);
+        $this->assertEquals(-72.00, (float)$tx->amount);
+
+        \Carbon\Carbon::setTestNow();
+    }
 }
+
