@@ -35,6 +35,17 @@ new #[Layout('layouts.app')] class extends Component
             session()->flash('error', 'Retry failed: ' . $e->getMessage());
         }
     }
+
+    public function runClearMaturedEntries()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('wallet:clear-matured-entries');
+            $output = trim(\Illuminate\Support\Facades\Artisan::output());
+            session()->flash('status', $output ?: 'Matured wallet entries cleared successfully!');
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to clear matured entries: ' . $e->getMessage());
+        }
+    }
 }; ?>
 
 <div class="space-y-6">
@@ -52,16 +63,34 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         </div>
 
-        <!-- Tab switcher -->
-        <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
-            <button wire:click="$set('tab', 'payouts')" type="button"
-                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'payouts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
-                Payout Requests
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- Clear Matured Entries Button -->
+            <button wire:click="runClearMaturedEntries" 
+                    wire:loading.attr="disabled"
+                    type="button" 
+                    class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all cursor-pointer">
+                <svg wire:loading.remove wire:target="runClearMaturedEntries" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <svg wire:loading wire:target="runClearMaturedEntries" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span wire:loading.remove wire:target="runClearMaturedEntries">Clear Matured Entries</span>
+                <span wire:loading wire:target="runClearMaturedEntries">Clearing...</span>
             </button>
-            <button wire:click="$set('tab', 'webhooks')" type="button"
-                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'webhooks' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
-                RazorpayX Webhooks
-            </button>
+
+            <!-- Tab switcher -->
+            <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
+                <button wire:click="$set('tab', 'payouts')" type="button"
+                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'payouts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
+                    Payout Requests
+                </button>
+                <button wire:click="$set('tab', 'webhooks')" type="button"
+                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $tab === 'webhooks' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
+                    RazorpayX Webhooks
+                </button>
+            </div>
         </div>
     </div>
 

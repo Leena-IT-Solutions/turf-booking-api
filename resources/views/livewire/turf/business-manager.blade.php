@@ -214,6 +214,18 @@ new #[Layout('layouts.app')] class extends Component
         $this->mount();
     }
 
+    public function runClearMaturedEntries()
+    {
+        try {
+            \Illuminate\Support\Facades\Artisan::call('wallet:clear-matured-entries');
+            $output = trim(\Illuminate\Support\Facades\Artisan::output());
+            session()->flash('status', $output ?: 'Matured wallet entries cleared successfully!');
+            $this->mount();
+        } catch (\Exception $e) {
+            session()->flash('error', 'Failed to clear matured entries: ' . $e->getMessage());
+        }
+    }
+
 }; ?>
 
 <div class="space-y-6">
@@ -230,7 +242,49 @@ new #[Layout('layouts.app')] class extends Component
                 <p class="text-xs text-gray-500">Track platform commission, withdraw earnings, and manage payout preferences.</p>
             </div>
         </div>
+
+        <!-- Run Clear Matured Entries Action Button -->
+        <div class="flex items-center gap-2">
+            <button wire:click="runClearMaturedEntries" 
+                    wire:loading.attr="disabled"
+                    type="button" 
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-xs transition-all cursor-pointer">
+                <svg wire:loading.remove wire:target="runClearMaturedEntries" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <svg wire:loading wire:target="runClearMaturedEntries" class="animate-spin w-4 h-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span wire:loading.remove wire:target="runClearMaturedEntries">Clear Matured Entries</span>
+                <span wire:loading wire:target="runClearMaturedEntries">Clearing entries...</span>
+            </button>
+        </div>
     </div>
+
+    @if (session()->has('status'))
+        <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm font-semibold flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{{ session('status') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-600 hover:text-emerald-800 text-lg leading-none">&times;</button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-sm font-semibold flex items-center justify-between shadow-xs">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{{ session('error') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800 text-lg leading-none">&times;</button>
+        </div>
+    @endif
 
     @php
         $user = auth()->user();
@@ -283,12 +337,20 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <!-- Pending Clearance Badge -->
-        <div class="bg-white p-6 rounded-3xl border border-amber-200 shadow-xs space-y-2">
-            <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">⏳ PENDING CLEARANCE</span>
-            <div class="text-3xl font-black text-amber-600">
-                ₹{{ number_format($pendingClearanceAmount, 2) }}
+        <div class="bg-white p-6 rounded-3xl border border-amber-200 shadow-xs space-y-2 flex flex-col justify-between">
+            <div class="space-y-2">
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">⏳ PENDING CLEARANCE</span>
+                <div class="text-3xl font-black text-amber-600">
+                    ₹{{ number_format($pendingClearanceAmount, 2) }}
+                </div>
+                <p class="text-[11px] text-gray-500">Online credits clearing after booking dates pass</p>
             </div>
-            <p class="text-[11px] text-gray-500">Online credits clearing after booking dates pass</p>
+            @if ($pendingClearanceAmount > 0)
+                <button wire:click="runClearMaturedEntries" wire:loading.attr="disabled" type="button" class="pt-2 text-xs font-bold text-amber-700 hover:text-amber-800 hover:underline flex items-center gap-1.5 cursor-pointer">
+                    <span wire:loading.remove wire:target="runClearMaturedEntries">Process matured now &rarr;</span>
+                    <span wire:loading wire:target="runClearMaturedEntries">Processing...</span>
+                </button>
+            @endif
         </div>
 
         <!-- Per-Turf Commission Rates Card -->
