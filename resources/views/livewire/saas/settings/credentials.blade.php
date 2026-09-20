@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\SaasSetting;
+use Illuminate\Support\Facades\Http;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
@@ -19,6 +20,9 @@ new #[Layout('layouts.app')] class extends Component
     public $mailgun_domain = '';
     public $mailgun_secret = '';
     public $mailgun_endpoint = 'api.mailgun.net';
+
+    public $razorpay_test_status = null;
+    public $razorpay_test_message = null;
 
     public function mount()
     {
@@ -102,6 +106,57 @@ new #[Layout('layouts.app')] class extends Component
         $setting->fill($data)->save();
 
         session()->flash('status', __('API credentials and service keys updated successfully.'));
+    }
+
+    public function testRazorpayConnection(): void
+    {
+        $this->razorpay_test_status = null;
+        $this->razorpay_test_message = null;
+
+        if (empty($this->razorpay_key) || empty($this->razorpay_secret)) {
+            $this->razorpay_test_status = 'error';
+            $this->razorpay_test_message = 'Please enter both Razorpay Key ID and Key Secret to test connection.';
+            return;
+        }
+
+        try {
+            // 1. Test basic auth with Razorpay Contacts API
+            $res = Http::withBasicAuth($this->razorpay_key, $this->razorpay_secret)
+                ->timeout(10)
+                ->get('https://api.razorpay.com/v1/contacts', ['count' => 1]);
+
+            if (!$res->successful()) {
+                $errorDesc = $res->json('error.description') ?: ($res->json('message') ?: 'Invalid Razorpay credentials or unauthorized.');
+                $this->razorpay_test_status = 'error';
+                $this->razorpay_test_message = "Razorpay Authentication Failed: " . $errorDesc;
+                return;
+            }
+
+            // 2. If RazorpayX Account Number is provided, test RazorpayX payouts endpoint
+            if (!empty($this->razorpayx_account_number)) {
+                $payoutRes = Http::withBasicAuth($this->razorpay_key, $this->razorpay_secret)
+                    ->timeout(10)
+                    ->get('https://api.razorpay.com/v1/payouts', [
+                        'account_number' => trim($this->razorpayx_account_number),
+                        'count' => 1,
+                    ]);
+
+                if ($payoutRes->successful()) {
+                    $this->razorpay_test_status = 'success';
+                    $this->razorpay_test_message = "✅ Razorpay Key & Secret authenticated successfully! RazorpayX Virtual Account (" . trim($this->razorpayx_account_number) . ") is active and verified for automated payouts.";
+                } else {
+                    $errorDesc = $payoutRes->json('error.description') ?: $payoutRes->body();
+                    $this->razorpay_test_status = 'warning';
+                    $this->razorpay_test_message = "⚠️ Razorpay Keys are valid, but RazorpayX check returned: " . $errorDesc . ". Verify this account number in your RazorpayX Dashboard.";
+                }
+            } else {
+                $this->razorpay_test_status = 'warning';
+                $this->razorpay_test_message = "✅ Razorpay Key ID & Secret authenticated successfully! To enable live automated payouts, please enter your RazorpayX Virtual Account Number from your RazorpayX Dashboard.";
+            }
+        } catch (\Exception $e) {
+            $this->razorpay_test_status = 'error';
+            $this->razorpay_test_message = "Connection error: " . $e->getMessage();
+        }
     }
 }; ?>
 
@@ -246,6 +301,46 @@ new #[Layout('layouts.app')] class extends Component
                         <x-input-error :messages="$errors->get('razorpayx_webhook_secret')" class="mt-2" />
                     </div>
                 </div>
+
+                <!-- Test Connection & Instructions Bar -->
+                <div class="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div class="text-[11px] text-gray-500">
+                        <span class="font-bold text-gray-700 block">RazorpayX Webhook Endpoint URL:</span>
+                        <code class="text-[10px] text-indigo-600 font-mono select-all">{{ url('/api/razorpay/payout-webhook') }}</code>
+                    </div>
+
+                    <button wire:click="testRazorpayConnection" wire:loading.attr="disabled" type="button"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-200 transition cursor-pointer active:scale-95 shrink-0">
+                        <svg wire:loading.remove wire:target="testRazorpayConnection" class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <svg wire:loading wire:target="testRazorpayConnection" class="animate-spin w-4 h-4 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span wire:loading.remove wire:target="testRazorpayConnection">Test Razorpay & RazorpayX Connection</span>
+                        <span wire:loading wire:target="testRazorpayConnection">Testing Connection...</span>
+                    </button>
+                </div>
+
+                <!-- Test Connection Results Box -->
+                @if ($razorpay_test_message)
+                    <div class="p-4 rounded-2xl text-xs font-semibold flex items-start gap-3 {{ $razorpay_test_status === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : ($razorpay_test_status === 'error' ? 'bg-rose-50 border border-rose-200 text-rose-800' : 'bg-amber-50 border border-amber-200 text-amber-800') }}">
+                        @if ($razorpay_test_status === 'success')
+                            <svg class="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        @elseif ($razorpay_test_status === 'error')
+                            <svg class="w-5 h-5 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        @else
+                            <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        @endif
+                        <div>
+                            <p>{{ $razorpay_test_message }}</p>
+                            @if ($razorpay_test_status === 'warning')
+                                <p class="text-[11px] text-gray-500 mt-1">To find your Virtual Account Number: Login to <strong>dashboard.razorpay.com</strong> &rarr; switch to <strong>RazorpayX</strong> &rarr; open <strong>Banking / Account Details</strong>.</p>
+                            @endif
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <!-- Mailgun Email Service Card -->
