@@ -1583,11 +1583,34 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                 @endif
 
-                                @if ($bDetail->refund_method && $bDetail->refund_method !== 'None')
+                                @php
+                                    $bCancelRecord = $bDetail->bookingCancellations?->sortByDesc('id')->first();
+                                    $refundModeDisplay = ($bDetail->refund_method && $bDetail->refund_method !== 'None')
+                                        ? $bDetail->refund_method
+                                        : ($bCancelRecord?->disbursement_channel === 'online_gateway'
+                                            ? 'Online Gateway (Razorpay)'
+                                            : ($bCancelRecord?->disbursement_channel === 'offline'
+                                                ? 'Cash / Offline'
+                                                : ($bDetail->refund_status === 'Cash / Offline Refund' ? 'Cash / Offline' : null)));
+                                @endphp
+
+                                @if ($refundModeDisplay)
                                     <div class="p-3 flex items-center justify-between bg-white text-[11px]">
-                                        <span class="text-gray-500">Refund Method:</span>
-                                        <span class="font-semibold text-gray-700">{{ $bDetail->refund_method }}</span>
+                                        <span class="text-gray-500">Refund Mode:</span>
+                                        <span class="font-semibold text-gray-700">{{ $refundModeDisplay }}</span>
                                     </div>
+                                    @if ($bCancelRecord?->razorpay_refund_id)
+                                        <div class="px-3 pb-2 flex items-center justify-between bg-white text-[10px] text-gray-400 font-mono">
+                                            <span>Razorpay Refund ID:</span>
+                                            <span class="font-semibold text-gray-700 select-all">{{ $bCancelRecord->razorpay_refund_id }}</span>
+                                        </div>
+                                    @endif
+                                    @if ($bCancelRecord?->offline_reference)
+                                        <div class="px-3 pb-2 flex items-center justify-between bg-white text-[10px] text-gray-400">
+                                            <span>Offline Ref:</span>
+                                            <span class="font-semibold text-gray-700 select-all">{{ $bCancelRecord->offline_reference }}</span>
+                                        </div>
+                                    @endif
                                 @endif
 
                                 @if ($bDetail->cancelled_at)

@@ -396,7 +396,16 @@ new #[Layout('layouts.app')] class extends Component
                 }
 
                 if ($this->cancelStatusFilter !== 'all') {
-                    $cQuery->where('refund_status', $this->cancelStatusFilter);
+                    if ($this->cancelStatusFilter === 'Cash / Offline Refund' || $this->cancelStatusFilter === 'offline') {
+                        $cQuery->where(function ($q) {
+                            $q->where('refund_status', 'Cash / Offline Refund')
+                              ->orWhere('disbursement_channel', 'offline');
+                        });
+                    } elseif ($this->cancelStatusFilter === 'online_gateway') {
+                        $cQuery->where('disbursement_channel', 'online_gateway');
+                    } else {
+                        $cQuery->where('refund_status', $this->cancelStatusFilter);
+                    }
                 }
 
                 if ($this->cancelStartDate && $this->cancelEndDate) {
@@ -685,12 +694,13 @@ new #[Layout('layouts.app')] class extends Component
                                 <input wire:model.live.debounce.300ms="cancelSearch" type="text" placeholder="Search by booking #, customer name or mobile..." class="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 focus:bg-white transition">
                             </div>
                             <select wire:model.live="cancelStatusFilter" class="px-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-200 bg-gray-50/50 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition">
-                                <option value="all">All Statuses</option>
+                                <option value="all">All Statuses & Modes</option>
                                 <option value="Pending Resolution">⏳ Pending Resolution</option>
                                 <option value="Refunded">✅ Refunded</option>
+                                <option value="online_gateway">💳 Gateway (Razorpay)</option>
+                                <option value="Cash / Offline Refund">💵 Cash / Offline</option>
                                 <option value="Compensated">💰 Compensated</option>
                                 <option value="Forfeited">🚫 Forfeited</option>
-                                <option value="Cash / Offline Refund">💵 Offline Refund</option>
                             </select>
                         </div>
                     </div>
@@ -716,6 +726,18 @@ new #[Layout('layouts.app')] class extends Component
                                     };
                                     $bDate = $c->bookingDate;
                                     $slotRanges = $bDate ? $this->formatConsecutiveSlots($bDate->bookingSlots) : [];
+
+                                    // Resolve refund mode / disbursement channel
+                                    $disbursement = $c->disbursement_channel;
+                                    if (!$disbursement && !$isPending) {
+                                        if ($c->refund_status === 'Cash / Offline Refund' || $c->offline_reference) {
+                                            $disbursement = 'offline';
+                                        } elseif ($c->razorpay_refund_id || $c->refund_status === 'Refunded') {
+                                            $disbursement = 'online_gateway';
+                                        } elseif ($c->refund_status === 'Forfeited' || $c->resolution_mode === 'no_refund') {
+                                            $disbursement = 'no_refund';
+                                        }
+                                    }
                                 @endphp
                                 <div class="bg-white rounded-2xl border {{ $isPending ? 'border-amber-200 ring-1 ring-amber-100' : 'border-gray-100' }} shadow-xs">
                                     <div class="p-4 sm:p-5">
@@ -729,6 +751,27 @@ new #[Layout('layouts.app')] class extends Component
                                                         <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium">
                                                             {{ str_replace('_', ' ', ucfirst($c->resolution_mode)) }}
                                                         </span>
+                                                    @endif
+                                                    @if ($disbursement)
+                                                        @if ($disbursement === 'online_gateway')
+                                                            <span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Disbursed via Online Payment Gateway">
+                                                                <svg class="w-3 h-3 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                                                Gateway (Razorpay)
+                                                            </span>
+                                                        @elseif ($disbursement === 'offline')
+                                                            <span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-semibold bg-violet-50 text-violet-700 border border-violet-200" title="Disbursed directly via Cash or Offline UPI">
+                                                                <svg class="w-3 h-3 text-violet-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                                                                Cash / Offline
+                                                            </span>
+                                                        @elseif ($disbursement === 'no_refund')
+                                                            <span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                                                No Refund (Forfeited)
+                                                            </span>
+                                                        @else
+                                                            <span class="inline-flex items-center gap-1 text-xs px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                                                {{ ucwords(str_replace('_', ' ', $disbursement)) }}
+                                                            </span>
+                                                        @endif
                                                     @endif
                                                 </div>
                                                 <div class="flex items-center gap-3 text-xs text-gray-600">
@@ -747,10 +790,21 @@ new #[Layout('layouts.app')] class extends Component
                                                         @endforeach
                                                     </div>
                                                 @endif
-                                                <div class="flex items-center gap-4 text-xs text-gray-500">
+                                                <div class="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
                                                     <span>Cancelled by: <strong>{{ $c->cancelledByUser->name ?? 'N/A' }}</strong> ({{ ucfirst($c->canceller_role) }})</span>
                                                     <span>{{ $c->created_at?->format('d M Y, h:i A') }}</span>
                                                 </div>
+                                                @if (!$isPending && $c->resolved_at)
+                                                    <div class="flex items-center gap-2 text-xs text-gray-500 flex-wrap">
+                                                        <span>Resolved by: <strong>{{ $c->resolvedByUser->name ?? 'Admin' }}</strong></span>
+                                                        <span>• {{ $c->resolved_at->format('d M Y, h:i A') }}</span>
+                                                        @if ($disbursement)
+                                                            <span>• Mode: <strong class="{{ $disbursement === 'online_gateway' ? 'text-indigo-600' : ($disbursement === 'offline' ? 'text-violet-600' : 'text-gray-700') }}">
+                                                                {{ $disbursement === 'online_gateway' ? 'Online Gateway (Razorpay)' : ($disbursement === 'offline' ? 'Cash / Offline' : 'None') }}
+                                                            </strong></span>
+                                                        @endif
+                                                    </div>
+                                                @endif
                                                 @if ($c->reason)
                                                     <p class="text-xs text-gray-500 italic">Reason: {{ $c->reason }}</p>
                                                 @endif
@@ -767,13 +821,13 @@ new #[Layout('layouts.app')] class extends Component
                                                         <div class="font-semibold text-gray-700">Deductions: <strong class="text-red-600">-₹{{ number_format($cardBreakup['total'], 2) }}</strong></div>
                                                         <div class="text-[10px] text-gray-500 flex flex-wrap gap-x-1.5 sm:justify-end">
                                                             @if($cardBreakup['turf_cancellation_fee'] > 0)
-                                                                <span>Turf: <strong class="text-gray-700">₹{{ number_format($cardBreakup['turf_cancellation_fee'], 0) }}</strong></span>
+                                                                 <span>Turf: <strong class="text-gray-700">₹{{ number_format($cardBreakup['turf_cancellation_fee'], 0) }}</strong></span>
                                                             @endif
                                                             @if($cardBreakup['platform_fee_retained'] > 0)
-                                                                <span>• Plat: <strong class="text-gray-700">₹{{ number_format($cardBreakup['platform_fee_retained'], 0) }}</strong></span>
+                                                                 <span>• Plat: <strong class="text-gray-700">₹{{ number_format($cardBreakup['platform_fee_retained'], 0) }}</strong></span>
                                                             @endif
                                                             @if($cardBreakup['saas_cancellation_fee'] > 0)
-                                                                <span>• SaaS: <strong class="text-gray-700">₹{{ number_format($cardBreakup['saas_cancellation_fee'], 0) }}</strong></span>
+                                                                 <span>• SaaS: <strong class="text-gray-700">₹{{ number_format($cardBreakup['saas_cancellation_fee'], 0) }}</strong></span>
                                                             @endif
                                                         </div>
                                                     </div>
@@ -782,11 +836,34 @@ new #[Layout('layouts.app')] class extends Component
                                                 @if (!$isPending)
                                                     <div class="text-xs text-gray-500">Refund Issued</div>
                                                     <div class="text-base font-bold {{ $c->refund_amount > 0 ? 'text-emerald-600' : 'text-gray-400' }}">₹{{ number_format($c->refund_amount, 2) }}</div>
-                                                    @if ($c->disbursement_channel === 'offline' && $c->offline_reference)
-                                                        <p class="text-[10px] text-gray-400 mt-0.5">Ref: {{ $c->offline_reference }}</p>
-                                                    @endif
+
+                                                    <div class="text-[11px] sm:text-right text-left space-y-0.5 pt-1.5 border-t border-gray-100 mt-1">
+                                                        <div class="text-gray-600">
+                                                            <span class="text-gray-400 text-[10px] uppercase font-bold tracking-wider">Refund Mode:</span>
+                                                            @if ($disbursement === 'online_gateway')
+                                                                <span class="font-bold text-indigo-700">Online Gateway (Razorpay)</span>
+                                                            @elseif ($disbursement === 'offline')
+                                                                <span class="font-bold text-violet-700">Cash / Offline</span>
+                                                            @elseif ($disbursement === 'no_refund')
+                                                                <span class="font-semibold text-gray-500">None (Forfeited)</span>
+                                                            @else
+                                                                <span class="font-bold text-gray-700">{{ ucwords(str_replace('_', ' ', $disbursement ?? 'N/A')) }}</span>
+                                                            @endif
+                                                        </div>
+                                                        @if ($c->razorpay_refund_id)
+                                                            <div class="text-[10px] text-gray-500 font-mono">
+                                                                Refund ID: <span class="font-semibold text-gray-800 select-all">{{ $c->razorpay_refund_id }}</span>
+                                                            </div>
+                                                        @endif
+                                                        @if ($c->offline_reference)
+                                                            <div class="text-[10px] text-gray-500">
+                                                                Ref: <span class="font-semibold text-gray-800 select-all">{{ $c->offline_reference }}</span>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+
                                                     @if ($c->resolvedByUser)
-                                                        <p class="text-[10px] text-gray-400">Resolved by {{ $c->resolvedByUser->name }} on {{ $c->resolved_at?->format('d M Y') }}</p>
+                                                        <p class="text-[10px] text-gray-400 mt-1">Resolved by {{ $c->resolvedByUser->name }} on {{ $c->resolved_at?->format('d M Y') }}</p>
                                                     @endif
                                                 @else
                                                     <div class="text-xs text-gray-500">Est. Refund (Policy)</div>

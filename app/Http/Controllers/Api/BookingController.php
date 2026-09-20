@@ -211,7 +211,16 @@ class BookingController extends Controller
                 'cancellation_fee_applied' => ($bDate->status === 'Cancelled') ? (float)$bDate->cancellation_fee_applied : (float)$booking->cancellation_fee_applied,
                 'refund_amount' => ($bDate->status === 'Cancelled') ? (float)$bDate->refund_amount : (float)$booking->refund_amount,
                 'refund_status' => ($bDate->status === 'Cancelled') ? ($bDate->refund_status ?? 'None') : ($booking->refund_status ?? 'None'),
-                'refund_method' => ($bDate->status === 'Cancelled') ? ($bDate->refund_method ?? 'None') : ($booking->refund_method ?? 'None'),
+                'refund_method' => ($bDate->status === 'Cancelled') ? (
+                    $bDate->bookingCancellations->sortByDesc('id')->first()?->disbursement_channel === 'online_gateway'
+                        ? 'razorpay'
+                        : ($bDate->bookingCancellations->sortByDesc('id')->first()?->disbursement_channel === 'offline'
+                            ? 'offline'
+                            : ($bDate->refund_status === 'Cash / Offline Refund' ? 'offline' : ($bDate->refund_method ?? 'None')))
+                ) : ($booking->refund_method ?? 'None'),
+                'disbursement_channel' => ($bDate->status === 'Cancelled') ? $bDate->bookingCancellations->sortByDesc('id')->first()?->disbursement_channel : null,
+                'razorpay_refund_id' => ($bDate->status === 'Cancelled') ? $bDate->bookingCancellations->sortByDesc('id')->first()?->razorpay_refund_id : null,
+                'offline_reference' => ($bDate->status === 'Cancelled') ? $bDate->bookingCancellations->sortByDesc('id')->first()?->offline_reference : null,
                 'refunded_at' => ($bDate->status === 'Cancelled' && $bDate->refunded_at) ? Carbon::parse($bDate->refunded_at)->format('F d, Y h:i A') : ($booking->refunded_at ? Carbon::parse($booking->refunded_at)->format('F d, Y h:i A') : null),
                 'payments' => $bDate->payments()->where('status', 'Success')->get()->map(function ($payment) {
                     return [
