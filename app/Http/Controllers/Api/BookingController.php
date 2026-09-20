@@ -176,7 +176,7 @@ class BookingController extends Controller
                 'payment_status' => $booking->payment_status ?? 'Pending',
                 'date_payment_status' => $bDate->payment_status ?? 'Unpaid',
                 'amount' => (float)$bDate->amount,
-                'price' => '₹' . number_format($bDate->amount, 0),
+                'price' => '₹' . number_format($bDate->amount, 2),
                 'summary_text' => $summaryText,
                 'slots' => $slots,
                 
@@ -2008,8 +2008,8 @@ class BookingController extends Controller
             'refunded_at' => $latestRefundedAt,
         ]);
 
-        $feeMsg = $totalFeeAppliedNow > 0 ? " Cancellation fee of ₹" . number_format($totalFeeAppliedNow, 0) . " applied." : "";
-        $refundMsg = $totalRefundProcessedNow > 0 ? " Refund of ₹" . number_format($totalRefundProcessedNow, 0) . " processed to original payment method." : " No refund applicable.";
+        $feeMsg = $totalFeeAppliedNow > 0 ? " Cancellation fee of ₹" . number_format($totalFeeAppliedNow, 2) . " applied." : "";
+        $refundMsg = $totalRefundProcessedNow > 0 ? " Refund of ₹" . number_format($totalRefundProcessedNow, 2) . " processed to original payment method." : " No refund applicable.";
 
         \App\Services\NotificationService::notifyBookingCancelled($booking);
 

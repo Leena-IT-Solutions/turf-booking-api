@@ -831,13 +831,13 @@ new #[Layout('layouts.app')] class extends Component
                                                         <div class="font-semibold text-gray-700">Deductions: <strong class="text-red-600">-₹{{ number_format($cardBreakup['total'], 2) }}</strong></div>
                                                         <div class="text-[10px] text-gray-500 flex flex-wrap gap-x-1.5 sm:justify-end">
                                                             @if($cardBreakup['turf_cancellation_fee'] > 0)
-                                                                 <span>Turf: <strong class="text-gray-700">₹{{ number_format($cardBreakup['turf_cancellation_fee'], 0) }}</strong></span>
+                                                                 <span>Turf: <strong class="text-gray-700">₹{{ number_format($cardBreakup['turf_cancellation_fee'], 2) }}</strong></span>
                                                             @endif
                                                             @if($cardBreakup['platform_fee_retained'] > 0)
-                                                                 <span>• Plat: <strong class="text-gray-700">₹{{ number_format($cardBreakup['platform_fee_retained'], 0) }}</strong></span>
+                                                                 <span>• Plat: <strong class="text-gray-700">₹{{ number_format($cardBreakup['platform_fee_retained'], 2) }}</strong></span>
                                                             @endif
                                                             @if($cardBreakup['saas_cancellation_fee'] > 0)
-                                                                 <span>• SaaS: <strong class="text-gray-700">₹{{ number_format($cardBreakup['saas_cancellation_fee'], 0) }}</strong></span>
+                                                                 <span>• SaaS: <strong class="text-gray-700">₹{{ number_format($cardBreakup['saas_cancellation_fee'], 2) }}</strong></span>
                                                             @endif
                                                         </div>
                                                     </div>
