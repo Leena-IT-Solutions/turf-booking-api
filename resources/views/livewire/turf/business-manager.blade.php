@@ -62,7 +62,8 @@ new #[Layout('layouts.app')] class extends Component
         $walletTransactions = $user 
             ? CommissionWalletTransaction::where('user_id', $user->id)
                 ->with('reference')
-                ->latest()
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
                 ->paginate(10, ['*'], 'txPage')
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 

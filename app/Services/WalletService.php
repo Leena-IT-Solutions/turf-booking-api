@@ -286,20 +286,17 @@ class WalletService
             }
         } else {
             // For Offline / Pay at Venue:
-            // 1. Platform fee (one-time)
-            if ($platformFee > 0) {
-                $traits[] = [
-                    'type' => 'platform_fee_debit',
-                    'amount' => -$platformFee,
-                    'description' => "Booking #{$bookingDisplayId} Platform Fee",
-                    'meta' => [
-                        'booking_id' => $booking?->id,
-                        'fee_amount' => (float)($booking?->platform_fee ?? 0),
-                        'fee_gst' => (float)($booking?->platform_fee_gst ?? 0),
-                        'is_one_time' => true,
-                    ],
-                ];
-            }
+            // 1. Offline record (informational, 0 amount) - anchors booking at venue first
+            $traits[] = [
+                'type' => 'offline_booking_record',
+                'amount' => 0.00,
+                'description' => "Booking #{$bookingDisplayId} Pay at Venue (₹" . number_format((float)$payment->amount, 2) . " collected at venue)",
+                'meta' => [
+                    'booking_id' => $booking?->id,
+                    'payment_id' => $payment->id,
+                    'cash_amount' => (float)$payment->amount,
+                ],
+            ];
 
             // 2. Commission (for this payment)
             if ($commission > 0) {
@@ -316,17 +313,20 @@ class WalletService
                 ];
             }
 
-            // 3. Offline record (informational, 0 amount)
-            $traits[] = [
-                'type' => 'offline_booking_record',
-                'amount' => 0.00,
-                'description' => "Booking #{$bookingDisplayId} Pay at Venue (₹" . number_format((float)$payment->amount, 2) . " collected at venue)",
-                'meta' => [
-                    'booking_id' => $booking?->id,
-                    'payment_id' => $payment->id,
-                    'cash_amount' => (float)$payment->amount,
-                ],
-            ];
+            // 3. Platform fee (one-time)
+            if ($platformFee > 0) {
+                $traits[] = [
+                    'type' => 'platform_fee_debit',
+                    'amount' => -$platformFee,
+                    'description' => "Booking #{$bookingDisplayId} Platform Fee",
+                    'meta' => [
+                        'booking_id' => $booking?->id,
+                        'fee_amount' => (float)($booking?->platform_fee ?? 0),
+                        'fee_gst' => (float)($booking?->platform_fee_gst ?? 0),
+                        'is_one_time' => true,
+                    ],
+                ];
+            }
         }
 
         // Net contribution for this payment record
