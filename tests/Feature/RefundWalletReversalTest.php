@@ -96,8 +96,8 @@ class RefundWalletReversalTest extends TestCase
 
         $response->assertStatus(200);
 
-        // Wallet balance reversed: 930.00 (initial) - 930.00 (reversal) = 0.00
+        // Entire customer refund of 1000.00 is debited from turf owner: 930.00 (initial) - 1000.00 (full refund) = -70.00
         $this->turfAdmin->refresh();
-        $this->assertEquals(0.00, (float)$this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(-70.00, (float)$this->turfAdmin->commission_wallet_balance);
     }
 }

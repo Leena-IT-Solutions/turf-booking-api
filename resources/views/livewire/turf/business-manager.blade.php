@@ -747,8 +747,7 @@ new #[Layout('layouts.app')] class extends Component
                                 $isCancelled = $pmt->booking?->status === 'Cancelled';
                                 $refundAmt = (float)($pmt->refunded_amount ?? 0);
                                 $origContribution = (float)($pmt->turf_payout_amount ?? 0);
-                                $refundRatio = ($pmt->amount > 0 && $refundAmt > 0) ? min(1.0, $refundAmt / (float)$pmt->amount) : 0;
-                                $reversalDeduction = round($origContribution * $refundRatio, 2);
+                                $reversalDeduction = $refundAmt;
                                 $netAfterRefund = max(0.00, round($origContribution - $reversalDeduction, 2));
                             @endphp
                             <tr class="hover:bg-gray-50/50">

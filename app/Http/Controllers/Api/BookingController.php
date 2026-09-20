@@ -2054,32 +2054,23 @@ class BookingController extends Controller
                     'refunded_at' => $cancelledAt,
                 ]);
 
-                // WALLET REFUND REVERSAL LOGIC
+                // WALLET REFUND REVERSAL LOGIC: Platform retains all fees/costs; entire refund is debited from turf owner
                 $turfAdminOwner = $booking->turf->location->user ?? null;
-                if ($turfAdminOwner && $paymentRefund > 0 && (float)$payment->amount > 0) {
-                    $refundRatio = $paymentRefund / (float)$payment->amount;
-                    $originalPayoutContribution = (float)($payment->turf_payout_amount ?? 0);
-                    $commReversed = round(((float)($payment->commission_amount ?? 0) + (float)($payment->commission_gst_amount ?? 0)) * $refundRatio, 2);
-                    $dateCommissionReversed += $commReversed;
-
+                if ($turfAdminOwner && $paymentRefund > 0) {
                     if ($payment->wallet_cleared_at) {
-                        // Payment contribution was already applied to wallet -> Reverse it
-                        $reversalAmount = round(-$originalPayoutContribution * $refundRatio, 2);
-                        if ($reversalAmount != 0) {
-                            $walletService = new \App\Services\WalletService();
-                            $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
-                        }
-                    } else {
-                        // Payment contribution was still pending clearance -> Shrink stored contribution proportionally
-                        $newCommissionAmount = round(((float)$payment->commission_amount) * (1 - $refundRatio), 2);
-                        $newCommissionGst = round(((float)($payment->commission_gst_amount ?? 0)) * (1 - $refundRatio), 2);
-                        $newCashHeldAmount = round(((float)$payment->cash_held_amount) * (1 - $refundRatio), 2);
-                        $newPayoutAmount = round(((float)$payment->turf_payout_amount) * (1 - $refundRatio), 2);
+                        // Payment contribution was already applied to wallet -> Deduct entire refund amount
+                        $reversalAmount = -round($paymentRefund, 2);
+                        $walletService = new \App\Services\WalletService();
+                        $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
 
+                        $newPayoutAmount = max(0.00, round(((float)$payment->turf_payout_amount) - $paymentRefund, 2));
                         $payment->update([
-                            'commission_amount' => $newCommissionAmount,
-                            'commission_gst_amount' => $newCommissionGst,
-                            'cash_held_amount' => $newCashHeldAmount,
+                            'turf_payout_amount' => $newPayoutAmount,
+                        ]);
+                    } else {
+                        // Payment contribution was still pending clearance -> Reduce pending payout
+                        $newPayoutAmount = max(0.00, round(((float)$payment->turf_payout_amount) - $paymentRefund, 2));
+                        $payment->update([
                             'turf_payout_amount' => $newPayoutAmount,
                         ]);
                     }

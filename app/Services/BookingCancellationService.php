@@ -447,28 +447,21 @@ class BookingCancellationService
                 'refunded_at' => $cancelledAt,
             ]);
 
-            // Wallet reversal logic
+            // Wallet reversal logic: Platform retains all fees/costs; entire refund is debited from turf owner
             $turfAdminOwner = $booking->turf->location->user ?? null;
-            if ($turfAdminOwner && $paymentRefund > 0 && (float) $payment->amount > 0) {
-                $refundRatio = $paymentRefund / (float) $payment->amount;
-
+            if ($turfAdminOwner && $paymentRefund > 0) {
                 if ($payment->wallet_cleared_at) {
-                    $originalPayoutContribution = (float) ($payment->turf_payout_amount ?? 0);
-                    $reversalAmount = round(-$originalPayoutContribution * $refundRatio, 2);
-                    if ($reversalAmount != 0) {
-                        $walletService = new WalletService();
-                        $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
-                    }
-                } else {
-                    $newCommissionAmount = round(((float) $payment->commission_amount) * (1 - $refundRatio), 2);
-                    $newCommissionGst = round(((float) ($payment->commission_gst_amount ?? 0)) * (1 - $refundRatio), 2);
-                    $newCashHeldAmount = round(((float) $payment->cash_held_amount) * (1 - $refundRatio), 2);
-                    $newPayoutAmount = round(((float) $payment->turf_payout_amount) * (1 - $refundRatio), 2);
+                    $reversalAmount = -round($paymentRefund, 2);
+                    $walletService = new WalletService();
+                    $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
 
+                    $newPayoutAmount = max(0.00, round(((float) $payment->turf_payout_amount) - $paymentRefund, 2));
                     $payment->update([
-                        'commission_amount' => $newCommissionAmount,
-                        'commission_gst_amount' => $newCommissionGst,
-                        'cash_held_amount' => $newCashHeldAmount,
+                        'turf_payout_amount' => $newPayoutAmount,
+                    ]);
+                } else {
+                    $newPayoutAmount = max(0.00, round(((float) $payment->turf_payout_amount) - $paymentRefund, 2));
+                    $payment->update([
                         'turf_payout_amount' => $newPayoutAmount,
                     ]);
                 }
