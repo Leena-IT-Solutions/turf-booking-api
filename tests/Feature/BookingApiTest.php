@@ -975,4 +975,47 @@ class BookingApiTest extends TestCase
         $this->assertGreaterThan(0, $breakup['total_deductions']);
         $this->assertGreaterThan(0, $breakup['refund_amount']);
     }
+
+    public function test_turfs_api_returns_policy_fields(): void
+    {
+        $admin = User::factory()->create();
+        $location = Location::create([
+            'user_id' => $admin->id,
+            'name' => 'Policy Arena',
+            'address' => 'Mumbai',
+        ]);
+
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Policy Turf',
+            'type' => 'football',
+            'status' => 'Approved',
+            'is_active' => true,
+            'is_cancellation_active' => true,
+            'cancellation_hours' => 24,
+            'cancellation_fee' => 150.00,
+            'is_booking_open' => true,
+            'booking_open_days' => 14,
+            'is_online_payment_active' => true,
+            'is_part_payment_active' => true,
+            'is_pay_at_location_active' => true,
+            'part_payment_type' => 'percentage',
+            'part_payment_value' => 25.00,
+        ]);
+
+        $customer = User::factory()->create();
+        $response = $this->actingAs($customer, 'sanctum')->getJson('/api/turfs');
+        $response->assertStatus(200);
+
+        $turfs = $response->json();
+        $this->assertNotEmpty($turfs);
+        $found = collect($turfs)->firstWhere('id', $turf->id);
+        $this->assertNotNull($found);
+        $this->assertTrue($found['is_cancellation_active']);
+        $this->assertEquals(24, $found['cancellation_hours']);
+        $this->assertEquals(150.00, $found['cancellation_fee']);
+        $this->assertEquals(14, $found['booking_open_days']);
+        $this->assertEquals('percentage', $found['part_payment_type']);
+        $this->assertEquals(25.00, $found['part_payment_value']);
+    }
 }
