@@ -35,6 +35,9 @@ class ResetBookingData extends Command
         Schema::disableForeignKeyConstraints();
 
         // Truncate booking children and related tables first
+        if (Schema::hasTable('booking_cancellations')) {
+            DB::table('booking_cancellations')->truncate();
+        }
         DB::table('payment_gateways')->truncate();
         DB::table('payments')->truncate();
         DB::table('coupon_usages')->truncate();
