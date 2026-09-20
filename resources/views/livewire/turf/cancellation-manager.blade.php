@@ -202,7 +202,17 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->resolveCancellationId = $cancellationId;
         $this->resolutionMode = 'standard_policy';
-        $this->disbursementChannel = 'offline';
+
+        $cancellation = BookingCancellation::with('booking.payments')->find($cancellationId);
+        $hasOnlinePayment = false;
+        if ($cancellation && $cancellation->booking) {
+            $hasOnlinePayment = $cancellation->booking->payments()
+                ->where('status', 'Success')
+                ->where('payment_method', 'App')
+                ->exists();
+        }
+
+        $this->disbursementChannel = $hasOnlinePayment ? 'online_gateway' : 'offline';
         $this->customRefundAmount = '';
         $this->offlineReference = '';
         $this->showResolveModal = true;
