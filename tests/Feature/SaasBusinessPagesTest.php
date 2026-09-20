@@ -49,6 +49,24 @@ class SaasBusinessPagesTest extends TestCase
         $response->assertSee('Turf Payouts');
     }
 
+    public function test_commissions_page_period_filter_modes_and_navigation(): void
+    {
+        $this->actingAs($this->saasAdmin);
+
+        \Livewire\Volt\Volt::test('saas.commission-manager')
+            ->assertSet('filterMode', 'month')
+            ->call('prevPeriod')
+            ->assertSee(now()->subMonth()->format('F Y'))
+            ->call('nextPeriod')
+            ->assertSee(now()->format('F Y'))
+            ->call('setFilterMode', 'year')
+            ->assertSet('filterMode', 'year')
+            ->assertSee(now()->format('Y'))
+            ->call('setFilterMode', 'day')
+            ->assertSet('filterMode', 'day')
+            ->assertSee(now()->format('d M Y'));
+    }
+
     public function test_turf_admin_cannot_access_saas_business_pages(): void
     {
         $this->actingAs($this->turfAdmin)->get(route('saas.subscriptions'))->assertStatus(403);

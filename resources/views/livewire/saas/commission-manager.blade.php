@@ -18,28 +18,104 @@ new #[Layout('layouts.app')] class extends Component
     public string $activeTab = 'bookings'; // 'bookings', 'cancellations', 'turfs', 'settlements'
     public string $search = '';
     public string $paymentMethodFilter = 'all';
-    public string $datePreset = 'all';
+
+    // Timeframe filter state: default 'month'
+    public string $filterMode = 'month'; // 'day', 'month', 'year'
+    public string $selectedDate = '';
+
+    public function mount(): void
+    {
+        if (empty($this->selectedDate)) {
+            $this->selectedDate = Carbon::today()->format('Y-m-d');
+        }
+    }
+
+    public function setFilterMode(string $mode): void
+    {
+        $this->filterMode = $mode;
+        $this->resetPage();
+    }
+
+    public function prevPeriod(): void
+    {
+        $dt = Carbon::parse($this->selectedDate ?: Carbon::today());
+        if ($this->filterMode === 'day') {
+            $this->selectedDate = $dt->subDay()->format('Y-m-d');
+        } elseif ($this->filterMode === 'month') {
+            $this->selectedDate = $dt->subMonth()->format('Y-m-d');
+        } elseif ($this->filterMode === 'year') {
+            $this->selectedDate = $dt->subYear()->format('Y-m-d');
+        }
+        $this->resetPage();
+    }
+
+    public function nextPeriod(): void
+    {
+        $dt = Carbon::parse($this->selectedDate ?: Carbon::today());
+        if ($this->filterMode === 'day') {
+            $this->selectedDate = $dt->addDay()->format('Y-m-d');
+        } elseif ($this->filterMode === 'month') {
+            $this->selectedDate = $dt->addMonth()->format('Y-m-d');
+        } elseif ($this->filterMode === 'year') {
+            $this->selectedDate = $dt->addYear()->format('Y-m-d');
+        }
+        $this->resetPage();
+    }
+
+    public function resetToCurrent(): void
+    {
+        $this->selectedDate = Carbon::today()->format('Y-m-d');
+        $this->resetPage();
+    }
 
     public function updatingSearch() { $this->resetPage(); }
     public function updatingPaymentMethodFilter() { $this->resetPage(); }
-    public function updatingDatePreset() { $this->resetPage(); }
     public function updatingActiveTab() { $this->resetPage(); }
 
     public function with(): array
     {
-        // 1. Commission earned from successful booking payments
-        $totalCommissionEarned = (float) Payment::where('status', 'Success')->sum('commission_amount');
-        $totalCommissionGst = (float) Payment::where('status', 'Success')->sum('commission_gst_amount');
+        $currentDate = Carbon::parse($this->selectedDate ?: Carbon::today());
 
-        // 2. Platform Fees collected from successful bookings
+        if ($this->filterMode === 'day') {
+            $startDate = $currentDate->copy()->startOfDay();
+            $endDate = $currentDate->copy()->endOfDay();
+            $periodLabel = $currentDate->format('d M Y');
+            $isCurrent = $currentDate->isToday();
+            $badgeLabel = 'Today';
+        } elseif ($this->filterMode === 'year') {
+            $startDate = $currentDate->copy()->startOfYear();
+            $endDate = $currentDate->copy()->endOfYear();
+            $periodLabel = $currentDate->format('Y');
+            $isCurrent = $currentDate->isCurrentYear();
+            $badgeLabel = 'This Year';
+        } else { // default 'month'
+            $startDate = $currentDate->copy()->startOfMonth();
+            $endDate = $currentDate->copy()->endOfMonth();
+            $periodLabel = $currentDate->format('F Y');
+            $isCurrent = $currentDate->isCurrentMonth() && $currentDate->isCurrentYear();
+            $badgeLabel = 'This Month';
+        }
+
+        // 1. Commission earned from successful booking payments in timeframe
+        $totalCommissionEarned = (float) Payment::where('status', 'Success')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('commission_amount');
+        $totalCommissionGst = (float) Payment::where('status', 'Success')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('commission_gst_amount');
+
+        // 2. Platform Fees collected from successful bookings in timeframe
         $totalPlatformFeeEarned = (float) Booking::whereHas('payments', function ($q) {
-            $q->where('status', 'Success');
-        })->sum('platform_fee');
+                $q->where('status', 'Success');
+            })
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('platform_fee');
 
         // 3. Pure SaaS Cancellation Fee charge (strictly SaaS cancellation fee, excluding retained platform fee)
-        $totalCancellationFeeEarned = (float) BookingCancellation::sum('saas_cancellation_fee');
-        if ($totalCancellationFeeEarned <= 0 && BookingCancellation::count() > 0) {
-            $totalCancellationFeeEarned = (float) BookingCancellation::all()->sum(function($c) {
+        $totalCancellationFeeEarned = (float) BookingCancellation::whereBetween('created_at', [$startDate, $endDate])
+            ->sum('saas_cancellation_fee');
+        if ($totalCancellationFeeEarned <= 0 && BookingCancellation::whereBetween('created_at', [$startDate, $endDate])->count() > 0) {
+            $totalCancellationFeeEarned = (float) BookingCancellation::whereBetween('created_at', [$startDate, $endDate])->get()->sum(function($c) {
                 return (float) ($c->deductions_breakup['saas_cancellation_fee'] ?? 0);
             });
         }
@@ -47,14 +123,17 @@ new #[Layout('layouts.app')] class extends Component
         // 4. Combined Total SaaS Booking & Cancellation Revenue
         $totalCombinedSaaSEarnings = round($totalCommissionEarned + $totalPlatformFeeEarned + $totalCancellationFeeEarned, 2);
 
-        $totalGrossBookingVolume = (float) Payment::where('status', 'Success')->sum('amount');
+        $totalGrossBookingVolume = (float) Payment::where('status', 'Success')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->sum('amount');
         $totalCommissionDue = abs((float) User::where('commission_wallet_balance', '<', 0)->sum('commission_wallet_balance'));
 
-        // 1. Commission by Bookings Query
+        // 1. Commission by Bookings Query (scoped to timeframe)
         $bookingsQuery = Booking::with(['turf.location.user', 'user', 'payments'])
             ->whereHas('payments', function ($q) {
                 $q->where('status', 'Success');
             })
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->latest();
 
         if ($this->search !== '' && $this->activeTab === 'bookings') {
@@ -77,20 +156,11 @@ new #[Layout('layouts.app')] class extends Component
             });
         }
 
-        if ($this->datePreset === 'today') {
-            $bookingsQuery->whereDate('created_at', Carbon::today());
-        } elseif ($this->datePreset === 'yesterday') {
-            $bookingsQuery->whereDate('created_at', Carbon::yesterday());
-        } elseif ($this->datePreset === 'week') {
-            $bookingsQuery->whereBetween('created_at', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
-        } elseif ($this->datePreset === 'month') {
-            $bookingsQuery->whereMonth('created_at', Carbon::now()->month)->whereYear('created_at', Carbon::now()->year);
-        }
-
         $bookings = $bookingsQuery->paginate(15);
 
-        // 2. Cancellations Revenue Query
+        // 2. Cancellations Revenue Query (scoped to timeframe)
         $cancellationsQuery = BookingCancellation::with(['booking.turf.location.user', 'booking.user'])
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->latest();
 
         if ($this->search !== '' && $this->activeTab === 'cancellations') {
@@ -139,6 +209,10 @@ new #[Layout('layouts.app')] class extends Component
         $settlements = $settlementsQuery->paginate(15);
 
         return [
+            'filterMode' => $this->filterMode,
+            'periodLabel' => $periodLabel,
+            'isCurrent' => $isCurrent,
+            'badgeLabel' => $badgeLabel,
             'totalCombinedSaaSEarnings' => $totalCombinedSaaSEarnings,
             'totalCommissionEarned' => $totalCommissionEarned,
             'totalCommissionGst' => $totalCommissionGst,
@@ -175,6 +249,65 @@ new #[Layout('layouts.app')] class extends Component
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 <span>View Turf Payouts</span>
             </a>
+        </div>
+    </div>
+
+    <!-- PERIOD FILTER BAR (ABOVE TILES) -->
+    <div class="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <!-- Filter Mode Selector: Day (Date) | Month | Year -->
+        <div class="inline-flex items-center p-1 bg-gray-100 rounded-2xl border border-gray-200/70 self-start md:self-auto">
+            <button wire:click="setFilterMode('day')" type="button"
+                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $filterMode === 'day' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-900' }}">
+                Day (Date)
+            </button>
+            <button wire:click="setFilterMode('month')" type="button"
+                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $filterMode === 'month' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-900' }}">
+                Month
+            </button>
+            <button wire:click="setFilterMode('year')" type="button"
+                class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $filterMode === 'year' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-900' }}">
+                Year
+            </button>
+        </div>
+
+        <!-- Period Navigator (Previous / Next / Current Indicator) -->
+        <div class="flex items-center gap-2 self-stretch md:self-auto justify-between md:justify-end">
+            <button wire:click="prevPeriod" type="button" title="Previous"
+                class="px-3 py-2 text-xs font-bold rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span class="hidden sm:inline">Previous</span>
+            </button>
+
+            <div class="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 min-w-[170px] sm:min-w-[210px] justify-center text-center">
+                <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-xs font-black text-gray-900 tracking-tight">
+                    {{ $periodLabel }}
+                </span>
+                @if ($isCurrent)
+                    <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                        {{ $badgeLabel }}
+                    </span>
+                @endif
+            </div>
+
+            <button wire:click="nextPeriod" type="button" title="Next"
+                class="px-3 py-2 text-xs font-bold rounded-xl bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-700 transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                <span class="hidden sm:inline">Next</span>
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            </button>
+
+            @if (!$isCurrent)
+                <button wire:click="resetToCurrent" type="button"
+                    class="px-3 py-2 text-xs font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer">
+                    Current
+                </button>
+            @endif
         </div>
     </div>
 
@@ -242,8 +375,8 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Control Bar: Tabs & Search/Filters -->
         <div class="p-6 border-b border-gray-100 space-y-4">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <!-- Segmented Tabs -->
-                <div class="inline-flex flex-wrap p-1 bg-gray-100 rounded-2xl border border-gray-200/70 self-start">
+                <!-- Segmented Tabs (Never wraps onto 2 rows; horizontally scrollable on mobile) -->
+                <div class="flex items-center gap-1.5 p-1 bg-gray-100 rounded-2xl border border-gray-200/70 overflow-x-auto max-w-full whitespace-nowrap self-start">
                     <button wire:click="$set('activeTab', 'bookings')" type="button"
                         class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'bookings' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-800' }}">
                         <svg class="w-3.5 h-3.5 {{ $activeTab === 'bookings' ? 'text-emerald-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -284,17 +417,9 @@ new #[Layout('layouts.app')] class extends Component
 
                     @if ($activeTab === 'bookings')
                         <select wire:model.live="paymentMethodFilter" class="h-10 py-2 px-3 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition cursor-pointer">
-                            <option value="all">All Methods</option>
+                            <option value="all">All Payment Methods</option>
                             <option value="App">Online (App)</option>
                             <option value="Pay at Venue">Pay at Venue (Cash)</option>
-                        </select>
-
-                        <select wire:model.live="datePreset" class="h-10 py-2 px-3 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition cursor-pointer">
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="yesterday">Yesterday</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
                         </select>
                     @endif
                 </div>
@@ -302,7 +427,6 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <div class="p-6">
-
         @if ($activeTab === 'bookings')
             <!-- Bookings Revenue Table -->
             <div class="overflow-x-auto">
@@ -368,7 +492,7 @@ new #[Layout('layouts.app')] class extends Component
                         @empty
                             <tr>
                                 <td colspan="10" class="py-12 text-center text-gray-400">
-                                    No booking revenue records found.
+                                    No booking revenue records found for this period.
                                 </td>
                             </tr>
                         @endforelse
@@ -442,7 +566,7 @@ new #[Layout('layouts.app')] class extends Component
                         @empty
                             <tr>
                                 <td colspan="10" class="py-12 text-center text-gray-400">
-                                    No cancellation fee records found.
+                                    No cancellation fee records found for this period.
                                 </td>
                             </tr>
                         @endforelse
