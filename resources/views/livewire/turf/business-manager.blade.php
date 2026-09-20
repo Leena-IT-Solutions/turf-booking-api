@@ -429,10 +429,9 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     @endif
 
-    <!-- ACTION PANELS: WITHDRAWAL / DUE SETTLEMENT -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        @if ($balance < 0)
-            <!-- COMMISSION DUE SETTLEMENT PANEL -->
+    <!-- COMMISSION DUE SETTLEMENT PANEL (WHEN IN DEBT) -->
+    @if ($balance < 0)
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div class="bg-white p-6 sm:p-8 rounded-3xl border border-red-200 shadow-xs space-y-5">
                 <div class="space-y-1">
                     <span class="text-[10px] font-black uppercase tracking-wider text-red-600">REQUIRED ACTION</span>
@@ -454,27 +453,8 @@ new #[Layout('layouts.app')] class extends Component
                     </button>
                 </div>
             </div>
-        @else
-            <!-- QUICK BANKING & WITHDRAWAL CALLOUT -->
-            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-emerald-100 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h4 class="text-base font-black text-gray-900">Manage Bank Accounts & Withdraw Cleared Earnings</h4>
-                        <p class="text-xs text-gray-500">You have ₹{{ number_format(max(0, $balance), 2) }} available. Configure bank accounts/UPI or request manual and automatic payouts on the Banking page.</p>
-                    </div>
-                </div>
-                <a href="{{ route('turf.banking') }}" wire:navigate
-                   class="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-xs transition-all shrink-0">
-                    <span>Open Banking & Payouts &rarr;</span>
-                </a>
-            </div>
-        @endif
-    </div>
+        </div>
+    @endif
 
     <!-- WALLET STATEMENT & BOOKING COMMISSION TRANSACTIONS -->
     <div class="bg-white rounded-3xl border border-gray-200 p-6 space-y-6">

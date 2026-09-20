@@ -42,7 +42,6 @@ class BusinessPageTest extends TestCase
 
         Volt::test('turf.business-manager')
             ->assertSee('AVAILABLE FOR WITHDRAWAL')
-            ->assertSee('Open Banking & Payouts', false)
             ->assertSee('Wallet Statement & Commission Ledger', false);
     }
 
