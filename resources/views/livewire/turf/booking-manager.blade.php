@@ -17,7 +17,8 @@ new #[Layout('layouts.app')] class extends Component
 
     // Filters & Search
     public string $search = '';
-    public string $datePreset = 'all';
+    public string $datePreset = 'all'; // 'day', 'month', 'year', 'all'
+    public string $currentDateCursor = '';
     public string $startDate = '';
     public string $endDate = '';
     public string $statusFilter = 'all';
@@ -51,6 +52,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function mount()
     {
+        $this->currentDateCursor = Carbon::now('Asia/Kolkata')->toDateString();
         $this->setQuickPreset('all');
     }
 
@@ -128,23 +130,39 @@ new #[Layout('layouts.app')] class extends Component
         return $ranges;
     }
 
-    public function setQuickPreset(string $preset)
+    public function setQuickPreset(string $preset): void
     {
         $this->datePreset = $preset;
         $now = Carbon::now('Asia/Kolkata');
 
-        if ($preset === 'today') {
+        if (empty($this->currentDateCursor)) {
+            $this->currentDateCursor = $now->toDateString();
+        }
+        $cursor = Carbon::parse($this->currentDateCursor, 'Asia/Kolkata');
+
+        if ($preset === 'day') {
+            $this->startDate = $cursor->toDateString();
+            $this->endDate = $cursor->toDateString();
+        } elseif ($preset === 'month') {
+            $this->startDate = $cursor->copy()->startOfMonth()->toDateString();
+            $this->endDate = $cursor->copy()->endOfMonth()->toDateString();
+        } elseif ($preset === 'year') {
+            $this->startDate = $cursor->copy()->startOfYear()->toDateString();
+            $this->endDate = $cursor->copy()->endOfYear()->toDateString();
+        } elseif ($preset === 'today') {
+            $this->currentDateCursor = $now->toDateString();
             $this->startDate = $now->toDateString();
             $this->endDate = $now->toDateString();
+            $this->datePreset = 'day';
         } elseif ($preset === 'tomorrow') {
-            $this->startDate = $now->copy()->addDay()->toDateString();
-            $this->endDate = $now->copy()->addDay()->toDateString();
+            $tomorrow = $now->copy()->addDay();
+            $this->currentDateCursor = $tomorrow->toDateString();
+            $this->startDate = $tomorrow->toDateString();
+            $this->endDate = $tomorrow->toDateString();
+            $this->datePreset = 'day';
         } elseif ($preset === 'week') {
             $this->startDate = $now->copy()->startOfWeek()->toDateString();
             $this->endDate = $now->copy()->endOfWeek()->toDateString();
-        } elseif ($preset === 'month') {
-            $this->startDate = $now->copy()->startOfMonth()->toDateString();
-            $this->endDate = $now->copy()->endOfMonth()->toDateString();
         } else {
             $this->startDate = '';
             $this->endDate = '';
@@ -154,7 +172,118 @@ new #[Layout('layouts.app')] class extends Component
         $this->resetPage();
     }
 
-    public function clearFilters()
+    public function previousPeriod(): void
+    {
+        $now = Carbon::now('Asia/Kolkata');
+        if (empty($this->currentDateCursor)) {
+            $this->currentDateCursor = $now->toDateString();
+        }
+        $cursor = Carbon::parse($this->currentDateCursor, 'Asia/Kolkata');
+
+        if ($this->datePreset === 'day' || $this->datePreset === 'all') {
+            $this->datePreset = 'day';
+            $cursor->subDay();
+            $this->currentDateCursor = $cursor->toDateString();
+            $this->startDate = $cursor->toDateString();
+            $this->endDate = $cursor->toDateString();
+        } elseif ($this->datePreset === 'month') {
+            $cursor->subMonth();
+            $this->currentDateCursor = $cursor->toDateString();
+            $this->startDate = $cursor->copy()->startOfMonth()->toDateString();
+            $this->endDate = $cursor->copy()->endOfMonth()->toDateString();
+        } elseif ($this->datePreset === 'year') {
+            $cursor->subYear();
+            $this->currentDateCursor = $cursor->toDateString();
+            $this->startDate = $cursor->copy()->startOfYear()->toDateString();
+            $this->endDate = $cursor->copy()->endOfYear()->toDateString();
+        }
+
+        $this->perPage = 10;
+        $this->resetPage();
+    }
+
+    public function nextPeriod(): void
+    {
+        $now = Carbon::now('Asia/Kolkata');
+        if (empty($this->currentDateCursor)) {
+            $this->currentDateCursor = $now->toDateString();
+        }
+        $cursor = Carbon::parse($this->currentDateCursor, 'Asia/Kolkata');
+
+        if ($this->datePreset === 'day' || $this->datePreset === 'all') {
+            $this->datePreset = 'day';
+            $cursor->addDay();
+            $this->currentDateCursor = $cursor->toDateString();
+            $this->startDate = $cursor->toDateString();
+            $this->endDate = $cursor->toDateString();
+        } elseif ($this->datePreset === 'month') {
+            $cursor->addMonth();
+            $this->currentDateCursor = $cursor->toDateString();
+            $this->startDate = $cursor->copy()->startOfMonth()->toDateString();
+            $this->endDate = $cursor->copy()->endOfMonth()->toDateString();
+        } elseif ($this->datePreset === 'year') {
+            $cursor->addYear();
+            $this->currentDateCursor = $cursor->toDateString();
+            $this->startDate = $cursor->copy()->startOfYear()->toDateString();
+            $this->endDate = $cursor->copy()->endOfYear()->toDateString();
+        }
+
+        $this->perPage = 10;
+        $this->resetPage();
+    }
+
+    public function goToToday(): void
+    {
+        $now = Carbon::now('Asia/Kolkata');
+        $this->currentDateCursor = $now->toDateString();
+
+        if ($this->datePreset === 'month') {
+            $this->startDate = $now->copy()->startOfMonth()->toDateString();
+            $this->endDate = $now->copy()->endOfMonth()->toDateString();
+        } elseif ($this->datePreset === 'year') {
+            $this->startDate = $now->copy()->startOfYear()->toDateString();
+            $this->endDate = $now->copy()->endOfYear()->toDateString();
+        } else {
+            $this->datePreset = 'day';
+            $this->startDate = $now->toDateString();
+            $this->endDate = $now->toDateString();
+        }
+
+        $this->perPage = 10;
+        $this->resetPage();
+    }
+
+    public function getFormattedPeriodProperty(): string
+    {
+        if ($this->datePreset === 'all') {
+            return 'All Time';
+        }
+
+        $cursor = Carbon::parse($this->currentDateCursor ?: Carbon::now('Asia/Kolkata')->toDateString(), 'Asia/Kolkata');
+
+        if ($this->datePreset === 'day') {
+            if ($cursor->isToday()) {
+                return 'Today (' . $cursor->format('d M Y') . ')';
+            } elseif ($cursor->isYesterday()) {
+                return 'Yesterday (' . $cursor->format('d M Y') . ')';
+            } elseif ($cursor->isTomorrow()) {
+                return 'Tomorrow (' . $cursor->format('d M Y') . ')';
+            }
+            return $cursor->format('D, d M Y');
+        }
+
+        if ($this->datePreset === 'month') {
+            return $cursor->format('F Y');
+        }
+
+        if ($this->datePreset === 'year') {
+            return 'Year ' . $cursor->format('Y');
+        }
+
+        return $this->startDate ?: 'Custom Date';
+    }
+
+    public function clearFilters(): void
     {
         $this->perPage = 10;
         $this->search = '';
@@ -162,6 +291,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->paymentStatusFilter = 'all';
         $this->bookingTypeFilter = 'all';
         $this->sortBy = 'newest';
+        $this->currentDateCursor = Carbon::now('Asia/Kolkata')->toDateString();
         $this->setQuickPreset('all');
     }
 
@@ -566,40 +696,70 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Filter & Search Panel -->
         <div class="bg-white rounded-2xl shadow-xs border border-gray-200 p-5 space-y-4">
             
-            <!-- Quick Date Filter Preset Chips -->
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4">
-                <div class="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-                    <span class="text-xs font-bold uppercase tracking-wider text-gray-400 me-1">Dates:</span>
-                    <button wire:click="setQuickPreset('all')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        All Time
-                    </button>
-                    <button wire:click="setQuickPreset('today')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'today' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        Today
-                    </button>
-                    <button wire:click="setQuickPreset('tomorrow')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'tomorrow' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        Tomorrow
-                    </button>
-                    <button wire:click="setQuickPreset('week')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'week' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        This Week
+            <!-- Date Filter & Period Navigator Bar -->
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-gray-100 pb-4">
+                <!-- Left: Granularity Selector (Day, Month, Year, All Time) -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+                    <span class="text-[11px] font-black uppercase tracking-wider text-gray-400 me-2 shrink-0">Dates:</span>
+                    <button wire:click="setQuickPreset('day')" type="button" 
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 shrink-0 {{ $datePreset === 'day' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        Day
                     </button>
                     <button wire:click="setQuickPreset('month')" type="button" 
-                        class="px-3 py-1.5 rounded-xl text-xs font-bold transition {{ $datePreset === 'month' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
-                        This Month
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 shrink-0 {{ $datePreset === 'month' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        Month
+                    </button>
+                    <button wire:click="setQuickPreset('year')" type="button" 
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 shrink-0 {{ $datePreset === 'year' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        Year
+                    </button>
+                    <button wire:click="setQuickPreset('all')" type="button" 
+                        class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer active:scale-95 shrink-0 {{ $datePreset === 'all' ? 'bg-indigo-600 text-white shadow-xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">
+                        All Time
                     </button>
                 </div>
 
-                <!-- Clear Filters Button -->
-                @if ($search !== '' || $statusFilter !== 'all' || $paymentStatusFilter !== 'all' || $bookingTypeFilter !== 'all' || $datePreset !== 'all')
-                    <button wire:click="clearFilters" type="button" 
-                        class="text-xs font-semibold text-red-600 hover:underline flex items-center gap-1 shrink-0">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        Reset All Filters
-                    </button>
-                @endif
+                <!-- Right: Previous / Next Navigator & Period Display -->
+                <div class="flex flex-wrap items-center gap-2">
+                    @if ($datePreset !== 'all')
+                        <div class="inline-flex items-center bg-gray-50 border border-gray-200 rounded-xl p-0.5 shadow-2xs">
+                            <!-- Previous Button -->
+                            <button wire:click="previousPeriod" type="button" title="Previous {{ ucfirst($datePreset) }}"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 hover:bg-white hover:shadow-xs rounded-lg text-gray-600 hover:text-indigo-600 transition cursor-pointer active:scale-90 text-xs font-bold">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                                <span class="hidden sm:inline">Prev</span>
+                            </button>
+
+                            <!-- Current Period Display -->
+                            <div class="px-3 py-1 text-xs font-black text-gray-900 tracking-tight flex items-center gap-1.5 min-w-[130px] justify-center text-center">
+                                <svg class="w-3.5 h-3.5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span>{{ $this->formattedPeriod }}</span>
+                            </div>
+
+                            <!-- Next Button -->
+                            <button wire:click="nextPeriod" type="button" title="Next {{ ucfirst($datePreset) }}"
+                                class="inline-flex items-center gap-1 px-2.5 py-1.5 hover:bg-white hover:shadow-xs rounded-lg text-gray-600 hover:text-indigo-600 transition cursor-pointer active:scale-90 text-xs font-bold">
+                                <span class="hidden sm:inline">Next</span>
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+
+                        <!-- Reset to Today / Current Period -->
+                        <button wire:click="goToToday" type="button"
+                            class="px-3 py-1.5 bg-white border border-gray-200 hover:border-indigo-300 text-gray-700 hover:text-indigo-600 rounded-xl text-xs font-bold transition shadow-2xs active:scale-95 cursor-pointer">
+                            Today
+                        </button>
+                    @endif
+
+                    <!-- Clear All Filters -->
+                    @if ($search !== '' || $statusFilter !== 'all' || $paymentStatusFilter !== 'all' || $bookingTypeFilter !== 'all' || $datePreset !== 'all')
+                        <button wire:click="clearFilters" type="button" 
+                            class="text-xs font-semibold text-rose-600 hover:underline flex items-center gap-1 shrink-0 ms-1 cursor-pointer">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <span>Reset Filters</span>
+                        </button>
+                    @endif
+                </div>
             </div>
 
             <!-- Search & Filters Grid -->

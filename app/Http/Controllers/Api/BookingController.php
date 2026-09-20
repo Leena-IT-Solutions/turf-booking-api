@@ -1547,7 +1547,6 @@ class BookingController extends Controller
                 $cashHeld = $paymentMethod === 'App' ? min($paidForDate, $turfShareWithGst) : 0.00;
                 $dateGatewayTotal = round($dateGatewayCharge + $dateGatewayTax, 2);
                 $payoutContribution = round($cashHeld - ($commData['total_commission_deduction'] ?? $commData['commission_amount']) - $dateGatewayTotal, 2);
-                $payoutContribution = max(0.00, $payoutContribution);
 
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
