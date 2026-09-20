@@ -10,6 +10,39 @@ use Illuminate\Support\Facades\DB;
 
 class WalletService
 {
+    protected static ?bool $hasDescription = null;
+    protected static ?bool $hasMeta = null;
+
+    /**
+     * Ensure database schema has description and meta columns; dynamically migrate if missing.
+     */
+    protected static function ensureSchemaCompatibility(): void
+    {
+        if (static::$hasDescription === null) {
+            try {
+                static::$hasDescription = \Illuminate\Support\Facades\Schema::hasColumn('commission_wallet_transactions', 'description');
+                static::$hasMeta = \Illuminate\Support\Facades\Schema::hasColumn('commission_wallet_transactions', 'meta');
+
+                if (!static::$hasDescription) {
+                    \Illuminate\Support\Facades\Schema::table('commission_wallet_transactions', function (\Illuminate\Database\Schema\Blueprint $table) {
+                        $table->string('description')->nullable()->after('type');
+                    });
+                    static::$hasDescription = true;
+                }
+
+                if (!static::$hasMeta) {
+                    \Illuminate\Support\Facades\Schema::table('commission_wallet_transactions', function (\Illuminate\Database\Schema\Blueprint $table) {
+                        $table->json('meta')->nullable()->after('balance_after');
+                    });
+                    static::$hasMeta = true;
+                }
+            } catch (\Throwable $e) {
+                static::$hasDescription = static::$hasDescription ?? false;
+                static::$hasMeta = static::$hasMeta ?? false;
+            }
+        }
+    }
+
     /**
      * Apply signed amount delta to user's wallet balance inside a locked DB transaction
      * and log the audit entry in commission_wallet_transactions.
@@ -22,6 +55,7 @@ class WalletService
      * @param array|null $meta
      * @return User Updated user instance
      */
+
     public function applyDelta(
         User $user,
         float $amount,
@@ -30,6 +64,8 @@ class WalletService
         ?string $description = null,
         ?array $meta = null
     ): User {
+        static::ensureSchemaCompatibility();
+
         return DB::transaction(function () use ($user, $amount, $type, $reference, $description, $meta) {
             $lockedUser = User::where('id', $user->id)->lockForUpdate()->first();
 
@@ -50,16 +86,23 @@ class WalletService
             ]);
 
             // Record immutable audit transaction
-            CommissionWalletTransaction::create([
+            $txData = [
                 'user_id' => $lockedUser->id,
                 'type' => $type,
-                'description' => $description,
                 'amount' => $amount,
                 'balance_after' => $newBalance,
-                'meta' => $meta,
                 'reference_type' => $reference ? get_class($reference) : null,
                 'reference_id' => $reference ? $reference->getKey() : null,
-            ]);
+            ];
+
+            if (static::$hasDescription) {
+                $txData['description'] = $description;
+            }
+            if (static::$hasMeta) {
+                $txData['meta'] = $meta;
+            }
+
+            CommissionWalletTransaction::create($txData);
 
             return $lockedUser;
         });
@@ -76,6 +119,8 @@ class WalletService
      */
     public function recordTraits(User $user, array $traits, ?Model $reference = null): User
     {
+        static::ensureSchemaCompatibility();
+
         return DB::transaction(function () use ($user, $traits, $reference) {
             $lockedUser = User::where('id', $user->id)->lockForUpdate()->first();
             $oldInitialBalance = (float) $lockedUser->commission_wallet_balance;
@@ -85,16 +130,23 @@ class WalletService
                 $amount = round((float) ($trait['amount'] ?? 0.00), 2);
                 $newBalance = round($currentBalance + $amount, 2);
 
-                CommissionWalletTransaction::create([
+                $txData = [
                     'user_id' => $lockedUser->id,
                     'type' => $trait['type'],
-                    'description' => $trait['description'] ?? null,
                     'amount' => $amount,
                     'balance_after' => $newBalance,
-                    'meta' => $trait['meta'] ?? null,
                     'reference_type' => $reference ? get_class($reference) : null,
                     'reference_id' => $reference ? $reference->getKey() : null,
-                ]);
+                ];
+
+                if (static::$hasDescription) {
+                    $txData['description'] = $trait['description'] ?? null;
+                }
+                if (static::$hasMeta) {
+                    $txData['meta'] = $trait['meta'] ?? null;
+                }
+
+                CommissionWalletTransaction::create($txData);
 
                 $currentBalance = $newBalance;
             }

@@ -1049,4 +1049,96 @@ class BookingApiTest extends TestCase
         $this->assertEquals('percentage', $found['part_payment_type']);
         $this->assertEquals(25.00, $found['part_payment_value']);
     }
+
+    public function test_booking_filters_upcoming_past_and_cancelled(): void
+    {
+        $user = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Mumbai Arena',
+            'address' => 'Ghatkopar East',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Legends Turf',
+            'type' => 'Synthetic',
+        ]);
+
+        // 1. Active upcoming booking (tomorrow)
+        $bookingUpcoming = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        BookingDate::create([
+            'booking_id' => $bookingUpcoming->id,
+            'booking_date' => now()->addDays(2)->toDateString(),
+            'amount' => 1000,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        // 2. Active past booking (yesterday)
+        $bookingPast = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now()->subDays(5),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        BookingDate::create([
+            'booking_id' => $bookingPast->id,
+            'booking_date' => now()->subDays(2)->toDateString(),
+            'amount' => 1000,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        // 3. Cancelled booking (was for tomorrow, but cancelled)
+        $bookingCancelled = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Cancelled',
+            'cancelled_at' => now(),
+            'cancellation_reason' => 'User cancelled',
+            'payment_status' => 'Refunded',
+        ]);
+        BookingDate::create([
+            'booking_id' => $bookingCancelled->id,
+            'booking_date' => now()->addDays(3)->toDateString(),
+            'amount' => 1000,
+            'status' => 'Cancelled',
+            'cancelled_at' => now(),
+            'payment_status' => 'Refunded',
+        ]);
+
+        // Query filter=upcoming: should return only the active upcoming booking, NOT the cancelled one!
+        $resUpcoming = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=upcoming');
+        $resUpcoming->assertStatus(200);
+        $upcomingData = $resUpcoming->json('data');
+        $this->assertCount(1, $upcomingData);
+        $this->assertEquals($bookingUpcoming->id, $upcomingData[0]['id']);
+
+        // Query filter=past: should return only the active past booking, NOT the cancelled one!
+        $resPast = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=past');
+        $resPast->assertStatus(200);
+        $pastData = $resPast->json('data');
+        $this->assertCount(1, $pastData);
+        $this->assertEquals($bookingPast->id, $pastData[0]['id']);
+
+        // Query filter=cancelled: should return only the cancelled booking!
+        $resCancelled = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=cancelled');
+        $resCancelled->assertStatus(200);
+        $cancelledData = $resCancelled->json('data');
+        $this->assertCount(1, $cancelledData);
+        $this->assertEquals($bookingCancelled->id, $cancelledData[0]['id']);
+        $this->assertEquals('Cancelled', $cancelledData[0]['status']);
+    }
 }

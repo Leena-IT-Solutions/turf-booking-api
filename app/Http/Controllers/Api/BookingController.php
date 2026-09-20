@@ -1143,7 +1143,11 @@ class BookingController extends Controller
 
             $this->recalculateBookingPaymentStatus($booking);
 
-            \App\Services\NotificationService::notifyBookingCreated($booking);
+            try {
+                \App\Services\NotificationService::notifyBookingCreated($booking);
+            } catch (\Throwable $ne) {
+                \Illuminate\Support\Facades\Log::warning('Booking notification could not be sent: ' . $ne->getMessage());
+            }
 
             \DB::commit();
 
@@ -1154,8 +1158,12 @@ class BookingController extends Controller
 
         } catch (\Exception $e) {
             \DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Error occurred while booking: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+            ]);
             return response()->json([
-                'message' => 'An error occurred while booking. Please try again.',
+                'message' => 'An error occurred while booking: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
             ], 500);
         }
