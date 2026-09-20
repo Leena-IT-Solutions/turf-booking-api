@@ -31,6 +31,8 @@ new #[Layout('layouts.app')] class extends Component
     // Commission Due Settle input
     public string $settleAmount = '';
 
+    public string $ledgerTab = 'transactions'; // 'transactions' or 'bookings'
+
     public function mount()
     {
         $user = auth()->user();
@@ -51,6 +53,31 @@ new #[Layout('layouts.app')] class extends Component
         } elseif ($balance < 0) {
             $this->settleAmount = (string) abs($balance);
         }
+    }
+
+    public function with(): array
+    {
+        $user = auth()->user();
+
+        $walletTransactions = $user 
+            ? CommissionWalletTransaction::where('user_id', $user->id)
+                ->with('reference')
+                ->latest()
+                ->paginate(10, ['*'], 'txPage')
+            : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
+
+        $payments = $user ? Payment::with(['booking.turf', 'bookingDate'])
+            ->whereHas('booking.turf.location', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->latest()
+            ->paginate(10, ['*'], 'pmtPage')
+            : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
+
+        return [
+            'walletTransactions' => $walletTransactions,
+            'payments' => $payments,
+        ];
     }
 
 
@@ -575,75 +602,216 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     </div>
 
-    <!-- BOOKING COMMISSION TRANSACTIONS TABLE -->
-    @php
-        $payments = $user ? Payment::with(['booking.turf', 'bookingDate'])
-            ->whereHas('booking.turf.location', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
-            ->latest()
-            ->paginate(10) : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
-    @endphp
+    <!-- WALLET STATEMENT & BOOKING COMMISSION TRANSACTIONS -->
+    <div class="bg-white rounded-3xl border border-gray-200 p-6 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-4">
+            <div>
+                <h3 class="text-base font-black text-gray-900 tracking-tight">Wallet Statement & Commission Ledger</h3>
+                <p class="text-xs text-gray-500">Real-time debit/credit audit trail of wallet balance and booking contributions.</p>
+            </div>
 
-
-    <div class="bg-white rounded-3xl border border-gray-200 p-6 space-y-4">
-        <div class="flex items-center justify-between">
-            <h3 class="text-base font-black text-gray-900">Booking Commission Ledger</h3>
-            <span class="text-xs text-gray-500">Per-payment breakdown</span>
+            <!-- Tab Switcher -->
+            <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
+                <button wire:click="$set('ledgerTab', 'transactions')" type="button"
+                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $ledgerTab === 'transactions' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
+                    📜 Wallet Statement (Passbook)
+                </button>
+                <button wire:click="$set('ledgerTab', 'bookings')" type="button"
+                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $ledgerTab === 'bookings' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
+                    📊 Booking Commission Ledger
+                </button>
+            </div>
         </div>
 
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-                <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
-                    <tr>
-                        <th class="p-3">Ref & Date</th>
-                        <th class="p-3">Method</th>
-                        <th class="p-3">Amount</th>
-                        <th class="p-3">Rate</th>
-                        <th class="p-3">Commission</th>
-                        <th class="p-3">Cash Held</th>
-                        <th class="p-3">Wallet Contribution</th>
-                        <th class="p-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100 text-gray-700">
-                    @forelse ($payments as $pmt)
-                        <tr class="hover:bg-gray-50/50">
-                            <td class="p-3">
-                                <span class="font-bold block text-gray-900">#{{ $pmt->booking_id }}</span>
-                                <span class="text-[10px] text-gray-400">{{ $pmt->created_at->format('d M, h:i A') }}</span>
-                            </td>
-                            <td class="p-3 font-semibold">
-                                <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $pmt->payment_method === 'App' ? 'bg-indigo-100 text-indigo-700 ' : 'bg-amber-100 text-amber-700 ' }}">
-                                    {{ $pmt->payment_method }}
-                                </span>
-                            </td>
-                            <td class="p-3 font-bold">₹{{ number_format($pmt->amount, 2) }}</td>
-                            <td class="p-3 font-mono text-gray-500">{{ number_format($pmt->commission_percentage ?? 7.00, 2) }}%</td>
-                            <td class="p-3 font-mono text-red-600">-₹{{ number_format($pmt->commission_amount ?? 0, 2) }}</td>
-                            <td class="p-3 font-mono text-gray-600">₹{{ number_format($pmt->cash_held_amount ?? 0, 2) }}</td>
-                            <td class="p-3 font-bold font-mono {{ ($pmt->turf_payout_amount ?? 0) < 0 ? 'text-red-600 ' : 'text-emerald-600 ' }}">
-                                {{ ($pmt->turf_payout_amount ?? 0) >= 0 ? '+' : '' }}₹{{ number_format($pmt->turf_payout_amount ?? 0, 2) }}
-                            </td>
-                            <td class="p-3">
-                                @if ($pmt->wallet_cleared_at)
-                                    <span class="text-[10px] font-black uppercase text-emerald-600">Cleared</span>
-                                @else
-                                    <span class="text-[10px] font-black uppercase text-amber-600">Pending</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
+        @if ($ledgerTab === 'transactions')
+            <!-- WALLET TRANSACTIONS STATEMENT (PASSBOOK) -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
                         <tr>
-                            <td colspan="8" class="p-6 text-center text-gray-400">No payment transaction records found.</td>
+                            <th class="p-3">Date & Time</th>
+                            <th class="p-3">Transaction Type</th>
+                            <th class="p-3">Details / Reference</th>
+                            <th class="p-3 text-right">Debit / Credit</th>
+                            <th class="p-3 text-right">Balance After</th>
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="pt-2">
-            {{ $payments->links() }}
-        </div>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-gray-700">
+                        @forelse ($walletTransactions as $tx)
+                            @php
+                                $isCredit = (float)$tx->amount >= 0;
+                            @endphp
+                            <tr class="hover:bg-gray-50/50 transition">
+                                <td class="p-3 whitespace-nowrap">
+                                    <span class="font-bold block text-gray-900">{{ $tx->created_at->format('d M Y') }}</span>
+                                    <span class="text-[10px] text-gray-400">{{ $tx->created_at->format('h:i A') }}</span>
+                                </td>
+                                <td class="p-3">
+                                    @if ($tx->type === 'payment_settlement')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            + Payout Credit
+                                        </span>
+                                    @elseif ($tx->type === 'refund_adjustment')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            - Refund Deduction
+                                        </span>
+                                    @elseif ($tx->type === 'payout_debit')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                                            - Bank Payout
+                                        </span>
+                                    @elseif ($tx->type === 'payout_reversal')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                            + Payout Reversal
+                                        </span>
+                                    @elseif ($tx->type === 'commission_due_settlement')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                            Debt Settlement
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
+                                            {{ ucfirst(str_replace('_', ' ', $tx->type)) }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="p-3">
+                                    @if ($tx->type === 'payment_settlement')
+                                        <div class="font-bold text-gray-900">
+                                            Booking #{{ $tx->reference?->booking_id ?? $tx->reference_id }} Session Earnings
+                                        </div>
+                                        <div class="text-[11px] text-gray-400">Online payment credited to wallet after session date</div>
+                                    @elseif ($tx->type === 'refund_adjustment')
+                                        <div class="font-bold text-rose-900">
+                                            Booking #{{ $tx->reference?->booking_id ?? $tx->reference_id }} Cancellation Refund Reversal
+                                        </div>
+                                        <div class="text-[11px] text-rose-600 font-medium">Customer refund adjusted from wallet balance</div>
+                                    @elseif ($tx->type === 'payout_debit')
+                                        <div class="font-bold text-gray-900">
+                                            Withdrawal Payout #{{ $tx->reference_id }}
+                                        </div>
+                                        <div class="text-[11px] text-gray-400">Transferred to registered bank account / UPI</div>
+                                    @elseif ($tx->type === 'payout_reversal')
+                                        <div class="font-bold text-gray-900">
+                                            Payout #{{ $tx->reference_id }} Reversal
+                                        </div>
+                                        <div class="text-[11px] text-gray-400">Payout failed and returned to wallet balance</div>
+                                    @else
+                                        <div class="font-bold text-gray-900">
+                                            {{ ucfirst(str_replace('_', ' ', $tx->type)) }} #{{ $tx->reference_id }}
+                                        </div>
+                                    @endif
+                                </td>
+                                <td class="p-3 text-right font-black font-mono text-sm whitespace-nowrap {{ $isCredit ? 'text-emerald-600' : 'text-rose-600' }}">
+                                    {{ $isCredit ? '+' : '-' }}₹{{ number_format(abs($tx->amount), 2) }}
+                                </td>
+                                <td class="p-3 text-right font-black font-mono text-sm whitespace-nowrap text-gray-900">
+                                    ₹{{ number_format($tx->balance_after, 2) }}
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-gray-400">
+                                    No wallet ledger transactions recorded yet.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="pt-2">
+                {{ $walletTransactions->links() }}
+            </div>
+        @else
+            <!-- BOOKING COMMISSION BREAKDOWN TABLE -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
+                        <tr>
+                            <th class="p-3">Ref & Date</th>
+                            <th class="p-3">Method</th>
+                            <th class="p-3">Amount</th>
+                            <th class="p-3">Rate</th>
+                            <th class="p-3">Commission</th>
+                            <th class="p-3">Cash Held</th>
+                            <th class="p-3">Wallet Contribution</th>
+                            <th class="p-3">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-gray-700">
+                        @forelse ($payments as $pmt)
+                            @php
+                                $isCancelled = $pmt->booking?->status === 'Cancelled';
+                                $refundAmt = (float)($pmt->refunded_amount ?? 0);
+                                $origContribution = (float)($pmt->turf_payout_amount ?? 0);
+                                $refundRatio = ($pmt->amount > 0 && $refundAmt > 0) ? min(1.0, $refundAmt / (float)$pmt->amount) : 0;
+                                $reversalDeduction = round($origContribution * $refundRatio, 2);
+                                $netAfterRefund = max(0.00, round($origContribution - $reversalDeduction, 2));
+                            @endphp
+                            <tr class="hover:bg-gray-50/50">
+                                <td class="p-3">
+                                    <span class="font-bold block text-gray-900">#{{ $pmt->booking_id }}</span>
+                                    <span class="text-[10px] text-gray-400">{{ $pmt->created_at->format('d M, h:i A') }}</span>
+                                </td>
+                                <td class="p-3 font-semibold">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase {{ $pmt->payment_method === 'App' ? 'bg-indigo-100 text-indigo-700 ' : 'bg-amber-100 text-amber-700 ' }}">
+                                        {{ $pmt->payment_method }}
+                                    </span>
+                                </td>
+                                <td class="p-3 font-bold">₹{{ number_format($pmt->amount, 2) }}</td>
+                                <td class="p-3 font-mono text-gray-500">{{ number_format($pmt->commission_percentage ?? 7.00, 2) }}%</td>
+                                <td class="p-3 font-mono text-red-600">-₹{{ number_format($pmt->commission_amount ?? 0, 2) }}</td>
+                                <td class="p-3 font-mono text-gray-600">₹{{ number_format($pmt->cash_held_amount ?? 0, 2) }}</td>
+                                <td class="p-3 font-mono">
+                                    @if ($isCancelled || $refundAmt > 0)
+                                        <div class="space-y-0.5">
+                                            <span class="text-xs font-bold text-gray-400 line-through block">
+                                                +₹{{ number_format($origContribution, 2) }}
+                                            </span>
+                                            <span class="text-[11px] font-bold text-rose-600 block">
+                                                -₹{{ number_format($reversalDeduction, 2) }} <span class="text-[9px] font-medium">(Refund Deduction)</span>
+                                            </span>
+                                            <span class="text-xs font-black text-emerald-600 block border-t border-gray-100 pt-0.5">
+                                                = ₹{{ number_format($netAfterRefund, 2) }} Net
+                                            </span>
+                                        </div>
+                                    @else
+                                        <span class="font-bold {{ ($pmt->turf_payout_amount ?? 0) < 0 ? 'text-red-600 ' : 'text-emerald-600 ' }}">
+                                            {{ ($pmt->turf_payout_amount ?? 0) >= 0 ? '+' : '' }}₹{{ number_format($pmt->turf_payout_amount ?? 0, 2) }}
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="p-3">
+                                    @if ($isCancelled)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                            Cancelled & Refunded
+                                        </span>
+                                    @elseif ($pmt->wallet_cleared_at)
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            Cleared
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-50 text-amber-700 border border-amber-200">
+                                            Pending
+                                        </span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="p-6 text-center text-gray-400">No payment transaction records found.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+            <div class="pt-2">
+                {{ $payments->links() }}
+            </div>
+        @endif
     </div>
 </div>
 
