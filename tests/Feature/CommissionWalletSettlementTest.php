@@ -175,11 +175,16 @@ class CommissionWalletSettlementTest extends TestCase
         $this->turfAdmin->refresh();
         $this->assertEquals(-72.00, (float)$this->turfAdmin->commission_wallet_balance);
 
-        // CommissionWalletTransaction should be recorded as commission_debit
-        $tx = \App\Models\CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)->first();
-        $this->assertNotNull($tx);
-        $this->assertEquals('commission_debit', $tx->type);
-        $this->assertEquals(-72.00, (float)$tx->amount);
+        // CommissionWalletTransactions should be recorded for platform fee debit and commission debit separately
+        $feeTx = \App\Models\CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
+            ->where('type', 'platform_fee_debit')->first();
+        $this->assertNotNull($feeTx);
+        $this->assertEquals(-2.00, (float)$feeTx->amount);
+
+        $commTx = \App\Models\CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
+            ->where('type', 'commission_debit')->first();
+        $this->assertNotNull($commTx);
+        $this->assertEquals(-70.00, (float)$commTx->amount);
 
         \Carbon\Carbon::setTestNow();
     }

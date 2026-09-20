@@ -1613,9 +1613,8 @@ class BookingController extends Controller
                 $isNegativeOrZeroContribution = $payoutContribution <= 0;
 
                 if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
-                    $txType = $payoutContribution < 0 ? 'commission_debit' : 'payment_settlement';
-                    $walletService->applyDelta($walletOwner, $payoutContribution, $txType, $payment);
-                    $payment->update(['wallet_cleared_at' => Carbon::now()]);
+                    $isOnline = ($paymentMethod === 'App');
+                    $walletService->settlePaymentWithTraits($walletOwner, $payment, $isOnline);
                 }
 
                 if ($razorpayPaymentId && $paymentMethod === 'App') {
@@ -2092,7 +2091,7 @@ class BookingController extends Controller
                         // Payment contribution was already applied to wallet -> Deduct entire refund amount
                         $reversalAmount = -round($paymentRefund, 2);
                         $walletService = new \App\Services\WalletService();
-                        $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
+                        $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment, "Booking #{$booking->id} Refund Adjustment");
 
                         $newPayoutAmount = max(0.00, round(((float)$payment->turf_payout_amount) - $paymentRefund, 2));
                         $payment->update([

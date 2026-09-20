@@ -520,22 +520,30 @@ new #[Layout('layouts.app')] class extends Component
                                     <span class="text-[10px] text-gray-400">{{ $tx->created_at->format('h:i A') }}</span>
                                 </td>
                                 <td class="p-3">
-                                    @if ($tx->type === 'payment_settlement')
-                                        @if ((float)$tx->amount >= 0)
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                + Payout Credit
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                                - Platform Fee & Commission
-                                            </span>
-                                        @endif
-                                    @elseif ($tx->type === 'commission_debit' || $tx->type === 'offline_commission_debit')
+                                    @if ($tx->type === 'payment_credit')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            + Booking Credit
+                                        </span>
+                                    @elseif ($tx->type === 'platform_fee_debit')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            - Platform Fee & Commission
+                                            - Platform Fee
+                                        </span>
+                                    @elseif ($tx->type === 'commission_debit')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            - Commission
+                                        </span>
+                                    @elseif ($tx->type === 'gateway_charge_debit')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            - PG Charges
+                                        </span>
+                                    @elseif ($tx->type === 'offline_booking_record')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                            Pay at Venue
                                         </span>
                                     @elseif ($tx->type === 'refund_adjustment')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
@@ -557,6 +565,18 @@ new #[Layout('layouts.app')] class extends Component
                                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                                             Debt Settlement
                                         </span>
+                                    @elseif ($tx->type === 'payment_settlement')
+                                        @if ((float)$tx->amount >= 0)
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                                + Payout Credit
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                                - Fee & Commission
+                                            </span>
+                                        @endif
                                     @else
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
                                             {{ ucfirst(str_replace('_', ' ', $tx->type)) }}
@@ -564,7 +584,22 @@ new #[Layout('layouts.app')] class extends Component
                                     @endif
                                 </td>
                                 <td class="p-3">
-                                    @if ($tx->type === 'commission_debit' || $tx->type === 'offline_commission_debit' || ($tx->type === 'payment_settlement' && (float)$tx->amount < 0))
+                                    @if ($tx->description)
+                                        <div class="font-bold text-gray-900">
+                                            {{ $tx->description }}
+                                        </div>
+                                        @if ($tx->type === 'payment_credit')
+                                            <div class="text-[11px] text-gray-400">Gross online payment collected via payment gateway</div>
+                                        @elseif ($tx->type === 'platform_fee_debit')
+                                            <div class="text-[11px] text-gray-400">One-time software platform fee & GST</div>
+                                        @elseif ($tx->type === 'commission_debit')
+                                            <div class="text-[11px] text-gray-400">One-time platform commission & GST</div>
+                                        @elseif ($tx->type === 'gateway_charge_debit')
+                                            <div class="text-[11px] text-gray-400">Payment gateway processing fees & GST</div>
+                                        @elseif ($tx->type === 'offline_booking_record')
+                                            <div class="text-[11px] text-gray-400">Customer pays full amount directly at turf counter</div>
+                                        @endif
+                                    @elseif ($tx->type === 'commission_debit' || $tx->type === 'offline_commission_debit' || ($tx->type === 'payment_settlement' && (float)$tx->amount < 0))
                                         <div class="font-bold text-gray-900">
                                             Booking #{{ $tx->reference?->booking_id ?? ($tx->reference?->id ?? $tx->reference_id) }} Platform Fee & Commission
                                         </div>
@@ -595,8 +630,14 @@ new #[Layout('layouts.app')] class extends Component
                                         </div>
                                     @endif
                                 </td>
-                                <td class="p-3 text-right font-black font-mono text-sm whitespace-nowrap {{ $isCredit ? 'text-emerald-600' : 'text-rose-600' }}">
-                                    {{ $isCredit ? '+' : '-' }}₹{{ number_format(abs($tx->amount), 2) }}
+                                <td class="p-3 text-right font-black font-mono text-sm whitespace-nowrap {{ (float)$tx->amount > 0 ? 'text-emerald-600' : ((float)$tx->amount < 0 ? 'text-rose-600' : 'text-slate-500') }}">
+                                    @if ((float)$tx->amount > 0)
+                                        +₹{{ number_format((float)$tx->amount, 2) }}
+                                    @elseif ((float)$tx->amount < 0)
+                                        -₹{{ number_format(abs((float)$tx->amount), 2) }}
+                                    @else
+                                        ₹0.00
+                                    @endif
                                 </td>
                                 <td class="p-3 text-right font-black font-mono text-sm whitespace-nowrap text-gray-900">
                                     ₹{{ number_format($tx->balance_after, 2) }}

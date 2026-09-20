@@ -43,10 +43,9 @@ class ClearMaturedWalletEntries extends Command
         $clearedCount = 0;
 
         foreach ($pendingPayments as $payment) {
-            $owner = $payment->booking->turf->location->user ?? null;
+            $owner = $payment->booking?->turf?->location?->user ?? null;
             if ($owner) {
-                $walletService->applyDelta($owner, (float)$payment->turf_payout_amount, 'payment_settlement', $payment);
-                $payment->update(['wallet_cleared_at' => Carbon::now()]);
+                $walletService->settlePaymentWithTraits($owner, $payment, isOnline: true);
                 $clearedCount++;
             }
         }

@@ -430,8 +430,8 @@ new #[Layout('layouts.app')] class extends Component
                             'paid_at' => Carbon::now(),
                         ]);
 
-                        if ($walletOwner && $payoutContribution < 0) {
-                            $walletService->applyDelta($walletOwner, $payoutContribution, 'commission_debit', $payment);
+                        if ($walletOwner) {
+                            $walletService->settlePaymentWithTraits($walletOwner, $payment, false);
                         }
 
                         $remainingToDistribute -= $paidForDate;

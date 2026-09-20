@@ -12,8 +12,10 @@ class CommissionWalletTransaction extends Model
     protected $fillable = [
         'user_id',
         'type',
+        'description',
         'amount',
         'balance_after',
+        'meta',
         'reference_type',
         'reference_id',
     ];
@@ -21,6 +23,7 @@ class CommissionWalletTransaction extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'balance_after' => 'decimal:2',
+        'meta' => 'array',
     ];
 
     public function user()
