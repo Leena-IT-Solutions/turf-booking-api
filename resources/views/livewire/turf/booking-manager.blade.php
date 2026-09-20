@@ -1687,23 +1687,18 @@ new #[Layout('layouts.app')] class extends Component
                                     </div>
                                 @endif
 
-                                <!-- Cancellation Action Button Row -->
-                                @if ($bDetail->status !== 'Cancelled')
-                                    <div class="p-3 bg-gray-50/80 flex items-center justify-between gap-3">
-                                        <p class="text-[11px] text-gray-500">Need to cancel booking or specific slots?</p>
-                                        <button wire:click="openCancelModal({{ $bDetail->id }})" class="py-2 px-4 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                <!-- Cancellation Status Notice -->
+                                @if ($bDetail->status === 'Cancelled')
+                                    <div class="p-3 bg-red-50/50 flex items-center justify-between gap-2 text-[11px] text-red-700 font-medium">
+                                        <div class="flex items-center gap-2">
+                                            <svg class="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                                             </svg>
-                                            Cancel Booking
-                                        </button>
-                                    </div>
-                                @else
-                                    <div class="p-3 bg-red-50/50 flex items-center gap-2 text-[11px] text-red-700 font-medium">
-                                        <svg class="w-4 h-4 shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                        </svg>
-                                        <span>This booking has been cancelled.</span>
+                                            <span>This booking has been cancelled.</span>
+                                        </div>
+                                        <a href="{{ route('turf.cancellations') }}" wire:navigate class="font-bold text-red-700 underline hover:text-red-900">
+                                            View in Cancellations &rarr;
+                                        </a>
                                     </div>
                                 @endif
 
