@@ -13,7 +13,7 @@ class ResetBookingData extends Command
      *
      * @var string
      */
-    protected $signature = 'bookings:reset {--force : Force the operation to run without confirmation prompt}';
+    protected $signature = 'bookings:reset {--force : Force the operation to run without confirmation prompt} {--with-wallet : Also reset wallet balances, transactions, and payouts}';
 
     /**
      * The console command description.
@@ -30,6 +30,11 @@ class ResetBookingData extends Command
         if (!$this->option('force') && !$this->confirm('Are you sure you want to delete all bookings and payment records? This action cannot be undone.')) {
             $this->info('Operation cancelled.');
             return 0;
+        }
+
+        $resetWallet = (bool) $this->option('with-wallet');
+        if (!$resetWallet && !$this->option('force')) {
+            $resetWallet = $this->confirm('Do you also want to reset wallet balances, payouts, and ledger entries back to ₹0.00?', true);
         }
 
         Schema::disableForeignKeyConstraints();
@@ -53,6 +58,11 @@ class ResetBookingData extends Command
         Schema::enableForeignKeyConstraints();
 
         $this->info('All bookings, booking dates, booking slots, payments, and related records have been successfully reset.');
+
+        if ($resetWallet) {
+            $this->call('wallet:reset', ['--force' => true]);
+        }
+
         return 0;
     }
 }
