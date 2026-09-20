@@ -275,6 +275,12 @@ new class extends Component
                             </svg>
                             <span class="ms-3">{{ __('Business & Earnings') }}</span>
                         </a>
+                        <a href="{{ route('turf.banking') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.banking') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.banking') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Banking') }}</span>
+                        </a>
                     </div>
 
 
@@ -680,6 +686,12 @@ new class extends Component
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span class="ms-3">{{ __('Business & Earnings') }}</span>
+                        </a>
+                        <a href="{{ route('turf.banking') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.banking') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.banking') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Banking') }}</span>
                         </a>
                     </div>
 

@@ -454,114 +454,25 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             </div>
         @else
-            <!-- PAYOUT REQUEST PANEL -->
-            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-emerald-200 shadow-xs space-y-5">
-                <div class="space-y-1">
-                    <span class="text-[10px] font-black uppercase tracking-wider text-emerald-600">WITHDRAWAL</span>
-                    <h3 class="text-xl font-black text-gray-900">Request Payout</h3>
-                    <p class="text-xs text-gray-500">Transfer available cleared earnings directly to your bank account or UPI ID.</p>
-                </div>
-
-                <div class="space-y-4 pt-2">
+            <!-- QUICK BANKING & WITHDRAWAL CALLOUT -->
+            <div class="bg-white p-6 sm:p-8 rounded-3xl border border-emerald-100 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="p-3.5 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" />
+                        </svg>
+                    </div>
                     <div>
-                        <x-input-label for="payoutAmount" :value="__('Withdrawal Amount (₹)')" />
-                        <x-text-input wire:model.live.debounce.250ms="payoutAmount" id="payoutAmount" type="number" step="0.01" min="1" max="{{ $balance }}" class="mt-1.5 block w-full text-xs font-mono" placeholder="0.00" />
-                        <span class="text-[10px] text-gray-400 font-semibold mt-1 block">Maximum available: ₹{{ number_format($balance, 2) }}</span>
-                        <x-input-error :messages="$errors->get('payoutAmount')" class="mt-2" />
+                        <h4 class="text-base font-black text-gray-900">Manage Bank Accounts & Withdraw Cleared Earnings</h4>
+                        <p class="text-xs text-gray-500">You have ₹{{ number_format(max(0, $balance), 2) }} available. Configure bank accounts/UPI or request manual and automatic payouts on the Banking page.</p>
                     </div>
-
-                    <button wire:click="requestPayout" type="button"
-                        class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md cursor-pointer">
-                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-                        <span>Submit Payout Request</span>
-                    </button>
-
-                    <!-- Payout Schedule Preference Section -->
-                    <div class="pt-4 border-t border-gray-100 space-y-3">
-                        <x-input-label :value="__('Automatic Payout Schedule')" />
-                        <div class="flex items-center gap-3">
-                            <select wire:model.live="payoutSchedule" class="text-xs rounded-xl border-gray-300 focus:ring-indigo-500">
-                                <option value="manual">Manual Request</option>
-                                <option value="daily">Daily Automatic</option>
-                                <option value="weekly">Weekly Automatic</option>
-                            </select>
-
-                            @if ($payoutSchedule === 'weekly')
-                                <select wire:model.live="payoutScheduleDay" class="text-xs rounded-xl border-gray-300 focus:ring-indigo-500">
-                                    <option value="1">Monday</option>
-                                    <option value="2">Tuesday</option>
-                                    <option value="3">Wednesday</option>
-                                    <option value="4">Thursday</option>
-                                    <option value="5">Friday</option>
-                                    <option value="6">Saturday</option>
-                                    <option value="0">Sunday</option>
-                                </select>
-                            @endif
-
-                            <button wire:click="saveSchedulePreference" type="button" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition cursor-pointer">
-                                Save Schedule
-                            </button>
-                        </div>
-                    </div>
-
                 </div>
+                <a href="{{ route('turf.banking') }}" wire:navigate
+                   class="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-xs transition-all shrink-0">
+                    <span>Open Banking & Payouts &rarr;</span>
+                </a>
             </div>
         @endif
-
-        <!-- BANK / UPI KYC DETAILS FORM -->
-        <div class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-xs space-y-5">
-            <div class="space-y-1">
-                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">ACCOUNT DETAILS</span>
-                <h3 class="text-xl font-black text-gray-900">Payout Receiving Details</h3>
-                <p class="text-xs text-gray-500">Provide bank account or UPI details to receive automated payouts.</p>
-            </div>
-
-            <form wire:submit="saveKycDetails" class="space-y-4 pt-2">
-                <!-- Method selection -->
-                <div class="flex items-center gap-4 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
-                    <button type="button" wire:click="$set('payoutMethod', 'bank')"
-                        class="flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $payoutMethod === 'bank' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
-                        Bank Account
-                    </button>
-                    <button type="button" wire:click="$set('payoutMethod', 'upi')"
-                        class="flex-1 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $payoutMethod === 'upi' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500' }}">
-                        UPI ID
-                    </button>
-                </div>
-
-                @if ($payoutMethod === 'bank')
-                    <div class="space-y-3">
-                        <div>
-                            <x-input-label for="bankAccountName" :value="__('Account Holder Name')" />
-                            <x-text-input wire:model.live.debounce.250ms="bankAccountName" id="bankAccountName" type="text" class="mt-1 block w-full text-xs" placeholder="Sandeep Rathod" />
-                            <x-input-error :messages="$errors->get('bankAccountName')" class="mt-1" />
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <x-input-label for="bankAccountNumber" :value="__('Account Number')" />
-                                <x-text-input wire:model.live.debounce.250ms="bankAccountNumber" id="bankAccountNumber" type="text" class="mt-1 block w-full font-mono text-xs" placeholder="9876543210123" />
-                                <x-input-error :messages="$errors->get('bankAccountNumber')" class="mt-1" />
-                            </div>
-                            <div>
-                                <x-input-label for="bankIfsc" :value="__('IFSC Code')" />
-                                <x-text-input wire:model.live.debounce.250ms="bankIfsc" id="bankIfsc" type="text" class="mt-1 block w-full font-mono text-xs uppercase" placeholder="SBIN0001234" />
-                                <x-input-error :messages="$errors->get('bankIfsc')" class="mt-1" />
-                            </div>
-                        </div>
-                    </div>
-                @else
-                    <div>
-                        <x-input-label for="upiId" :value="__('UPI ID')" />
-                        <x-text-input wire:model.live.debounce.250ms="upiId" id="upiId" type="text" class="mt-1 block w-full font-mono text-xs" placeholder="sandeep@upi" />
-                        <x-input-error :messages="$errors->get('upiId')" class="mt-1" />
-                    </div>
-                @endif
-
-                <button type="submit" class="w-full py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold transition hover:opacity-90 cursor-pointer">
-                    Save Payout Details
-                </button>
-            </form>
-        </div>
     </div>
 
     <!-- WALLET STATEMENT & BOOKING COMMISSION TRANSACTIONS -->
