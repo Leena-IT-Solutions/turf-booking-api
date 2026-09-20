@@ -169,6 +169,32 @@ class WalletService
     }
 
     /**
+     * Log an informational, zero-value ledger entry noting an actual offline collection (amount +
+     * method) against a booking whose commission/platform fee were already charged earlier — e.g. a
+     * "Pay at Location" booking is debited its commission/fee upfront at creation, before the real
+     * collection amount/method is known; when staff later collect it in tranches (Cash then UPI),
+     * each tranche needs its own audit-trail note even though the wallet was already settled.
+     * Does NOT touch commission/fee dedup or the payout figures — purely a ₹0 audit-trail record.
+     */
+    public function recordOfflineCollectionNote(User $user, Payment $payment): User
+    {
+        $booking = $payment->booking;
+        $bookingDisplayId = $booking ? ($booking->booking_id ?? $booking->id) : $payment->id;
+
+        return $this->recordTraits($user, [[
+            'type' => 'offline_booking_record',
+            'amount' => 0.00,
+            'description' => "Booking #{$bookingDisplayId} Pay at Venue (₹" . number_format((float)$payment->amount, 2) . " collected at venue)",
+            'meta' => [
+                'booking_id' => $booking?->id,
+                'payment_id' => $payment->id,
+                'cash_amount' => (float)$payment->amount,
+                'payment_method' => $payment->payment_method,
+            ],
+        ]], $payment);
+    }
+
+    /**
      * Settle a payment with itemized money traits:
      * - Online: Credit gross paid amount, debit full one-time platform fee, debit full one-time commission, debit PG charges.
      * - Offline: Record 0 cash at venue, debit full one-time platform fee, debit full one-time commission.

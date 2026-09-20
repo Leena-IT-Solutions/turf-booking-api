@@ -143,6 +143,13 @@ class BookingPaymentDistributor
                     ->where('status', 'Pending')
                     ->first();
 
+                // If the Pending placeholder was already wallet-cleared (e.g. a "Pay at Location"
+                // booking charges its commission/fee upfront at creation, before the real collection
+                // amount/method is known), reusing it here for the actual collection must NOT re-run
+                // financial settlement — but it still needs its own audit-trail note, since this row's
+                // original note (if any) described the anticipated amount, not what was really collected.
+                $reactivatingClearedPending = $existingPending ? (bool) $existingPending->wallet_cleared_at : false;
+
                 if ($existingPending && $paymentStatus === 'Success') {
                     $existingPending->update([
                         'payment_method' => $paymentMethod,
@@ -190,6 +197,8 @@ class BookingPaymentDistributor
                     $isOnline = ($paymentMethod === 'App');
                     if (!$payment->wallet_cleared_at) {
                         $walletService->settlePaymentWithTraits($walletOwner, $payment, $isOnline);
+                    } elseif ($reactivatingClearedPending) {
+                        $walletService->recordOfflineCollectionNote($walletOwner, $payment);
                     }
                 }
 

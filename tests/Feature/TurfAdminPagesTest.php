@@ -205,4 +205,100 @@ class TurfAdminPagesTest extends TestCase
 
         \Carbon\Carbon::setTestNow();
     }
+
+    public function test_each_real_offline_collection_gets_its_own_ledger_note(): void
+    {
+        \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-09-12 10:00:00'));
+
+        \App\Models\SaasSetting::create([
+            'commission_percentage' => 8.00,
+            'platform_fee' => 2.00,
+            'platform_fee_type' => 'fixed',
+            'platform_fee_gst_percentage' => 0.00,
+            'min_slots_booking' => 2,
+        ]);
+
+        $turfAdmin = User::factory()->create();
+        $turfAdmin->assignRole('turf-admin');
+
+        $location = \App\Models\Location::create([
+            'user_id' => $turfAdmin->id,
+            'name' => 'Repro Arena',
+            'address' => 'Mumbai',
+        ]);
+        $turf = \App\Models\Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Repro Turf',
+            'type' => 'Football',
+            'is_active' => true,
+            'is_pay_at_location_active' => true,
+        ]);
+
+        $category = \App\Models\SlotCategory::create(['name' => 'Cheap']);
+        $slotA = \App\Models\Slot::create(['slot_category_id' => $category->id, 'name' => '6-7 AM', 'from_time' => '06:00:00', 'to_time' => '07:00:00', 'duration' => 60]);
+        $slotB = \App\Models\Slot::create(['slot_category_id' => $category->id, 'name' => '7-8 AM', 'from_time' => '07:00:00', 'to_time' => '08:00:00', 'duration' => 60]);
+        foreach ([$slotA, $slotB] as $slot) {
+            $turf->slots()->attach($slot->id, [
+                'is_active' => true,
+                'mon' => 5.00, 'tue' => 5.00, 'wed' => 5.00,
+                'thu' => 5.00, 'fri' => 5.00, 'sat' => 5.00, 'sun' => 5.00,
+            ]);
+        }
+
+        $customer = User::factory()->create();
+        $bookingDate = now()->addDay()->format('Y-m-d');
+
+        // Customer chooses "Pay at Location" for the full Rs 12 -> creates a Pending placeholder payment.
+        $response = $this->actingAs($customer, 'sanctum')->postJson("/api/turfs/{$turf->id}/bookings", [
+            'slot_ids' => [$slotA->id, $slotB->id],
+            'booking_dates' => [$bookingDate],
+            'booking_type' => 'day',
+            'payment_method' => 'offline',
+            'payment_option' => 'full',
+        ]);
+        $response->assertStatus(200);
+        $bookingId = $response->json('booking.id');
+        $bDate = \App\Models\BookingDate::where('booking_id', $bookingId)->first();
+
+        // Staff actually collects the money in two tranches at the venue: Rs 6 Cash, then Rs 6 UPI.
+        $this->actingAs($turfAdmin);
+        Volt::test('turf.booking-manager')
+            ->call('openPaymentModal', $bDate->id)
+            ->set('paymentAmount', '6.00')
+            ->set('paymentMethod', 'Cash')
+            ->call('submitPayment');
+
+        Volt::test('turf.booking-manager')
+            ->call('openPaymentModal', $bDate->id)
+            ->set('paymentAmount', '6.00')
+            ->set('paymentMethod', 'UPI')
+            ->call('submitPayment');
+
+        // Every real collection event must leave its own audit-trail note — the original ₹12
+        // "anticipated" note from booking creation, PLUS one for the actual ₹6 Cash collection,
+        // PLUS one for the actual ₹6 UPI collection. Losing the Cash note (because its Payment row
+        // was a reused, already wallet-cleared Pending placeholder) breaks the money trail.
+        $notes = \App\Models\CommissionWalletTransaction::where('user_id', $turfAdmin->id)
+            ->where('type', 'offline_booking_record')
+            ->orderBy('id')
+            ->get();
+
+        $this->assertCount(3, $notes);
+        $this->assertStringContainsString('₹12.00', $notes[0]->description);
+        $this->assertStringContainsString('₹6.00', $notes[1]->description);
+        $this->assertStringContainsString('₹6.00', $notes[2]->description);
+
+        $paymentMethods = \App\Models\Payment::where('booking_date_id', $bDate->id)
+            ->orderBy('id')
+            ->pluck('payment_method')
+            ->toArray();
+        $this->assertEquals(['Cash', 'UPI'], $paymentMethods);
+
+        // These are Rs 0 informational notes only — the commission/fee wallet math (already
+        // verified elsewhere) must be unaffected by adding them.
+        $turfAdmin->refresh();
+        $this->assertEquals(-2.80, (float)$turfAdmin->commission_wallet_balance);
+
+        \Carbon\Carbon::setTestNow();
+    }
 }
