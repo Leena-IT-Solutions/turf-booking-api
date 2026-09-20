@@ -24,7 +24,7 @@ new #[Layout('layouts.app')] class extends Component
     public string $paymentStatusFilter = 'all';
     public string $bookingTypeFilter = 'all';
     public string $sortBy = 'newest';
-    public int $perPage = 15;
+    public int $perPage = 10;
 
     // Detail Drawer Modal
     public ?int $selectedBookingId = null;
@@ -45,6 +45,7 @@ new #[Layout('layouts.app')] class extends Component
     #[On('global-context-updated')]
     public function refreshContext()
     {
+        $this->perPage = 10;
         $this->resetPage();
     }
 
@@ -53,12 +54,19 @@ new #[Layout('layouts.app')] class extends Component
         $this->setQuickPreset('all');
     }
 
-    public function updatingSearch() { $this->resetPage(); }
-    public function updatingStatusFilter() { $this->resetPage(); }
-    public function updatingPaymentStatusFilter() { $this->resetPage(); }
-    public function updatingBookingTypeFilter() { $this->resetPage(); }
-    public function updatingStartDate() { $this->datePreset = 'custom'; $this->resetPage(); }
-    public function updatingEndDate() { $this->datePreset = 'custom'; $this->resetPage(); }
+    public function loadMore()
+    {
+        $this->perPage += 10;
+    }
+
+    public function updatingSearch() { $this->perPage = 10; $this->resetPage(); }
+    public function updatingStatusFilter() { $this->perPage = 10; $this->resetPage(); }
+    public function updatingPaymentStatusFilter() { $this->perPage = 10; $this->resetPage(); }
+    public function updatingBookingTypeFilter() { $this->perPage = 10; $this->resetPage(); }
+    public function updatingStartDate() { $this->perPage = 10; $this->datePreset = 'custom'; $this->resetPage(); }
+    public function updatingEndDate() { $this->perPage = 10; $this->datePreset = 'custom'; $this->resetPage(); }
+    public function updatingDatePreset() { $this->perPage = 10; $this->resetPage(); }
+    public function updatingSortBy() { $this->perPage = 10; $this->resetPage(); }
 
     public function formatConsecutiveSlots($bookingSlots): array
     {
@@ -142,11 +150,13 @@ new #[Layout('layouts.app')] class extends Component
             $this->endDate = '';
         }
 
+        $this->perPage = 10;
         $this->resetPage();
     }
 
     public function clearFilters()
     {
+        $this->perPage = 10;
         $this->search = '';
         $this->statusFilter = 'all';
         $this->paymentStatusFilter = 'all';
@@ -909,10 +919,33 @@ new #[Layout('layouts.app')] class extends Component
             @endforelse
         </div>
 
-        <!-- Pagination -->
-        <div class="mt-4">
-            {{ $bookings->links() }}
-        </div>
+        <!-- Infinite Scroll Sentinel & Load More Trigger -->
+        @if ($bookings->hasMorePages())
+            <div wire:intersect="loadMore" class="mt-8 py-4 flex flex-col items-center justify-center gap-2">
+                <button wire:click="loadMore" type="button" class="inline-flex items-center gap-2 px-6 py-2.5 bg-white hover:bg-gray-50 active:scale-95 transition-all rounded-full border border-gray-200 shadow-xs text-xs font-bold text-gray-700">
+                    <svg wire:loading.remove wire:target="loadMore" class="w-4 h-4 text-emerald-600 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                    </svg>
+                    <svg wire:loading wire:target="loadMore" class="animate-spin h-4 w-4 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span wire:loading.remove wire:target="loadMore">Scroll to load more ({{ $bookings->total() - $bookings->count() }} remaining)</span>
+                    <span wire:loading wire:target="loadMore">Loading next 10 bookings...</span>
+                </button>
+            </div>
+        @else
+            @if ($bookings->total() > 10)
+                <div class="mt-8 py-4 text-center">
+                    <span class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-xs font-semibold shadow-2xs">
+                        <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        All {{ $bookings->total() }} bookings loaded
+                    </span>
+                </div>
+            @endif
+        @endif
 
     </div>
 
