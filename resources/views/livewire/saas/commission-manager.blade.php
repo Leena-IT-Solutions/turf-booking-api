@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Booking;
+use App\Models\BookingCancellation;
 use App\Models\CommissionSettlement;
 use App\Models\Payment;
 use App\Models\Turf;
@@ -14,7 +15,7 @@ new #[Layout('layouts.app')] class extends Component
 {
     use WithPagination;
 
-    public string $activeTab = 'bookings'; // 'bookings', 'turfs', 'settlements'
+    public string $activeTab = 'bookings'; // 'bookings', 'cancellations', 'turfs', 'settlements'
     public string $search = '';
     public string $paymentMethodFilter = 'all';
     public string $datePreset = 'all';
@@ -26,9 +27,24 @@ new #[Layout('layouts.app')] class extends Component
 
     public function with(): array
     {
-        // Platform Commission KPI Totals
+        // 1. Commission earned from successful booking payments
         $totalCommissionEarned = (float) Payment::where('status', 'Success')->sum('commission_amount');
         $totalCommissionGst = (float) Payment::where('status', 'Success')->sum('commission_gst_amount');
+
+        // 2. Platform Fees collected from successful bookings
+        $totalPlatformFeeEarned = (float) Booking::whereHas('payments', function ($q) {
+            $q->where('status', 'Success');
+        })->sum('platform_fee');
+
+        // 3. Cancellation Fees earned by SaaS platform (SaaS cancellation charge + retained platform fee)
+        $totalCancellationFeeEarned = (float) BookingCancellation::sum('platform_cancellation_fee');
+        if ($totalCancellationFeeEarned <= 0) {
+            $totalCancellationFeeEarned = (float) (BookingCancellation::sum('saas_cancellation_fee') + BookingCancellation::sum('platform_fee_retained'));
+        }
+
+        // 4. Combined Total SaaS Booking & Cancellation Revenue
+        $totalCombinedSaaSEarnings = round($totalCommissionEarned + $totalPlatformFeeEarned + $totalCancellationFeeEarned, 2);
+
         $totalGrossBookingVolume = (float) Payment::where('status', 'Success')->sum('amount');
         $totalCommissionDue = abs((float) User::where('commission_wallet_balance', '<', 0)->sum('commission_wallet_balance'));
 
@@ -39,7 +55,7 @@ new #[Layout('layouts.app')] class extends Component
             })
             ->latest();
 
-        if ($this->search !== '') {
+        if ($this->search !== '' && $this->activeTab === 'bookings') {
             $term = '%' . $this->search . '%';
             $bookingsQuery->where(function ($q) use ($term) {
                 $q->where('booking_reference', 'like', $term)
@@ -71,7 +87,27 @@ new #[Layout('layouts.app')] class extends Component
 
         $bookings = $bookingsQuery->paginate(15);
 
-        // 2. Turf Managers Summary Query
+        // 2. Cancellations Revenue Query
+        $cancellationsQuery = BookingCancellation::with(['booking.turf.location.user', 'booking.user'])
+            ->latest();
+
+        if ($this->search !== '' && $this->activeTab === 'cancellations') {
+            $term = '%' . $this->search . '%';
+            $cancellationsQuery->where(function ($q) use ($term) {
+                $q->where('reason', 'like', $term)
+                  ->orWhereHas('booking', function ($bq) use ($term) {
+                      $bq->where('booking_reference', 'like', $term)
+                         ->orWhere('id', 'like', $term);
+                  })
+                  ->orWhereHas('booking.turf', function ($tq) use ($term) {
+                      $tq->where('name', 'like', $term);
+                  });
+            });
+        }
+
+        $cancellations = $cancellationsQuery->paginate(15);
+
+        // 3. Turf Managers Summary Query
         $managersQuery = User::whereHas('roles', function ($q) {
                 $q->whereIn('name', ['turf-admin', 'manager', 'admin']);
             })
@@ -87,7 +123,7 @@ new #[Layout('layouts.app')] class extends Component
 
         $managers = $managersQuery->paginate(15);
 
-        // 3. Commission Settlements Query (Debts paid by managers)
+        // 4. Commission Settlements Query (Debts paid by managers)
         $settlementsQuery = CommissionSettlement::with('user')->latest();
         if ($this->search !== '' && $this->activeTab === 'settlements') {
             $term = '%' . $this->search . '%';
@@ -101,11 +137,15 @@ new #[Layout('layouts.app')] class extends Component
         $settlements = $settlementsQuery->paginate(15);
 
         return [
+            'totalCombinedSaaSEarnings' => $totalCombinedSaaSEarnings,
             'totalCommissionEarned' => $totalCommissionEarned,
             'totalCommissionGst' => $totalCommissionGst,
+            'totalPlatformFeeEarned' => $totalPlatformFeeEarned,
+            'totalCancellationFeeEarned' => $totalCancellationFeeEarned,
             'totalGrossBookingVolume' => $totalGrossBookingVolume,
             'totalCommissionDue' => $totalCommissionDue,
             'bookings' => $bookings,
+            'cancellations' => $cancellations,
             'managers' => $managers,
             'settlements' => $settlements,
         ];
@@ -122,8 +162,8 @@ new #[Layout('layouts.app')] class extends Component
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Platform Commission</h1>
-                <p class="text-xs text-gray-500">Track platform booking commissions, GST breakdown, collected revenue, and manager commission dues.</p>
+                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Platform Earnings & Commission</h1>
+                <p class="text-xs text-gray-500">Comprehensive breakdown of platform revenue: Booking Commissions, Platform Fees, and Cancellation Charges.</p>
             </div>
         </div>
 
@@ -136,62 +176,62 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     </div>
 
-    <!-- STATS CARDS -->
+    <!-- 4 GRAND STATS CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Total Commission Earned -->
+        <!-- 1. Combined Total Earnings -->
         <div class="bg-white p-6 rounded-3xl border border-emerald-100 shadow-xs space-y-2">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">TOTAL COMMISSION</span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">TOTAL SAAS EARNINGS</span>
                 <span class="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 </span>
             </div>
             <div class="text-3xl font-black text-emerald-600">
-                ₹{{ number_format($totalCommissionEarned, 2) }}
+                ₹{{ number_format($totalCombinedSaaSEarnings, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500">Net platform fee earned across bookings</p>
+            <p class="text-[11px] text-gray-500">Commission + Platform Fee + Cancellation Fee</p>
         </div>
 
-        <!-- Commission GST Collected -->
+        <!-- 2. Booking Commission -->
         <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs space-y-2">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">COMMISSION GST</span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">BOOKING COMMISSION</span>
                 <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>
                 </span>
             </div>
             <div class="text-3xl font-black text-indigo-600">
-                ₹{{ number_format($totalCommissionGst, 2) }}
+                ₹{{ number_format($totalCommissionEarned, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500">CGST, SGST & IGST on platform fees</p>
+            <p class="text-[11px] text-gray-500">Platform % fee on slots (GST: ₹{{ number_format($totalCommissionGst, 2) }})</p>
         </div>
 
-        <!-- Gross Volume -->
-        <div class="bg-white p-6 rounded-3xl border border-blue-100 shadow-xs space-y-2">
+        <!-- 3. Platform Fees -->
+        <div class="bg-white p-6 rounded-3xl border border-purple-100 shadow-xs space-y-2">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">GROSS BOOKING VOLUME</span>
-                <span class="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">PLATFORM FEES</span>
+                <span class="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                 </span>
             </div>
-            <div class="text-3xl font-black text-blue-600">
-                ₹{{ number_format($totalGrossBookingVolume, 2) }}
+            <div class="text-3xl font-black text-purple-600">
+                ₹{{ number_format($totalPlatformFeeEarned, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500">Total customer transactions processed</p>
+            <p class="text-[11px] text-gray-500">Direct booking platform fees collected</p>
         </div>
 
-        <!-- Commission Due (Offline Cash) -->
+        <!-- 4. Cancellation Fees -->
         <div class="bg-white p-6 rounded-3xl border border-amber-100 shadow-xs space-y-2">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">COMMISSION DUE (CASH)</span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">CANCELLATION FEES</span>
                 <span class="p-2 bg-amber-50 text-amber-600 rounded-xl">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </span>
             </div>
             <div class="text-3xl font-black text-amber-600">
-                ₹{{ number_format($totalCommissionDue, 2) }}
+                ₹{{ number_format($totalCancellationFeeEarned, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500">Accrued fees due from offline cash bookings</p>
+            <p class="text-[11px] text-gray-500">SaaS cancellation charges & retained fees</p>
         </div>
     </div>
 
@@ -199,18 +239,22 @@ new #[Layout('layouts.app')] class extends Component
     <div class="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-gray-100 pb-4">
             <!-- Tabs -->
-            <div class="flex items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
+            <div class="flex flex-wrap items-center gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
                 <button wire:click="$set('activeTab', 'bookings')" type="button"
                     class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'bookings' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                    Bookings Commission
+                    📊 Bookings Revenue (Commission & Platform Fee)
+                </button>
+                <button wire:click="$set('activeTab', 'cancellations')" type="button"
+                    class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'cancellations' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
+                    ❌ Cancellation Fees
                 </button>
                 <button wire:click="$set('activeTab', 'turfs')" type="button"
                     class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'turfs' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                    Turf Managers Breakdown
+                    🏢 Turf Managers
                 </button>
                 <button wire:click="$set('activeTab', 'settlements')" type="button"
                     class="px-4 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'settlements' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-700' }}">
-                    Debt Settlements
+                    💳 Debt Settlements
                 </button>
             </div>
 
@@ -241,7 +285,7 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         @if ($activeTab === 'bookings')
-            <!-- Bookings Commission Table -->
+            <!-- Bookings Revenue Table -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead>
@@ -250,9 +294,10 @@ new #[Layout('layouts.app')] class extends Component
                             <th class="py-3 px-4">Turf Name</th>
                             <th class="py-3 px-4">Customer</th>
                             <th class="py-3 px-4">Booking Total</th>
-                            <th class="py-3 px-4">Rate (%)</th>
-                            <th class="py-3 px-4">Commission</th>
-                            <th class="py-3 px-4">GST</th>
+                            <th class="py-3 px-4">Commission %</th>
+                            <th class="py-3 px-4">Commission Earned</th>
+                            <th class="py-3 px-4">Platform Fee</th>
+                            <th class="py-3 px-4 text-emerald-700">Total SaaS Cut</th>
                             <th class="py-3 px-4">Method</th>
                             <th class="py-3 px-4">Date</th>
                         </tr>
@@ -262,10 +307,11 @@ new #[Layout('layouts.app')] class extends Component
                             @php
                                 $bPayMethod = $b->payments->firstWhere('status', 'Success')?->payment_method ?? 'App';
                                 $commAmount = (float)($b->commission_amount ?? $b->payments->where('status', 'Success')->sum('commission_amount'));
-                                $commGst = (float)($b->commission_gst_amount ?? $b->payments->where('status', 'Success')->sum('commission_gst_amount'));
+                                $platFee = (float)($b->platform_fee ?? 0);
+                                $totalSaaSCut = round($commAmount + $platFee, 2);
                             @endphp
                             <tr class="hover:bg-gray-50/50 transition">
-                                <td class="py-3.5 px-4 font-mono font-bold text-emerald-700">
+                                <td class="py-3.5 px-4 font-mono font-bold text-gray-900">
                                     {{ $b->booking_reference ?? ('#' . $b->id) }}
                                 </td>
                                 <td class="py-3.5 px-4 font-bold text-gray-900">
@@ -281,11 +327,14 @@ new #[Layout('layouts.app')] class extends Component
                                 <td class="py-3.5 px-4 font-semibold text-gray-600">
                                     {{ (float)($b->commission_rate ?? $b->turf?->commission_percentage ?? 7.00) }}%
                                 </td>
-                                <td class="py-3.5 px-4 font-black text-emerald-600 text-sm">
+                                <td class="py-3.5 px-4 font-black text-indigo-600">
                                     ₹{{ number_format($commAmount, 2) }}
                                 </td>
-                                <td class="py-3.5 px-4 text-gray-500 font-medium">
-                                    ₹{{ number_format($commGst, 2) }}
+                                <td class="py-3.5 px-4 font-black text-purple-600">
+                                    ₹{{ number_format($platFee, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 font-black text-emerald-700 text-sm bg-emerald-50/30">
+                                    ₹{{ number_format($totalSaaSCut, 2) }}
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold
@@ -299,8 +348,8 @@ new #[Layout('layouts.app')] class extends Component
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="py-12 text-center text-gray-400">
-                                    No commission records found.
+                                <td colspan="10" class="py-12 text-center text-gray-400">
+                                    No booking revenue records found.
                                 </td>
                             </tr>
                         @endforelse
@@ -310,6 +359,80 @@ new #[Layout('layouts.app')] class extends Component
 
             <div class="mt-4">
                 {{ $bookings->links() }}
+            </div>
+        @elseif ($activeTab === 'cancellations')
+            <!-- Cancellations Revenue Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-gray-200 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                            <th class="py-3 px-4">Booking Ref</th>
+                            <th class="py-3 px-4">Turf Name</th>
+                            <th class="py-3 px-4">Customer</th>
+                            <th class="py-3 px-4">Gross Cancelled</th>
+                            <th class="py-3 px-4">Turf Fee</th>
+                            <th class="py-3 px-4">Plat Fee Retained</th>
+                            <th class="py-3 px-4">SaaS Cancel Charge</th>
+                            <th class="py-3 px-4 text-amber-700">Total SaaS Cut</th>
+                            <th class="py-3 px-4">Refund Issued</th>
+                            <th class="py-3 px-4">Refund Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 font-medium text-gray-700">
+                        @forelse ($cancellations as $c)
+                            @php
+                                $cBreakup = $c->deductions_breakup;
+                                $saasTotalCut = round(($cBreakup['platform_fee_retained'] ?? 0) + ($cBreakup['saas_fee'] ?? 0), 2);
+                            @endphp
+                            <tr class="hover:bg-gray-50/50 transition">
+                                <td class="py-3.5 px-4 font-mono font-bold text-gray-900">
+                                    {{ $c->booking?->booking_reference ?? ('#' . $c->booking_id) }}
+                                </td>
+                                <td class="py-3.5 px-4 font-bold text-gray-900">
+                                    {{ $c->booking?->turf?->name ?? 'N/A' }}
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <div class="font-semibold text-gray-900">{{ $c->booking?->user?->name ?? 'N/A' }}</div>
+                                    <div class="text-[11px] text-gray-400">{{ $c->booking?->user?->phone }}</div>
+                                </td>
+                                <td class="py-3.5 px-4 font-bold text-gray-900">
+                                    ₹{{ number_format($c->gross_cancelled_amount, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 font-semibold text-gray-600">
+                                    ₹{{ number_format($cBreakup['turf_fee'] ?? 0, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 font-black text-purple-600">
+                                    ₹{{ number_format($cBreakup['platform_fee_retained'] ?? 0, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 font-black text-amber-600">
+                                    ₹{{ number_format($cBreakup['saas_fee'] ?? 0, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 font-black text-amber-700 text-sm bg-amber-50/30">
+                                    ₹{{ number_format($saasTotalCut, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 font-black text-emerald-600">
+                                    ₹{{ number_format($c->refund_amount, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
+                                        {{ in_array($c->refund_status, ['Refunded', 'Resolved']) ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
+                                        {{ $c->refund_status }}
+                                    </span>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="10" class="py-12 text-center text-gray-400">
+                                    No cancellation fee records found.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4">
+                {{ $cancellations->links() }}
             </div>
         @elseif ($activeTab === 'turfs')
             <!-- Turf Managers Summary Table -->

@@ -37,7 +37,9 @@ class SaasBusinessPagesTest extends TestCase
     {
         $response = $this->actingAs($this->saasAdmin)->get(route('saas.commissions'));
         $response->assertStatus(200);
-        $response->assertSee('Platform Commission');
+        $response->assertSee('Platform Earnings & Commission', false);
+        $response->assertSee('Platform Fees');
+        $response->assertSee('Cancellation Fees');
     }
 
     public function test_saas_admin_can_access_payouts_page(): void
