@@ -33,6 +33,21 @@ new #[Layout('layouts.app')] class extends Component
 
     public string $ledgerTab = 'transactions'; // 'transactions' or 'bookings'
 
+    // Infinite-scroll page sizes for the two ledger tables — grow by 10 as the user scrolls
+    // to the bottom, instead of numbered page links.
+    public int $txPerPage = 10;
+    public int $pmtPerPage = 10;
+
+    public function loadMoreTx(): void
+    {
+        $this->txPerPage += 10;
+    }
+
+    public function loadMorePmt(): void
+    {
+        $this->pmtPerPage += 10;
+    }
+
     public function mount()
     {
         $user = auth()->user();
@@ -59,12 +74,12 @@ new #[Layout('layouts.app')] class extends Component
     {
         $user = auth()->user();
 
-        $walletTransactions = $user 
+        $walletTransactions = $user
             ? CommissionWalletTransaction::where('user_id', $user->id)
                 ->with('reference')
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
-                ->paginate(10, ['*'], 'txPage')
+                ->paginate($this->txPerPage, ['*'], 'txPage', 1)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
         $payments = $user ? Payment::with(['booking.turf', 'bookingDate'])
@@ -72,7 +87,7 @@ new #[Layout('layouts.app')] class extends Component
                 $q->where('user_id', $user->id);
             })
             ->latest()
-            ->paginate(10, ['*'], 'pmtPage')
+            ->paginate($this->pmtPerPage, ['*'], 'pmtPage', 1)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
         return [
@@ -635,7 +650,29 @@ new #[Layout('layouts.app')] class extends Component
                 </table>
             </div>
             <div class="pt-2">
-                {{ $walletTransactions->links() }}
+                @if ($walletTransactions->hasMorePages())
+                    <div
+                        x-data
+                        x-init="
+                            const observer = new IntersectionObserver((entries) => {
+                                if (entries[0].isIntersecting) { $wire.loadMoreTx(); }
+                            }, { rootMargin: '300px' });
+                            observer.observe($el);
+                        "
+                        wire:key="tx-load-more-sentinel"
+                        class="py-4 flex items-center justify-center gap-2 text-xs font-semibold text-gray-400"
+                    >
+                        <svg class="animate-spin h-4 w-4 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Loading more…
+                    </div>
+                @else
+                    <div class="py-3 text-center text-[11px] font-semibold tracking-wide text-gray-400">
+                        — End of statement · {{ $walletTransactions->total() }} total —
+                    </div>
+                @endif
             </div>
         @else
             <!-- BOOKING COMMISSION BREAKDOWN TABLE -->
@@ -696,7 +733,29 @@ new #[Layout('layouts.app')] class extends Component
                 </table>
             </div>
             <div class="pt-2">
-                {{ $payments->links() }}
+                @if ($payments->hasMorePages())
+                    <div
+                        x-data
+                        x-init="
+                            const observer = new IntersectionObserver((entries) => {
+                                if (entries[0].isIntersecting) { $wire.loadMorePmt(); }
+                            }, { rootMargin: '300px' });
+                            observer.observe($el);
+                        "
+                        wire:key="pmt-load-more-sentinel"
+                        class="py-4 flex items-center justify-center gap-2 text-xs font-semibold text-gray-400"
+                    >
+                        <svg class="animate-spin h-4 w-4 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        Loading more…
+                    </div>
+                @else
+                    <div class="py-3 text-center text-[11px] font-semibold tracking-wide text-gray-400">
+                        — End of records · {{ $payments->total() }} total —
+                    </div>
+                @endif
             </div>
         @endif
     </div>
