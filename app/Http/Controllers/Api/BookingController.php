@@ -1545,7 +1545,9 @@ class BookingController extends Controller
 
                 $turfShareWithGst = round($turfTaxableBase + (float)$bDate->turf_gst_amount, 2);
                 $cashHeld = $paymentMethod === 'App' ? min($paidForDate, $turfShareWithGst) : 0.00;
-                $payoutContribution = round($cashHeld - ($commData['total_commission_deduction'] ?? $commData['commission_amount']), 2);
+                $dateGatewayTotal = round($dateGatewayCharge + $dateGatewayTax, 2);
+                $payoutContribution = round($cashHeld - ($commData['total_commission_deduction'] ?? $commData['commission_amount']) - $dateGatewayTotal, 2);
+                $payoutContribution = max(0.00, $payoutContribution);
 
                 $payment = Payment::create([
                     'booking_id' => $booking->id,
@@ -1578,10 +1580,10 @@ class BookingController extends Controller
 
                 // Check wallet clearance logic
                 $isBookingMatured = $bDate->booking_date <= Carbon::today()->format('Y-m-d');
-                $isNegativeOrZeroContribution = $commData['turf_payout_amount'] <= 0;
+                $isNegativeOrZeroContribution = $payoutContribution <= 0;
 
                 if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
-                    $walletService->applyDelta($walletOwner, $commData['turf_payout_amount'], 'payment_settlement', $payment);
+                    $walletService->applyDelta($walletOwner, $payoutContribution, 'payment_settlement', $payment);
                     $payment->update(['wallet_cleared_at' => Carbon::now()]);
                 }
 
@@ -1604,6 +1606,7 @@ class BookingController extends Controller
         $booking->update([
             'gateway_charge_amount' => (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('gateway_charge_amount'),
             'gateway_tax_amount' => (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('gateway_tax_amount'),
+            'turf_payout_amount' => (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('turf_payout_amount'),
         ]);
 
         $this->recalculateBookingPaymentStatus($booking);

@@ -690,15 +690,15 @@ new #[Layout('layouts.app')] class extends Component
                         $balance = max(0.00, $totalAmount - $paidSum);
                     }
 
-                    if ((float)($b->turf_payout_amount ?? 0) > 0) {
-                        $payoutAmount = (float)$b->turf_payout_amount;
-                    } else {
-                        $pPlatformFeeTotal = (float)($b->platform_fee ?? 0) + (float)($b->platform_fee_gst ?? 0);
-                        $pCommissionTotal = (float)($b->commission_amount ?? 0) + (float)($b->commission_gst_amount ?? 0);
-                        $pGatewayTotal = (float)($b->gateway_charge_amount ?? 0) + (float)($b->gateway_tax_amount ?? 0);
-                        $pDeductions = round($pPlatformFeeTotal + $pCommissionTotal + $pGatewayTotal, 2);
-                        $payoutAmount = round(max(0.00, $totalAmount - $pDeductions), 2);
-                    }
+                    $bPlatformFeeTotal = (float)($b->platform_fee ?? 0) + (float)($b->platform_fee_gst ?? 0);
+                    $bCommissionTotal = (float)($b->commission_amount ?? 0) + (float)($b->commission_gst_amount ?? 0);
+                    $bGatewayCharge = (float)($b->gateway_charge_amount ?? 0);
+                    $bGatewayTax = (float)($b->gateway_tax_amount ?? 0);
+                    $bGatewayTotal = round($bGatewayCharge + $bGatewayTax, 2);
+
+                    $totalDeductions = round($bPlatformFeeTotal + $bCommissionTotal + $bGatewayTotal, 2);
+                    $effectivePaidAmt = (float)$paidSum > 0 ? (float)$paidSum : (float)$totalAmount;
+                    $payoutAmount = round(max(0.00, $effectivePaidAmt - $totalDeductions), 2);
 
                     // For long / scattered bookings, slot timings per session remain identical across dates.
                     // Aggregate distinct daily consecutive ranges across all booking dates so duplicate intervals aren't created.
