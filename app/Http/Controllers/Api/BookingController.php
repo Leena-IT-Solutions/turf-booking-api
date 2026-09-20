@@ -505,7 +505,7 @@ class BookingController extends Controller
             ->with('category')
             ->wherePivot('is_active', true)
             ->get()
-            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $isTodaySelected, $nowTime, $lockedSlotMap) {
+            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $dates, $today, $nowTime, $lockedSlotMap) {
                 // Determine slot price
                 $fromTime24 = date('H:i', strtotime($slot->from_time));
                 $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
@@ -525,7 +525,13 @@ class BookingController extends Controller
                 $fromFormatted = date('h:i A', strtotime($slot->from_time));
                 $toFormatted = date('h:i A', strtotime($slot->to_time));
 
-                $isPast = ($isTodaySelected && $slot->from_time < $nowTime);
+                $isPast = false;
+                foreach ($dates as $d) {
+                    if ($d < $today || ($d === $today && $slot->from_time < $nowTime)) {
+                        $isPast = true;
+                        break;
+                    }
+                }
                 $isLocked = isset($lockedSlotMap[$slot->id]);
                 $lockReason = $lockedSlotMap[$slot->id] ?? null;
 
