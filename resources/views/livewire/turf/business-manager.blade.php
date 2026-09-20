@@ -735,9 +735,8 @@ new #[Layout('layouts.app')] class extends Component
                             <th class="p-3">Method</th>
                             <th class="p-3">Amount</th>
                             <th class="p-3">Rate</th>
-                            <th class="p-3">Commission</th>
+                            <th class="p-3">Commission Paid</th>
                             <th class="p-3">Cash Held</th>
-                            <th class="p-3">Wallet Contribution</th>
                             <th class="p-3">Status</th>
                         </tr>
                     </thead>
@@ -745,12 +744,8 @@ new #[Layout('layouts.app')] class extends Component
                         @forelse ($payments as $pmt)
                             @php
                                 $isCancelled = $pmt->booking?->status === 'Cancelled';
-                                $refundAmt = (float)($pmt->refunded_amount ?? 0);
-                                $origContribution = (float)($pmt->turf_payout_amount ?? 0);
-                                $reversalDeduction = $refundAmt;
-                                $netAfterRefund = max(0.00, round($origContribution - $reversalDeduction, 2));
                             @endphp
-                            <tr class="hover:bg-gray-50/50">
+                            <tr class="hover:bg-gray-50/50 transition">
                                 <td class="p-3">
                                     <span class="font-bold block text-gray-900">#{{ $pmt->booking_id }}</span>
                                     <span class="text-[10px] text-gray-400">{{ $pmt->created_at->format('d M, h:i A') }}</span>
@@ -762,27 +757,8 @@ new #[Layout('layouts.app')] class extends Component
                                 </td>
                                 <td class="p-3 font-bold">₹{{ number_format($pmt->amount, 2) }}</td>
                                 <td class="p-3 font-mono text-gray-500">{{ number_format($pmt->commission_percentage ?? 7.00, 2) }}%</td>
-                                <td class="p-3 font-mono text-red-600">-₹{{ number_format($pmt->commission_amount ?? 0, 2) }}</td>
+                                <td class="p-3 font-mono font-bold text-red-600">-₹{{ number_format($pmt->commission_amount ?? 0, 2) }}</td>
                                 <td class="p-3 font-mono text-gray-600">₹{{ number_format($pmt->cash_held_amount ?? 0, 2) }}</td>
-                                <td class="p-3 font-mono">
-                                    @if ($isCancelled || $refundAmt > 0)
-                                        <div class="space-y-0.5">
-                                            <span class="text-xs font-bold text-gray-400 line-through block">
-                                                +₹{{ number_format($origContribution, 2) }}
-                                            </span>
-                                            <span class="text-[11px] font-bold text-rose-600 block">
-                                                -₹{{ number_format($reversalDeduction, 2) }} <span class="text-[9px] font-medium">(Refund Deduction)</span>
-                                            </span>
-                                            <span class="text-xs font-black text-emerald-600 block border-t border-gray-100 pt-0.5">
-                                                = ₹{{ number_format($netAfterRefund, 2) }} Net
-                                            </span>
-                                        </div>
-                                    @else
-                                        <span class="font-bold {{ ($pmt->turf_payout_amount ?? 0) < 0 ? 'text-red-600 ' : 'text-emerald-600 ' }}">
-                                            {{ ($pmt->turf_payout_amount ?? 0) >= 0 ? '+' : '' }}₹{{ number_format($pmt->turf_payout_amount ?? 0, 2) }}
-                                        </span>
-                                    @endif
-                                </td>
                                 <td class="p-3">
                                     @if ($isCancelled)
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-rose-50 text-rose-700 border border-rose-200">
@@ -801,7 +777,7 @@ new #[Layout('layouts.app')] class extends Component
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="8" class="p-6 text-center text-gray-400">No payment transaction records found.</td>
+                                <td colspan="7" class="p-6 text-center text-gray-400">No payment transaction records found.</td>
                             </tr>
                         @endforelse
                     </tbody>
