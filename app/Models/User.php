@@ -128,6 +128,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the locations owned by this user.
+     */
+    public function locations()
+    {
+        return $this->hasMany(Location::class);
+    }
+
+    /**
      * Get a query builder of manageable locations for this user.
      */
     public function manageableLocations()

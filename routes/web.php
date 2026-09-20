@@ -83,6 +83,12 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/payouts', 'saas.payout-manager')
         ->middleware('role:saas-admin')
         ->name('saas.payouts');
+    Volt::route('saas/subscriptions', 'saas.subscription-earnings-manager')
+        ->middleware('role:saas-admin')
+        ->name('saas.subscriptions');
+    Volt::route('saas/commissions', 'saas.commission-manager')
+        ->middleware('role:saas-admin')
+        ->name('saas.commissions');
 
     Volt::route('saas/administrator', 'saas.administrator-dashboard')
         ->middleware('role:saas-admin')
