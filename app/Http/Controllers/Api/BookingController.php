@@ -128,7 +128,8 @@ class BookingController extends Controller
             }
         }
 
-        $bookingDates = $query->paginate(50);
+        $perPage = max(1, min(100, (int)$request->query('per_page', 10)));
+        $bookingDates = $query->paginate($perPage);
             
         $formatted = $bookingDates->through(function ($bDate) {
             $booking = $bDate->booking;
