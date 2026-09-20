@@ -336,6 +336,37 @@ class BookingCalculationAndTaxTest extends TestCase
         $this->assertEquals(505.90, round($balanceSum, 2));
     }
 
+    public function test_flat_part_payment_per_slot_plus_platform_fee(): void
+    {
+        $this->turf->update([
+            'is_part_payment_active' => true,
+            'part_payment_type' => 'flat',
+            'part_payment_value' => 5.00, // 5 Rs per slot
+        ]);
+
+        $calculator = new BookingPricingCalculator();
+        $dateItems = [
+            [
+                'date' => '2026-09-21',
+                'subtotal' => 2000.00,
+                'coupon_discount' => 0.00,
+                'additional_discount' => 0.00,
+                'slots' => [101, 102, 103, 104], // 4 slots
+            ],
+        ];
+
+        $res = $calculator->calculatePricing($this->turf, $dateItems, 0.00, 'App', 'part');
+
+        $this->assertTrue($res['is_part_payment']);
+        // 4 slots * 5 Rs = 20 Rs deposit + 10 Rs platform fee + 1.80 GST = 31.80 Rs
+        // In this test environment, platform fee is 10 + 1.80 = 11.80, so 20 + 11.80 = 31.80
+        $platformFeeTotal = $res['platform_fee'] + $res['platform_fee_gst'];
+        $expectedPayableNow = round(20.00 + $platformFeeTotal, 2);
+
+        $this->assertEquals($expectedPayableNow, $res['payable_now']);
+        $this->assertEquals(round($res['total_amount'] - $expectedPayableNow, 2), $res['balance_amount']);
+    }
+
     public function test_booking_creation_and_database_persistence(): void
     {
         $dateStr = now()->addDays(2)->format('Y-m-d');

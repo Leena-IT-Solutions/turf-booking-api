@@ -255,9 +255,24 @@ class BookingPricingCalculator
             $isPartPayment = true;
             $partType = $turf->part_payment_type ?? 'percentage';
             $partVal = (float) ($turf->part_payment_value ?? 0.00);
+            $platformFeeTotal = round($platformFee + $platformFeeGst, 2);
 
             if ($partType === 'flat') {
-                $payableNow = min($partVal, $grandTotalAmount);
+                // Flat deposit is configured per slot
+                $totalSlotsCount = 0;
+                foreach ($processedDates as $pDate) {
+                    $totalSlotsCount += count($pDate['slots'] ?? []);
+                }
+                if ($totalSlotsCount <= 0) {
+                    $totalSlotsCount = count($processedDates);
+                }
+                $totalSlotsCount = max(1, $totalSlotsCount);
+
+                $slotDeposit = round($partVal * $totalSlotsCount, 2);
+                $slotDeposit = min($slotDeposit, $totalTurfTotal);
+
+                // Platform fee is charged online upfront in payable_now
+                $payableNow = min($grandTotalAmount, round($slotDeposit + $platformFeeTotal, 2));
             } else {
                 $payableNow = round($grandTotalAmount * ($partVal / 100), 2);
             }
