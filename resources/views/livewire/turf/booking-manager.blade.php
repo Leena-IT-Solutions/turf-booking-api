@@ -690,6 +690,16 @@ new #[Layout('layouts.app')] class extends Component
                         $balance = max(0.00, $totalAmount - $paidSum);
                     }
 
+                    if ((float)($b->turf_payout_amount ?? 0) > 0) {
+                        $payoutAmount = (float)$b->turf_payout_amount;
+                    } else {
+                        $pPlatformFeeTotal = (float)($b->platform_fee ?? 0) + (float)($b->platform_fee_gst ?? 0);
+                        $pCommissionTotal = (float)($b->commission_amount ?? 0) + (float)($b->commission_gst_amount ?? 0);
+                        $pGatewayTotal = (float)($b->gateway_charge_amount ?? 0) + (float)($b->gateway_tax_amount ?? 0);
+                        $pDeductions = round($pPlatformFeeTotal + $pCommissionTotal + $pGatewayTotal, 2);
+                        $payoutAmount = round(max(0.00, $totalAmount - $pDeductions), 2);
+                    }
+
                     // For long / scattered bookings, slot timings per session remain identical across dates.
                     // Aggregate distinct daily consecutive ranges across all booking dates so duplicate intervals aren't created.
                     $dailyRanges = [];
@@ -867,12 +877,29 @@ new #[Layout('layouts.app')] class extends Component
 
                     <!-- 3. Full-Width Footer Action & Financials Bar -->
                     <div class="px-5 sm:px-6 py-3.5 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between gap-4">
-                        <!-- Left: Total Financial Amount & Due Badge -->
-                        <div class="flex items-center gap-3">
+                        <!-- Left: Total Financial Amount, Payout Amount & Due Badge -->
+                        <div class="flex flex-wrap items-center gap-4 sm:gap-6">
+                            <!-- Total Booking Amount -->
                             <div>
                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Amount</span>
                                 <div class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                                     ₹{{ number_format($totalAmount, 2) }}
+                                </div>
+                            </div>
+
+                            <!-- Vertical Divider -->
+                            <div class="h-8 w-px bg-slate-200 hidden sm:block"></div>
+
+                            <!-- Turf Payout / Net Earnings -->
+                            <div>
+                                <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider block flex items-center gap-1">
+                                    <svg class="w-3 h-3 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    Payout Amount
+                                </span>
+                                <div class="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">
+                                    ₹{{ number_format($payoutAmount, 2) }}
                                 </div>
                             </div>
 
