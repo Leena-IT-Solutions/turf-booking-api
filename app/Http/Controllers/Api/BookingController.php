@@ -71,14 +71,30 @@ class BookingController extends Controller
                 if ($date > $today) {
                     $query->whereRaw('1 = 0');
                 } else {
-                    $query->whereDate('booking_date', $date);
+                    $query->whereDate('booking_date', $date)
+                          ->where('status', '!=', 'Cancelled')
+                          ->whereHas('booking', function ($q) {
+                              $q->where('status', '!=', 'Cancelled');
+                          });
                 }
             } elseif ($filter === 'upcoming') {
                 if ($date < $today) {
                     $query->whereRaw('1 = 0');
                 } else {
-                    $query->whereDate('booking_date', $date);
+                    $query->whereDate('booking_date', $date)
+                          ->where('status', '!=', 'Cancelled')
+                          ->whereHas('booking', function ($q) {
+                              $q->where('status', '!=', 'Cancelled');
+                          });
                 }
+            } elseif ($filter === 'cancelled') {
+                $query->whereDate('booking_date', $date)
+                      ->where(function ($q) {
+                          $q->where('status', 'Cancelled')
+                            ->orWhereHas('booking', function ($bq) {
+                                $bq->where('status', 'Cancelled');
+                            });
+                      });
             } else {
                 // 'all' filter
                 $query->whereDate('booking_date', $date);
@@ -86,10 +102,26 @@ class BookingController extends Controller
         } else {
             if ($filter === 'past') {
                 $query->where('booking_date', '<=', $today)
+                      ->where('status', '!=', 'Cancelled')
+                      ->whereHas('booking', function ($q) {
+                          $q->where('status', '!=', 'Cancelled');
+                      })
                       ->orderBy('booking_date', 'desc');
             } elseif ($filter === 'upcoming') {
                 $query->where('booking_date', '>=', $today)
+                      ->where('status', '!=', 'Cancelled')
+                      ->whereHas('booking', function ($q) {
+                          $q->where('status', '!=', 'Cancelled');
+                      })
                       ->orderBy('booking_date', 'asc');
+            } elseif ($filter === 'cancelled') {
+                $query->where(function ($q) {
+                          $q->where('status', 'Cancelled')
+                            ->orWhereHas('booking', function ($bq) {
+                                $bq->where('status', 'Cancelled');
+                            });
+                      })
+                      ->orderByRaw('COALESCE(cancelled_at, updated_at) DESC');
             } else {
                 // 'all'
                 $query->orderBy('booking_date', 'desc');

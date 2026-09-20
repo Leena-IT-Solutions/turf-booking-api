@@ -95,7 +95,30 @@ class BookingApiTest extends TestCase
             'slot_id' => $slot1->id,
         ]);
 
-        // Fetch upcoming (default)
+        // 3. Create a cancelled booking (day after tomorrow)
+        $bookingCancelled = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Cancelled',
+            'payment_status' => 'Paid',
+            'additional_discount' => 0.00,
+        ]);
+        $inTwoDaysRaw = now()->addDays(2)->toDateString();
+        $inTwoDaysFormatted = \Carbon\Carbon::parse($inTwoDaysRaw)->format('F d, Y');
+        $bDateCancelled = $bookingCancelled->bookingDates()->create([
+            'booking_date' => $inTwoDaysRaw,
+            'amount' => 1800,
+            'status' => 'Cancelled',
+            'additional_discount' => 0.00,
+            'cancelled_at' => now(),
+        ]);
+        $bDateCancelled->bookingSlots()->create([
+            'slot_id' => $slot1->id,
+        ]);
+
+        // Fetch upcoming (default) - should NOT include cancelled booking
         $response = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=upcoming');
         $response->assertStatus(200);
         $data = $response->json('data');
@@ -103,13 +126,21 @@ class BookingApiTest extends TestCase
         $this->assertEquals($tomorrowFormatted, $data[0]['booking_date']);
         $this->assertEquals('₹1,500.00', $data[0]['price']);
 
-        // Fetch past
+        // Fetch past - should NOT include cancelled booking
         $responsePast = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=past');
         $responsePast->assertStatus(200);
         $dataPast = $responsePast->json('data');
         $this->assertCount(1, $dataPast);
         $this->assertEquals($yesterdayFormatted, $dataPast[0]['booking_date']);
         $this->assertEquals('₹2,000.00', $dataPast[0]['price']);
+
+        // Fetch cancelled - should return the cancelled booking
+        $responseCancelled = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=cancelled');
+        $responseCancelled->assertStatus(200);
+        $dataCancelled = $responseCancelled->json('data');
+        $this->assertCount(1, $dataCancelled);
+        $this->assertEquals($inTwoDaysFormatted, $dataCancelled[0]['booking_date']);
+        $this->assertEquals('Cancelled', $dataCancelled[0]['status']);
     }
 
     public function test_booking_preview_and_manager_record_payment(): void
