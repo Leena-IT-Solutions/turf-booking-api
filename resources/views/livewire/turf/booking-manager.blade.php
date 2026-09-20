@@ -413,24 +413,38 @@ new #[Layout('layouts.app')] class extends Component
                         $totalSaaSCutForDate = round($commDeduction + $datePlatformFee, 2);
                         $payoutContribution = -$totalSaaSCutForDate;
 
-                        $payment = Payment::create([
-                            'booking_id' => $booking->id,
-                            'booking_date_id' => $bDate->id,
-                            'payment_method' => $this->paymentMethod,
-                            'amount' => $paidForDate,
-                            'commission_percentage' => $commData['rate'] ?? 7.00,
-                            'commission_amount' => $commData['commission_amount'] ?? 0.00,
-                            'commission_gst_amount' => $commData['commission_gst_amount'] ?? 0.00,
-                            'cash_held_amount' => 0.00,
-                            'turf_payout_amount' => $payoutContribution,
-                            'gateway_charge_amount' => 0.00,
-                            'gateway_tax_amount' => 0.00,
-                            'wallet_cleared_at' => Carbon::now(),
-                            'status' => 'Success',
-                            'paid_at' => Carbon::now(),
-                        ]);
+                        $existingPending = Payment::where('booking_date_id', $bDate->id)
+                            ->where('status', 'Pending')
+                            ->first();
 
-                        if ($walletOwner) {
+                        if ($existingPending) {
+                            $existingPending->update([
+                                'payment_method' => $this->paymentMethod,
+                                'amount' => $paidForDate,
+                                'status' => 'Success',
+                                'paid_at' => Carbon::now(),
+                            ]);
+                            $payment = $existingPending;
+                        } else {
+                            $payment = Payment::create([
+                                'booking_id' => $booking->id,
+                                'booking_date_id' => $bDate->id,
+                                'payment_method' => $this->paymentMethod,
+                                'amount' => $paidForDate,
+                                'commission_percentage' => $commData['rate'] ?? 7.00,
+                                'commission_amount' => $commData['commission_amount'] ?? 0.00,
+                                'commission_gst_amount' => $commData['commission_gst_amount'] ?? 0.00,
+                                'cash_held_amount' => 0.00,
+                                'turf_payout_amount' => $payoutContribution,
+                                'gateway_charge_amount' => 0.00,
+                                'gateway_tax_amount' => 0.00,
+                                'wallet_cleared_at' => null,
+                                'status' => 'Success',
+                                'paid_at' => Carbon::now(),
+                            ]);
+                        }
+
+                        if ($walletOwner && !$payment->wallet_cleared_at) {
                             $walletService->settlePaymentWithTraits($walletOwner, $payment, false);
                         }
 

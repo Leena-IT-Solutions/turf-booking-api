@@ -161,12 +161,14 @@ class CommissionWalletSettlementTest extends TestCase
         $bookingId = $response->json('booking.id');
 
         $booking = Booking::with(['bookingDates', 'payments'])->find($bookingId);
-        $this->assertEquals('Paid', $booking->payment_status);
-        $this->assertEquals(0.00, (float)$booking->balance_amount);
+        $this->assertEquals('Unpaid', $booking->payment_status);
+        $this->assertEquals(1002.00, (float)$booking->balance_amount);
+        $this->assertEquals(0.00, (float)$booking->payable_now);
         $this->assertCount(1, $booking->payments);
 
         $payment = $booking->payments->first();
         $this->assertEquals('offline', $payment->payment_method);
+        $this->assertEquals('Pending', $payment->status);
         // Base is 1000. 7% commission is 70. Platform fee is 2. Total SaaS Cut = 72.
         $this->assertEquals(70.00, (float)$payment->commission_amount);
         $this->assertEquals(-72.00, (float)$payment->turf_payout_amount);

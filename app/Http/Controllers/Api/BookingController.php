@@ -1128,15 +1128,19 @@ class BookingController extends Controller
                 } elseif ($paymentMethod === 'offline' || $paymentOption === 'pay_at_location') {
                     // Customer chose Pay at Location:
                     // The customer will pay the turf owner directly at the venue (offline).
-                    // Distribute full payment to booking with paymentMethod 'offline', which records the payment,
-                    // calculates SaaS commission & platform fee, and debits the Total SaaS Cut from the turf owner's wallet.
+                    // Record payment with status 'Pending' so the booking remains Unpaid with full balance,
+                    // while calculating SaaS commission & platform fee to debit from the turf owner's wallet upfront.
                     $this->distributePaymentToBooking(
                         $booking,
                         (float)$pricing['total_amount'],
                         'offline',
                         null,
                         0.00,
-                        0.00
+                        0.00,
+                        null,
+                        null,
+                        null,
+                        'Pending'
                     );
                 }
             }
@@ -1491,7 +1495,8 @@ class BookingController extends Controller
         float $gatewayTax = 0.00,
         ?string $razorpayOrderId = null,
         ?string $razorpaySignature = null,
-        ?array $responsePayload = null
+        ?array $responsePayload = null,
+        string $paymentStatus = 'Success'
     ): void {
         if ($amountToDistribute <= 0) {
             return;
@@ -1587,25 +1592,39 @@ class BookingController extends Controller
                 $totalSaaSCutForDate = round($commDeduction + $effectivePlatformFee, 2);
                 $payoutContribution = round($cashHeld - $totalSaaSCutForDate - $dateGatewayTotal, 2);
 
-                $payment = Payment::create([
-                    'booking_id' => $booking->id,
-                    'booking_date_id' => $bDate->id,
-                    'payment_method' => $paymentMethod,
-                    'amount' => $paidForDate,
-                    'commission_percentage' => $commData['rate'],
-                    'commission_amount' => $commData['commission_amount'],
-                    'commission_gst_amount' => $commData['commission_gst_amount'] ?? 0.00,
-                    'commission_cgst_amount' => $commData['commission_cgst_amount'] ?? 0.00,
-                    'commission_sgst_amount' => $commData['commission_sgst_amount'] ?? 0.00,
-                    'commission_igst_amount' => $commData['commission_igst_amount'] ?? 0.00,
-                    'cash_held_amount' => $cashHeld,
-                    'turf_payout_amount' => $payoutContribution,
-                    'gateway_charge_amount' => $dateGatewayCharge,
-                    'gateway_tax_amount' => $dateGatewayTax,
-                    'wallet_cleared_at' => null,
-                    'status' => 'Success',
-                    'paid_at' => Carbon::now(),
-                ]);
+                $existingPending = Payment::where('booking_date_id', $bDate->id)
+                    ->where('status', 'Pending')
+                    ->first();
+
+                if ($existingPending && $paymentStatus === 'Success') {
+                    $existingPending->update([
+                        'payment_method' => $paymentMethod,
+                        'amount' => $paidForDate,
+                        'status' => 'Success',
+                        'paid_at' => Carbon::now(),
+                    ]);
+                    $payment = $existingPending;
+                } else {
+                    $payment = Payment::create([
+                        'booking_id' => $booking->id,
+                        'booking_date_id' => $bDate->id,
+                        'payment_method' => $paymentMethod,
+                        'amount' => $paidForDate,
+                        'commission_percentage' => $commData['rate'],
+                        'commission_amount' => $commData['commission_amount'],
+                        'commission_gst_amount' => $commData['commission_gst_amount'] ?? 0.00,
+                        'commission_cgst_amount' => $commData['commission_cgst_amount'] ?? 0.00,
+                        'commission_sgst_amount' => $commData['commission_sgst_amount'] ?? 0.00,
+                        'commission_igst_amount' => $commData['commission_igst_amount'] ?? 0.00,
+                        'cash_held_amount' => $cashHeld,
+                        'turf_payout_amount' => $payoutContribution,
+                        'gateway_charge_amount' => $dateGatewayCharge,
+                        'gateway_tax_amount' => $dateGatewayTax,
+                        'wallet_cleared_at' => null,
+                        'status' => $paymentStatus,
+                        'paid_at' => $paymentStatus === 'Success' ? Carbon::now() : null,
+                    ]);
+                }
 
                 // Update this booking date's paid_amount and balance_amount
                 $currentPaidForDate = (float) Payment::where('booking_date_id', $bDate->id)
@@ -1622,7 +1641,9 @@ class BookingController extends Controller
 
                 if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
                     $isOnline = ($paymentMethod === 'App');
-                    $walletService->settlePaymentWithTraits($walletOwner, $payment, $isOnline);
+                    if (!$payment->wallet_cleared_at) {
+                        $walletService->settlePaymentWithTraits($walletOwner, $payment, $isOnline);
+                    }
                 }
 
                 if ($razorpayPaymentId && $paymentMethod === 'App') {
