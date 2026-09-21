@@ -90,9 +90,23 @@ new #[Layout('layouts.app')] class extends Component
             ->paginate($this->pmtPerPage, ['*'], 'pmtPage', 1)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
+        $pendingPayments = $user ? Payment::with(['booking', 'bookingDate'])
+            ->whereHas('booking.turf.location', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->whereNull('wallet_cleared_at')
+            ->where('status', 'Success')
+            ->where('turf_payout_amount', '>', 0)
+            ->limit(25)
+            ->get()
+            ->sortBy(fn ($p) => $p->bookingDate?->booking_date ?? '9999-12-31')
+            ->values()
+            : collect();
+
         return [
             'walletTransactions' => $walletTransactions,
             'payments' => $payments,
+            'pendingPayments' => $pendingPayments,
         ];
     }
 
@@ -493,6 +507,32 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         @if ($ledgerTab === 'transactions')
+            @if ($pendingPayments->isNotEmpty())
+                <div class="rounded-2xl border border-amber-200 bg-amber-50/50 divide-y divide-amber-100 mb-4">
+                    <div class="px-4 py-3 flex items-center justify-between">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                            ⏳ Pending Clearance — not yet in the statement below
+                        </span>
+                        <span class="text-[10px] text-amber-600 font-semibold">{{ $pendingPayments->count() }} item{{ $pendingPayments->count() === 1 ? '' : 's' }}</span>
+                    </div>
+                    @foreach ($pendingPayments as $pp)
+                        @php $expectedDate = $pp->bookingDate?->booking_date; @endphp
+                        <div class="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-xs">
+                            <div>
+                                <span class="font-bold text-gray-900">Booking #{{ $pp->booking_id }}</span>
+                                <span class="text-gray-500"> — ₹{{ number_format((float)$pp->turf_payout_amount, 2) }} online payment pending clearance</span>
+                            </div>
+                            <span class="text-[11px] font-semibold text-amber-700">
+                                Expected {{ $expectedDate ? \Carbon\Carbon::parse($expectedDate)->format('d M Y') : 'on booking date' }}
+                            </span>
+                        </div>
+                    @endforeach
+                    <div class="px-4 py-2.5 text-[10px] text-amber-600">
+                        These online payments post automatically to your wallet statement once each booking date passes.
+                    </div>
+                </div>
+            @endif
+
             <!-- WALLET TRANSACTIONS STATEMENT (PASSBOOK) -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
