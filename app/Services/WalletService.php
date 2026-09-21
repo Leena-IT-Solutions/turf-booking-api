@@ -230,7 +230,7 @@ class WalletService
         $commAlreadyDebited = CommissionWalletTransaction::where('user_id', $user->id)
             ->where('type', 'commission_debit')
             ->where('reference_type', Payment::class)
-            ->where('reference_id', $payment->id)
+            ->whereIn('reference_id', $bookingPaymentIds)
             ->exists();
 
         $platformFee = 0.00;
@@ -240,7 +240,9 @@ class WalletService
 
         $commission = 0.00;
         if (!$commAlreadyDebited) {
-            $commission = round((float)$payment->commission_amount + (float)$payment->commission_gst_amount, 2);
+            $bookingCommission = $booking ? round((float)$booking->commission_amount + (float)$booking->commission_gst_amount, 2) : 0.00;
+            $paymentCommission = round((float)$payment->commission_amount + (float)$payment->commission_gst_amount, 2);
+            $commission = ($bookingCommission > 0) ? $bookingCommission : $paymentCommission;
         }
 
         $gatewayCharges = 0.00;
@@ -315,14 +317,52 @@ class WalletService
         }
 
         $booking = $payment->booking;
+        $bDate = $payment->bookingDate;
         $bookingDisplayId = $booking ? ($booking->booking_id ?? $booking->id) : $payment->id;
         $traits = [];
 
-        $grossAmount = 0.00;
-        if ($isOnline) {
-            $grossAmount = round((float)$payment->amount - (float)($payment->refunded_amount ?? 0), 2);
+        if ($isOnline && $booking && $bDate) {
+            // This date's proportional share of the booking's gross payments and net payout.
+            // Gross payment is credited to the wallet (+Booking Credit) because deductions
+            // (platform fee, commission, PG charges) are debited separately as debit traits.
+            // Net entitlement is stored in turf_payout_amount for Pending Clearance tracking.
+            $bookingPaymentIds = Payment::where('booking_id', $booking->id)->pluck('id')->toArray();
+
+            $totalPaid = round(
+                (float) Payment::whereIn('id', $bookingPaymentIds)->where('status', 'Success')->sum('amount')
+                - (float) Payment::whereIn('id', $bookingPaymentIds)->sum('refunded_amount'),
+                2
+            );
+            $totalDeductionsPosted = (float) CommissionWalletTransaction::where('reference_type', Payment::class)
+                ->whereIn('reference_id', $bookingPaymentIds)
+                ->whereIn('type', ['platform_fee_debit', 'commission_debit', 'gateway_charge_debit'])
+                ->sum('amount'); // stored negative
+            $netPayoutSoFar = round($totalPaid + $totalDeductionsPosted, 2);
+
+            $activeDates = $booking->bookingDates()->where('status', '!=', 'Cancelled')->get();
+            $totalDateWeight = (float) $activeDates->sum('amount');
+            $thisDateWeight = (float) $bDate->amount;
+
+            // Gross entitlement for passbook credit (+Booking Credit trait)
+            $dateGrossEntitlement = $totalDateWeight > 0
+                ? round($totalPaid * ($thisDateWeight / $totalDateWeight), 2)
+                : 0.00;
+
+            // Net entitlement for turf_payout_amount (Pending Clearance panel & payout tracking)
+            $dateNetEntitlement = $totalDateWeight > 0
+                ? round($netPayoutSoFar * ($thisDateWeight / $totalDateWeight), 2)
+                : 0.00;
+
+            $dateBookingPaymentIds = Payment::where('booking_date_id', $bDate->id)->pluck('id')->toArray();
+            $alreadyCreditedForDate = (float) CommissionWalletTransaction::where('reference_type', Payment::class)
+                ->whereIn('reference_id', $dateBookingPaymentIds)
+                ->where('type', 'payment_credit')
+                ->sum('amount');
+
+            $grossAmount = round($dateGrossEntitlement - $alreadyCreditedForDate, 2);
+
             if ($grossAmount > 0) {
-                $isPart = ($booking && (float)$booking->balance_amount > 0);
+                $isPart = ((float)$booking->balance_amount > 0);
                 $creditLabel = $isPart
                     ? "Booking #{$bookingDisplayId} Online Part Payment Received"
                     : "Booking #{$bookingDisplayId} Online Payment Received";
@@ -332,14 +372,22 @@ class WalletService
                     'amount' => $grossAmount,
                     'description' => $creditLabel,
                     'meta' => [
-                        'booking_id' => $booking?->id,
+                        'booking_id' => $booking->id,
+                        'booking_date_id' => $bDate->id,
                         'payment_id' => $payment->id,
                         'payment_method' => $payment->payment_method,
                         'gross_amount' => $grossAmount,
+                        'date_net_entitlement' => $dateNetEntitlement,
                     ],
                 ];
             }
+
+            $payment->update([
+                'turf_payout_amount' => $dateNetEntitlement,
+                'wallet_cleared_at' => now(),
+            ]);
         } else {
+            // Offline: unchanged -- informational note only, no credit trait.
             $traits[] = [
                 'type' => 'offline_booking_record',
                 'amount' => 0.00,
@@ -350,22 +398,8 @@ class WalletService
                     'cash_amount' => (float)$payment->amount,
                 ],
             ];
+            $payment->update(['wallet_cleared_at' => now()]);
         }
-
-        // Net payout = credited gross (refund-adjusted) minus whatever deductions were actually
-        // posted for THIS payment specifically (sum straight from the ledger -- always accurate
-        // regardless of when settleDeductions() ran, and naturally zero for any deduction type
-        // that was deduped because an earlier payment on the same booking/date already covered it).
-        $postedDeductions = (float) CommissionWalletTransaction::where('reference_type', Payment::class)
-            ->where('reference_id', $payment->id)
-            ->whereIn('type', ['platform_fee_debit', 'commission_debit', 'gateway_charge_debit'])
-            ->sum('amount');
-        $netContribution = round($grossAmount + $postedDeductions, 2);
-
-        $payment->update([
-            'turf_payout_amount' => $netContribution,
-            'wallet_cleared_at' => now(),
-        ]);
 
         if (empty($traits)) {
             return $user;

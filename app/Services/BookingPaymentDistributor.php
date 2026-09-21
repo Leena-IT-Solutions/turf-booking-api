@@ -67,8 +67,6 @@ class BookingPaymentDistributor
         $commissionCalc = new CommissionCalculator();
         $walletService = new WalletService();
 
-        $allocatedGatewayCharge = 0.00;
-        $allocatedGatewayTax = 0.00;
         $totalPlatformFeeWithGst = round((float)$booking->platform_fee + (float)$booking->platform_fee_gst, 2);
         $allocatedPlatformFee = 0.00;
 
@@ -79,22 +77,21 @@ class BookingPaymentDistributor
 
             if ($index === $count - 1) {
                 $paidForDate = round($remainingToDistribute, 2);
-                $dateGatewayCharge = round($gatewayCharge - $allocatedGatewayCharge, 2);
-                $dateGatewayTax = round($gatewayTax - $allocatedGatewayTax, 2);
                 $datePlatformFee = round($totalPlatformFeeWithGst - $allocatedPlatformFee, 2);
             } else {
                 $ratio = $dateBalances[$bDate->id] / $totalRemainingBalance;
                 $paidForDate = round($actualAmountToDistribute * $ratio, 2);
                 $paidForDate = min($paidForDate, $remainingToDistribute);
 
-                $dateGatewayCharge = round($gatewayCharge * $ratio, 2);
-                $dateGatewayTax = round($gatewayTax * $ratio, 2);
-                $allocatedGatewayCharge += $dateGatewayCharge;
-                $allocatedGatewayTax += $dateGatewayTax;
-
                 $datePlatformFee = round($totalPlatformFeeWithGst * ($paidForDate / $actualAmountToDistribute), 2);
                 $allocatedPlatformFee += $datePlatformFee;
             }
+
+            // The gateway fee belongs to this ONE transaction, not to any individual date -- assign it
+            // in full to the first date this call touches, and nothing to the rest, so it posts to the
+            // wallet exactly once per transaction instead of being fragmented across every date it covers.
+            $dateGatewayCharge = ($index === 0) ? round($gatewayCharge, 2) : 0.00;
+            $dateGatewayTax = ($index === 0) ? round($gatewayTax, 2) : 0.00;
 
             if ($paidForDate > 0) {
                 // Calculate commission breakdown strictly on turf's taxable earnings, excluding platform fee.
