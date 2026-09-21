@@ -119,8 +119,9 @@ class PassbookFourTraitsTest extends TestCase
             'paid_at' => now(),
         ]);
 
-        // Settle payment with traits for online booking
-        $walletService->settlePaymentWithTraits($this->turfAdmin, $payment, true);
+        // Settle payment with traits for online booking (deductions first, then credit)
+        $walletService->settleDeductions($this->turfAdmin, $payment, true);
+        $walletService->settleCredit($this->turfAdmin, $payment, true);
 
         // Fetch wallet transactions for this turf admin
         $transactions = CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
@@ -128,39 +129,39 @@ class PassbookFourTraitsTest extends TestCase
             ->get();
 
         // Must record all 4 traits:
-        // 1. Payment Credit (Gross: +1000.00)
-        // 2. Platform Fee (-5.00)
-        // 3. Commission (-100.00)
-        // 4. Gateway Charges (-23.60)
+        // 1. Platform Fee (-5.00)
+        // 2. Commission (-100.00)
+        // 3. Gateway Charges (-23.60)
+        // 4. Payment Credit (Gross: +1000.00)
         $this->assertCount(4, $transactions);
 
-        // Trait 1: Payment Credit
+        // Trait 1: Platform Fee
         $t1 = $transactions[0];
-        $this->assertEquals('payment_credit', $t1->type);
-        $this->assertEquals(1000.00, (float)$t1->amount);
-        $this->assertEquals(1000.00, (float)$t1->balance_after);
-        $this->assertStringContainsString('Online Payment Received', $t1->description);
+        $this->assertEquals('platform_fee_debit', $t1->type);
+        $this->assertEquals(-5.00, (float)$t1->amount);
+        $this->assertEquals(-5.00, (float)$t1->balance_after);
+        $this->assertStringContainsString('Platform Fee', $t1->description);
 
-        // Trait 2: Platform Fee
+        // Trait 2: Commission
         $t2 = $transactions[1];
-        $this->assertEquals('platform_fee_debit', $t2->type);
-        $this->assertEquals(-5.00, (float)$t2->amount);
-        $this->assertEquals(995.00, (float)$t2->balance_after);
-        $this->assertStringContainsString('Platform Fee', $t2->description);
+        $this->assertEquals('commission_debit', $t2->type);
+        $this->assertEquals(-100.00, (float)$t2->amount);
+        $this->assertEquals(-105.00, (float)$t2->balance_after);
+        $this->assertStringContainsString('Platform Commission', $t2->description);
 
-        // Trait 3: Commission
+        // Trait 3: PG Charges
         $t3 = $transactions[2];
-        $this->assertEquals('commission_debit', $t3->type);
-        $this->assertEquals(-100.00, (float)$t3->amount);
-        $this->assertEquals(895.00, (float)$t3->balance_after);
-        $this->assertStringContainsString('Platform Commission', $t3->description);
+        $this->assertEquals('gateway_charge_debit', $t3->type);
+        $this->assertEquals(-23.60, (float)$t3->amount);
+        $this->assertEquals(-128.60, (float)$t3->balance_after);
+        $this->assertStringContainsString('Payment Gateway Charges', $t3->description);
 
-        // Trait 4: PG Charges
+        // Trait 4: Payment Credit
         $t4 = $transactions[3];
-        $this->assertEquals('gateway_charge_debit', $t4->type);
-        $this->assertEquals(-23.60, (float)$t4->amount);
+        $this->assertEquals('payment_credit', $t4->type);
+        $this->assertEquals(1000.00, (float)$t4->amount);
         $this->assertEquals(871.40, (float)$t4->balance_after);
-        $this->assertStringContainsString('Payment Gateway Charges', $t4->description);
+        $this->assertStringContainsString('Online Payment Received', $t4->description);
 
         // Net wallet balance should equal final balance_after (871.40)
         $this->turfAdmin->refresh();
@@ -186,7 +187,8 @@ class PassbookFourTraitsTest extends TestCase
         ]);
 
         // Settle payment with traits for offline booking
-        $walletService->settlePaymentWithTraits($this->turfAdmin, $payment, false);
+        $walletService->settleDeductions($this->turfAdmin, $payment, false);
+        $walletService->settleCredit($this->turfAdmin, $payment, false);
 
         $transactions = CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
             ->orderBy('id', 'asc')
@@ -194,24 +196,24 @@ class PassbookFourTraitsTest extends TestCase
 
         $this->assertCount(3, $transactions);
 
-        // Trait 1: Offline booking record (0.00) anchors starting balance
+        // Trait 1: Platform Fee debit (-5.00)
         $t1 = $transactions[0];
-        $this->assertEquals('offline_booking_record', $t1->type);
-        $this->assertEquals(0.00, (float)$t1->amount);
-        $this->assertEquals(0.00, (float)$t1->balance_after);
-        $this->assertStringContainsString('Pay at Venue', $t1->description);
+        $this->assertEquals('platform_fee_debit', $t1->type);
+        $this->assertEquals(-5.00, (float)$t1->amount);
+        $this->assertEquals(-5.00, (float)$t1->balance_after);
 
         // Trait 2: Commission debit (-100.00)
         $t2 = $transactions[1];
         $this->assertEquals('commission_debit', $t2->type);
         $this->assertEquals(-100.00, (float)$t2->amount);
-        $this->assertEquals(-100.00, (float)$t2->balance_after);
+        $this->assertEquals(-105.00, (float)$t2->balance_after);
 
-        // Trait 3: Platform Fee debit (-5.00)
+        // Trait 3: Offline booking record (0.00)
         $t3 = $transactions[2];
-        $this->assertEquals('platform_fee_debit', $t3->type);
-        $this->assertEquals(-5.00, (float)$t3->amount);
+        $this->assertEquals('offline_booking_record', $t3->type);
+        $this->assertEquals(0.00, (float)$t3->amount);
         $this->assertEquals(-105.00, (float)$t3->balance_after);
+        $this->assertStringContainsString('Pay at Venue', $t3->description);
 
         $this->turfAdmin->refresh();
         $this->assertEquals(-105.00, (float)$this->turfAdmin->commission_wallet_balance);
@@ -222,14 +224,14 @@ class PassbookFourTraitsTest extends TestCase
             ->orderByDesc('id')
             ->get();
 
-        $this->assertEquals('platform_fee_debit', $descTransactions[0]->type);
+        $this->assertEquals('offline_booking_record', $descTransactions[0]->type);
         $this->assertEquals(-105.00, (float)$descTransactions[0]->balance_after);
 
         $this->assertEquals('commission_debit', $descTransactions[1]->type);
-        $this->assertEquals(-100.00, (float)$descTransactions[1]->balance_after);
+        $this->assertEquals(-105.00, (float)$descTransactions[1]->balance_after);
 
-        $this->assertEquals('offline_booking_record', $descTransactions[2]->type);
-        $this->assertEquals(0.00, (float)$descTransactions[2]->balance_after);
+        $this->assertEquals('platform_fee_debit', $descTransactions[2]->type);
+        $this->assertEquals(-5.00, (float)$descTransactions[2]->balance_after);
     }
 
     public function test_passbook_livewire_component_renders_four_traits()

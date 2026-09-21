@@ -36,7 +36,8 @@ class ClearMaturedWalletEntries extends Command
             ->where('status', 'Success')
             ->where('turf_payout_amount', '>', 0)
             ->whereHas('bookingDate', function ($query) use ($today) {
-                $query->where('booking_date', '<=', $today);
+                $query->where('booking_date', '<=', $today)
+                      ->where('status', '!=', 'Cancelled');
             })
             ->get();
 
@@ -45,7 +46,11 @@ class ClearMaturedWalletEntries extends Command
         foreach ($pendingPayments as $payment) {
             $owner = $payment->booking?->turf?->location?->user ?? null;
             if ($owner) {
-                $walletService->settlePaymentWithTraits($owner, $payment, isOnline: true);
+                // Defensive: settle deductions too, in case they somehow didn't post earlier
+                // (e.g. no wallet owner existed at payment time). No-ops via the dedup checks
+                // if already posted.
+                $walletService->settleDeductions($owner, $payment, isOnline: true);
+                $walletService->settleCredit($owner, $payment, isOnline: true);
                 $clearedCount++;
             }
         }

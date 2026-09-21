@@ -189,14 +189,23 @@ class BookingPaymentDistributor
                     'balance_amount' => max(0.00, round((float)$bDate->amount - $currentPaidForDate, 2)),
                 ]);
 
-                // Check wallet clearance logic
+                // Deductions (platform fee, commission, PG charges) are non-refundable SaaS charges --
+                // post them to the turf owner's wallet immediately upon payment success, with no
+                // maturity gate (earned at payment time, never contingent on the booking happening).
+                if ($walletOwner) {
+                    $walletService->settleDeductions($walletOwner, $payment, $paymentMethod === 'App');
+                }
+
+                // The payout credit (or, for offline, the informational collection note) still waits
+                // for the booking date to mature, or fires immediately for negative/zero contributions
+                // (offline payments are always <= 0, so this is unchanged for Pay at Location bookings).
                 $isBookingMatured = $bDate->booking_date <= Carbon::today()->format('Y-m-d');
                 $isNegativeOrZeroContribution = $payoutContribution <= 0;
 
                 if ($walletOwner && ($isBookingMatured || $isNegativeOrZeroContribution)) {
                     $isOnline = ($paymentMethod === 'App');
                     if (!$payment->wallet_cleared_at) {
-                        $walletService->settlePaymentWithTraits($walletOwner, $payment, $isOnline);
+                        $walletService->settleCredit($walletOwner, $payment, $isOnline);
                     } elseif ($reactivatingClearedPending) {
                         $walletService->recordOfflineCollectionNote($walletOwner, $payment);
                     }
