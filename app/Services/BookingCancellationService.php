@@ -123,14 +123,11 @@ class BookingCancellationService
                 $datePlatformFee = ($allActiveDatesCount > 0) ? round($totalBookingPlatformFee / $allActiveDatesCount, 2) : 0.00;
                 $datePlatformFee = min($datePaidSum, $datePlatformFee);
 
-                $refundableBase = max(0.00, $datePaidSum - $datePlatformFee);
-                $saasFee = round($refundableBase * ($platformFeePercentage / 100), 2);
-                $remainingForTurf = max(0.00, $refundableBase - $saasFee);
-                $turfFee = min($remainingForTurf, $cancellationFeePerSlot * max(1, $slotCount));
-
-                // Total standard deductions = Non-refundable platform fee + SaaS cancellation fee + Turf fee
-                $standardTotalFee = min($datePaidSum, round($datePlatformFee + $saasFee + $turfFee, 2));
-                $standardRefund = max(0.00, round($datePaidSum - $standardTotalFee, 2));
+                $feeBreakdown = (new \App\Services\CancellationFeeCalculator())->calculate($turf, $datePaidSum, $datePlatformFee, $slotCount);
+                $saasFee = $feeBreakdown['saas_fee'];
+                $turfFee = $feeBreakdown['turf_fee'];
+                $standardTotalFee = $feeBreakdown['total_deductions'];
+                $standardRefund = $feeBreakdown['refund_amount'];
 
                 // Update BookingDate to Cancelled with Pending Resolution refund status
                 $bDate->update([
@@ -152,8 +149,15 @@ class BookingCancellationService
                     'reason' => $reason,
                     'gross_cancelled_amount' => $datePaidSum,
                     'turf_cancellation_fee' => $turfFee,
+                    'turf_fee_gst_amount' => $feeBreakdown['turf_fee_gst'],
+                    'turf_fee_cgst_amount' => $feeBreakdown['turf_fee_cgst'],
+                    'turf_fee_sgst_amount' => $feeBreakdown['turf_fee_sgst'],
                     'platform_fee_retained' => $datePlatformFee,
                     'saas_cancellation_fee' => $saasFee,
+                    'saas_fee_gst_amount' => $feeBreakdown['saas_fee_gst'],
+                    'saas_fee_cgst_amount' => $feeBreakdown['saas_fee_cgst'],
+                    'saas_fee_sgst_amount' => $feeBreakdown['saas_fee_sgst'],
+                    'saas_fee_igst_amount' => $feeBreakdown['saas_fee_igst'],
                     'platform_cancellation_fee' => round($saasFee + $datePlatformFee, 2),
                     'total_cancellation_fee' => $standardTotalFee,
                     'refund_amount' => $standardRefund,
