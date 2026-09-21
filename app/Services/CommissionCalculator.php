@@ -18,19 +18,27 @@ class CommissionCalculator
     public function calculate(Turf $turf, string $paymentMethod, float $amount): array
     {
         $rate = (float) $turf->commission_percentage;
-        $commissionAmount = round($amount * $rate / 100, 2);
+
+        // $commissionTotal is the GST-INCLUSIVE total commission owed by the turf owner:
+        // rate% of the taxable base. This figure must NOT change based on whether SaaS GST
+        // billing is toggled on/off -- only how it splits into base + GST changes.
+        $commissionTotal = round($amount * $rate / 100, 2);
 
         $saas = SaasSetting::first();
         $isSaasGstActive = $saas ? (bool) $saas->is_gst_billing_active : false;
         $commissionGstRate = $isSaasGstActive && $saas ? (float) ($saas->commission_gst_percentage ?? 18.00) : 0.00;
 
+        $commissionAmount = $commissionTotal;
         $commissionGstAmount = 0.00;
         $commissionCgstAmount = 0.00;
         $commissionSgstAmount = 0.00;
         $commissionIgstAmount = 0.00;
 
-        if ($isSaasGstActive && $commissionAmount > 0 && $commissionGstRate > 0) {
-            $commissionGstAmount = round($commissionAmount * $commissionGstRate / 100, 2);
+        if ($isSaasGstActive && $commissionTotal > 0 && $commissionGstRate > 0) {
+            // Extract GST from within the GST-inclusive total (mirrors BookingPricingCalculator's
+            // turf-GST 'included' extraction pattern), instead of adding GST on top of it.
+            $commissionAmount = round($commissionTotal / (1 + ($commissionGstRate / 100)), 2);
+            $commissionGstAmount = round($commissionTotal - $commissionAmount, 2);
 
             $saasState = trim((string) ($saas->state_code ?? '27'));
             $turfSetting = $turf->setting ?? $turf->turfSetting;
@@ -50,7 +58,8 @@ class CommissionCalculator
         }
 
         $cashHeldAmount   = $paymentMethod === 'App' ? $amount : 0.00;
-        // Total deduction from turf includes commission + commission GST
+        // Total deduction from turf = commission base + commission GST, which by construction
+        // always equals $commissionTotal (rate% of taxable base), regardless of GST toggle.
         $totalCommissionDeduction = round($commissionAmount + $commissionGstAmount, 2);
         $turfPayoutAmount = round($cashHeldAmount - $totalCommissionDeduction, 2);
 

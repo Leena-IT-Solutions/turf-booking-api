@@ -226,14 +226,21 @@ class BookingPricingCalculator
         }
 
         // 2. SaaS Platform Fee & GST Calculation
+        // $platformFeeBase (SaaS admin's configured `platform_fee`) is the GST-INCLUSIVE sticker
+        // price -- it must NOT change when SaaS GST billing is toggled on/off. Only how it splits
+        // into base + GST changes.
         $platformFee = $platformFeeBase;
         $platformFeeGst = 0.00;
         $platformFeeCgst = 0.00;
         $platformFeeSgst = 0.00;
         $platformFeeIgst = 0.00;
 
-        if ($platformFee > 0 && $isSaasGstActive && $saasBookingGstRate > 0) {
-            $platformFeeGst = round($platformFee * ($saasBookingGstRate / 100), 2);
+        if ($platformFeeBase > 0 && $isSaasGstActive && $saasBookingGstRate > 0) {
+            // Extract GST from within the GST-inclusive sticker price (mirrors the turf-GST
+            // 'included' extraction pattern above), instead of adding GST on top of it.
+            $platformFee = round($platformFeeBase / (1 + ($saasBookingGstRate / 100)), 2);
+            $platformFeeGst = round($platformFeeBase - $platformFee, 2);
+
             if ($isSaaSIntraState) {
                 $platformFeeCgst = round($platformFeeGst / 2, 2);
                 $platformFeeSgst = round($platformFeeGst - $platformFeeCgst, 2);
