@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BookingDate;
 use App\Models\SaasSetting;
 use App\Models\Turf;
 
@@ -9,17 +10,20 @@ class CancellationFeeCalculator
 {
     /**
      * Compute the turf cancellation fee, SaaS cancellation retention, their GST breakdown,
-     * total deductions, and refund amount for one booking date being cancelled.
+     * total deductions, refund amount, AND the refund amount's own GST breakdown, for one
+     * booking date being cancelled.
      *
      * $turfFee and $saasFee below are the TOTAL amounts actually retained (unchanged from the
      * existing formula) -- GST is extracted FROM WITHIN each total for reporting/tax purposes,
      * it is never added on top, so total_deductions / refund_amount are identical to before.
      */
-    public function calculate(Turf $turf, float $datePaidAmount, float $datePlatformFee, int $slotCount): array
+    public function calculate(Turf $turf, BookingDate $bDate, float $datePaidAmount, float $datePlatformFee): array
     {
         $saas = SaasSetting::first();
         $platformFeePercentage = $saas ? (float) ($saas->cancellation_fee_percentage ?? 5.00) : 0.00;
         $cancellationFeePerSlot = (float) ($turf->cancellation_fee ?? 0.00);
+        $slotCount = $bDate->relationLoaded('bookingSlots') ? $bDate->bookingSlots->count() : $bDate->bookingSlots()->count();
+        $slotCount = max(1, $slotCount);
 
         $refundableBase = max(0.00, $datePaidAmount - $datePlatformFee);
 
@@ -28,13 +32,14 @@ class CancellationFeeCalculator
 
         // Turf owner cancellation fee (unchanged formula/total)
         $remainingForTurf = max(0.00, $refundableBase - $saasFee);
-        $turfFee = min($remainingForTurf, $cancellationFeePerSlot * max(1, $slotCount));
+        $turfFee = min($remainingForTurf, $cancellationFeePerSlot * $slotCount);
 
         $totalDeductions = min($datePaidAmount, round($datePlatformFee + $saasFee + $turfFee, 2));
         $refundAmount = max(0.00, round($datePaidAmount - $totalDeductions, 2));
 
         $turfGst = $this->extractTurfFeeGst($turf, $turfFee);
         $saasGst = $this->extractSaasFeeGst($turf, $saas, $saasFee);
+        $refundGst = $this->refundGstBreakup($bDate, $refundAmount);
 
         return [
             'turf_fee' => $turfFee,
@@ -51,7 +56,35 @@ class CancellationFeeCalculator
             'date_platform_fee' => $datePlatformFee,
             'total_deductions' => $totalDeductions,
             'refund_amount' => $refundAmount,
+            'refund_taxable_amount' => $refundGst['taxable'],
+            'refund_gst_amount' => $refundGst['gst'],
+            'refund_cgst_amount' => $refundGst['cgst'],
+            'refund_sgst_amount' => $refundGst['sgst'],
         ];
+    }
+
+    /**
+     * Break down a refund amount into taxable value + GST, proportional to the GST ratio
+     * already baked into the booking date's original turf total (taxable_amount + turf_gst_amount,
+     * both already stored on BookingDate from booking creation -- see BookingPricingCalculator's
+     * turf-GST 'included'/'excluded' extraction). A refund is a partial reversal of a sale that
+     * already had this GST ratio, so the refunded rupees carry the same ratio -- this does NOT
+     * add or remove any GST, it only reports how much of the refund is taxable value vs GST.
+     * Public (not private) because BookingCancellationService::resolveRefund() must call this
+     * again for the FINAL refund amount, which can differ from the initial estimate under
+     * 'full_compensation' or 'custom' resolution modes.
+     */
+    public function refundGstBreakup(BookingDate $bDate, float $refundAmount): array
+    {
+        $turfTotal = round((float) $bDate->taxable_amount + (float) $bDate->turf_gst_amount, 2);
+        $gstRatio = $turfTotal > 0 ? ((float) $bDate->turf_gst_amount / $turfTotal) : 0.00;
+
+        $gst = round($refundAmount * $gstRatio, 2);
+        $taxable = round($refundAmount - $gst, 2);
+        $cgst = round($gst / 2, 2);
+        $sgst = round($gst - $cgst, 2);
+
+        return ['taxable' => $taxable, 'gst' => $gst, 'cgst' => $cgst, 'sgst' => $sgst];
     }
 
     /**

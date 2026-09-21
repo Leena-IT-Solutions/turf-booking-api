@@ -210,12 +210,14 @@ class BookingController extends Controller
                 $cancellationBreakup = [
                     'gross_paid' => (float)($cBreakup['gross'] ?? $datePaidAmount),
                     'turf_cancellation_fee' => (float)($cBreakup['turf_cancellation_fee'] ?? 0),
+                    'turf_fee_base' => (float)($cBreakup['turf_fee_base'] ?? ($cBreakup['turf_cancellation_fee'] ?? 0)),
                     'turf_cancellation_fee_base' => (float)($cBreakup['turf_fee_base'] ?? ($cBreakup['turf_cancellation_fee'] ?? 0)),
                     'turf_cancellation_fee_gst' => (float)($cBreakup['turf_fee_gst'] ?? 0),
                     'turf_cancellation_fee_cgst' => (float)($cBreakup['turf_fee_cgst'] ?? 0),
                     'turf_cancellation_fee_sgst' => (float)($cBreakup['turf_fee_sgst'] ?? 0),
                     'platform_fee_retained' => (float)($cBreakup['platform_fee_retained'] ?? 0),
                     'saas_cancellation_fee' => (float)($cBreakup['saas_cancellation_fee'] ?? 0),
+                    'saas_fee_base' => (float)($cBreakup['saas_fee_base'] ?? ($cBreakup['saas_cancellation_fee'] ?? 0)),
                     'saas_cancellation_fee_base' => (float)($cBreakup['saas_fee_base'] ?? ($cBreakup['saas_cancellation_fee'] ?? 0)),
                     'saas_cancellation_fee_gst' => (float)($cBreakup['saas_fee_gst'] ?? 0),
                     'saas_cancellation_fee_cgst' => (float)($cBreakup['saas_fee_cgst'] ?? 0),
@@ -223,6 +225,10 @@ class BookingController extends Controller
                     'saas_cancellation_fee_igst' => (float)($cBreakup['saas_fee_igst'] ?? 0),
                     'total_deductions' => (float)($cBreakup['total'] ?? $bDate->cancellation_fee_applied),
                     'refund_amount' => (float)($cBreakup['refund'] ?? $bDate->refund_amount),
+                    'refund_taxable_amount' => (float)($cBreakup['refund_taxable_amount'] ?? 0),
+                    'refund_gst_amount' => (float)($cBreakup['refund_gst_amount'] ?? 0),
+                    'refund_cgst_amount' => (float)($cBreakup['refund_cgst_amount'] ?? 0),
+                    'refund_sgst_amount' => (float)($cBreakup['refund_sgst_amount'] ?? 0),
                 ];
             } elseif ($isCancelled) {
                 $cancellationBreakup = [
@@ -241,6 +247,10 @@ class BookingController extends Controller
                     'saas_cancellation_fee_igst' => 0.00,
                     'total_deductions' => (float)$bDate->cancellation_fee_applied,
                     'refund_amount' => (float)$bDate->refund_amount,
+                    'refund_taxable_amount' => (float)$bDate->refund_amount,
+                    'refund_gst_amount' => 0.00,
+                    'refund_cgst_amount' => 0.00,
+                    'refund_sgst_amount' => 0.00,
                 ];
             } else {
                 $allActiveDates = $booking ? $booking->bookingDates->where('status', '!=', 'Cancelled') : collect([$bDate]);
@@ -248,8 +258,7 @@ class BookingController extends Controller
                 $totalBookingPlatformFee = (float)($booking?->platform_fee ?? 0) + (float)($booking?->platform_fee_gst ?? 0);
                 $datePlatformFee = round($totalBookingPlatformFee / $allActiveDatesCount, 2);
                 $datePlatformFee = min($datePaidAmount, $datePlatformFee);
-                $slotCount = $bDate->bookingSlots ? $bDate->bookingSlots->count() : 1;
-                $feeBreakdown = (new \App\Services\CancellationFeeCalculator())->calculate($booking->turf ?? $bDate->booking->turf, $datePaidAmount, $datePlatformFee, $slotCount);
+                $feeBreakdown = (new \App\Services\CancellationFeeCalculator())->calculate($booking->turf ?? $bDate->booking->turf, $bDate, $datePaidAmount, $datePlatformFee);
 
                 $cancellationBreakup = [
                     'gross_paid' => (float)$datePaidAmount,
@@ -267,6 +276,10 @@ class BookingController extends Controller
                     'saas_cancellation_fee_igst' => (float)$feeBreakdown['saas_fee_igst'],
                     'total_deductions' => (float)$feeBreakdown['total_deductions'],
                     'refund_amount' => (float)$feeBreakdown['refund_amount'],
+                    'refund_taxable_amount' => (float)$feeBreakdown['refund_taxable_amount'],
+                    'refund_gst_amount' => (float)$feeBreakdown['refund_gst_amount'],
+                    'refund_cgst_amount' => (float)$feeBreakdown['refund_cgst_amount'],
+                    'refund_sgst_amount' => (float)$feeBreakdown['refund_sgst_amount'],
                 ];
             }
 
@@ -290,6 +303,10 @@ class BookingController extends Controller
                 $totSaasIgst = 0.00;
                 $totDed = 0.00;
                 $totRef = 0.00;
+                $totRefTaxable = 0.00;
+                $totRefGst = 0.00;
+                $totRefCgst = 0.00;
+                $totRefSgst = 0.00;
 
                 $totalBookingPlatformFee = (float)($booking?->platform_fee ?? 0) + (float)($booking?->platform_fee_gst ?? 0);
                 $cancelFeeCalc = new \App\Services\CancellationFeeCalculator();
@@ -303,9 +320,8 @@ class BookingController extends Controller
                         }
                     }
                     $actPlatFee = min($actPaid, round($totalBookingPlatformFee / $activeDatesCount, 2));
-                    $actSlots = $actD->bookingSlots ? $actD->bookingSlots->count() : 1;
 
-                    $feeRes = $cancelFeeCalc->calculate($turfForCalc, $actPaid, $actPlatFee, $actSlots);
+                    $feeRes = $cancelFeeCalc->calculate($turfForCalc, $actD, $actPaid, $actPlatFee);
 
                     $totGross += $actPaid;
                     $totTurf += $feeRes['turf_fee'];
@@ -322,6 +338,10 @@ class BookingController extends Controller
                     $totSaasIgst += $feeRes['saas_fee_igst'];
                     $totDed += $feeRes['total_deductions'];
                     $totRef += $feeRes['refund_amount'];
+                    $totRefTaxable += $feeRes['refund_taxable_amount'];
+                    $totRefGst += $feeRes['refund_gst_amount'];
+                    $totRefCgst += $feeRes['refund_cgst_amount'];
+                    $totRefSgst += $feeRes['refund_sgst_amount'];
                 }
 
                 $allDatesBreakup = [
@@ -340,6 +360,10 @@ class BookingController extends Controller
                     'saas_cancellation_fee_igst' => round($totSaasIgst, 2),
                     'total_deductions' => round($totDed, 2),
                     'refund_amount' => round($totRef, 2),
+                    'refund_taxable_amount' => round($totRefTaxable, 2),
+                    'refund_gst_amount' => round($totRefGst, 2),
+                    'refund_cgst_amount' => round($totRefCgst, 2),
+                    'refund_sgst_amount' => round($totRefSgst, 2),
                 ];
             } else {
                 $allDatesBreakup = $cancellationBreakup;
@@ -1836,9 +1860,8 @@ class BookingController extends Controller
                 // Booking platform fee is non-refundable; exclude it from customer refund
                 $datePlatformFee = ($allActiveDatesCount > 0) ? round($totalBookingPlatformFee / $allActiveDatesCount, 2) : 0.00;
                 $datePlatformFee = min($datePaidAmount, $datePlatformFee);
-                $slotCount = $bDate->bookingSlots()->count();
 
-                $feeRes = (new \App\Services\CancellationFeeCalculator())->calculate($booking->turf, $datePaidAmount, $datePlatformFee, $slotCount);
+                $feeRes = (new \App\Services\CancellationFeeCalculator())->calculate($booking->turf, $bDate, $datePaidAmount, $datePlatformFee);
                 $platformFee = $feeRes['saas_fee'];
                 $turfFee = $feeRes['turf_fee'];
                 $dateFeeApplied = $feeRes['total_deductions'];
@@ -2022,6 +2045,10 @@ class BookingController extends Controller
                 'platform_cancellation_fee' => round(($platformFee ?? 0.00) + ($datePlatformFee ?? 0.00), 2),
                 'total_cancellation_fee' => $dateFeeApplied,
                 'refund_amount' => $dateRefundDue,
+                'refund_taxable_amount' => $feeRes['refund_taxable_amount'] ?? 0.00,
+                'refund_gst_amount' => $feeRes['refund_gst_amount'] ?? 0.00,
+                'refund_cgst_amount' => $feeRes['refund_cgst_amount'] ?? 0.00,
+                'refund_sgst_amount' => $feeRes['refund_sgst_amount'] ?? 0.00,
                 'refund_status' => $dateRefundStatus,
                 'razorpay_refund_id' => $lastRazorpayRefundId,
                 'commission_reversed_amount' => $dateCommissionReversed,

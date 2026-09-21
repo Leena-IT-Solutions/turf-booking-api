@@ -30,6 +30,10 @@ class BookingCancellation extends Model
         'platform_cancellation_fee',
         'total_cancellation_fee',
         'refund_amount',
+        'refund_taxable_amount',
+        'refund_gst_amount',
+        'refund_cgst_amount',
+        'refund_sgst_amount',
         'refund_status',
         'resolution_mode',
         'disbursement_channel',
@@ -55,6 +59,10 @@ class BookingCancellation extends Model
         'platform_cancellation_fee' => 'decimal:2',
         'total_cancellation_fee' => 'decimal:2',
         'refund_amount' => 'decimal:2',
+        'refund_taxable_amount' => 'decimal:2',
+        'refund_gst_amount' => 'decimal:2',
+        'refund_cgst_amount' => 'decimal:2',
+        'refund_sgst_amount' => 'decimal:2',
         'commission_reversed_amount' => 'decimal:2',
         'resolved_at' => 'datetime',
     ];
@@ -88,6 +96,10 @@ class BookingCancellation extends Model
             'total' => (float) $this->total_cancellation_fee,
             'gross' => (float) $this->gross_cancelled_amount,
             'refund' => (float) $this->refund_amount,
+            'refund_taxable_amount' => (float)($this->refund_taxable_amount ?? 0),
+            'refund_gst_amount' => (float)($this->refund_gst_amount ?? 0),
+            'refund_cgst_amount' => (float)($this->refund_cgst_amount ?? 0),
+            'refund_sgst_amount' => (float)($this->refund_sgst_amount ?? 0),
         ];
     }
 

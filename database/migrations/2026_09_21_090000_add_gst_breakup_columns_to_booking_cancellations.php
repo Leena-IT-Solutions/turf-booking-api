@@ -33,6 +33,18 @@ return new class extends Migration
             if (!Schema::hasColumn('booking_cancellations', 'saas_fee_igst_amount')) {
                 $table->decimal('saas_fee_igst_amount', 10, 2)->default(0.00)->after('saas_fee_sgst_amount');
             }
+            if (!Schema::hasColumn('booking_cancellations', 'refund_taxable_amount')) {
+                $table->decimal('refund_taxable_amount', 10, 2)->default(0.00)->after('refund_amount');
+            }
+            if (!Schema::hasColumn('booking_cancellations', 'refund_gst_amount')) {
+                $table->decimal('refund_gst_amount', 10, 2)->default(0.00)->after('refund_taxable_amount');
+            }
+            if (!Schema::hasColumn('booking_cancellations', 'refund_cgst_amount')) {
+                $table->decimal('refund_cgst_amount', 10, 2)->default(0.00)->after('refund_gst_amount');
+            }
+            if (!Schema::hasColumn('booking_cancellations', 'refund_sgst_amount')) {
+                $table->decimal('refund_sgst_amount', 10, 2)->default(0.00)->after('refund_cgst_amount');
+            }
         });
     }
 
@@ -51,6 +63,10 @@ return new class extends Migration
                 'saas_fee_cgst_amount',
                 'saas_fee_sgst_amount',
                 'saas_fee_igst_amount',
+                'refund_taxable_amount',
+                'refund_gst_amount',
+                'refund_cgst_amount',
+                'refund_sgst_amount',
             ];
             foreach ($checkColumns as $col) {
                 if (Schema::hasColumn('booking_cancellations', $col)) {

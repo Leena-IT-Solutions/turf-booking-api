@@ -123,7 +123,7 @@ class BookingCancellationService
                 $datePlatformFee = ($allActiveDatesCount > 0) ? round($totalBookingPlatformFee / $allActiveDatesCount, 2) : 0.00;
                 $datePlatformFee = min($datePaidSum, $datePlatformFee);
 
-                $feeBreakdown = (new \App\Services\CancellationFeeCalculator())->calculate($turf, $datePaidSum, $datePlatformFee, $slotCount);
+                $feeBreakdown = (new \App\Services\CancellationFeeCalculator())->calculate($turf, $bDate, $datePaidSum, $datePlatformFee);
                 $saasFee = $feeBreakdown['saas_fee'];
                 $turfFee = $feeBreakdown['turf_fee'];
                 $standardTotalFee = $feeBreakdown['total_deductions'];
@@ -161,6 +161,10 @@ class BookingCancellationService
                     'platform_cancellation_fee' => round($saasFee + $datePlatformFee, 2),
                     'total_cancellation_fee' => $standardTotalFee,
                     'refund_amount' => $standardRefund,
+                    'refund_taxable_amount' => $feeBreakdown['refund_taxable_amount'],
+                    'refund_gst_amount' => $feeBreakdown['refund_gst_amount'],
+                    'refund_cgst_amount' => $feeBreakdown['refund_cgst_amount'],
+                    'refund_sgst_amount' => $feeBreakdown['refund_sgst_amount'],
                     'refund_status' => 'Pending Resolution',
                     'resolution_mode' => null,
                     'disbursement_channel' => null,
@@ -275,8 +279,16 @@ class BookingCancellationService
             }
 
             // Update the cancellation record
+            $refundGst = $bDate
+                ? (new \App\Services\CancellationFeeCalculator())->refundGstBreakup($bDate, $finalRefund)
+                : ['taxable' => $finalRefund, 'gst' => 0.00, 'cgst' => 0.00, 'sgst' => 0.00];
+
             $cancellation->update([
                 'refund_amount' => $finalRefund,
+                'refund_taxable_amount' => $refundGst['taxable'],
+                'refund_gst_amount' => $refundGst['gst'],
+                'refund_cgst_amount' => $refundGst['cgst'],
+                'refund_sgst_amount' => $refundGst['sgst'],
                 'total_cancellation_fee' => $finalFee,
                 'refund_status' => $refundStatusLabel,
                 'resolution_mode' => $resolutionMode,
