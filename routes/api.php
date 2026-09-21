@@ -29,6 +29,49 @@ Route::get('/config', function () {
         'razorpay_key' => $setting?->razorpay_key,
         'turf_search_km' => $setting?->turf_search_km ?? 10,
         'min_slots_booking' => $setting?->min_slots_booking ?? 2,
+        'policies' => [
+            'terms' => url('/terms-and-conditions'),
+            'privacy' => url('/privacy-policy'),
+            'cancellation' => url('/refund-and-cancellation-policy'),
+            'return' => url('/return-policy'),
+            'shipping' => url('/shipping-policy'),
+        ],
+    ]);
+});
+
+Route::get('/policies', function () {
+    return response()->json([
+        'company' => 'LEENA IT SOLUTIONS',
+        'address' => 'Plot No 65, Shree Satyam CHS B101, Sai Section, Ambernath East 421501 MS India',
+        'email' => 'leenaadam28@gmail.com',
+        'phone' => '+91 9769409405',
+        'policies' => [
+            [
+                'id' => 'terms',
+                'title' => 'Terms & Conditions',
+                'url' => url('/terms-and-conditions'),
+            ],
+            [
+                'id' => 'privacy',
+                'title' => 'Privacy Policy',
+                'url' => url('/privacy-policy'),
+            ],
+            [
+                'id' => 'cancellation',
+                'title' => 'Refund & Cancellation Policy',
+                'url' => url('/refund-and-cancellation-policy'),
+            ],
+            [
+                'id' => 'return',
+                'title' => 'Return Policy',
+                'url' => url('/return-policy'),
+            ],
+            [
+                'id' => 'shipping',
+                'title' => 'Shipping Policy',
+                'url' => url('/shipping-policy'),
+            ],
+        ],
     ]);
 });
 

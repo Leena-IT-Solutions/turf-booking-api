@@ -217,15 +217,16 @@
                     </ul>
                 </div>
 
-                <!-- Column 4: Company -->
+                <!-- Column 4: Company & Legal -->
                 <div class="space-y-4">
-                    <span class="block text-xs font-bold text-slate-955 uppercase tracking-widest">Company</span>
+                    <span class="block text-xs font-bold text-slate-955 uppercase tracking-widest">Legal & Policies</span>
                     <ul class="space-y-2 text-xs">
-                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">About Us</a></li>
-                        <li><a href="{{ url('/contact') }}" class="text-slate-500 hover:text-emerald-600 transition">Contact</a></li>
+                        <li><a href="{{ route('terms-and-conditions') }}" class="text-slate-500 hover:text-emerald-600 transition">Terms & Conditions</a></li>
                         <li><a href="{{ route('privacy-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Privacy Policy</a></li>
-                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">Terms & Conditions</a></li>
-                        <li><a href="{{ url('/#') }}" class="text-slate-500 hover:text-emerald-600 transition">Refund/Cancellation Policy</a></li>
+                        <li><a href="{{ route('refund-cancellation-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Refund & Cancellation</a></li>
+                        <li><a href="{{ route('return-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Return Policy</a></li>
+                        <li><a href="{{ route('shipping-policy') }}" class="text-slate-500 hover:text-emerald-600 transition">Shipping Policy</a></li>
+                        <li><a href="{{ url('/contact') }}" class="text-slate-500 hover:text-emerald-600 transition">Contact Us</a></li>
                     </ul>
                 </div>
             </div>

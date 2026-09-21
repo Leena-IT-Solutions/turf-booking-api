@@ -21,7 +21,14 @@ Route::view('/faqs', 'faqs')->name('faqs');
 Route::view('/contact', 'contact')->name('contact');
 Route::view('/for-turf-owners', 'for-turf-owners')->name('for-turf-owners');
 Route::view('/download', 'download')->name('download');
+Route::view('/terms-and-conditions', 'terms-and-conditions')->name('terms-and-conditions');
+Route::view('/terms', 'terms-and-conditions')->name('terms');
 Route::view('/privacy-policy', 'privacy-policy')->name('privacy-policy');
+Route::view('/refund-and-cancellation-policy', 'refund-cancellation-policy')->name('refund-cancellation-policy');
+Route::view('/cancellation-policy', 'refund-cancellation-policy')->name('cancellation-policy');
+Route::view('/refund-policy', 'refund-cancellation-policy')->name('refund-policy');
+Route::view('/return-policy', 'return-policy')->name('return-policy');
+Route::view('/shipping-policy', 'shipping-policy')->name('shipping-policy');
 
 Route::get('dashboard', function () {
     return view('dashboard');
