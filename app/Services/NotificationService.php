@@ -9,6 +9,7 @@ use App\Models\SaasSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Messaging\AndroidConfig;
 use Kreait\Firebase\Messaging\CloudMessage;
 use Kreait\Firebase\Messaging\Notification;
 
@@ -167,7 +168,7 @@ class NotificationService
     /**
      * Dispatch FCM HTTP v1 payload to device tokens via Kreait Messaging.
      */
-    public static function sendFcmNotification(array $tokens, string $title, string $body, array $data = []): void
+    public static function sendFcmNotification(array $tokens, string $title, string $body, array $data = [], ?string $imageUrl = 'https://www.leenaitsolutions.in/turf-logo.png'): void
     {
         $tokens = array_values(array_filter(array_unique($tokens)));
         if (empty($tokens)) {
@@ -183,8 +184,20 @@ class NotificationService
         }
 
         try {
+            $notification = Notification::create($title, $body, $imageUrl);
+
+            $androidConfig = AndroidConfig::fromArray([
+                'notification' => [
+                    'icon' => 'ic_notification',
+                    'color' => '#10B981',
+                    'notification_priority' => 'PRIORITY_HIGH',
+                    'default_sound' => true,
+                ],
+            ]);
+
             $message = CloudMessage::new()
-                ->withNotification(Notification::create($title, $body))
+                ->withNotification($notification)
+                ->withAndroidConfig($androidConfig)
                 ->withData(array_merge($data, [
                     'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
                     'title' => $title,
