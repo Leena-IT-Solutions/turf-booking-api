@@ -1183,4 +1183,95 @@ class BookingApiTest extends TestCase
         $pastIds = collect($resPast->json('data'))->pluck('id');
         $this->assertFalse($pastIds->contains($bDateToday->id), 'Today\'s booking should NOT appear in past');
     }
+
+    public function test_bookings_are_ordered_by_match_date_and_slot_time(): void
+    {
+        $user = User::factory()->create();
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Sort Turf City',
+            'state' => 'Maharashtra',
+            'city' => 'Pune',
+            'address' => 'Pune',
+            'status' => true,
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Sort Turf Arena',
+            'type' => 'Grass',
+        ]);
+
+        $slotCategory = \App\Models\SlotCategory::create([
+            'turf_id' => $turf->id,
+            'name' => 'Standard',
+        ]);
+
+        $slotEvening = Slot::create([
+            'slot_category_id' => $slotCategory->id,
+            'from_time' => '18:00:00',
+            'to_time' => '19:00:00',
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        $slotMorning = Slot::create([
+            'slot_category_id' => $slotCategory->id,
+            'from_time' => '09:00:00',
+            'to_time' => '10:00:00',
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        $tomorrow = \Carbon\Carbon::tomorrow('Asia/Kolkata')->toDateString();
+
+        // Booking 1: Tomorrow evening (created first)
+        $booking1 = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDate1 = BookingDate::create([
+            'booking_id' => $booking1->id,
+            'booking_date' => $tomorrow,
+            'amount' => 1000,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        \App\Models\BookingSlot::create([
+            'booking_date_id' => $bDate1->id,
+            'slot_id' => $slotEvening->id,
+        ]);
+
+        // Booking 2: Tomorrow morning (created second)
+        $booking2 = Booking::create([
+            'user_id' => $user->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        $bDate2 = BookingDate::create([
+            'booking_id' => $booking2->id,
+            'booking_date' => $tomorrow,
+            'amount' => 1000,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+        \App\Models\BookingSlot::create([
+            'booking_date_id' => $bDate2->id,
+            'slot_id' => $slotMorning->id,
+        ]);
+
+        $res = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=upcoming&personal=1');
+        $res->assertStatus(200);
+
+        $returnedIds = collect($res->json('data'))->pluck('id')->values()->all();
+
+        // Morning booking (09:00 AM) must come BEFORE evening booking (18:00 PM) on same date
+        $this->assertEquals([$bDate2->id, $bDate1->id], $returnedIds);
+    }
 }

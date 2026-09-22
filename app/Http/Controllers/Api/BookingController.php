@@ -36,7 +36,14 @@ class BookingController extends Controller
             'bookingSlots.slot',
             'payments',
             'bookingCancellations',
-        ]);
+        ])
+        ->select('booking_dates.*')
+        ->selectSub(function ($sq) {
+            $sq->from('slots')
+               ->join('booking_slots', 'slots.id', '=', 'booking_slots.slot_id')
+               ->whereColumn('booking_slots.booking_date_id', 'booking_dates.id')
+               ->selectRaw('MIN(slots.from_time)');
+        }, 'earliest_slot_time');
 
         $personal = $request->query('personal', false);
         $selectedTurfId = $request->query('turf_id');
@@ -99,6 +106,7 @@ class BookingController extends Controller
                 // 'all' filter
                 $query->whereDate('booking_date', $date);
             }
+            $query->orderBy('earliest_slot_time', 'asc');
         } else {
             if ($filter === 'past') {
                 $query->where('booking_date', '<', $today)
@@ -106,14 +114,16 @@ class BookingController extends Controller
                       ->whereHas('booking', function ($q) {
                           $q->where('status', '!=', 'Cancelled');
                       })
-                      ->orderBy('booking_date', 'desc');
+                      ->orderBy('booking_date', 'desc')
+                      ->orderBy('earliest_slot_time', 'desc');
             } elseif ($filter === 'upcoming') {
                 $query->where('booking_date', '>=', $today)
                       ->where('status', '!=', 'Cancelled')
                       ->whereHas('booking', function ($q) {
                           $q->where('status', '!=', 'Cancelled');
                       })
-                      ->orderBy('booking_date', 'asc');
+                      ->orderBy('booking_date', 'asc')
+                      ->orderBy('earliest_slot_time', 'asc');
             } elseif ($filter === 'cancelled') {
                 $query->where(function ($q) {
                           $q->where('status', 'Cancelled')
@@ -121,10 +131,13 @@ class BookingController extends Controller
                                 $bq->where('status', 'Cancelled');
                             });
                       })
-                      ->orderByRaw('COALESCE(cancelled_at, updated_at) DESC');
+                      ->orderByRaw('COALESCE(cancelled_at, updated_at) DESC')
+                      ->orderBy('booking_date', 'desc')
+                      ->orderBy('earliest_slot_time', 'desc');
             } else {
                 // 'all'
-                $query->orderBy('booking_date', 'desc');
+                $query->orderBy('booking_date', 'desc')
+                      ->orderBy('earliest_slot_time', 'desc');
             }
         }
 
