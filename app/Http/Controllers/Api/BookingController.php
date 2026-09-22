@@ -115,7 +115,7 @@ class BookingController extends Controller
                           $q->where('status', '!=', 'Cancelled');
                       })
                       ->orderBy('booking_date', 'desc')
-                      ->orderBy('earliest_slot_time', 'desc');
+                      ->orderBy('earliest_slot_time', 'asc');
             } elseif ($filter === 'upcoming') {
                 $query->where('booking_date', '>=', $today)
                       ->where('status', '!=', 'Cancelled')
@@ -131,13 +131,12 @@ class BookingController extends Controller
                                 $bq->where('status', 'Cancelled');
                             });
                       })
-                      ->orderByRaw('COALESCE(cancelled_at, updated_at) DESC')
                       ->orderBy('booking_date', 'desc')
-                      ->orderBy('earliest_slot_time', 'desc');
+                      ->orderBy('earliest_slot_time', 'asc');
             } else {
                 // 'all'
                 $query->orderBy('booking_date', 'desc')
-                      ->orderBy('earliest_slot_time', 'desc');
+                      ->orderBy('earliest_slot_time', 'asc');
             }
         }
 
@@ -462,7 +461,13 @@ class BookingController extends Controller
         });
 
         $dataArr = $formatted->toArray();
-        usort($dataArr['data'], function ($a, $b) {
+        usort($dataArr['data'], function ($a, $b) use ($filter) {
+            $dateA = $a['date_raw'] ?? '';
+            $dateB = $b['date_raw'] ?? '';
+            $dateComp = strcmp($dateA, $dateB);
+            if ($dateComp !== 0) {
+                return ($filter === 'upcoming') ? $dateComp : -$dateComp;
+            }
             $slotsA = $a['slots'] ?? [];
             $slotsB = $b['slots'] ?? [];
             $timeA = !empty($slotsA) ? ($slotsA[0]['from_time'] ?? '') : '';
