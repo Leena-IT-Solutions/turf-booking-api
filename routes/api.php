@@ -95,4 +95,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/booking-dates/{bookingDate}/payments', [\App\Http\Controllers\Api\BookingController::class, 'recordPayment']);
     Route::post('/bookings/{booking}/cancel', [\App\Http\Controllers\Api\BookingController::class, 'cancel']);
     Route::post('/user/device-token', [AuthController::class, 'storeDeviceToken']);
+    Route::delete('/user/device-token', [AuthController::class, 'destroyDeviceToken']);
 });

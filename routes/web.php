@@ -75,6 +75,12 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('saas/settings/credentials', 'saas.settings.credentials')
         ->middleware('role:saas-admin')
         ->name('saas.settings.credentials');
+    Volt::route('saas/settings/notifications', 'saas.settings.notifications')
+        ->middleware('role:saas-admin')
+        ->name('saas.settings.notifications');
+    Volt::route('saas/notifications/send', 'saas.notifications-composer')
+        ->middleware('role:saas-admin')
+        ->name('saas.notifications.send');
     Volt::route('saas/support', 'saas.chat-manager')
         ->middleware('role:saas-admin')
         ->name('saas.support');

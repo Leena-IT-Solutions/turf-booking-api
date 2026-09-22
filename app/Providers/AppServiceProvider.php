@@ -14,6 +14,25 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('local') && class_exists(\Laravel\Pail\PailServiceProvider::class)) {
             $this->app->register(\Laravel\Pail\PailServiceProvider::class);
         }
+
+        $this->app->singleton(\Kreait\Firebase\Contract\Messaging::class, function () {
+            try {
+                $setting = \App\Models\SaasSetting::first();
+                $json = $setting?->fcm_service_account_json;
+                if (!empty($json)) {
+                    $credentials = json_decode($json, true);
+                    if (is_array($credentials) && isset($credentials['client_email'], $credentials['private_key'], $credentials['project_id'])) {
+                        return (new \Kreait\Firebase\Factory)
+                            ->withServiceAccount($credentials)
+                            ->createMessaging();
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Firebase Messaging initialization failed: ' . $e->getMessage());
+            }
+
+            return null;
+        });
     }
 
     /**

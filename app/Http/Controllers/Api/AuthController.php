@@ -594,4 +594,24 @@ class AuthController extends Controller
             'message' => 'Device token saved successfully.'
         ]);
     }
+
+    /**
+     * Delete device FCM token on logout.
+     */
+    public function destroyDeviceToken(Request $request)
+    {
+        $request->validate([
+            'device_token' => 'required|string',
+        ]);
+
+        $user = auth()->user();
+
+        \App\Models\DeviceToken::where('user_id', $user->id)
+            ->where('device_token', $request->input('device_token'))
+            ->delete();
+
+        return response()->json([
+            'message' => 'Device token deleted successfully.'
+        ]);
+    }
 }

@@ -57,11 +57,19 @@ class SaasSetting extends Model
         'razorpayx_webhook_secret',
         'max_commission_due',
         'commission_due_grace_days',
+        'notify_booking_created',
+        'notify_booking_cancelled',
+        'notify_payment_received',
+        'fcm_project_id',
+        'fcm_service_account_json',
     ];
 
     protected $casts = [
         'is_maintenance_mode' => 'boolean',
         'is_gst_billing_active' => 'boolean',
+        'notify_booking_created' => 'boolean',
+        'notify_booking_cancelled' => 'boolean',
+        'notify_payment_received' => 'boolean',
         'turf_search_km' => 'integer',
         'min_slots_booking' => 'integer',
         'free_trial_days' => 'integer',

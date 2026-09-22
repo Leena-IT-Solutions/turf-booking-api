@@ -4,10 +4,13 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\DeviceToken;
+use App\Models\NotificationLog;
 use App\Models\SaasSetting;
 use App\Models\User;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification;
 
 class NotificationService
 {
@@ -48,6 +51,10 @@ class NotificationService
      */
     public static function notifyBookingCreated(Booking $booking): void
     {
+        if (!(SaasSetting::first()?->notify_booking_created ?? true)) {
+            return;
+        }
+
         $booking->load(['turf', 'user', 'bookingDates']);
         $turfName = $booking->turf?->name ?? 'Turf';
         $ref = $booking->booking_reference ?? ('#' . $booking->id);
@@ -79,6 +86,10 @@ class NotificationService
      */
     public static function notifyBookingCancelled(Booking $booking): void
     {
+        if (!(SaasSetting::first()?->notify_booking_cancelled ?? true)) {
+            return;
+        }
+
         $booking->load(['turf']);
         $turfName = $booking->turf?->name ?? 'Turf';
         $ref = $booking->booking_reference ?? ('#' . $booking->id);
@@ -98,6 +109,10 @@ class NotificationService
      */
     public static function notifyPaymentRecorded(Booking $booking, float $amountPaid): void
     {
+        if (!(SaasSetting::first()?->notify_payment_received ?? true)) {
+            return;
+        }
+
         if ($booking->user_id && $amountPaid > 0) {
             $ref = $booking->booking_reference ?? ('#' . $booking->id);
             self::sendToUser(
@@ -110,38 +125,85 @@ class NotificationService
     }
 
     /**
-     * Dispatch FCM HTTP v1 / Legacy payload to device tokens.
+     * Send custom broadcast notification to selected audience and log the event.
      */
-    private static function sendFcmNotification(array $tokens, string $title, string $body, array $data = []): void
+    public static function sendCustomNotification(string $title, string $body, string $audience, ?int $targetUserId, User $sentBy): int
     {
-        $setting = SaasSetting::first();
-        $fcmServerKey = config('services.fcm.key') ?: env('FCM_SERVER_KEY');
+        $query = User::query();
 
-        if (!$fcmServerKey) {
-            Log::info("FCM Notification Log (Key not set): Title='$title', Body='$body', Tokens=" . count($tokens));
+        if ($audience === 'customers') {
+            $query->whereHas('roles', fn($q) => $q->where('name', 'customer'));
+        } elseif ($audience === 'turf_admins') {
+            $query->whereHas('roles', fn($q) => $q->whereIn('name', ['turf-admin', 'manager', 'admin']));
+        } elseif ($audience === 'specific_user') {
+            $query->where('id', $targetUserId);
+        }
+
+        // Only target users who have at least one registered device token
+        $userIds = $query->whereHas('deviceTokens')->pluck('id')->toArray();
+        $tokens = DeviceToken::whereIn('user_id', $userIds)->pluck('device_token')->unique()->values()->toArray();
+
+        $recipientCount = count($tokens);
+
+        if ($recipientCount > 0) {
+            self::sendFcmNotification($tokens, $title, $body, [
+                'type' => 'custom_notification',
+            ]);
+        }
+
+        NotificationLog::create([
+            'sent_by_user_id' => $sentBy->id,
+            'title' => $title,
+            'body' => $body,
+            'audience_type' => $audience,
+            'target_user_id' => $audience === 'specific_user' ? $targetUserId : null,
+            'recipient_count' => $recipientCount,
+            'created_at' => now(),
+        ]);
+
+        return $recipientCount;
+    }
+
+    /**
+     * Dispatch FCM HTTP v1 payload to device tokens via Kreait Messaging.
+     */
+    public static function sendFcmNotification(array $tokens, string $title, string $body, array $data = []): void
+    {
+        $tokens = array_values(array_filter(array_unique($tokens)));
+        if (empty($tokens)) {
+            return;
+        }
+
+        /** @var Messaging|null $messaging */
+        $messaging = app()->make(Messaging::class);
+
+        if (!$messaging) {
+            Log::info("FCM Notification Log (Service Account not configured): Title='{$title}', Body='{$body}', Tokens=" . count($tokens));
             return;
         }
 
         try {
-            foreach ($tokens as $token) {
-                Http::withHeaders([
-                    'Authorization' => 'key=' . $fcmServerKey,
-                    'Content-Type' => 'application/json',
-                ])->post('https://fcm.googleapis.com/fcm/send', [
-                    'to' => $token,
-                    'notification' => [
-                        'title' => $title,
-                        'body' => $body,
-                        'sound' => 'default',
-                    ],
-                    'data' => array_merge($data, [
-                        'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
-                        'title' => $title,
-                        'body' => $body,
-                    ]),
-                ]);
+            $message = CloudMessage::new()
+                ->withNotification(Notification::create($title, $body))
+                ->withData(array_merge($data, [
+                    'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
+                    'title' => $title,
+                    'body' => $body,
+                ]));
+
+            $report = $messaging->sendMulticast($message, $tokens);
+
+            if ($report->hasFailures()) {
+                $unknownTokens = $report->unknownTokens();
+                $invalidTokens = $report->invalidTokens();
+                $unregisteredTokens = array_unique(array_merge($unknownTokens, $invalidTokens));
+
+                if (!empty($unregisteredTokens)) {
+                    DeviceToken::whereIn('device_token', $unregisteredTokens)->delete();
+                    Log::info('Pruned unregistered FCM device tokens: ' . count($unregisteredTokens));
+                }
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('FCM Push Notification Error: ' . $e->getMessage());
         }
     }

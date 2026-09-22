@@ -159,6 +159,14 @@ class User extends Authenticatable
             })->orWhereIn('turfs.id', $this->assignedTurfs()->pluck('turfs.id'));
         });
     }
+
+    /**
+     * Get the device tokens registered for this user.
+     */
+    public function deviceTokens()
+    {
+        return $this->hasMany(\App\Models\DeviceToken::class);
+    }
 }
 
 
