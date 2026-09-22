@@ -9,6 +9,8 @@ new #[Layout('layouts.app')] class extends Component
     public $notify_booking_created = true;
     public $notify_booking_cancelled = true;
     public $notify_payment_received = true;
+    public $fcm_project_id = '';
+    public $fcm_service_account_json = '';
 
     public function mount()
     {
@@ -19,6 +21,8 @@ new #[Layout('layouts.app')] class extends Component
         $this->notify_booking_created = (bool) ($setting->notify_booking_created ?? true);
         $this->notify_booking_cancelled = (bool) ($setting->notify_booking_cancelled ?? true);
         $this->notify_payment_received = (bool) ($setting->notify_payment_received ?? true);
+        $this->fcm_project_id = $setting->fcm_project_id ?? '';
+        $this->fcm_service_account_json = $setting->fcm_service_account_json ?? '';
     }
 
     public function updated($propertyName)
@@ -27,6 +31,8 @@ new #[Layout('layouts.app')] class extends Component
             'notify_booking_created' => 'boolean',
             'notify_booking_cancelled' => 'boolean',
             'notify_payment_received' => 'boolean',
+            'fcm_project_id' => 'nullable|string|max:255',
+            'fcm_service_account_json' => 'nullable|string',
         ]);
     }
 
@@ -36,6 +42,8 @@ new #[Layout('layouts.app')] class extends Component
             'notify_booking_created' => 'boolean',
             'notify_booking_cancelled' => 'boolean',
             'notify_payment_received' => 'boolean',
+            'fcm_project_id' => 'nullable|string|max:255',
+            'fcm_service_account_json' => 'nullable|string',
         ]);
 
         $setting = SaasSetting::first() ?? new SaasSetting();
@@ -44,9 +52,11 @@ new #[Layout('layouts.app')] class extends Component
             'notify_booking_created' => $this->notify_booking_created,
             'notify_booking_cancelled' => $this->notify_booking_cancelled,
             'notify_payment_received' => $this->notify_payment_received,
+            'fcm_project_id' => $this->fcm_project_id,
+            'fcm_service_account_json' => $this->fcm_service_account_json,
         ])->save();
 
-        session()->flash('status', __('Push notification event triggers updated successfully.'));
+        session()->flash('status', __('Push notification settings and credentials updated successfully.'));
     }
 }; ?>
 
@@ -65,8 +75,8 @@ new #[Layout('layouts.app')] class extends Component
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">{{ __('Push Notification Preferences') }}</h2>
-                        <p class="text-xs text-gray-500 mt-1">{{ __('Enable or disable automated push notifications sent to players and turf managers.') }}</p>
+                        <h2 class="text-xl font-bold text-gray-900 tracking-tight">{{ __('Push Notification Settings') }}</h2>
+                        <p class="text-xs text-gray-500 mt-1">{{ __('Configure Firebase Cloud Messaging credentials and automated event triggers.') }}</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
@@ -91,6 +101,36 @@ new #[Layout('layouts.app')] class extends Component
                     <span>{{ session('status') }}</span>
                 </div>
             @endif
+
+            <!-- Firebase Cloud Messaging Card -->
+            <div class="bg-white shadow-sm rounded-3xl border border-gray-100 p-6 sm:p-8 space-y-6">
+                <div>
+                    <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                        <svg class="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span>{{ __('Firebase Cloud Messaging (FCM HTTP v1)') }}</span>
+                    </h3>
+                    <p class="text-[11px] text-gray-400 font-semibold mt-1">{{ __('Credentials for mobile push notifications via Google Firebase Cloud Messaging HTTP v1 API.') }}</p>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- FCM Project ID -->
+                    <div>
+                        <x-input-label for="fcmProjectId" :value="__('Firebase Project ID')" />
+                        <x-text-input wire:model.live.debounce.250ms="fcm_project_id" id="fcmProjectId" type="text" class="mt-1.5 block w-full font-mono text-xs" placeholder="e.g. turf-booking-prod" />
+                        <x-input-error :messages="$errors->get('fcm_project_id')" class="mt-2" />
+                    </div>
+
+                    <!-- FCM Service Account JSON -->
+                    <div>
+                        <x-input-label for="fcmServiceAccount" :value="__('Firebase Service Account Private Key JSON')" />
+                        <textarea wire:model.live.debounce.250ms="fcm_service_account_json" id="fcmServiceAccount" rows="8" class="mt-1.5 block w-full rounded-2xl border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 shadow-sm font-mono text-xs p-3 leading-relaxed" placeholder='{ "type": "service_account", "project_id": "...", "private_key": "...", ... }'></textarea>
+                        <x-input-error :messages="$errors->get('fcm_service_account_json')" class="mt-2" />
+                        <p class="text-[11px] text-gray-400 mt-1.5">{{ __('Paste the entire content of the downloaded service account JSON key file from Firebase Console (Project Settings > Service Accounts > Generate new private key).') }}</p>
+                    </div>
+                </div>
+            </div>
 
             <!-- Notification Triggers Card -->
             <div class="bg-white shadow-sm hover:shadow-md transition-shadow duration-300 rounded-3xl border border-gray-100 p-6 sm:p-8 space-y-6">
