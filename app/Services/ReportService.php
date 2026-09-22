@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Booking;
 use App\Models\BookingCancellation;
 use App\Models\BookingDate;
 use App\Models\CommissionWalletTransaction;
@@ -75,15 +74,17 @@ class ReportService
 
         $grossRevenue = (float) $allPayments->sum('amount');
         $totalCommission = (float) $allPayments->sum('commission_amount');
-        $totalPlatformFee = 0.0;
         $totalPgCharges = (float) $allPayments->sum('gateway_charge_amount');
         $totalNetPayout = (float) $allPayments->sum('turf_payout_amount');
 
-        $bookingIds = $allPayments->pluck('booking_id')->unique()->filter();
-        if ($bookingIds->isNotEmpty()) {
-            $totalPlatformFee = (float) Booking::whereIn('id', $bookingIds)
-                ->selectRaw('SUM(platform_fee + COALESCE(platform_fee_gst, 0)) as total')
-                ->value('total');
+        // Platform fee is booking-level, not per-payment, so only count it on the one
+        // payment that actually settled deductions for its booking -- matches the CSV
+        // export's logic and avoids double-counting a booking paid across multiple payments.
+        $totalPlatformFee = 0.0;
+        foreach ($allPayments as $p) {
+            if ($p->deductions_settled_at && $p->booking) {
+                $totalPlatformFee += (float) ($p->booking->platform_fee + ($p->booking->platform_fee_gst ?? 0));
+            }
         }
 
         $pendingClearance = (float) Payment::whereHas('booking', fn($q) => $q->whereIn('turf_id', $turfIds))

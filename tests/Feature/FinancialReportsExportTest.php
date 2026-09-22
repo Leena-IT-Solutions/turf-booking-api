@@ -196,6 +196,83 @@ class FinancialReportsExportTest extends TestCase
         $this->assertStringContainsString('Cleared', $content);
     }
 
+    public function test_turf_earnings_summary_does_not_misattribute_platform_fee_from_a_payment_outside_the_window()
+    {
+        // A booking's deposit payment (which actually posts the one-time platform fee via
+        // settleDeductions()) lands in month 1; its balance payment lands in month 2. When
+        // reporting on month 2 alone, the balance payment (no deductions_settled_at) is the
+        // only one in range -- the platform fee must NOT be attributed to month 2 just because
+        // the booking_id happens to appear in that window's results.
+        $booking = Booking::create([
+            'turf_id' => $this->turf->id,
+            'user_id' => $this->owner->id,
+            'booking_number' => 'BK-SPLIT-01',
+            'date_of_booking' => Carbon::now()->toDateString(),
+            'platform_fee' => 10.00,
+            'platform_fee_gst' => 1.80,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        $bookingDate = BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => Carbon::now()->toDateString(),
+            'amount' => 1000.00,
+            'status' => 'Confirmed',
+        ]);
+
+        // Deposit payment: settles deductions, but paid LAST month (outside the report window).
+        Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $bookingDate->id,
+            'payment_method' => 'UPI',
+            'amount' => 500.00,
+            'commission_amount' => 10.00,
+            'gateway_charge_amount' => 7.50,
+            'turf_payout_amount' => 476.60,
+            'status' => 'Success',
+            'paid_at' => Carbon::now()->subMonth(),
+            'wallet_cleared_at' => Carbon::now()->subMonth(),
+            'deductions_settled_at' => Carbon::now()->subMonth(),
+        ]);
+
+        // Balance payment: same booking, deductions already settled elsewhere, paid THIS month.
+        Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $bookingDate->id,
+            'payment_method' => 'UPI',
+            'amount' => 500.00,
+            'commission_amount' => 0.00,
+            'gateway_charge_amount' => 0.00,
+            'turf_payout_amount' => 500.00,
+            'status' => 'Success',
+            'paid_at' => Carbon::now(),
+            'wallet_cleared_at' => Carbon::now(),
+            'deductions_settled_at' => null,
+        ]);
+
+        $reportService = app(\App\Services\ReportService::class);
+        $summary = $reportService->getTurfEarningsSummary(
+            $this->owner,
+            $this->turf->id,
+            Carbon::now()->startOfMonth()->toDateString(),
+            Carbon::now()->endOfMonth()->toDateString()
+        );
+
+        // Only the balance payment (500.00) is in this month's window.
+        $this->assertEquals(500.00, round($summary['gross_revenue'], 2));
+        // The platform fee was already settled last month -- must be 0.00 here, not 11.80.
+        $this->assertEquals(0.00, round($summary['total_platform_fee'], 2));
+
+        // The on-screen summary must match the CSV export's own total for the same window.
+        $response = $this->actingAs($this->owner)->get(route('reports.export-turf-earnings', [
+            'start_date' => Carbon::now()->startOfMonth()->toDateString(),
+            'end_date' => Carbon::now()->endOfMonth()->toDateString(),
+        ]));
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('"Total Platform Fee (INR)",0.00', $content);
+    }
+
     public function test_export_turf_gst_report_contains_turf_gstin_and_no_saas_gstin()
     {
         $booking = Booking::create([
