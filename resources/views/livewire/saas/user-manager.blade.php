@@ -406,7 +406,7 @@ new #[Layout('layouts.app')] class extends Component
                             <!-- Mobile Field -->
                             <div>
                                 <x-input-label for="mobile" :value="__('Mobile Number')" />
-                                <x-text-input wire:model.live.debounce.250ms="mobile" id="mobile" type="text" class="mt-1.5 block w-full" placeholder="9664588677" />
+                                <x-text-input wire:model.live.debounce.250ms="mobile" id="mobile" type="text" class="mt-1.5 block w-full" placeholder="9876543210" />
                                 <x-input-error :messages="$errors->get('mobile')" class="mt-2" />
                             </div>
 

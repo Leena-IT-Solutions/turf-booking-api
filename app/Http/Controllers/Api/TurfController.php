@@ -171,7 +171,7 @@ class TurfController extends Controller
         $saasMobile = \App\Models\SaasSetting::first()?->contact_mobile;
         $contactNumber = $turf->location?->contact_number 
             ?: ($turf->location?->user?->mobile 
-            ?: ($saasMobile ?: '9664588677'));
+            ?: ($saasMobile ?: ''));
 
         return [
             'id' => $turf->id,

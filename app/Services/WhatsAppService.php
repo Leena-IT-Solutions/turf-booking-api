@@ -24,7 +24,7 @@ class WhatsAppService
      */
     public function sendOtp(string $mobile, string $otp, string $purpose = 'verification'): bool
     {
-        // Clean mobile number - format to E.164 (e.g., 919664588677 or +919664588677 -> 919664588677)
+        // Clean mobile number - format to E.164 (e.g., 919876543210 or +919876543210 -> 919876543210)
         $cleanMobile = preg_replace('/[^0-9]/', '', $mobile);
         if (strlen($cleanMobile) === 10) {
             $cleanMobile = '91' . $cleanMobile; // Default to India (+91) if 10 digits

@@ -586,7 +586,7 @@ new #[Layout('layouts.app')] class extends Component
                             <div class="relative w-full sm:w-72">
                                 <input wire:model.live.debounce.250ms="company_phone" id="companyPhone" type="text" 
                                     class="w-full px-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-xs font-bold text-gray-900 transition" 
-                                    placeholder="e.g. +91 9664588677" />
+                                    placeholder="e.g. +91 9876543210" />
                             </div>
                         </div>
                     </div>

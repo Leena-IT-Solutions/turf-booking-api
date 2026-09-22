@@ -403,7 +403,7 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                             <input wire:model.live.debounce.250ms="contact_mobile" id="contactMobile" type="text" 
                                 class="w-full pl-10 pr-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 transition duration-200 placeholder:text-gray-400 placeholder:font-normal" 
-                                placeholder="9664588677" />
+                                placeholder="9876543210" />
                         </div>
                         <p class="text-[11px] text-gray-400 font-medium">{{ __('Customer helpline shown in player mobile app.') }}</p>
                         <x-input-error :messages="$errors->get('contact_mobile')" class="mt-1" />
