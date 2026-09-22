@@ -8,7 +8,10 @@
             margin: 20px 24px;
         }
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            /* DomPDF maps Helvetica/Arial/sans-serif to its built-in PDF core fonts, which
+               are ASCII-only and have no glyph for the Rupee sign (renders as "?"). DejaVu
+               Sans is the TTF dompdf actually ships and embeds, and it covers ₹ (U+20B9). */
+            font-family: 'DejaVu Sans', sans-serif;
             color: #1e293b;
             font-size: 10.5px;
             line-height: 1.4;
