@@ -209,4 +209,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('reports.export-payouts');
 });
 
+// Signed public download route for booking invoice (30-minute validity window)
+// Note: This link carries booking/customer PII for its 30-minute window if forwarded elsewhere.
+// This is an accepted, deliberate tradeoff for the "open in browser" convenience use case.
+Route::get('/bookings/{booking}/invoice/download', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'download'])
+    ->name('booking.invoice.download')
+    ->middleware('signed');
+
 require __DIR__.'/auth.php';

@@ -11,6 +11,8 @@ class Booking extends Model
 
     protected $fillable = [
         'booking_number',
+        'turf_invoice_number',
+        'saas_invoice_number',
         'user_id',
         'turf_id',
         'date_of_booking',
@@ -117,6 +119,66 @@ class Booking extends Model
             ->first();
 
         if ($last && preg_match('/-(\d+)$/', $last->booking_number, $matches)) {
+            $seq = intval($matches[1]) + 1;
+        } else {
+            $seq = 1;
+        }
+
+        return $prefix . str_pad((string)$seq, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Get Indian Financial Year format (e.g. April 2025 to March 2026 -> '2526')
+     */
+    public static function getFinancialYearString(?\Carbon\Carbon $date = null): string
+    {
+        $d = $date ?: now();
+        $year = (int)$d->format('Y');
+        $month = (int)$d->format('n');
+
+        if ($month >= 4) {
+            $fyStart = $year;
+            $fyEnd = $year + 1;
+        } else {
+            $fyStart = $year - 1;
+            $fyEnd = $year;
+        }
+
+        return substr((string)$fyStart, -2) . substr((string)$fyEnd, -2);
+    }
+
+    /**
+     * Generate sequential turf invoice number: INV-{turfId}-{financial_year}-XXXXX
+     */
+    public static function generateTurfInvoiceNumber(int $turfId): string
+    {
+        $fy = static::getFinancialYearString();
+        $prefix = "INV-{$turfId}-{$fy}-";
+        $last = static::where('turf_invoice_number', 'like', "{$prefix}%")
+            ->orderByDesc('id')
+            ->first();
+
+        if ($last && preg_match('/-(\d+)$/', $last->turf_invoice_number, $matches)) {
+            $seq = intval($matches[1]) + 1;
+        } else {
+            $seq = 1;
+        }
+
+        return $prefix . str_pad((string)$seq, 5, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * Generate sequential SaaS invoice number: PINV-{financial_year}-XXXXX
+     */
+    public static function generateSaasInvoiceNumber(): string
+    {
+        $fy = static::getFinancialYearString();
+        $prefix = "PINV-{$fy}-";
+        $last = static::where('saas_invoice_number', 'like', "{$prefix}%")
+            ->orderByDesc('id')
+            ->first();
+
+        if ($last && preg_match('/-(\d+)$/', $last->saas_invoice_number, $matches)) {
             $seq = intval($matches[1]) + 1;
         } else {
             $seq = 1;

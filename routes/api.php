@@ -94,6 +94,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard/stats', [\App\Http\Controllers\Api\BookingController::class, 'getDashboardStats']);
     Route::post('/booking-dates/{bookingDate}/payments', [\App\Http\Controllers\Api\BookingController::class, 'recordPayment']);
     Route::post('/bookings/{booking}/cancel', [\App\Http\Controllers\Api\BookingController::class, 'cancel']);
+    Route::get('/bookings/{booking}/invoice', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'show']);
+    Route::get('/bookings/{booking}/invoice/signed-url', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'signedUrl']);
     Route::post('/user/device-token', [AuthController::class, 'storeDeviceToken']);
     Route::delete('/user/device-token', [AuthController::class, 'destroyDeviceToken']);
 });
