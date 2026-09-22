@@ -55,7 +55,7 @@
         }
         .header-title {
             font-size: 18px;
-            font-weight: 900;
+            font-weight: 700;
             color: #0f172a;
             letter-spacing: -0.5px;
             margin: 0;
@@ -64,7 +64,7 @@
             display: inline-block;
             padding: 4px 10px;
             font-size: 11px;
-            font-weight: 800;
+            font-weight: 700;
             text-transform: uppercase;
             border-radius: 4px;
             letter-spacing: 0.5px;
@@ -89,7 +89,7 @@
         }
         .total-row {
             font-size: 12px;
-            font-weight: 800;
+            font-weight: 700;
             color: #0f172a;
             border-top: 2px solid #cbd5e1;
             border-bottom: 2px solid #cbd5e1;

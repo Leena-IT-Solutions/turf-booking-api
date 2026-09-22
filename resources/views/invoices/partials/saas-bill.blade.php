@@ -16,6 +16,16 @@
     $igstAmount = (float)($booking->platform_fee_igst ?? 0);
     $cgstAmount = (float)($booking->platform_fee_cgst ?? 0);
     $sgstAmount = (float)($booking->platform_fee_sgst ?? 0);
+
+    // Same reasoning as the turf page: this page only bills the platform's own share of
+    // the booking, so "Paid" here must be this page's proportional share of what's actually
+    // been paid so far -- not an assumption that the platform fee was paid in full.
+    $bookingTotalAmount = (float) $booking->total_amount;
+    $totalPaidAcrossBooking = (float) $booking->payments->sum('amount');
+    $platformPaidShare = $bookingTotalAmount > 0
+        ? round($totalPaidAcrossBooking * ($platformTotal / $bookingTotalAmount), 2)
+        : 0.00;
+    $platformBalanceDue = max(0.00, round($platformTotal - $platformPaidShare, 2));
 @endphp
 
 <!-- Header Row -->
@@ -174,7 +184,13 @@
                 <tr>
                     <td class="text-muted" style="padding-top: 6px;">Paid via Online Payment:</td>
                     <td class="text-right font-bold" style="color: #047857; padding-top: 6px;">
-                        ₹{{ number_format($platformTotal, 2) }}
+                        ₹{{ number_format($platformPaidShare, 2) }}
+                    </td>
+                </tr>
+                <tr>
+                    <td class="text-muted">Balance Due:</td>
+                    <td class="text-right font-bold" style="color: {{ $platformBalanceDue > 0 ? '#b45309' : '#475569' }};">
+                        ₹{{ number_format($platformBalanceDue, 2) }}
                     </td>
                 </tr>
             </table>

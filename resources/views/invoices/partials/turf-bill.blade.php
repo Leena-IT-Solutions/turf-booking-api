@@ -12,6 +12,18 @@
 
     $turfSubtotal = (float)($booking->taxable_amount > 0 ? $booking->taxable_amount : ($booking->total_amount - $booking->platform_fee - $booking->platform_fee_gst));
     $turfTotal = $isGst ? round($turfSubtotal + (float)$booking->turf_gst_amount, 2) : $turfSubtotal;
+
+    // This page only bills the turf's own share of the booking (e.g. Rs. 10 of a Rs. 12
+    // total that also includes a Rs. 2 platform fee, billed separately on page 2) -- so
+    // "Paid"/"Balance Due" here must be the turf's proportional share of what's actually
+    // been paid so far, not the whole booking's totals (which would double-count the
+    // platform fee's own unpaid balance against this page).
+    $bookingTotalAmount = (float) $booking->total_amount;
+    $totalPaidAcrossBooking = (float) $booking->payments->sum('amount');
+    $turfPaidShare = $bookingTotalAmount > 0
+        ? round($totalPaidAcrossBooking * ($turfTotal / $bookingTotalAmount), 2)
+        : 0.00;
+    $turfBalanceDue = max(0.00, round($turfTotal - $turfPaidShare, 2));
 @endphp
 
 <!-- Header Row -->
@@ -229,13 +241,13 @@
                 <tr>
                     <td class="text-muted" style="padding-top: 6px;">Total Paid:</td>
                     <td class="text-right font-bold" style="color: #047857; padding-top: 6px;">
-                        ₹{{ number_format((float)$booking->payments->sum('amount'), 2) }}
+                        ₹{{ number_format($turfPaidShare, 2) }}
                     </td>
                 </tr>
                 <tr>
                     <td class="text-muted">Balance Due:</td>
-                    <td class="text-right font-bold" style="color: {{ (float)$booking->balance_amount > 0 ? '#b45309' : '#475569' }};">
-                        ₹{{ number_format((float)$booking->balance_amount, 2) }}
+                    <td class="text-right font-bold" style="color: {{ $turfBalanceDue > 0 ? '#b45309' : '#475569' }};">
+                        ₹{{ number_format($turfBalanceDue, 2) }}
                     </td>
                 </tr>
             </table>
