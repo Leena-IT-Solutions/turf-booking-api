@@ -183,6 +183,24 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/turf/reports/export-revenue', [\App\Http\Controllers\ReportController::class, 'exportRevenue'])
         ->middleware('role:turf-admin|manager|admin')
         ->name('reports.export-revenue');
+    Route::get('/turf/reports/export-passbook', [\App\Http\Controllers\ReportController::class, 'exportWalletPassbook'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-passbook');
+    Route::get('/turf/reports/export-turf-earnings', [\App\Http\Controllers\ReportController::class, 'exportTurfEarningsBreakdown'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-turf-earnings');
+    Route::get('/turf/reports/export-gst', [\App\Http\Controllers\ReportController::class, 'exportTurfGstReport'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-gst');
+    Route::get('/turf/reports/export-cancellations', [\App\Http\Controllers\ReportController::class, 'exportCancellationReport'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-cancellations');
+    Route::get('/turf/reports/export-commission-summary', [\App\Http\Controllers\ReportController::class, 'exportCommissionFeeSummary'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-commission-summary');
+    Route::get('/turf/reports/export-payouts', [\App\Http\Controllers\ReportController::class, 'exportPayoutHistory'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('reports.export-payouts');
 });
 
 require __DIR__.'/auth.php';

@@ -4,6 +4,7 @@ use App\Models\Booking;
 use App\Models\BookingDate;
 use App\Models\Payment;
 use App\Models\Turf;
+use App\Services\ReportService;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -11,6 +12,7 @@ use Livewire\Volt\Component;
 
 new #[Layout('layouts.app')] class extends Component
 {
+    public string $activeTab = 'bookings';
     public string $startDate = '';
     public string $endDate = '';
     public string $statusFilter = 'all';
@@ -26,6 +28,11 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->startDate = Carbon::now('Asia/Kolkata')->startOfMonth()->toDateString();
         $this->endDate = Carbon::now('Asia/Kolkata')->endOfMonth()->toDateString();
+    }
+
+    public function switchTab(string $tab)
+    {
+        $this->activeTab = $tab;
     }
 
     public function setQuickFilter(string $range)
@@ -50,9 +57,10 @@ new #[Layout('layouts.app')] class extends Component
             $user = auth()->user();
             $activeTurfId = session('active_turf_id');
             $manageableTurfIds = Turf::manageable($user)->pluck('id')->toArray();
+            $reportService = app(ReportService::class);
 
-            // Fetch statistics for selected range strictly scoped to manageable turfs
-            $bookingsQuery = Booking::with(['bookingDates', 'payments'])
+            // Fetch statistics for bookings tab
+            $bookingsQuery = Booking::with(['bookingDates', 'payments', 'turf', 'user'])
                 ->whereHas('bookingDates', function ($q) {
                     $q->whereBetween('booking_date', [$this->startDate, $this->endDate]);
                 });
@@ -81,6 +89,14 @@ new #[Layout('layouts.app')] class extends Component
                 $totalPaidSum += (float)$b->payments->where('status', 'Success')->sum('amount');
             }
             $totalOutstandingBalance = max(0.00, $totalAmountSum - $totalPaidSum);
+
+            // Fetch tab data on demand
+            $passbookData = $activeTab === 'passbook' ? $reportService->getWalletPassbookSummary($user, $this->startDate, $this->endDate) : null;
+            $turfEarningsData = $activeTab === 'turf-earnings' ? $reportService->getTurfEarningsSummary($user, $activeTurfId, $this->startDate, $this->endDate) : null;
+            $gstData = $activeTab === 'gst' ? $reportService->getTurfGstSummary($user, $activeTurfId, $this->startDate, $this->endDate) : null;
+            $cancellationData = $activeTab === 'cancellations' ? $reportService->getCancellationSummary($user, $activeTurfId, $this->startDate, $this->endDate) : null;
+            $commissionData = $activeTab === 'commission' ? $reportService->getCommissionFeeSummary($user, $this->startDate, $this->endDate) : null;
+            $payoutData = $activeTab === 'payouts' ? $reportService->getPayoutHistorySummary($user, $this->startDate, $this->endDate) : null;
         @endphp
 
         <!-- Header -->
@@ -90,32 +106,110 @@ new #[Layout('layouts.app')] class extends Component
                     <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
-                    Reports & Analytics Dashboard
+                    Reports & Financial Statements
                 </h1>
                 <p class="text-sm text-gray-600 mt-1">
-                    Filter booking ledgers, revenue breakdown, and export CSV reports.
+                    Export audit-ready CSV reports, review GST tax liabilities, and monitor cashflow settlements.
                 </p>
             </div>
 
-            <!-- Export Buttons -->
-            <div class="flex flex-wrap gap-2">
-                <a href="{{ route('reports.export-bookings', ['start_date' => $startDate, 'end_date' => $endDate, 'status' => $statusFilter, 'payment_status' => $paymentStatusFilter]) }}" 
-                   target="_blank"
-                   class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                    Export Bookings CSV
-                </a>
-                <a href="{{ route('reports.export-revenue', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                   target="_blank"
-                   class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                    Export Revenue Summary CSV
-                </a>
+            <!-- Dynamic Export Button for Active Tab -->
+            <div class="flex flex-wrap items-center gap-2">
+                @if ($activeTab === 'bookings')
+                    <a href="{{ route('reports.export-bookings', ['start_date' => $startDate, 'end_date' => $endDate, 'status' => $statusFilter, 'payment_status' => $paymentStatusFilter]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Bookings CSV
+                    </a>
+                    <a href="{{ route('reports.export-revenue', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Export Revenue Summary CSV
+                    </a>
+                @elseif ($activeTab === 'passbook')
+                    <a href="{{ route('reports.export-passbook', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Wallet Passbook CSV
+                    </a>
+                @elseif ($activeTab === 'turf-earnings')
+                    <a href="{{ route('reports.export-turf-earnings', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Turf Earnings CSV
+                    </a>
+                @elseif ($activeTab === 'gst')
+                    <a href="{{ route('reports.export-gst', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export GSTR-1 CSV
+                    </a>
+                @elseif ($activeTab === 'cancellations')
+                    <a href="{{ route('reports.export-cancellations', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Cancellations CSV
+                    </a>
+                @elseif ($activeTab === 'commission')
+                    <a href="{{ route('reports.export-commission-summary', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Commission Summary CSV
+                    </a>
+                @elseif ($activeTab === 'payouts')
+                    <a href="{{ route('reports.export-payouts', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Payouts CSV
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        <!-- Navigation Tabs Strip -->
+        <div class="border-b border-gray-200">
+            <div class="flex space-x-2 overflow-x-auto pb-2 scrollbar-none">
+                <button wire:click="switchTab('bookings')" type="button"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap {{ $activeTab === 'bookings' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200' }}">
+                    Bookings Ledger
+                </button>
+                <button wire:click="switchTab('passbook')" type="button"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap {{ $activeTab === 'passbook' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200' }}">
+                    Wallet Passbook
+                </button>
+                <button wire:click="switchTab('turf-earnings')" type="button"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap {{ $activeTab === 'turf-earnings' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200' }}">
+                    Turf Earnings Breakdown
+                </button>
+                <button wire:click="switchTab('gst')" type="button"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap {{ $activeTab === 'gst' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200' }}">
+                    GST Output Tax (GSTR-1)
+                </button>
+                <button wire:click="switchTab('cancellations')" type="button"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap {{ $activeTab === 'cancellations' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200' }}">
+                    Cancellations & Refunds
+                </button>
+                <button wire:click="switchTab('commission')" type="button"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap {{ $activeTab === 'commission' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200' }}">
+                    Monthly Commission Summary
+                </button>
+                <button wire:click="switchTab('payouts')" type="button"
+                    class="px-4 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap {{ $activeTab === 'payouts' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200' }}">
+                    Bank Payout History
+                </button>
             </div>
         </div>
 
         <!-- Filter Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
                 <div class="flex gap-2">
                     <button wire:click="setQuickFilter('today')" type="button" 
@@ -131,9 +225,16 @@ new #[Layout('layouts.app')] class extends Component
                         This Month
                     </button>
                 </div>
+
+                @if (in_array($activeTab, ['passbook', 'commission', 'payouts']))
+                    <div class="text-xs text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Showing account-wide records for owner wallet
+                    </div>
+                @endif
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 {{ $activeTab === 'bookings' ? 'md:grid-cols-4' : 'md:grid-cols-2' }} gap-4">
                 <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
                     <input type="date" wire:model.live="startDate" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -142,109 +243,126 @@ new #[Layout('layouts.app')] class extends Component
                     <label class="block text-xs font-medium text-gray-700 mb-1">End Date</label>
                     <input type="date" wire:model.live="endDate" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Booking Status</label>
-                    <select wire:model.live="statusFilter" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="all">All Statuses</option>
-                        <option value="Confirmed">Confirmed</option>
-                        <option value="Partially Cancelled">Partially Cancelled</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Payment Status</label>
-                    <select wire:model.live="paymentStatusFilter" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                        <option value="all">All Payment Statuses</option>
-                        <option value="Paid">Paid (Full)</option>
-                        <option value="Partially Paid">Partially Paid</option>
-                        <option value="Unpaid">Unpaid</option>
-                    </select>
-                </div>
+                @if ($activeTab === 'bookings')
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Booking Status</label>
+                        <select wire:model.live="statusFilter" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="all">All Statuses</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Partially Cancelled">Partially Cancelled</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Payment Status</label>
+                        <select wire:model.live="paymentStatusFilter" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="all">All Payment Statuses</option>
+                            <option value="Paid">Paid (Full)</option>
+                            <option value="Partially Paid">Partially Paid</option>
+                            <option value="Unpaid">Unpaid</option>
+                        </select>
+                    </div>
+                @endif
             </div>
         </div>
 
-        <!-- Summary Metric Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                <span class="text-xs font-medium text-gray-500">Total Bookings</span>
-                <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($totalBookingsCount) }}</p>
-            </div>
-            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                <span class="text-xs font-medium text-gray-500">Total Value</span>
-                <p class="text-2xl font-bold text-indigo-600 mt-1">₹{{ number_format($totalAmountSum, 2) }}</p>
-            </div>
-            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                <span class="text-xs font-medium text-gray-500">Collected Revenue</span>
-                <p class="text-2xl font-bold text-emerald-600 mt-1">₹{{ number_format($totalPaidSum, 2) }}</p>
-            </div>
-            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                <span class="text-xs font-medium text-gray-500">Outstanding Balance</span>
-                <p class="text-2xl font-bold text-amber-600 mt-1">₹{{ number_format($totalOutstandingBalance, 2) }}</p>
-            </div>
-        </div>
-
-        <!-- Bookings Ledger Table -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 class="font-semibold text-gray-900">Bookings Ledger ({{ $bookings->count() }})</h3>
+        <!-- Tab Contents -->
+        @if ($activeTab === 'bookings')
+            <!-- Summary Metric Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                    <span class="text-xs font-medium text-gray-500">Total Bookings</span>
+                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($totalBookingsCount) }}</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                    <span class="text-xs font-medium text-gray-500">Total Value</span>
+                    <p class="text-2xl font-bold text-indigo-600 mt-1">₹{{ number_format($totalAmountSum, 2) }}</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                    <span class="text-xs font-medium text-gray-500">Collected Revenue</span>
+                    <p class="text-2xl font-bold text-emerald-600 mt-1">₹{{ number_format($totalPaidSum, 2) }}</p>
+                </div>
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+                    <span class="text-xs font-medium text-gray-500">Outstanding Balance</span>
+                    <p class="text-2xl font-bold text-amber-600 mt-1">₹{{ number_format($totalOutstandingBalance, 2) }}</p>
+                </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-gray-600">
-                    <thead class="text-xs uppercase bg-gray-50 text-gray-700">
-                        <tr>
-                            <th class="px-4 py-3">Ref</th>
-                            <th class="px-4 py-3">Customer</th>
-                            <th class="px-4 py-3">Turf</th>
-                            <th class="px-4 py-3">Date(s)</th>
-                            <th class="px-4 py-3">Total</th>
-                            <th class="px-4 py-3">Paid</th>
-                            <th class="px-4 py-3">Balance</th>
-                            <th class="px-4 py-3">Payment Status</th>
-                            <th class="px-4 py-3">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        @forelse ($bookings as $b)
-                            @php
-                                $totalAmt = (float)$b->bookingDates->where('status', '!=', 'Cancelled')->sum('amount');
-                                $paidAmt = (float)$b->payments->where('status', 'Success')->sum('amount');
-                                $balAmt = max(0.00, $totalAmt - $paidAmt);
-                            @endphp
-                            <tr class="hover:bg-gray-50/50">
-                                <td class="px-4 py-3 font-semibold text-gray-900">
-                                    {{ $b->booking_reference ?? ('#' . $b->id) }}
-                                </td>
-                                <td class="px-4 py-3">
-                                    <div class="font-medium text-gray-900">{{ $b->user?->name ?? 'Guest' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $b->user?->mobile ?? '' }}</div>
-                                </td>
-                                <td class="px-4 py-3">{{ $b->turf?->name ?? 'N/A' }}</td>
-                                <td class="px-4 py-3 text-xs">{{ $b->bookingDates->pluck('booking_date')->implode(', ') }}</td>
-                                <td class="px-4 py-3 font-semibold text-gray-900">₹{{ number_format($totalAmt, 2) }}</td>
-                                <td class="px-4 py-3 text-emerald-600 font-semibold">₹{{ number_format($paidAmt, 2) }}</td>
-                                <td class="px-4 py-3 text-amber-600 font-semibold">₹{{ number_format($balAmt, 2) }}</td>
-                                <td class="px-4 py-3">
-                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $b->payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-800 ' : ($b->payment_status === 'Partially Paid' ? 'bg-amber-100 text-amber-800 ' : 'bg-red-100 text-red-800 ') }}">
-                                        {{ $b->payment_status }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-3">
-                                    <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800 ' : 'bg-gray-100 text-gray-800 ' }}">
-                                        {{ $b->status }}
-                                    </span>
-                                </td>
-                            </tr>
-                        @empty
+            <!-- Bookings Ledger Table -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-900">Bookings Ledger ({{ $bookings->count() }})</h3>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-600">
+                        <thead class="text-xs uppercase bg-gray-50 text-gray-700">
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-center text-gray-500">
-                                    No booking records found for the selected date range.
-                                </td>
+                                <th class="px-4 py-3">Ref</th>
+                                <th class="px-4 py-3">Customer</th>
+                                <th class="px-4 py-3">Turf</th>
+                                <th class="px-4 py-3">Date(s)</th>
+                                <th class="px-4 py-3">Total</th>
+                                <th class="px-4 py-3">Paid</th>
+                                <th class="px-4 py-3">Balance</th>
+                                <th class="px-4 py-3">Payment Status</th>
+                                <th class="px-4 py-3">Status</th>
                             </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @forelse ($bookings as $b)
+                                @php
+                                    $totalAmt = (float)$b->bookingDates->where('status', '!=', 'Cancelled')->sum('amount');
+                                    $paidAmt = (float)$b->payments->where('status', 'Success')->sum('amount');
+                                    $balAmt = max(0.00, $totalAmt - $paidAmt);
+                                @endphp
+                                <tr class="hover:bg-gray-50/50">
+                                    <td class="px-4 py-3 font-semibold text-gray-900">
+                                        {{ $b->booking_reference ?? ('#' . $b->id) }}
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-medium text-gray-900">{{ $b->user?->name ?? 'Guest' }}</div>
+                                        <div class="text-xs text-gray-500">{{ $b->user?->mobile ?? '' }}</div>
+                                    </td>
+                                    <td class="px-4 py-3">{{ $b->turf?->name ?? 'N/A' }}</td>
+                                    <td class="px-4 py-3 text-xs">{{ $b->bookingDates->pluck('booking_date')->implode(', ') }}</td>
+                                    <td class="px-4 py-3 font-semibold text-gray-900">₹{{ number_format($totalAmt, 2) }}</td>
+                                    <td class="px-4 py-3 text-emerald-600 font-semibold">₹{{ number_format($paidAmt, 2) }}</td>
+                                    <td class="px-4 py-3 text-amber-600 font-semibold">₹{{ number_format($balAmt, 2) }}</td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $b->payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-800 ' : ($b->payment_status === 'Partially Paid' ? 'bg-amber-100 text-amber-800 ' : 'bg-red-100 text-red-800 ') }}">
+                                            {{ $b->payment_status }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800 ' : 'bg-gray-100 text-gray-800 ' }}">
+                                            {{ $b->status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="9" class="px-4 py-8 text-center text-gray-500">
+                                        No booking records found for the selected date range.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        @elseif ($activeTab === 'passbook' && $passbookData)
+            @include('livewire.turf.reports._passbook-tab', ['data' => $passbookData])
+        @elseif ($activeTab === 'turf-earnings' && $turfEarningsData)
+            @include('livewire.turf.reports._turf-earnings-tab', ['data' => $turfEarningsData])
+        @elseif ($activeTab === 'gst' && $gstData)
+            @include('livewire.turf.reports._gst-tab', ['data' => $gstData])
+        @elseif ($activeTab === 'cancellations' && $cancellationData)
+            @include('livewire.turf.reports._cancellations-tab', ['data' => $cancellationData])
+        @elseif ($activeTab === 'commission' && $commissionData)
+            @include('livewire.turf.reports._commission-tab', ['data' => $commissionData])
+        @elseif ($activeTab === 'payouts' && $payoutData)
+            @include('livewire.turf.reports._payouts-tab', ['data' => $payoutData])
+        @endif
     </div>
 </div>

@@ -149,4 +149,9 @@ class Booking extends Model
     {
         return $this->hasMany(BookingCancellation::class);
     }
+
+    public function getBookingReferenceAttribute(): string
+    {
+        return $this->booking_number ?? ('#' . $this->id);
+    }
 }
