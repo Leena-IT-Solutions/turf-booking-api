@@ -20,6 +20,8 @@ Route::get('/pricing', function () {
 Route::view('/faqs', 'faqs')->name('faqs');
 Route::view('/contact', 'contact')->name('contact');
 Route::view('/for-turf-owners', 'for-turf-owners')->name('for-turf-owners');
+Route::redirect('/list-your-turf', '/for-turf-owners');
+Route::redirect('/manage-turf', '/for-turf-owners');
 Route::view('/download', 'download')->name('download');
 Route::view('/terms-and-conditions', 'terms-and-conditions')->name('terms-and-conditions');
 Route::view('/terms', 'terms-and-conditions')->name('terms');
