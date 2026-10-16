@@ -66,7 +66,14 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $user->load('roles');
-        return response()->json($user);
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'mobile' => $user->mobile,
+            'roles' => $user->roles()->pluck('name')->toArray(),
+            'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
+        ]);
     }
 
     /**
