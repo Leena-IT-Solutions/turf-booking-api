@@ -3,6 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\Turf;
+use App\Models\Booking;
+use App\Models\BookingDate;
+use Carbon\Carbon;
 use Livewire\Volt\Volt;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -21,6 +25,7 @@ class TurfAdminPagesTest extends TestCase
     public function test_guest_is_redirected_from_turf_pages(): void
     {
         $this->get('/turf/dashboard')->assertRedirect('/login');
+        $this->get('/turf/client-bookings')->assertRedirect('/login');
         $this->get('/turf/bookings')->assertRedirect('/login');
         $this->get('/turf/settings')->assertRedirect('/login');
     }
@@ -31,6 +36,7 @@ class TurfAdminPagesTest extends TestCase
         $user->assignRole('customer');
 
         $this->actingAs($user)->get('/turf/dashboard')->assertStatus(403);
+        $this->actingAs($user)->get('/turf/client-bookings')->assertStatus(403);
         $this->actingAs($user)->get('/turf/bookings')->assertStatus(403);
         $this->actingAs($user)->get('/turf/settings')->assertStatus(403);
     }
@@ -41,6 +47,7 @@ class TurfAdminPagesTest extends TestCase
         $admin->assignRole('turf-admin');
 
         $this->actingAs($admin)->get('/turf/dashboard')->assertOk();
+        $this->actingAs($admin)->get('/turf/client-bookings')->assertOk();
         $this->actingAs($admin)->get('/turf/bookings')->assertOk();
         $this->actingAs($admin)->get('/turf/settings')->assertOk();
     }
@@ -300,5 +307,167 @@ class TurfAdminPagesTest extends TestCase
         $this->assertEquals(-2.80, (float)$turfAdmin->commission_wallet_balance);
 
         \Carbon\Carbon::setTestNow();
+    }
+
+    public function test_client_bookings_page_loads_and_filters_reactively(): void
+    {
+        $turfAdmin = User::factory()->create();
+        $turfAdmin->assignRole('turf-admin');
+
+        $location = \App\Models\Location::create([
+            'user_id' => $turfAdmin->id,
+            'name' => 'Cornerstone Arena',
+            'city' => 'Mumbai',
+            'state' => 'Maharashtra',
+            'address' => 'Station Road',
+            'status' => true,
+        ]);
+
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Turf 1 Synthetic',
+            'type' => 'Football',
+        ]);
+
+        $customer = User::factory()->create(['name' => 'Peter Das', 'mobile' => '9307189183']);
+
+        $slotCategory = \App\Models\SlotCategory::create([
+            'turf_id' => $turf->id,
+            'name' => 'General',
+        ]);
+
+        $slot = \App\Models\Slot::create([
+            'slot_category_id' => $slotCategory->id,
+            'from_time' => '18:00:00',
+            'to_time' => '19:00:00',
+            'duration' => 60,
+            'is_active' => true,
+        ]);
+
+        $today = Carbon::now('Asia/Kolkata')->toDateString();
+
+        $booking = Booking::create([
+            'user_id' => $customer->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'booking_reference' => 'TB-202610-00001',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+            'total_amount' => 810.00,
+            'paid_amount' => 810.00,
+            'balance_amount' => 0.00,
+        ]);
+
+        $bDate = BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => $today,
+            'amount' => 810.00,
+            'paid_amount' => 810.00,
+            'balance_amount' => 0.00,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        \App\Models\BookingSlot::create([
+            'booking_date_id' => $bDate->id,
+            'slot_id' => $slot->id,
+        ]);
+
+        $this->actingAs($turfAdmin);
+
+        // Set global session context
+        session(['active_location_id' => $location->id, 'active_turf_id' => $turf->id]);
+
+        Volt::test('turf.client-bookings')
+            ->assertSee('Client Bookings')
+            ->assertSee('Turf 1 Synthetic')
+            ->assertSee('Peter Das')
+            ->assertSee('9307189183')
+            ->assertSee('TB-202610-00001')
+            ->assertSee('06:00 PM - 07:00 PM')
+            ->assertSee('₹810')
+            ->call('nextDay')
+            ->assertDontSee('Peter Das')
+            ->call('previousDay')
+            ->assertSee('Peter Das')
+            ->call('setStatusFilter', 'cancelled')
+            ->assertDontSee('Peter Das')
+            ->call('setStatusFilter', 'all')
+            ->assertSee('Peter Das');
+    }
+
+    public function test_client_bookings_record_payment(): void
+    {
+        $turfAdmin = User::factory()->create();
+        $turfAdmin->assignRole('turf-admin');
+
+        $location = \App\Models\Location::create([
+            'user_id' => $turfAdmin->id,
+            'name' => 'Victory Ground',
+            'city' => 'Mumbai',
+            'state' => 'Maharashtra',
+            'address' => 'Central Avenue',
+            'status' => true,
+        ]);
+
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Victory Turf',
+            'type' => 'Cricket',
+        ]);
+
+        $customer = User::factory()->create(['name' => 'Sandeep Rathod']);
+
+        $today = Carbon::now('Asia/Kolkata')->toDateString();
+
+        $booking = Booking::create([
+            'user_id' => $customer->id,
+            'turf_id' => $turf->id,
+            'date_of_booking' => now(),
+            'booking_type' => 'day',
+            'booking_reference' => 'TB-202610-00002',
+            'status' => 'Confirmed',
+            'payment_status' => 'Partially Paid',
+            'total_amount' => 1000.00,
+            'paid_amount' => 300.00,
+            'balance_amount' => 700.00,
+        ]);
+
+        $bDate = BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => $today,
+            'amount' => 1000.00,
+            'paid_amount' => 300.00,
+            'balance_amount' => 700.00,
+            'status' => 'Confirmed',
+            'payment_status' => 'Partially Paid',
+        ]);
+
+        \App\Models\Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $bDate->id,
+            'amount' => 300.00,
+            'payment_method' => 'Razorpay Online',
+            'status' => 'Success',
+            'paid_at' => now(),
+        ]);
+
+        $this->actingAs($turfAdmin);
+        session(['active_location_id' => $location->id, 'active_turf_id' => $turf->id]);
+
+        Volt::test('turf.client-bookings')
+            ->call('openPaymentModal', $bDate->id)
+            ->assertSet('showPaymentModal', true)
+            ->set('paymentAmount', '700.00')
+            ->set('paymentMethod', 'Cash')
+            ->call('submitPayment')
+            ->assertSet('showPaymentModal', false)
+            ->assertHasNoErrors();
+
+        $bDate->refresh();
+        $this->assertEquals(1000.00, (float)$bDate->paid_amount);
+        $this->assertEquals(0.00, (float)$bDate->balance_amount);
+        $this->assertEquals('Paid', $bDate->payment_status);
     }
 }

@@ -134,6 +134,9 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.banking');
 
+    Volt::route('turf/client-bookings', 'turf.client-bookings')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.client-bookings');
     Volt::route('turf/bookings', 'turf.booking-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.bookings');
@@ -209,6 +212,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/turf/reports/export-payouts', [\App\Http\Controllers\ReportController::class, 'exportPayoutHistory'])
         ->middleware('role:turf-admin|manager|admin')
         ->name('reports.export-payouts');
+    Route::get('/turf/bookings/{booking}/invoice', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'show'])
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.bookings.invoice');
 });
 
 // Signed public download route for booking invoice (30-minute validity window)
