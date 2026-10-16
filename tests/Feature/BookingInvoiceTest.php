@@ -411,4 +411,67 @@ class BookingInvoiceTest extends TestCase
         $downloadRes->assertStatus(200);
         $downloadRes->assertHeader('content-type', 'application/pdf');
     }
+
+    public function test_part_payment_bill_renders_exact_amounts_without_proration_discrepancy(): void
+    {
+        [$customer, , $booking] = $this->createBookingFixture([
+            'turf_is_gst' => false,
+            'platform_fee' => 10.00,
+            'first_payment_amount' => 210.00,
+        ]);
+
+        $booking->update([
+            'actual_amount' => 800.00,
+            'taxable_amount' => 800.00,
+            'turf_gst_amount' => 0.00,
+            'platform_fee' => 10.00,
+            'platform_fee_gst' => 0.00,
+            'total_amount' => 810.00,
+            'payable_now' => 210.00,
+            'balance_amount' => 600.00,
+        ]);
+
+        $bDate = $booking->bookingDates()->first();
+        $bDate->update([
+            'amount' => 810.00,
+            'actual_amount' => 800.00,
+            'taxable_amount' => 800.00,
+            'turf_gst_amount' => 0.00,
+            'paid_amount' => 210.00,
+            'balance_amount' => 600.00,
+        ]);
+
+        $payment = $booking->payments()->first();
+        $payment->update([
+            'amount' => 210.00,
+        ]);
+
+        $view = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $booking->turf->turfSetting,
+            'saasSetting' => SaasSetting::first(),
+            'turfIsGstActive' => false,
+            'saasIsGstActive' => false,
+            'includeSaasPage' => true,
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $compactView = str_replace(["\n", "\r", ' '], '', $view);
+
+        // Page 1: Slot row amount must be 800.00 (not 810.00)
+        $this->assertStringContainsString('₹800.00', $view);
+        // Page 1: Total Booking Amount must be 800.00
+        $this->assertStringContainsString('TotalBookingAmount:</td><tdclass="text-right">₹800.00</td>', $compactView);
+        // Page 1: Total Paid to turf must be 200.00 (not 207.41)
+        $this->assertStringContainsString('TotalPaid:</td><tdclass="text-rightfont-bold"style="color:#047857;padding-top:6px;">₹200.00</td>', $compactView);
+        // Page 1: Balance Due must be 600.00 (not 592.59)
+        $this->assertStringContainsString('BalanceDue:</td><tdclass="text-rightfont-bold"style="color:#b45309;">₹600.00</td>', $compactView);
+
+        // Page 2: Platform Convenience Fee must be 10.00
+        $this->assertStringContainsString('TotalPlatformFee:</td><tdclass="text-right">₹10.00</td>', $compactView);
+        // Page 2: Paid via Online Payment must be 10.00 (not 2.59)
+        $this->assertStringContainsString('PaidviaOnlinePayment:</td><tdclass="text-rightfont-bold"style="color:#047857;padding-top:6px;">₹10.00</td>', $compactView);
+        // Page 2: Balance Due must be 0.00 (not 7.41)
+        $this->assertStringContainsString('BalanceDue:</td><tdclass="text-rightfont-bold"style="color:#475569;">₹0.00</td>', $compactView);
+    }
 }

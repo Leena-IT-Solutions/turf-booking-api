@@ -17,14 +17,9 @@
     $cgstAmount = (float)($booking->platform_fee_cgst ?? 0);
     $sgstAmount = (float)($booking->platform_fee_sgst ?? 0);
 
-    // Same reasoning as the turf page: this page only bills the platform's own share of
-    // the booking, so "Paid" here must be this page's proportional share of what's actually
-    // been paid so far -- not an assumption that the platform fee was paid in full.
     $bookingTotalAmount = (float) $booking->total_amount;
     $totalPaidAcrossBooking = (float) $booking->payments->sum('amount');
-    $platformPaidShare = $bookingTotalAmount > 0
-        ? round($totalPaidAcrossBooking * ($platformTotal / $bookingTotalAmount), 2)
-        : 0.00;
+    $platformPaidShare = min($totalPaidAcrossBooking, $platformTotal);
     $platformBalanceDue = max(0.00, round($platformTotal - $platformPaidShare, 2));
 @endphp
 

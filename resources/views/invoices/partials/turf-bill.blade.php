@@ -13,16 +13,11 @@
     $turfSubtotal = (float)($booking->taxable_amount > 0 ? $booking->taxable_amount : ($booking->total_amount - $booking->platform_fee - $booking->platform_fee_gst));
     $turfTotal = $isGst ? round($turfSubtotal + (float)$booking->turf_gst_amount, 2) : $turfSubtotal;
 
-    // This page only bills the turf's own share of the booking (e.g. Rs. 10 of a Rs. 12
-    // total that also includes a Rs. 2 platform fee, billed separately on page 2) -- so
-    // "Paid"/"Balance Due" here must be the turf's proportional share of what's actually
-    // been paid so far, not the whole booking's totals (which would double-count the
-    // platform fee's own unpaid balance against this page).
     $bookingTotalAmount = (float) $booking->total_amount;
+    $platformFeeTotal = round((float)$booking->platform_fee + (float)$booking->platform_fee_gst, 2);
     $totalPaidAcrossBooking = (float) $booking->payments->sum('amount');
-    $turfPaidShare = $bookingTotalAmount > 0
-        ? round($totalPaidAcrossBooking * ($turfTotal / $bookingTotalAmount), 2)
-        : 0.00;
+    $platformPaidShare = min($totalPaidAcrossBooking, $platformFeeTotal);
+    $turfPaidShare = max(0.00, round($totalPaidAcrossBooking - $platformPaidShare, 2));
     $turfBalanceDue = max(0.00, round($turfTotal - $turfPaidShare, 2));
 @endphp
 
@@ -132,6 +127,29 @@
                         $slotList[] = ($f && $t) ? "$f - $t" : 'Slot';
                     }
                 }
+
+                $dateTurfAmount = 0.0;
+                if ($isGst) {
+                    if ((float)$bDate->taxable_amount > 0 || (float)$bDate->turf_gst_amount > 0) {
+                        $dateTurfAmount = round((float)$bDate->taxable_amount + (float)$bDate->turf_gst_amount, 2);
+                    } else {
+                        $totalBookingAmt = (float)$booking->total_amount;
+                        $dateTurfAmount = ($totalBookingAmt > 0 && $turfTotal > 0)
+                            ? round((float)$bDate->amount * ($turfTotal / $totalBookingAmt), 2)
+                            : (float)$bDate->amount;
+                    }
+                } else {
+                    if ((float)$bDate->taxable_amount > 0) {
+                        $dateTurfAmount = (float)$bDate->taxable_amount;
+                    } elseif ((float)$bDate->actual_amount > 0) {
+                        $dateTurfAmount = max(0.0, round((float)$bDate->actual_amount - (float)$bDate->coupon_discount - (float)$bDate->additional_discount, 2));
+                    } else {
+                        $totalBookingAmt = (float)$booking->total_amount;
+                        $dateTurfAmount = ($totalBookingAmt > 0 && $turfTotal > 0)
+                            ? round((float)$bDate->amount * ($turfTotal / $totalBookingAmt), 2)
+                            : (float)$bDate->amount;
+                    }
+                }
             @endphp
             <tr>
                 <td class="text-center">{{ $itemIndex++ }}</td>
@@ -153,7 +171,7 @@
                     <td class="text-center font-bold">{{ $bookingGstSac }}</td>
                 @endif
                 <td class="text-right font-bold">
-                    {{ number_format((float)$bDate->amount, 2) }}
+                    {{ number_format($dateTurfAmount, 2) }}
                 </td>
             </tr>
         @endforeach
@@ -196,6 +214,11 @@
                         @endforeach
                     </tbody>
                 </table>
+                @if($platformFeeTotal > 0 && $platformPaidShare > 0)
+                    <div style="font-size: 8px; color: #64748b; margin-top: 4px; line-height: 1.3;">
+                        * Payments include ₹{{ number_format($platformPaidShare, 2) }} platform convenience fee (billed separately on Page 2). Net turf advance received: ₹{{ number_format($turfPaidShare, 2) }}.
+                    </div>
+                @endif
             @else
                 <div style="font-size: 9.5px; color: #64748b; font-style: italic;">
                     No payment recorded yet.
