@@ -29,7 +29,8 @@ class BookingPaymentDistributor
         ?string $razorpayOrderId = null,
         ?string $razorpaySignature = null,
         ?array $responsePayload = null,
-        string $paymentStatus = 'Success'
+        string $paymentStatus = 'Success',
+        ?int $targetBookingDateId = null
     ): void {
         if ($amountToDistribute <= 0) {
             return;
@@ -60,6 +61,13 @@ class BookingPaymentDistributor
         $actualAmountToDistribute = min($amountToDistribute, $totalRemainingBalance);
         $remainingToDistribute = $actualAmountToDistribute;
         $unpaidDates = $bookingDates->filter(fn($d) => ($dateBalances[$d->id] ?? 0) > 0)->values();
+
+        // If a specific target booking date is provided, prioritize it first so that payments
+        // collected on a specific date settle that date directly rather than being scattered across all dates.
+        if ($targetBookingDateId) {
+            $unpaidDates = $unpaidDates->sortBy(fn($d) => $d->id === $targetBookingDateId ? 0 : 1)->values();
+        }
+
         $count = $unpaidDates->count();
 
         $turf = $booking->turf;
@@ -75,16 +83,29 @@ class BookingPaymentDistributor
                 break;
             }
 
-            if ($index === $count - 1) {
-                $paidForDate = round($remainingToDistribute, 2);
-                $datePlatformFee = round($totalPlatformFeeWithGst - $allocatedPlatformFee, 2);
-            } else {
-                $ratio = $dateBalances[$bDate->id] / $totalRemainingBalance;
-                $paidForDate = round($actualAmountToDistribute * $ratio, 2);
-                $paidForDate = min($paidForDate, $remainingToDistribute);
+            if ($targetBookingDateId) {
+                $dateBalance = $dateBalances[$bDate->id] ?? 0.00;
+                $paidForDate = min($remainingToDistribute, $dateBalance);
+                $paidForDate = round($paidForDate, 2);
 
-                $datePlatformFee = round($totalPlatformFeeWithGst * ($paidForDate / $actualAmountToDistribute), 2);
-                $allocatedPlatformFee += $datePlatformFee;
+                if ($index === $count - 1 || $paidForDate >= $remainingToDistribute) {
+                    $datePlatformFee = round($totalPlatformFeeWithGst - $allocatedPlatformFee, 2);
+                } else {
+                    $datePlatformFee = round($totalPlatformFeeWithGst * ($paidForDate / $actualAmountToDistribute), 2);
+                    $allocatedPlatformFee += $datePlatformFee;
+                }
+            } else {
+                if ($index === $count - 1) {
+                    $paidForDate = round($remainingToDistribute, 2);
+                    $datePlatformFee = round($totalPlatformFeeWithGst - $allocatedPlatformFee, 2);
+                } else {
+                    $ratio = $dateBalances[$bDate->id] / $totalRemainingBalance;
+                    $paidForDate = round($actualAmountToDistribute * $ratio, 2);
+                    $paidForDate = min($paidForDate, $remainingToDistribute);
+
+                    $datePlatformFee = round($totalPlatformFeeWithGst * ($paidForDate / $actualAmountToDistribute), 2);
+                    $allocatedPlatformFee += $datePlatformFee;
+                }
             }
 
             // The gateway fee belongs to this ONE transaction, not to any individual date -- assign it

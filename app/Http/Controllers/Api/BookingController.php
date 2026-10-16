@@ -1546,7 +1546,19 @@ class BookingController extends Controller
         \DB::beginTransaction();
 
         try {
-            $this->distributePaymentToBooking($booking, $amountToPay, $validated['payment_method']);
+            $this->distributePaymentToBooking(
+                $booking,
+                $amountToPay,
+                $validated['payment_method'],
+                null,
+                0.00,
+                0.00,
+                null,
+                null,
+                null,
+                'Success',
+                $bookingDate->id
+            );
             \App\Services\NotificationService::notifyPaymentRecorded($booking, $amountToPay);
             \DB::commit();
 
@@ -1578,7 +1590,8 @@ class BookingController extends Controller
         ?string $razorpayOrderId = null,
         ?string $razorpaySignature = null,
         ?array $responsePayload = null,
-        string $paymentStatus = 'Success'
+        string $paymentStatus = 'Success',
+        ?int $targetBookingDateId = null
     ): void {
         (new \App\Services\BookingPaymentDistributor())->distribute(
             $booking,
@@ -1590,7 +1603,8 @@ class BookingController extends Controller
             $razorpayOrderId,
             $razorpaySignature,
             $responsePayload,
-            $paymentStatus
+            $paymentStatus,
+            $targetBookingDateId
         );
     }
 

@@ -355,10 +355,22 @@ new #[Layout('layouts.app')] class extends Component
 
         DB::beginTransaction();
         try {
-            // Distribute payment proportionally across active dates, charging commission/platform fee
-            // and settling the turf owner's wallet — shared with the mobile API so the two entry points
-            // can't drift apart on commission/payout math (see App\Services\BookingPaymentDistributor).
-            (new \App\Services\BookingPaymentDistributor())->distribute($booking, $amountToPay, $this->paymentMethod);
+            // Distribute payment directly to the targeted date (or proportionally across active dates),
+            // charging commission/platform fee and settling the turf owner's wallet — shared with the
+            // mobile API so the two entry points can't drift apart on commission/payout math.
+            (new \App\Services\BookingPaymentDistributor())->distribute(
+                $booking,
+                $amountToPay,
+                $this->paymentMethod,
+                null,
+                0.00,
+                0.00,
+                null,
+                null,
+                null,
+                'Success',
+                $this->paymentBookingDateId
+            );
 
             DB::commit();
             session()->flash('status', 'Payment of ₹' . number_format($amountToPay, 2) . ' recorded successfully!');

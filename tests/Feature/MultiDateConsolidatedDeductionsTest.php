@@ -250,4 +250,65 @@ class MultiDateConsolidatedDeductionsTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_offline_payment_on_specific_booking_date_clears_that_date_first()
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00'));
+
+        SaasSetting::first()->update([
+            'platform_fee' => 10.00,
+            'commission_percentage' => 10.00,
+        ]);
+
+        $this->turf->slots()->updateExistingPivot($this->slot->id, [
+            'fri' => 800.00,
+            'sat' => 600.00,
+        ]);
+
+        // 2 dates: 800 + 600 = 1400 + 10 fee = 1410 total
+        // Part payment 50% = 705 paid upfront
+        $date1 = '2026-10-02';
+        $date2 = '2026-10-03';
+
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
+            'slot_ids' => [$this->slot->id],
+            'booking_dates' => [$date1, $date2],
+            'booking_type' => 'day',
+            'payment_method' => 'App',
+            'payment_option' => 'part',
+            'amount_received' => 705.00,
+        ]);
+
+        $response->assertStatus(200);
+        $bookingId = $response->json('booking.id');
+        $booking = Booking::find($bookingId);
+        $bDate1 = $booking->bookingDates()->where('booking_date', $date1)->first();
+        $bDate2 = $booking->bookingDates()->where('booking_date', $date2)->first();
+
+        $initialBalance1 = (float)$bDate1->balance_amount;
+        $initialBalance2 = (float)$bDate2->balance_amount;
+
+        $this->assertGreaterThan(0, $initialBalance1);
+        $this->assertGreaterThan(0, $initialBalance2);
+
+        // Manager records exact balance payment for Date 1 via date payment API
+        $payRes = $this->actingAs($this->turfAdmin, 'sanctum')->postJson("/api/booking-dates/{$bDate1->id}/payments", [
+            'payment_method' => 'Cash',
+            'amount' => $initialBalance1,
+        ]);
+
+        $payRes->assertStatus(200);
+
+        $bDate1->refresh();
+        $bDate2->refresh();
+
+        // Date 1 must be FULLY PAID (balance = 0.00)
+        $this->assertEquals(0.00, (float)$bDate1->balance_amount);
+        $this->assertEquals('Paid', $bDate1->payment_status);
+
+        // Date 2 balance must be UNCHANGED
+        $this->assertEquals($initialBalance2, (float)$bDate2->balance_amount);
+
+        Carbon::setTestNow();
+    }
 }
