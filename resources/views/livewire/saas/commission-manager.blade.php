@@ -208,6 +208,22 @@ new #[Layout('layouts.app')] class extends Component
         }
         $settlements = $settlementsQuery->paginate(15);
 
+        // 5. Commission Invoices Query
+        $invoicesQuery = \App\Models\CommissionInvoice::with(['turf', 'owner', 'generatedBy'])->latest('period_start');
+        if ($this->search !== '' && $this->activeTab === 'invoices') {
+            $term = '%' . $this->search . '%';
+            $invoicesQuery->where(function ($q) use ($term) {
+                $q->where('invoice_number', 'like', $term)
+                  ->orWhereHas('turf', function ($tq) use ($term) {
+                      $tq->where('name', 'like', $term);
+                  })
+                  ->orWhereHas('owner', function ($oq) use ($term) {
+                      $oq->where('name', 'like', $term)->orWhere('email', 'like', $term);
+                  });
+            });
+        }
+        $invoices = $invoicesQuery->paginate(15);
+
         return [
             'filterMode' => $this->filterMode,
             'periodLabel' => $periodLabel,
@@ -224,6 +240,7 @@ new #[Layout('layouts.app')] class extends Component
             'cancellations' => $cancellations,
             'managers' => $managers,
             'settlements' => $settlements,
+            'invoices' => $invoices,
         ];
     }
 }; ?>
@@ -405,6 +422,13 @@ new #[Layout('layouts.app')] class extends Component
                         </svg>
                         <span>Debt Settlements</span>
                     </button>
+                    <button wire:click="$set('activeTab', 'invoices')" type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition cursor-pointer {{ $activeTab === 'invoices' ? 'bg-white text-emerald-700 shadow-xs' : 'text-gray-500 hover:text-gray-800' }}">
+                        <svg class="w-3.5 h-3.5 {{ $activeTab === 'invoices' ? 'text-blue-600' : 'text-gray-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>Commission Invoices</span>
+                    </button>
                 </div>
 
                 <!-- Filters & Search Toolbar -->
@@ -421,6 +445,18 @@ new #[Layout('layouts.app')] class extends Component
                             <option value="App">Online (App)</option>
                             <option value="Pay at Venue">Pay at Venue (Cash)</option>
                         </select>
+                    @endif
+
+                    @if ($activeTab === 'invoices')
+                        <form action="{{ route('saas.commission-invoices.generate') }}" method="POST" class="flex items-center gap-2">
+                            @csrf
+                            <input type="month" name="month" max="{{ now()->subMonth()->format('Y-m') }}" value="{{ now()->subMonth()->format('Y-m') }}" required
+                                class="h-10 py-1.5 px-3 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition">
+                            <button type="submit" class="h-10 px-4 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition flex items-center gap-1.5 cursor-pointer">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                Generate for Month
+                            </button>
+                        </form>
                     @endif
                 </div>
             </div>
@@ -640,7 +676,7 @@ new #[Layout('layouts.app')] class extends Component
             <div class="mt-4">
                 {{ $managers->links() }}
             </div>
-        @else
+        @elseif ($activeTab === 'settlements')
             <!-- Commission Settlements Table -->
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
@@ -691,6 +727,96 @@ new #[Layout('layouts.app')] class extends Component
 
             <div class="mt-4">
                 {{ $settlements->links() }}
+            </div>
+        @else
+            <!-- Commission Invoices Table -->
+            @if (session('status'))
+                <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold rounded-xl flex items-center gap-2">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <span>{{ session('status') }}</span>
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl space-y-1">
+                    @foreach ($errors->all() as $error)
+                        <div>&bull; {{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead>
+                        <tr class="border-b border-gray-200 text-gray-400 font-bold uppercase text-[10px] tracking-wider">
+                            <th class="py-3 px-4">Invoice #</th>
+                            <th class="py-3 px-4">Turf</th>
+                            <th class="py-3 px-4">Owner</th>
+                            <th class="py-3 px-4">Period</th>
+                            <th class="py-3 px-4 text-right">Taxable</th>
+                            <th class="py-3 px-4 text-right">GST</th>
+                            <th class="py-3 px-4 text-right">Total</th>
+                            <th class="py-3 px-4">Generated</th>
+                            <th class="py-3 px-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 font-medium text-gray-700">
+                        @forelse ($invoices as $inv)
+                            @php
+                                $gstTotal = (float)$inv->cgst_amount + (float)$inv->sgst_amount + (float)$inv->igst_amount;
+                                $periodLabel = \Carbon\Carbon::parse($inv->period_start)->format('M Y');
+                            @endphp
+                            <tr class="hover:bg-gray-50/50 transition">
+                                <td class="py-3.5 px-4 whitespace-nowrap">
+                                    <span class="font-mono font-bold text-gray-900 block">{{ $inv->invoice_number }}</span>
+                                    <span class="text-[10px] text-gray-400">{{ $inv->is_gst_invoice ? 'Tax Invoice' : 'Statement' }}</span>
+                                </td>
+                                <td class="py-3.5 px-4 font-bold text-gray-900">
+                                    {{ $inv->turf?->name ?? ($inv->recipient_snapshot['turf_name'] ?? 'N/A') }}
+                                </td>
+                                <td class="py-3.5 px-4 text-gray-700">
+                                    <span class="block font-semibold">{{ $inv->owner?->name ?? ($inv->recipient_snapshot['company_name'] ?? 'N/A') }}</span>
+                                    <span class="text-[10px] text-gray-400">{{ $inv->owner?->email ?? '' }}</span>
+                                </td>
+                                <td class="py-3.5 px-4 font-semibold text-gray-600">
+                                    {{ $periodLabel }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right font-mono text-gray-700">
+                                    ₹{{ number_format((float)$inv->taxable_amount, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right font-mono text-gray-700">
+                                    ₹{{ number_format($gstTotal, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 text-right font-mono font-black text-gray-900">
+                                    ₹{{ number_format((float)$inv->total_amount, 2) }}
+                                </td>
+                                <td class="py-3.5 px-4 text-[11px] text-gray-500 whitespace-nowrap">
+                                    <span class="block">{{ $inv->generated_at ? $inv->generated_at->format('d M Y') : '—' }}</span>
+                                    <span class="text-[10px] text-gray-400">By: {{ $inv->generatedBy?->name ?? 'Scheduler' }}</span>
+                                </td>
+                                <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                    <a href="{{ route('commission-invoices.download', $inv) }}"
+                                        class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                        </svg>
+                                        Download
+                                    </a>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="9" class="py-12 text-center text-gray-400">
+                                    No commission invoices found. Invoices are automatically generated on the 1st of each month or can be generated above.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4">
+                {{ $invoices->links() }}
             </div>
         @endif
         </div>

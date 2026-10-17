@@ -10,4 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('wallet:clear-matured-entries')->dailyAt('01:00');
 Schedule::command('payouts:run-automatic')->dailyAt('02:00');
+Schedule::command('commission:generate-invoices')->monthlyOn(1, '03:00');
 

@@ -103,10 +103,23 @@ new #[Layout('layouts.app')] class extends Component
             ->values()
             : collect();
 
+        $manageableTurfIds = $user ? \App\Models\Turf::manageable($user)->pluck('turfs.id')->toArray() : [];
+        $activeTurfId = session('active_turf_id');
+        $targetTurfIds = ($activeTurfId && in_array($activeTurfId, $manageableTurfIds))
+            ? [$activeTurfId]
+            : $manageableTurfIds;
+
+        $commissionInvoices = $user ? \App\Models\CommissionInvoice::whereIn('turf_id', $targetTurfIds)
+            ->with('turf')
+            ->orderByDesc('period_start')
+            ->limit(12)
+            ->get() : collect();
+
         return [
             'walletTransactions' => $walletTransactions,
             'payments' => $payments,
             'pendingPayments' => $pendingPayments,
+            'commissionInvoices' => $commissionInvoices,
         ];
     }
 
@@ -798,6 +811,84 @@ new #[Layout('layouts.app')] class extends Component
                 @endif
             </div>
         @endif
+    </div>
+
+    <!-- MONTHLY COMMISSION INVOICES -->
+    <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+            <div>
+                <h3 class="text-base font-black text-gray-900 tracking-tight flex items-center gap-2">
+                    <span>📄</span> Monthly Commission Tax Invoices
+                </h3>
+                <p class="text-xs text-gray-400 mt-0.5">
+                    Official monthly tax invoices and commission statements for your accountant and GST filings
+                </p>
+            </div>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 self-start sm:self-auto">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Issued on 1st of each month
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
+                    <tr>
+                        <th class="p-3">Invoice #</th>
+                        <th class="p-3">Turf</th>
+                        <th class="p-3">Billing Period</th>
+                        <th class="p-3 text-right">Taxable</th>
+                        <th class="p-3 text-right">GST</th>
+                        <th class="p-3 text-right">Total Amount</th>
+                        <th class="p-3 text-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 text-gray-700">
+                    @forelse ($commissionInvoices as $inv)
+                        @php
+                            $gstTotal = (float)$inv->cgst_amount + (float)$inv->sgst_amount + (float)$inv->igst_amount;
+                            $periodLabel = \Carbon\Carbon::parse($inv->period_start)->format('M Y');
+                        @endphp
+                        <tr class="hover:bg-gray-50/50 transition">
+                            <td class="p-3 whitespace-nowrap">
+                                <span class="font-mono font-bold text-gray-900 block">{{ $inv->invoice_number }}</span>
+                                <span class="text-[10px] text-gray-400">{{ $inv->is_gst_invoice ? 'Tax Invoice' : 'Statement' }}</span>
+                            </td>
+                            <td class="p-3 font-semibold text-gray-800">
+                                {{ $inv->turf?->name ?? ($inv->recipient_snapshot['turf_name'] ?? 'N/A') }}
+                            </td>
+                            <td class="p-3 font-medium text-gray-600">
+                                {{ $periodLabel }}
+                            </td>
+                            <td class="p-3 text-right font-mono font-medium text-gray-700">
+                                ₹{{ number_format((float)$inv->taxable_amount, 2) }}
+                            </td>
+                            <td class="p-3 text-right font-mono font-medium text-gray-700">
+                                ₹{{ number_format($gstTotal, 2) }}
+                            </td>
+                            <td class="p-3 text-right font-mono font-black text-gray-900">
+                                ₹{{ number_format((float)$inv->total_amount, 2) }}
+                            </td>
+                            <td class="p-3 text-center">
+                                <a href="{{ route('commission-invoices.download', $inv) }}"
+                                    class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                                    </svg>
+                                    Download
+                                </a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="p-8 text-center text-gray-400">
+                                Commission invoices are generated on the 1st of each month for the previous month.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 

@@ -215,6 +215,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/turf/bookings/{booking}/invoice', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'show'])
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.bookings.invoice');
+    Route::get('/commission-invoices/{invoice}/download', [\App\Http\Controllers\CommissionInvoiceController::class, 'download'])
+        ->middleware('role:turf-admin|manager|admin|saas-admin')
+        ->name('commission-invoices.download');
+    Route::post('/saas/commission-invoices/generate', [\App\Http\Controllers\CommissionInvoiceController::class, 'generate'])
+        ->middleware('role:saas-admin')
+        ->name('saas.commission-invoices.generate');
 });
 
 // Signed public download route for booking invoice (30-minute validity window)
