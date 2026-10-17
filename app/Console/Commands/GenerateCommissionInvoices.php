@@ -34,13 +34,16 @@ class GenerateCommissionInvoices extends Command
 
         if ($monthOption) {
             try {
-                $month = Carbon::createFromFormat('Y-m', trim($monthOption))->startOfMonth();
+                // "!" pins the unparsed day to the 1st; without it PHP borrows today's day, so
+                // "2026-09" parsed on the 31st overflows to 1 October.
+                $month = Carbon::createFromFormat('!Y-m', trim($monthOption))->startOfMonth();
             } catch (Exception $e) {
                 $this->error("Invalid month format: {$monthOption}. Expected format: YYYY-MM (e.g. 2026-09).");
                 return 1;
             }
         } else {
-            $month = now()->subMonth()->startOfMonth();
+            // NoOverflow: plain subMonth() on 31 March lands on 3 March, not February.
+            $month = now()->subMonthNoOverflow()->startOfMonth();
         }
 
         if ($month->gte(now()->startOfMonth())) {

@@ -48,7 +48,9 @@ class CommissionInvoiceController extends Controller
             'month' => ['required', 'date_format:Y-m'],
         ]);
 
-        $month = Carbon::createFromFormat('Y-m', $validated['month'])->startOfMonth();
+        // "!" pins the unparsed day to the 1st; without it PHP borrows today's day, so
+        // "2026-09" submitted on the 31st overflows to 1 October and gets rejected as current.
+        $month = Carbon::createFromFormat('!Y-m', $validated['month'])->startOfMonth();
 
         if ($month->gte(now()->startOfMonth())) {
             return back()->withErrors(['month' => 'Invoices can only be generated for closed past months.']);

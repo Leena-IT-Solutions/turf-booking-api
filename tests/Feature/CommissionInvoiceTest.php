@@ -464,4 +464,36 @@ class CommissionInvoiceTest extends TestCase
         $this->assertNotNull($freshInvoice);
         $this->assertNull($freshInvoice->owner_user_id);
     }
+
+    public function test_month_input_is_not_shifted_when_generated_on_the_31st(): void
+    {
+        // On the 31st, createFromFormat('Y-m', '2026-09') borrows day 31 and overflows into October.
+        Carbon::setTestNow(Carbon::parse('2026-10-31 10:00:00'));
+        $this->createBookingWithCommission($this->turfA, Carbon::parse('2026-09-10 10:00:00'));
+
+        $this->actingAs($this->saasAdmin)
+            ->post('/saas/commission-invoices/generate', ['month' => '2026-09'])
+            ->assertSessionHasNoErrors();
+
+        $invoice = CommissionInvoice::where('turf_id', $this->turfA->id)->first();
+        $this->assertNotNull($invoice);
+        $this->assertEquals('2026-09-01', $invoice->period_start->toDateString());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_command_default_month_on_31st_of_march_is_february(): void
+    {
+        // Plain subMonth() on 31 March lands on 3 March (the current month) instead of February.
+        Carbon::setTestNow(Carbon::parse('2027-03-31 10:00:00'));
+        $this->createBookingWithCommission($this->turfA, Carbon::parse('2027-02-15 10:00:00'));
+
+        $this->assertEquals(0, Artisan::call('commission:generate-invoices'));
+
+        $invoice = CommissionInvoice::where('turf_id', $this->turfA->id)->first();
+        $this->assertNotNull($invoice);
+        $this->assertEquals('2027-02-01', $invoice->period_start->toDateString());
+
+        Carbon::setTestNow();
+    }
 }
