@@ -1079,7 +1079,7 @@ new #[Layout('layouts.app')] class extends Component
     <!-- DETAILS DRAWER MODAL -->
     @if ($showDetailModal && $selectedBookingId)
         @php
-            $bDetail = Booking::with(['turf.location', 'turf.setting', 'user', 'bookingDates.bookingSlots.slot.category', 'payments'])->find($selectedBookingId);
+            $bDetail = Booking::with(['turf.location', 'turf.setting', 'user', 'bookingDates.bookingSlots.slot.category', 'bookingDates.reschedules', 'payments'])->find($selectedBookingId);
         @endphp
         @if ($bDetail)
             @php
@@ -1227,13 +1227,60 @@ new #[Layout('layouts.app')] class extends Component
                                                     <span class="text-[10px] text-gray-400 ml-1">ID #{{ $bd->id }}</span>
                                                 </div>
                                             </div>
-                                            <div class="text-right">
-                                                <span class="font-black text-xs text-gray-900">₹{{ number_format($bd->amount, 2) }}</span>
-                                                <span class="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold {{ $bd->payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : ($bd->payment_status === 'Partially Paid' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700') }}">
-                                                    {{ $bd->payment_status }}
-                                                </span>
+                                            <div class="flex items-center gap-2">
+                                                @php
+                                                    $earliestTime = $bd->bookingSlots->map(fn($s) => $s->slot?->from_time)->filter()->sort()->first() ?? '00:00:00';
+                                                    $sessionStart = \Carbon\Carbon::parse($bd->booking_date . ' ' . $earliestTime, 'Asia/Kolkata');
+                                                    $isSessionStarted = \Carbon\Carbon::now('Asia/Kolkata')->gte($sessionStart);
+                                                    $reschedulesUsedCount = $bd->reschedules ? $bd->reschedules->count() : 0;
+                                                    $maxReschedulesAllowed = (int) ($bDetail->turf->max_reschedules ?? 2);
+                                                    $isRescheduleActiveTurf = (bool) ($bDetail->turf->is_reschedule_active ?? true);
+                                                    $isDateCancelled = ($bd->status === 'Cancelled' || $bDetail->status !== 'Confirmed');
+
+                                                    $rescheduleBlockedReason = null;
+                                                    if ($isDateCancelled) {
+                                                        $rescheduleBlockedReason = 'Session is cancelled';
+                                                    } elseif (!$isRescheduleActiveTurf) {
+                                                        $rescheduleBlockedReason = 'Rescheduling disabled for this venue';
+                                                    } elseif ($reschedulesUsedCount >= $maxReschedulesAllowed) {
+                                                        $rescheduleBlockedReason = "Maximum reschedules reached ({$maxReschedulesAllowed})";
+                                                    } elseif ($isSessionStarted) {
+                                                        $rescheduleBlockedReason = 'Session has already started or passed';
+                                                    }
+                                                @endphp
+
+                                                @if (!$rescheduleBlockedReason)
+                                                    <button type="button"
+                                                            wire:click="$dispatch('open-reschedule-modal', { bookingDateId: {{ $bd->id }} })"
+                                                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-[11px] font-bold transition shadow-2xs cursor-pointer">
+                                                        <span>🔄</span>
+                                                        <span>Reschedule</span>
+                                                    </button>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-medium cursor-not-allowed"
+                                                          title="{{ $rescheduleBlockedReason }}">
+                                                        <span>🔄</span>
+                                                        <span>Reschedule</span>
+                                                    </span>
+                                                @endif
+
+                                                <div class="text-right">
+                                                    <span class="font-black text-xs text-gray-900">₹{{ number_format($bd->amount, 2) }}</span>
+                                                    <span class="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-bold {{ $bd->payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : ($bd->payment_status === 'Partially Paid' ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-700') }}">
+                                                        {{ $bd->payment_status }}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
+
+                                        @if ($bd->reschedules && $bd->reschedules->isNotEmpty())
+                                            <div class="mt-1.5 flex items-center gap-1.5 text-[10px] font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
+                                                <span>🔄 Rescheduled from {{ \Carbon\Carbon::parse($bd->reschedules->last()->from_date)->format('d M Y') }}</span>
+                                                @if ($bd->reschedules->last()->reason)
+                                                    <span class="text-sky-500 font-normal">({{ $bd->reschedules->last()->reason }})</span>
+                                                @endif
+                                            </div>
+                                        @endif
 
                                         <!-- Timing & Booked Slots -->
                                         <div class="pt-2 border-t border-gray-100 space-y-2">
@@ -2000,4 +2047,6 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @endif
     @endif
+
+    <livewire:turf.booking-reschedule-modal />
 </div>

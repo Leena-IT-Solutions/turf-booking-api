@@ -106,6 +106,36 @@ class NotificationService
     }
 
     /**
+     * Notify customer and turf managers on booking rescheduling.
+     */
+    public static function notifyBookingRescheduled(Booking $booking, string $fromDate, string $toDate): void
+    {
+        if (!(SaasSetting::first()?->notify_booking_rescheduled ?? true)) {
+            return;
+        }
+
+        $booking->load(['turf']);
+        $turfName = $booking->turf?->name ?? 'Turf';
+        $ref = $booking->booking_reference ?? ('#' . $booking->id);
+
+        if ($booking->user_id) {
+            self::sendToUser(
+                $booking->user_id,
+                "Booking Rescheduled 🔄",
+                "Your booking ($ref) at $turfName has been rescheduled from $fromDate to $toDate.",
+                ['type' => 'booking_rescheduled', 'booking_id' => (string)$booking->id]
+            );
+        }
+
+        self::sendToTurfManagers(
+            $booking->turf_id,
+            "Booking Rescheduled 🔄",
+            "Booking ($ref) for $turfName rescheduled from $fromDate to $toDate.",
+            ['type' => 'manager_booking_rescheduled', 'booking_id' => (string)$booking->id]
+        );
+    }
+
+    /**
      * Notify customer on payment received.
      */
     public static function notifyPaymentRecorded(Booking $booking, float $amountPaid): void

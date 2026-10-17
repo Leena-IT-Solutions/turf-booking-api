@@ -48,7 +48,8 @@ class BookingPaymentDistributor
         $totalRemainingBalance = 0.00;
 
         foreach ($bookingDates as $bDate) {
-            $paidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
+            $payments = Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->get();
+            $paidSum = (float) $payments->sum(fn($p) => max(0.00, (float)$p->amount - (float)$p->refunded_amount));
             $balance = max(0.00, (float)$bDate->amount - $paidSum);
             $dateBalances[$bDate->id] = $balance;
             $totalRemainingBalance += $balance;
@@ -264,35 +265,49 @@ class BookingPaymentDistributor
         $allDatesPaid = true;
         $anyDatePaid = false;
         $totalBookingAmount = 0.00;
+        $activeDatesCount = 0;
 
         foreach ($booking->bookingDates as $bDate) {
-            $totalBookingAmount += (float)$bDate->amount;
-            $datePaidSum = (float) Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->sum('amount');
+            $datePayments = Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->get();
+            $datePaidSum = (float) $datePayments->sum(fn($p) => max(0.00, (float)$p->amount - (float)$p->refunded_amount));
+
+            $isCancelled = ($bDate->status === 'Cancelled');
+
+            if (!$isCancelled) {
+                $totalBookingAmount += (float)$bDate->amount;
+                $activeDatesCount++;
+            }
 
             $datePaymentStatus = 'Unpaid';
-            if ($bDate->amount > 0 && $datePaidSum >= $bDate->amount) {
+            if ($bDate->amount > 0 && $datePaidSum >= (float)$bDate->amount) {
                 $datePaymentStatus = 'Paid';
-                $anyDatePaid = true;
+                if (!$isCancelled) $anyDatePaid = true;
             } elseif ($datePaidSum > 0) {
                 $datePaymentStatus = 'Partially Paid';
-                $allDatesPaid = false;
-                $anyDatePaid = true;
+                if (!$isCancelled) {
+                    $allDatesPaid = false;
+                    $anyDatePaid = true;
+                }
             } else {
-                $allDatesPaid = false;
+                if (!$isCancelled) {
+                    $allDatesPaid = false;
+                }
             }
 
             $bDate->update([
                 'payment_status' => $datePaymentStatus,
                 'paid_amount' => ($datePaymentStatus === 'Paid' && $datePaidSum < (float)$bDate->amount) ? (float)$bDate->amount : $datePaidSum,
-                'balance_amount' => ($datePaymentStatus === 'Paid') ? 0.00 : max(0.00, round((float)$bDate->amount - $datePaidSum, 2)),
+                'balance_amount' => ($datePaymentStatus === 'Paid' || $isCancelled) ? 0.00 : max(0.00, round((float)$bDate->amount - $datePaidSum, 2)),
             ]);
         }
 
-        $totalPaidSoFar = (float) Payment::where('booking_id', $booking->id)->where('status', 'Success')->sum('amount');
+        $parentPayments = Payment::where('booking_id', $booking->id)->where('status', 'Success')->get();
+        $totalPaidSoFar = (float) $parentPayments->sum(fn($p) => max(0.00, (float)$p->amount - (float)$p->refunded_amount));
+
         $parentPaymentStatus = 'Unpaid';
-        if ($allDatesPaid && $totalBookingAmount > 0) {
+        if ($activeDatesCount > 0 && $allDatesPaid && $totalBookingAmount > 0) {
             $parentPaymentStatus = 'Paid';
-        } elseif ($anyDatePaid) {
+        } elseif ($anyDatePaid || $totalPaidSoFar > 0) {
             $parentPaymentStatus = 'Partially Paid';
         }
 

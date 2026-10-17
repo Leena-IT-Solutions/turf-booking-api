@@ -96,6 +96,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings/{booking}/cancel', [\App\Http\Controllers\Api\BookingController::class, 'cancel']);
     Route::get('/bookings/{booking}/invoice', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'show']);
     Route::get('/bookings/{booking}/invoice/signed-url', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'signedUrl']);
+    // Booking Reschedule endpoints (staff-only)
+    Route::get('/booking-dates/{bookingDate}/reschedule/slots', [\App\Http\Controllers\Api\BookingRescheduleController::class, 'slots']);
+    Route::post('/booking-dates/{bookingDate}/reschedule/preview', [\App\Http\Controllers\Api\BookingRescheduleController::class, 'preview']);
+    Route::post('/booking-dates/{bookingDate}/reschedule', [\App\Http\Controllers\Api\BookingRescheduleController::class, 'reschedule']);
+
     Route::post('/user/device-token', [AuthController::class, 'storeDeviceToken']);
     Route::delete('/user/device-token', [AuthController::class, 'destroyDeviceToken']);
 });

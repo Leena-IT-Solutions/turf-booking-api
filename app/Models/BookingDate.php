@@ -95,4 +95,9 @@ class BookingDate extends Model
     {
         return $this->hasMany(BookingCancellation::class);
     }
+
+    public function reschedules()
+    {
+        return $this->hasMany(BookingReschedule::class);
+    }
 }

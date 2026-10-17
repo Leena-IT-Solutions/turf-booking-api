@@ -111,11 +111,12 @@ class BookingCancellationService
                 $bDate->bookingSlots()->update(['status' => 'cancelled']);
 
                 $slotCount = $bDate->bookingSlots()->count();
-                $datePaidSum = (float) Payment::where('booking_date_id', $bDate->id)
+                $payments = Payment::where('booking_date_id', $bDate->id)
                     ->where('status', 'Success')
-                    ->sum('amount');
+                    ->get();
+                $datePaidSum = (float) $payments->sum(fn($p) => max(0.0, (float) $p->amount - (float) $p->refunded_amount));
 
-                if ($datePaidSum <= 0 && $booking->payment_status === 'Paid') {
+                if ($payments->isEmpty() && $datePaidSum <= 0 && $booking->payment_status === 'Paid') {
                     $datePaidSum = (float) $bDate->amount;
                 }
 
@@ -340,6 +341,76 @@ class BookingCancellationService
     }
 
     /**
+     * Issue a single gateway refund for a specific payment via Razorpay.
+     */
+    public static function refundSinglePayment(Payment $payment, float $refundAmount, ?string $razorpayKey = null, ?string $razorpaySecret = null): array
+    {
+        if ($refundAmount <= 0) {
+            return ['success' => true, 'message' => 'No refund needed', 'razorpay_refund_id' => null, 'payload' => null];
+        }
+
+        $saas = SaasSetting::first();
+        $razorpayKey = $razorpayKey ?: ($saas?->razorpay_key ?: config('services.razorpay.key'));
+        $razorpaySecret = $razorpaySecret ?: ($saas?->razorpay_secret ?: config('services.razorpay.secret'));
+
+        if (!$razorpayKey || !$razorpaySecret) {
+            return ['success' => false, 'message' => 'Payment gateway keys not configured.', 'razorpay_refund_id' => null, 'payload' => null];
+        }
+
+        $gateway = PaymentGateway::where('payment_id', $payment->id)->first();
+        if (!$gateway || $gateway->gateway_name !== 'razorpay' || !$gateway->gateway_payment_id) {
+            return ['success' => false, 'message' => 'Payment gateway record not found or not Razorpay.', 'razorpay_refund_id' => null, 'payload' => null];
+        }
+
+        $refundPaise = (int) round($refundAmount * 100);
+        $paymentId = $gateway->gateway_payment_id;
+
+        try {
+            // Check if payment needs capture first
+            $fetchResponse = Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                ->get("https://api.razorpay.com/v1/payments/{$paymentId}");
+
+            if ($fetchResponse->successful()) {
+                $pData = $fetchResponse->json();
+                if (($pData['status'] ?? '') === 'authorized') {
+                    Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                        ->asForm()
+                        ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
+                            'amount' => $pData['amount'] ?? (int) round((float) $payment->amount * 100),
+                            'currency' => $pData['currency'] ?? 'INR',
+                        ]);
+                }
+            }
+
+            // Issue refund
+            $response = Http::withBasicAuth($razorpayKey, $razorpaySecret)
+                ->asForm()
+                ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
+                    'amount' => $refundPaise,
+                ]);
+
+            if ($response->successful()) {
+                $resData = $response->json();
+                $refundId = $resData['id'] ?? null;
+                $gateway->update([
+                    'gateway_refund_id' => $refundId,
+                    'refund_response_payload' => $resData,
+                ]);
+
+                return ['success' => true, 'message' => 'Refund processed.', 'razorpay_refund_id' => $refundId, 'payload' => $resData];
+            } else {
+                $errBody = $response->json();
+                $gateway->update(['refund_response_payload' => $errBody]);
+                Log::error('Razorpay refund failed: ' . json_encode($errBody));
+                return ['success' => false, 'message' => $errBody['error']['description'] ?? 'Gateway refund failed.', 'razorpay_refund_id' => null, 'payload' => $errBody];
+            }
+        } catch (\Exception $e) {
+            Log::error('Razorpay refund exception: ' . $e->getMessage());
+            return ['success' => false, 'message' => $e->getMessage(), 'razorpay_refund_id' => null, 'payload' => null];
+        }
+    }
+
+    /**
      * Process Razorpay gateway refund for a booking date.
      */
     private function processGatewayRefund(Booking $booking, ?BookingDate $bDate, float $refundAmount): array
@@ -372,59 +443,17 @@ class BookingCancellationService
         foreach ($successfulPayments as $payment) {
             if ($remainingToRefund <= 0) break;
 
-            $gateway = PaymentGateway::where('payment_id', $payment->id)->first();
-            if (!$gateway || $gateway->gateway_name !== 'razorpay' || !$gateway->gateway_payment_id) {
-                continue;
+            $refundable = max(0.0, (float) $payment->amount - (float) $payment->refunded_amount);
+            if ($refundable <= 0) continue;
+
+            $paymentRefund = min($refundable, $remainingToRefund);
+            $res = self::refundSinglePayment($payment, $paymentRefund, $razorpayKey, $razorpaySecret);
+            if (!$res['success']) {
+                return $res;
             }
 
-            $paymentRefund = min((float) $payment->amount, $remainingToRefund);
-            $refundPaise = (int) round($paymentRefund * 100);
-
-            try {
-                $paymentId = $gateway->gateway_payment_id;
-
-                // Check if payment needs capture first
-                $fetchResponse = Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->get("https://api.razorpay.com/v1/payments/{$paymentId}");
-
-                if ($fetchResponse->successful()) {
-                    $pData = $fetchResponse->json();
-                    if (($pData['status'] ?? '') === 'authorized') {
-                        Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                            ->asForm()
-                            ->post("https://api.razorpay.com/v1/payments/{$paymentId}/capture", [
-                                'amount' => $pData['amount'] ?? (int) round((float) $payment->amount * 100),
-                                'currency' => $pData['currency'] ?? 'INR',
-                            ]);
-                    }
-                }
-
-                // Issue refund
-                $response = Http::withBasicAuth($razorpayKey, $razorpaySecret)
-                    ->asForm()
-                    ->post("https://api.razorpay.com/v1/payments/{$paymentId}/refund", [
-                        'amount' => $refundPaise,
-                    ]);
-
-                if ($response->successful()) {
-                    $resData = $response->json();
-                    $lastRefundId = $resData['id'] ?? null;
-                    $gateway->update([
-                        'gateway_refund_id' => $lastRefundId,
-                        'refund_response_payload' => $resData,
-                    ]);
-                } else {
-                    $errBody = $response->json();
-                    $gateway->update(['refund_response_payload' => $errBody]);
-                    Log::error('Razorpay refund failed: ' . json_encode($errBody));
-                    return ['success' => false, 'message' => $errBody['error']['description'] ?? 'Gateway refund failed.', 'razorpay_refund_id' => null];
-                }
-
-                $remainingToRefund -= $paymentRefund;
-            } catch (\Exception $e) {
-                Log::error('Razorpay refund exception: ' . $e->getMessage());
-                return ['success' => false, 'message' => $e->getMessage(), 'razorpay_refund_id' => null];
-            }
+            $lastRefundId = $res['razorpay_refund_id'];
+            $remainingToRefund -= $paymentRefund;
         }
 
         return ['success' => true, 'message' => 'Gateway refund processed.', 'razorpay_refund_id' => $lastRefundId];
@@ -443,12 +472,12 @@ class BookingCancellationService
         $cancelledAt = Carbon::now('Asia/Kolkata');
 
         foreach ($successfulPayments as $payment) {
-            if ($remainingRefund <= 0) {
-                $payment->update(['refunded_amount' => 0.00, 'refund_status' => 'None']);
+            $refundable = max(0.0, (float) $payment->amount - (float) $payment->refunded_amount);
+            if ($remainingRefund <= 0 || $refundable <= 0) {
                 continue;
             }
 
-            $paymentRefund = min((float) $payment->amount, $remainingRefund);
+            $paymentRefund = min($refundable, $remainingRefund);
             $isOnline = ($payment->payment_method === 'App');
 
             $refundStatus = match (true) {
@@ -457,15 +486,17 @@ class BookingCancellationService
                 default => 'Cash / Offline Refund',
             };
 
+            $newRefundedAmount = round((float) $payment->refunded_amount + $paymentRefund, 2);
             $payment->update([
-                'refunded_amount' => $paymentRefund,
+                'refunded_amount' => $newRefundedAmount,
                 'refund_status' => $refundStatus,
                 'refunded_at' => $cancelledAt,
             ]);
 
-            // Wallet reversal logic: Platform retains all fees/costs; entire refund is debited from turf owner
+            // Wallet reversal logic: Only online ('App') payments ever credited the wallet (or pending payout).
+            // Offline payments were collected directly at venue, so turf owner returns cash directly — no wallet debit.
             $turfAdminOwner = $booking->turf->location->user ?? null;
-            if ($turfAdminOwner && $paymentRefund > 0) {
+            if ($turfAdminOwner && $paymentRefund > 0 && $isOnline) {
                 if ($payment->wallet_cleared_at) {
                     $reversalAmount = -round($paymentRefund, 2);
                     $walletService = new WalletService();

@@ -520,63 +520,6 @@ class BookingController extends Controller
             $lockedSlotMap[$lock->slot_id] = $lock->reason ?: 'Locked for maintenance';
         }
 
-        // Get pricing wizard details helper
-        $wizard = is_array($turf->pricing_wizard_data) 
-            ? $turf->pricing_wizard_data 
-            : json_decode($turf->pricing_wizard_data, true);
-
-        $getRateForTime = function ($wizard, $day, $time) {
-            if (!$wizard) return null;
-            $sameWeek = $wizard['sameRateThroughoutWeek'] ?? 'yes';
-            if ($sameWeek === 'yes') {
-                $sameDay = $wizard['sameRateThroughoutDayAll'] ?? 'yes';
-                if ($sameDay === 'yes') {
-                    return isset($wizard['flatRateAll']) && $wizard['flatRateAll'] !== '' ? (float)$wizard['flatRateAll'] : null;
-                } else {
-                    $ranges = $wizard['timeRangesAll'] ?? [];
-                    foreach ($ranges as $range) {
-                        $from = date('H:i', strtotime($range['from'] ?? '00:00'));
-                        $to = date('H:i', strtotime($range['to'] ?? '23:59'));
-                        if ($from > $to) {
-                            if ($time >= $from || $time < $to) {
-                                return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                            }
-                        } else {
-                            if ($time >= $from && $time < $to) {
-                                return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                            }
-                        }
-                    }
-                }
-            } else {
-                $dayGroups = $wizard['dayGroups'] ?? [];
-                foreach ($dayGroups as $group) {
-                    $days = array_map('strtolower', $group['days'] ?? []);
-                    if (in_array($day, $days)) {
-                        $sameDay = $group['sameRateThroughoutDay'] ?? 'yes';
-                        if ($sameDay === 'yes') {
-                            return isset($group['flatRate']) && $group['flatRate'] !== '' ? (float)$group['flatRate'] : null;
-                        } else {
-                            $ranges = $group['timeRanges'] ?? [];
-                            foreach ($ranges as $range) {
-                                $from = date('H:i', strtotime($range['from'] ?? '00:00'));
-                                $to = date('H:i', strtotime($range['to'] ?? '23:59'));
-                                if ($from > $to) {
-                                    if ($time >= $from || $time < $to) {
-                                        return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                                    }
-                                } else {
-                                    if ($time >= $from && $time < $to) {
-                                        return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return null;
-        };
 
         $today = Carbon::today('Asia/Kolkata')->toDateString();
         $isTodaySelected = in_array($today, $dates);
@@ -587,21 +530,9 @@ class BookingController extends Controller
             ->with('category')
             ->wherePivot('is_active', true)
             ->get()
-            ->map(function ($slot) use ($dayOfWeek, $occupiedSlotIds, $wizard, $dates, $today, $nowTime, $lockedSlotMap) {
+            ->map(function ($slot) use ($occupiedSlotIds, $dates, $today, $nowTime, $lockedSlotMap, $turf) {
                 // Determine slot price
-                $fromTime24 = date('H:i', strtotime($slot->from_time));
-                $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
-                $duration = intval($slot->duration ?: 30);
-
-                if ($hourlyRate !== null) {
-                    $price = round(($hourlyRate / 60) * $duration, 2);
-                } else {
-                    if (isset($slot->pivot->$dayOfWeek)) {
-                        $price = (float)$slot->pivot->$dayOfWeek;
-                    } else {
-                        $price = round((1000.00 / 60) * $duration, 2);
-                    }
-                }
+                $price = app(\App\Services\SlotPricingService::class)->priceForSlot($turf, $slot, $dates[0]);
 
                 // Format time to 12 hour AM/PM
                 $fromFormatted = date('h:i A', strtotime($slot->from_time));
@@ -836,10 +767,6 @@ class BookingController extends Controller
             }
         }
 
-        // Get pricing wizard details helper
-        $wizard = is_array($turf->pricing_wizard_data) 
-            ? $turf->pricing_wizard_data 
-            : json_decode($turf->pricing_wizard_data, true);
 
         // We will perform a transaction to ensure atomic bookings with lockForUpdate concurrency protection
         \DB::beginTransaction();
@@ -918,19 +845,7 @@ class BookingController extends Controller
                     }
 
                     // Price calculation logic
-                    $fromTime24 = date('H:i', strtotime($slot->from_time));
-                    $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
-                    $duration = intval($slot->duration ?: 30);
-
-                    if ($hourlyRate !== null) {
-                        $price = round(($hourlyRate / 60) * $duration, 2);
-                    } else {
-                        if (isset($slot->pivot->$dayOfWeek)) {
-                            $price = (float)$slot->pivot->$dayOfWeek;
-                        } else {
-                            $price = round((1000.00 / 60) * $duration, 2);
-                        }
-                    }
+                    $price = app(\App\Services\SlotPricingService::class)->priceForSlot($turf, $slot, $dateStr);
 
                     $dateSubtotal += $price;
                     $slotsToCreate[] = $slotId;
@@ -1298,9 +1213,6 @@ class BookingController extends Controller
             ], $guardrailCheck['status_code']);
         }
 
-        $wizard = is_array($turf->pricing_wizard_data) 
-            ? $turf->pricing_wizard_data 
-            : json_decode($turf->pricing_wizard_data, true);
 
         $totalSubtotal = 0.00;
         $totalCouponDiscount = 0.00;
@@ -1337,19 +1249,7 @@ class BookingController extends Controller
                     continue;
                 }
 
-                $fromTime24 = date('H:i', strtotime($slot->from_time));
-                $hourlyRate = $this->getRateForTime($wizard, $dayOfWeek, $fromTime24);
-                $duration = intval($slot->duration ?: 30);
-
-                if ($hourlyRate !== null) {
-                    $price = round(($hourlyRate / 60) * $duration, 2);
-                } else {
-                    if (isset($slot->pivot->$dayOfWeek)) {
-                        $price = (float)$slot->pivot->$dayOfWeek;
-                    } else {
-                        $price = round((1000.00 / 60) * $duration, 2);
-                    }
-                }
+                $price = \App\Services\SlotPricingService::priceForSlot($turf, $slot, $dateStr);
 
                 if (!$isUnavailable) {
                     $dateSubtotal += $price;
@@ -1617,56 +1517,7 @@ class BookingController extends Controller
 
     private function getRateForTime(?array $wizard, string $day, string $time): ?float
     {
-        if (!$wizard) return null;
-        $sameWeek = $wizard['sameRateThroughoutWeek'] ?? 'yes';
-        if ($sameWeek === 'yes') {
-            $sameDay = $wizard['sameRateThroughoutDayAll'] ?? 'yes';
-            if ($sameDay === 'yes') {
-                return isset($wizard['flatRateAll']) && $wizard['flatRateAll'] !== '' ? (float)$wizard['flatRateAll'] : null;
-            } else {
-                $ranges = $wizard['timeRangesAll'] ?? [];
-                foreach ($ranges as $range) {
-                    $from = date('H:i', strtotime($range['from'] ?? '00:00'));
-                    $to = date('H:i', strtotime($range['to'] ?? '23:59'));
-                    if ($from > $to) {
-                        if ($time >= $from || $time < $to) {
-                            return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                        }
-                    } else {
-                        if ($time >= $from && $time < $to) {
-                            return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                        }
-                    }
-                }
-            }
-        } else {
-            $dayGroups = $wizard['dayGroups'] ?? [];
-            foreach ($dayGroups as $group) {
-                $days = array_map('strtolower', $group['days'] ?? []);
-                if (in_array($day, $days)) {
-                    $sameDay = $group['sameRateThroughoutDay'] ?? 'yes';
-                    if ($sameDay === 'yes') {
-                        return isset($group['flatRate']) && $group['flatRate'] !== '' ? (float)$group['flatRate'] : null;
-                    } else {
-                        $ranges = $group['timeRanges'] ?? [];
-                        foreach ($ranges as $range) {
-                            $from = date('H:i', strtotime($range['from'] ?? '00:00'));
-                            $to = date('H:i', strtotime($range['to'] ?? '23:59'));
-                            if ($from > $to) {
-                                if ($time >= $from || $time < $to) {
-                                    return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                                }
-                            } else {
-                                if ($time >= $from && $time < $to) {
-                                    return ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : null;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return null;
+        return \App\Services\SlotPricingService::getRateForTime($wizard, $day, $time);
     }
 
     /**
@@ -1910,12 +1761,12 @@ class BookingController extends Controller
 
             $remainingRefundToDistribute = $dateRefundDue;
             foreach ($successfulPayments as $payment) {
-                if ($remainingRefundToDistribute <= 0) {
-                    $payment->update(['refunded_amount' => 0.00, 'refund_status' => 'None']);
+                $refundable = max(0.0, (float)$payment->amount - (float)$payment->refunded_amount);
+                if ($remainingRefundToDistribute <= 0 || $refundable <= 0) {
                     continue;
                 }
 
-                $paymentRefund = min((float)$payment->amount, $remainingRefundToDistribute);
+                $paymentRefund = min($refundable, $remainingRefundToDistribute);
                 $isOnline = ($payment->payment_method === 'App');
                 $paymentRefundStatus = $isOnline ? 'Refunded' : 'Cash / Offline Refund';
 
@@ -2001,15 +1852,18 @@ class BookingController extends Controller
                     $hasOfflineRefund = true;
                 }
 
+                $newRefundedAmount = round((float)$payment->refunded_amount + $paymentRefund, 2);
                 $payment->update([
-                    'refunded_amount' => $paymentRefund,
+                    'refunded_amount' => $newRefundedAmount,
                     'refund_status' => $paymentRefundStatus,
                     'refunded_at' => $cancelledAt,
                 ]);
 
-                // WALLET REFUND REVERSAL LOGIC: Platform retains all fees/costs; entire refund is debited from turf owner
+                // WALLET REFUND REVERSAL LOGIC:
+                // Only online ('App') payments ever credited the wallet (or pending payout).
+                // Offline payments were collected directly at venue, so turf owner returns cash directly — no wallet debit.
                 $turfAdminOwner = $booking->turf->location->user ?? null;
-                if ($turfAdminOwner && $paymentRefund > 0) {
+                if ($turfAdminOwner && $paymentRefund > 0 && $isOnline) {
                     if ($payment->wallet_cleared_at) {
                         // Payment contribution was already applied to wallet -> Deduct entire refund amount
                         $reversalAmount = -round($paymentRefund, 2);

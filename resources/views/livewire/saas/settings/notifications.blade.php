@@ -9,6 +9,7 @@ new #[Layout('layouts.app')] class extends Component
     public $notify_booking_created = true;
     public $notify_booking_cancelled = true;
     public $notify_payment_received = true;
+    public $notify_booking_rescheduled = true;
     public $fcm_project_id = '';
     public $fcm_service_account_json = '';
 
@@ -21,6 +22,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->notify_booking_created = (bool) ($setting->notify_booking_created ?? true);
         $this->notify_booking_cancelled = (bool) ($setting->notify_booking_cancelled ?? true);
         $this->notify_payment_received = (bool) ($setting->notify_payment_received ?? true);
+        $this->notify_booking_rescheduled = (bool) ($setting->notify_booking_rescheduled ?? true);
         $this->fcm_project_id = $setting->fcm_project_id ?? '';
         $this->fcm_service_account_json = $setting->fcm_service_account_json ?? '';
     }
@@ -31,6 +33,7 @@ new #[Layout('layouts.app')] class extends Component
             'notify_booking_created' => 'boolean',
             'notify_booking_cancelled' => 'boolean',
             'notify_payment_received' => 'boolean',
+            'notify_booking_rescheduled' => 'boolean',
             'fcm_project_id' => 'nullable|string|max:255',
             'fcm_service_account_json' => 'nullable|string',
         ]);
@@ -42,6 +45,7 @@ new #[Layout('layouts.app')] class extends Component
             'notify_booking_created' => 'boolean',
             'notify_booking_cancelled' => 'boolean',
             'notify_payment_received' => 'boolean',
+            'notify_booking_rescheduled' => 'boolean',
             'fcm_project_id' => 'nullable|string|max:255',
             'fcm_service_account_json' => 'nullable|string',
         ]);
@@ -52,6 +56,7 @@ new #[Layout('layouts.app')] class extends Component
             'notify_booking_created' => $this->notify_booking_created,
             'notify_booking_cancelled' => $this->notify_booking_cancelled,
             'notify_payment_received' => $this->notify_payment_received,
+            'notify_booking_rescheduled' => $this->notify_booking_rescheduled,
             'fcm_project_id' => $this->fcm_project_id,
             'fcm_service_account_json' => $this->fcm_service_account_json,
         ])->save();
@@ -205,6 +210,27 @@ new #[Layout('layouts.app')] class extends Component
                             </span>
                             <label class="relative inline-flex items-center cursor-pointer">
                                 <input id="paymentReceivedToggle" type="checkbox" wire:model.live="notify_payment_received" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Row 4: Booking Rescheduled -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <label for="bookingRescheduledToggle" class="text-xs font-bold text-gray-900 block cursor-pointer">
+                                {{ __('Booking Rescheduled') }}
+                            </label>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('Send notification to customer and venue managers when a session date or time is rescheduled.') }}
+                            </p>
+                        </div>
+                        <div class="shrink-0 flex items-center gap-3">
+                            <span class="text-xs font-bold {{ $notify_booking_rescheduled ? 'text-indigo-600' : 'text-gray-400' }}">
+                                {{ $notify_booking_rescheduled ? __('Active') : __('Disabled') }}
+                            </span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input id="bookingRescheduledToggle" type="checkbox" wire:model.live="notify_booking_rescheduled" class="sr-only peer">
                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
                             </label>
                         </div>

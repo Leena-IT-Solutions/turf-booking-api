@@ -27,6 +27,10 @@ new #[Layout('layouts.app')] class extends Component
     public $cancellation_fee = 0;
     public $platform_cancellation_fee_percentage = 5.00;
 
+    // Rescheduling settings
+    public $is_reschedule_active = true;
+    public $max_reschedules = 2;
+
     // Message Sharing settings
     public $share_message_template = '';
 
@@ -62,6 +66,8 @@ new #[Layout('layouts.app')] class extends Component
                 $this->is_cancellation_active = (bool)$turf->is_cancellation_active;
                 $this->cancellation_hours = (int)$turf->cancellation_hours;
                 $this->cancellation_fee = $turf->cancellation_fee;
+                $this->is_reschedule_active = (bool)($turf->is_reschedule_active ?? true);
+                $this->max_reschedules = (int)($turf->max_reschedules ?? 2);
                 $saas = \App\Models\SaasSetting::first();
                 $this->platform_cancellation_fee_percentage = $saas ? (float)($saas->cancellation_fee_percentage ?? 5.00) : 5.00;
                 $this->share_message_template = $turf->share_message_template ?? "*Booking Confirmed!*\n\n⚽ *Turf:* {turf_name}\n📅 *Date:* {booking_date}\n⏰ *Slots:* {slots}\n\n💳 *Payment Details:*\n• Total Amount: ₹{total_amount}\n• Paid Amount: ₹{paid_amount}\n• Balance Due: ₹{balance_amount}\n\nThank you for booking with us!";
@@ -94,6 +100,8 @@ new #[Layout('layouts.app')] class extends Component
             'is_cancellation_active' => 'required|boolean',
             'cancellation_hours' => 'required|integer|min:0',
             'cancellation_fee' => 'required|numeric|min:0',
+            'is_reschedule_active' => 'required|boolean',
+            'max_reschedules' => 'required|integer|min:1|max:10',
             'share_message_template' => 'nullable|string',
         ];
 
@@ -393,6 +401,54 @@ new #[Layout('layouts.app')] class extends Component
                                             'refund' => number_format(max(0, 1000 - (1000 * ($platform_cancellation_fee_percentage / 100) + (float)$cancellation_fee)), 2),
                                         ]) }}</span>
                                     </div>
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Rescheduling Policy Card -->
+                <div class="bg-white p-6 sm:p-7 rounded-3xl border border-gray-100 shadow-xs space-y-6">
+                    <div class="pb-4 border-b border-gray-100 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-100 flex items-center justify-center text-lg">
+                            🔄
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">{{ __('Rescheduling Policy') }}</h3>
+                            <p class="text-xs text-gray-400 font-medium mt-0.5">{{ __('Configure venue session rescheduling permissions and limits') }}</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <!-- Allow Rescheduling Switch -->
+                        <div class="flex items-center justify-between p-4 sm:p-5 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-100 transition">
+                            <div class="space-y-0.5 pr-4">
+                                <label class="block text-xs font-bold text-gray-800 cursor-pointer">{{ __('Allow Session Rescheduling') }}</label>
+                                <p class="text-xs text-gray-400 leading-relaxed">{{ __('Enable staff to reschedule sessions for confirmed bookings') }}</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input type="checkbox" wire:model.live="is_reschedule_active" class="sr-only peer">
+                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                            </label>
+                        </div>
+
+                        <!-- Max Reschedules Field -->
+                        @if ($is_reschedule_active)
+                            <div class="p-5 sm:p-6 bg-sky-50/40 rounded-2xl border border-sky-200/70 space-y-4 transition-all">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-900 mb-1">
+                                        {{ __('Max Reschedules per Session') }}
+                                    </label>
+                                    <p class="text-[11px] text-gray-500 mb-2">
+                                        {{ __('Maximum number of times an individual session can be rescheduled (1 to 10)') }}
+                                    </p>
+                                    <div class="relative max-w-xs">
+                                        <input wire:model.live.debounce.300ms="max_reschedules" type="number" min="1" max="10" step="1" 
+                                            class="w-full pl-4 pr-16 py-2.5 bg-white rounded-xl border border-gray-200 focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 text-sm font-semibold text-gray-900 transition shadow-2xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                                            placeholder="2" />
+                                        <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">times</span>
+                                    </div>
+                                    @error('max_reschedules') <span class="block text-[10px] text-rose-600 mt-1.5 font-semibold">{{ $message }}</span> @enderror
                                 </div>
                             </div>
                         @endif

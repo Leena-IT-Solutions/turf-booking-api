@@ -37,6 +37,8 @@ class Turf extends Model
         'is_cancellation_active',
         'cancellation_hours',
         'cancellation_fee',
+        'is_reschedule_active',
+        'max_reschedules',
         'share_message_template',
     ];
 
@@ -62,6 +64,8 @@ class Turf extends Model
         'is_cancellation_active' => 'boolean',
         'cancellation_hours' => 'integer',
         'cancellation_fee' => 'decimal:2',
+        'is_reschedule_active' => 'boolean',
+        'max_reschedules' => 'integer',
     ];
 
     /**

@@ -306,7 +306,7 @@ new #[Layout('layouts.app')] class extends Component
         })->values();
 
         $selectedBooking = $this->selectedBookingId
-            ? Booking::with(['user', 'turf.location', 'bookingDates.bookingSlots.slot.category', 'payments' => fn($q) => $q->where('status', 'Success')])->find($this->selectedBookingId)
+            ? Booking::with(['user', 'turf.location', 'bookingDates.bookingSlots.slot.category', 'bookingDates.reschedules', 'payments' => fn($q) => $q->where('status', 'Success')])->find($this->selectedBookingId)
             : null;
 
         return [
@@ -640,24 +640,73 @@ new #[Layout('layouts.app')] class extends Component
                         <div class="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Booked Session Dates</div>
                         <div class="space-y-2">
                             @foreach ($selectedBooking->bookingDates as $d)
-                                <div class="p-3 bg-white rounded-xl border border-slate-200 flex items-center justify-between text-xs">
-                                    <div>
-                                        <div class="font-bold text-slate-900">{{ Carbon::parse($d->booking_date)->format('D, d M Y') }}</div>
-                                        <div class="text-slate-500 mt-0.5">
-                                            @php $dRanges = $this->formatConsecutiveSlots($d->bookingSlots); @endphp
-                                            @foreach ($dRanges as $r)
-                                                <span class="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-semibold text-slate-700 mr-1">
-                                                    {{ $r['from'] }} - {{ $r['to'] }}
+                                <div class="p-3 bg-white rounded-xl border border-slate-200 text-xs space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="font-bold text-slate-900">{{ Carbon::parse($d->booking_date)->format('D, d M Y') }}</div>
+                                            <div class="text-slate-500 mt-0.5">
+                                                @php $dRanges = $this->formatConsecutiveSlots($d->bookingSlots); @endphp
+                                                @foreach ($dRanges as $r)
+                                                    <span class="inline-block bg-slate-100 px-1.5 py-0.5 rounded text-[11px] font-semibold text-slate-700 mr-1">
+                                                        {{ $r['from'] }} - {{ $r['to'] }}
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            @php
+                                                $earliestTime = $d->bookingSlots->map(fn($s) => $s->slot?->from_time)->filter()->sort()->first() ?? '00:00:00';
+                                                $sessionStart = \Carbon\Carbon::parse($d->booking_date . ' ' . $earliestTime, 'Asia/Kolkata');
+                                                $isSessionStarted = \Carbon\Carbon::now('Asia/Kolkata')->gte($sessionStart);
+                                                $reschedulesUsedCount = $d->reschedules ? $d->reschedules->count() : 0;
+                                                $maxReschedulesAllowed = (int) ($selectedBooking->turf->max_reschedules ?? 2);
+                                                $isRescheduleActiveTurf = (bool) ($selectedBooking->turf->is_reschedule_active ?? true);
+                                                $isDateCancelled = ($d->status === 'Cancelled' || $selectedBooking->status !== 'Confirmed');
+
+                                                $rescheduleBlockedReason = null;
+                                                if ($isDateCancelled) {
+                                                    $rescheduleBlockedReason = 'Session is cancelled';
+                                                } elseif (!$isRescheduleActiveTurf) {
+                                                    $rescheduleBlockedReason = 'Rescheduling disabled for this venue';
+                                                } elseif ($reschedulesUsedCount >= $maxReschedulesAllowed) {
+                                                    $rescheduleBlockedReason = "Maximum reschedules reached ({$maxReschedulesAllowed})";
+                                                } elseif ($isSessionStarted) {
+                                                    $rescheduleBlockedReason = 'Session has already started or passed';
+                                                }
+                                            @endphp
+
+                                            @if (!$rescheduleBlockedReason)
+                                                <button type="button"
+                                                        wire:click="$dispatch('open-reschedule-modal', { bookingDateId: {{ $d->id }} })"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 text-[11px] font-bold transition shadow-2xs cursor-pointer">
+                                                    <span>🔄</span>
+                                                    <span>Reschedule</span>
+                                                </button>
+                                            @else
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100 text-gray-400 border border-gray-200 text-[10px] font-medium cursor-not-allowed"
+                                                      title="{{ $rescheduleBlockedReason }}">
+                                                    <span>🔄</span>
+                                                    <span>Reschedule</span>
                                                 </span>
-                                            @endforeach
+                                            @endif
+
+                                            <div class="text-right">
+                                                <div class="font-bold text-slate-900">₹{{ number_format($d->amount, 2) }}</div>
+                                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {{ $d->payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                                    {{ $d->payment_status }}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="text-right">
-                                        <div class="font-bold text-slate-900">₹{{ number_format($d->amount, 2) }}</div>
-                                        <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {{ $d->payment_status === 'Paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                            {{ $d->payment_status }}
-                                        </span>
-                                    </div>
+
+                                    @if ($d->reschedules && $d->reschedules->isNotEmpty())
+                                        <div class="pt-1.5 border-t border-slate-100 flex items-center gap-1.5 text-[10px] font-bold text-sky-700">
+                                            <span>🔄 Rescheduled from {{ \Carbon\Carbon::parse($d->reschedules->last()->from_date)->format('d M Y') }}</span>
+                                            @if ($d->reschedules->last()->reason)
+                                                <span class="text-sky-500 font-normal">({{ $d->reschedules->last()->reason }})</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </div>
                             @endforeach
                         </div>
@@ -767,4 +816,5 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     @endif
 
+    <livewire:turf.booking-reschedule-modal />
 </div>

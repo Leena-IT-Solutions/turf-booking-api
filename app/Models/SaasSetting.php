@@ -60,6 +60,7 @@ class SaasSetting extends Model
         'notify_booking_created',
         'notify_booking_cancelled',
         'notify_payment_received',
+        'notify_booking_rescheduled',
         'fcm_project_id',
         'fcm_service_account_json',
     ];
@@ -70,6 +71,7 @@ class SaasSetting extends Model
         'notify_booking_created' => 'boolean',
         'notify_booking_cancelled' => 'boolean',
         'notify_payment_received' => 'boolean',
+        'notify_booking_rescheduled' => 'boolean',
         'turf_search_km' => 'integer',
         'min_slots_booking' => 'integer',
         'free_trial_days' => 'integer',
