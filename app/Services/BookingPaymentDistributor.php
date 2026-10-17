@@ -294,10 +294,15 @@ class BookingPaymentDistributor
                 }
             }
 
+            // A cancelled date's payment fields were settled by the cancellation; leave them as-is.
+            if ($isCancelled) {
+                continue;
+            }
+
             $bDate->update([
                 'payment_status' => $datePaymentStatus,
                 'paid_amount' => ($datePaymentStatus === 'Paid' && $datePaidSum < (float)$bDate->amount) ? (float)$bDate->amount : $datePaidSum,
-                'balance_amount' => ($datePaymentStatus === 'Paid' || $isCancelled) ? 0.00 : max(0.00, round((float)$bDate->amount - $datePaidSum, 2)),
+                'balance_amount' => ($datePaymentStatus === 'Paid') ? 0.00 : max(0.00, round((float)$bDate->amount - $datePaidSum, 2)),
             ]);
         }
 

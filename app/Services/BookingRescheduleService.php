@@ -18,6 +18,9 @@ use Illuminate\Validation\ValidationException;
 
 class BookingRescheduleService
 {
+    /** Gateway refunds that succeeded during the current reschedule() call. */
+    private array $completedGatewayRefunds = [];
+
     /**
      * Get slots for a target date with pricing and availability for rescheduling.
      */
@@ -124,6 +127,44 @@ class BookingRescheduleService
         User $by,
         ?string $reason = null
     ): BookingReschedule {
+        $this->completedGatewayRefunds = [];
+
+        try {
+            return $this->runRescheduleTransaction($bDate, $newDate, $slotIds, $by, $reason);
+        } catch (\Throwable $e) {
+            // Razorpay can't be rolled back. If any gateway refund already went through and the
+            // transaction then failed (DB error, or a later refund in the same call failed), the
+            // money has left Razorpay but its record was rolled back. Record it again outside the
+            // rolled-back transaction so the ledger matches the gateway, and alert for follow-up.
+            if (!empty($this->completedGatewayRefunds)) {
+                foreach ($this->completedGatewayRefunds as $done) {
+                    $payment = Payment::find($done['payment_id']);
+                    if ($payment) {
+                        $refunded = round((float) $payment->refunded_amount + $done['amount'], 2);
+                        $payment->update([
+                            'refunded_amount' => $refunded,
+                            'refund_status' => ($refunded >= (float) $payment->amount) ? 'Refunded' : 'Partial Refund',
+                            'refunded_at' => Carbon::now('Asia/Kolkata'),
+                        ]);
+                    }
+                }
+                Log::critical('Reschedule failed after gateway refund(s) were issued; refunds recorded, booking NOT rescheduled. Manual follow-up needed.', [
+                    'booking_date_id' => $bDate->id,
+                    'refunds' => $this->completedGatewayRefunds,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            throw $e;
+        }
+    }
+
+    private function runRescheduleTransaction(
+        BookingDate $bDate,
+        string $newDate,
+        array $slotIds,
+        User $by,
+        ?string $reason
+    ): BookingReschedule {
         return DB::transaction(function () use ($bDate, $newDate, $slotIds, $by, $reason) {
             // Re-lock booking date and booking rows
             $lockedBDate = BookingDate::where('id', $bDate->id)->lockForUpdate()->firstOrFail();
@@ -172,6 +213,14 @@ class BookingRescheduleService
                 ]);
             }
 
+            // Snapshot this date's figures before the update, so the parent booking can be moved
+            // by exactly this date's change (see below).
+            $deltaFields = ['actual_amount', 'taxable_amount', 'turf_gst_amount', 'turf_cgst_amount', 'turf_sgst_amount', 'amount'];
+            $oldDateValues = [];
+            foreach ($deltaFields as $field) {
+                $oldDateValues[$field] = (float) $lockedBDate->{$field};
+            }
+
             // Update BookingDate amounts and new date
             $lockedBDate->update([
                 'booking_date' => $newDate,
@@ -184,21 +233,28 @@ class BookingRescheduleService
                 'turf_payout_amount' => round((float) $lockedBDate->turf_payout_amount + $priceDifference, 2),
             ]);
 
-            // Refresh parent booking and recompute totals across non-cancelled dates
-            $nonCancelledDates = $booking->bookingDates()->where('status', '!=', 'Cancelled')->get();
+            // Move the parent booking's totals by exactly this date's change. Re-summing the dates
+            // is wrong here: each BookingDate.amount already carries its share of the platform fee
+            // (adding platform_fee again double-counts it), and partially cancelled bookings keep
+            // their cancelled dates in the original totals. date_of_booking is when the booking was
+            // made ("Booked On"), not the session date, so it is left alone.
+            $lockedBDate->refresh();
+            $bookingTotals = [
+                'actual_amount' => 'actual_amount',
+                'taxable_amount' => 'taxable_amount',
+                'turf_gst_amount' => 'turf_gst_amount',
+                'turf_cgst_amount' => 'turf_cgst_amount',
+                'turf_sgst_amount' => 'turf_sgst_amount',
+                'total_amount' => 'amount',
+            ];
+            $bookingUpdates = [];
+            foreach ($bookingTotals as $bookingField => $dateField) {
+                $delta = (float) $lockedBDate->{$dateField} - $oldDateValues[$dateField];
+                $bookingUpdates[$bookingField] = round((float) $booking->{$bookingField} + $delta, 2);
+            }
+            $bookingUpdates['turf_payout_amount'] = round((float) $booking->turf_payout_amount + $priceDifference, 2);
 
-            $booking->update([
-                'date_of_booking' => $nonCancelledDates->first()?->booking_date ?? $newDate,
-                'actual_amount' => round($nonCancelledDates->sum('actual_amount'), 2),
-                'coupon_discount' => round($nonCancelledDates->sum('coupon_discount'), 2),
-                'additional_discount' => round($nonCancelledDates->sum('additional_discount'), 2),
-                'taxable_amount' => round($nonCancelledDates->sum('taxable_amount'), 2),
-                'turf_gst_amount' => round($nonCancelledDates->sum('turf_gst_amount'), 2),
-                'turf_cgst_amount' => round($nonCancelledDates->sum('turf_cgst_amount'), 2),
-                'turf_sgst_amount' => round($nonCancelledDates->sum('turf_sgst_amount'), 2),
-                'total_amount' => round($nonCancelledDates->sum('amount') + (float) $booking->platform_fee + (float) $booking->platform_fee_gst, 2),
-                'turf_payout_amount' => round((float) $booking->turf_payout_amount + $priceDifference, 2),
-            ]);
+            $booking->update($bookingUpdates);
 
             // Recalculate payment status, paid amount, balance using net paid
             (new BookingPaymentDistributor())->recalculatePaymentStatus($booking);
@@ -539,6 +595,11 @@ class BookingRescheduleService
                     ]);
                 }
                 $lastRefundId = $res['razorpay_refund_id'];
+                $this->completedGatewayRefunds[] = [
+                    'payment_id' => $payment->id,
+                    'amount' => round($toRefund, 2),
+                    'razorpay_refund_id' => $lastRefundId,
+                ];
 
                 // Wallet handling for online payments:
                 if ($walletOwner && $toRefund > 0) {
@@ -556,7 +617,6 @@ class BookingRescheduleService
                     'refunded_amount' => $newRefunded,
                     'refund_status' => ($newRefunded >= (float) $payment->amount) ? 'Refunded' : 'Partial Refund',
                     'refunded_at' => $now,
-                    'refund_notes' => trim(($payment->refund_notes ? $payment->refund_notes . "\n" : '') . "Reschedule online refund: ₹{$toRefund}" . ($reason ? " ({$reason})" : '')),
                 ]);
             } else {
                 // Cash / offline refund: DO NOT touch wallet
@@ -565,7 +625,6 @@ class BookingRescheduleService
                     'refunded_amount' => $newRefunded,
                     'refund_status' => 'Cash / Offline Refund',
                     'refunded_at' => $now,
-                    'refund_notes' => trim(($payment->refund_notes ? $payment->refund_notes . "\n" : '') . "Reschedule cash refund: ₹{$toRefund}" . ($reason ? " ({$reason})" : '')),
                 ]);
             }
 

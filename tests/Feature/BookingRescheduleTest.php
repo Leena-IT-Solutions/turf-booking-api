@@ -700,4 +700,92 @@ class BookingRescheduleTest extends TestCase
         $wizardPrice = SlotPricingService::priceForSlot($this->turf, $slotWithPivot, $dMon);
         $this->assertEquals(1200.00, $wizardPrice);
     }
+
+    /**
+     * Real booking flow with a platform fee: each BookingDate.amount already carries its share of the
+     * platform fee, so a same-price reschedule must leave the booking total, payable and
+     * "booked on" timestamp exactly as they were.
+     */
+    public function test_real_booking_with_platform_fee_keeps_totals_and_booked_on(): void
+    {
+        SaasSetting::first()->update(['platform_fee' => 10.00, 'min_slots_booking' => 1]);
+        $this->turf->update(['is_pay_at_location_active' => true]);
+
+        $fromDate = Carbon::now('Asia/Kolkata')->next(Carbon::MONDAY)->toDateString();
+        $toDate = Carbon::now('Asia/Kolkata')->next(Carbon::MONDAY)->addDay()->toDateString();
+
+        $res = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
+            'slot_ids' => [$this->slot1->id],
+            'booking_dates' => [$fromDate],
+            'booking_type' => 'day',
+            'payment_method' => 'offline',
+            'payment_option' => 'full',
+        ])->assertStatus(200);
+
+        $booking = Booking::find($res->json('booking.id'));
+        $bDate = $booking->bookingDates()->first();
+        $this->actingAs($this->turfAdmin, 'sanctum')
+            ->postJson("/api/booking-dates/{$bDate->id}/payments", ['payment_method' => 'Cash', 'amount' => (float) $booking->total_amount])
+            ->assertStatus(200);
+
+        $booking->refresh();
+        $totalBefore = (float) $booking->total_amount;
+        $bookedOnBefore = (string) $booking->date_of_booking;
+        $this->assertEquals(1010.00, $totalBefore);
+
+        $this->actingAs($this->turfAdmin, 'sanctum')
+            ->postJson("/api/booking-dates/{$bDate->id}/reschedule", ['date' => $toDate, 'slot_ids' => [$this->slot1->id]])
+            ->assertStatus(200);
+
+        $booking->refresh();
+        $this->assertEquals($totalBefore, (float) $booking->total_amount, 'platform fee must not be counted twice');
+        $this->assertEquals($totalBefore, (float) $booking->payable_now);
+        $this->assertEquals(0.00, (float) $booking->balance_amount);
+        $this->assertEquals('Paid', $booking->payment_status);
+        $this->assertEquals($bookedOnBefore, (string) $booking->date_of_booking, '"Booked On" must not become the session date');
+    }
+
+    /**
+     * Two online payments on one session; the first Razorpay refund succeeds, the second fails.
+     * The reschedule must be abandoned, but the money that already left Razorpay must stay recorded.
+     */
+    public function test_partial_gateway_refund_failure_keeps_completed_refund_recorded(): void
+    {
+        $refundCalls = 0;
+        Http::fake(function ($request) use (&$refundCalls) {
+            if (str_ends_with($request->url(), '/refund')) {
+                $refundCalls++;
+                return $refundCalls === 1
+                    ? Http::response(['id' => 'rfnd_first_ok'], 200)
+                    : Http::response(['error' => ['description' => 'Refund failed']], 400);
+            }
+            return Http::response(['status' => 'captured', 'amount' => 75000], 200);
+        });
+
+        $saturdayDate = Carbon::now('Asia/Kolkata')->next(Carbon::SATURDAY)->toDateString();
+        $mondayDate = Carbon::now('Asia/Kolkata')->next(Carbon::SATURDAY)->addDays(2)->toDateString();
+
+        // Saturday 2 slots = 3000, paid as two online payments of 1500; Monday 1 slot = 1000 -> refund 2000
+        [$booking, $bDate, $first] = $this->createStandardBooking($saturdayDate, [$this->slot1, $this->slot2], 'App', 1500.00);
+        $bDate->update(['amount' => 3000.00, 'actual_amount' => 3000.00, 'taxable_amount' => 3000.00]);
+        $booking->update(['total_amount' => 3000.00]);
+        $second = Payment::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id, 'amount' => 1500.00,
+            'payment_method' => 'App', 'status' => 'Success', 'turf_payout_amount' => 1400.00, 'wallet_cleared_at' => now(),
+        ]);
+        PaymentGateway::create(['payment_id' => $second->id, 'gateway_name' => 'razorpay', 'gateway_payment_id' => 'pay_second']);
+
+        $this->actingAs($this->turfAdmin)
+            ->postJson("/api/booking-dates/{$bDate->id}/reschedule", ['date' => $mondayDate, 'slot_ids' => [$this->slot1->id]])
+            ->assertStatus(422);
+
+        // Booking not rescheduled
+        $bDate->refresh();
+        $this->assertEquals($saturdayDate, Carbon::parse($bDate->booking_date)->toDateString());
+        $this->assertEquals(0, BookingReschedule::count());
+
+        // The refund Razorpay already processed is still on record
+        $refundedTotal = (float) Payment::whereIn('id', [$first->id, $second->id])->sum('refunded_amount');
+        $this->assertEquals(1500.00, $refundedTotal);
+    }
 }
