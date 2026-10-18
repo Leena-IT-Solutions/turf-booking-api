@@ -212,9 +212,9 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             ->count();
         $this->assertEquals(0, $refundTxs);
 
-        // Wallet balance remains exactly the non-refundable platform cut (-110.00)
+        // Wallet balance has -110.00 initial deductions + 100.00 commission returned on cancellation = -10.00
         $this->turfAdmin->refresh();
-        $this->assertEquals(-110.00, (float)$this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(-10.00, (float)$this->turfAdmin->commission_wallet_balance);
 
         Carbon::setTestNow();
     }
@@ -258,9 +258,9 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
         $this->assertNotNull($refundTx);
         $this->assertEquals(-950.00, (float)$refundTx->amount);
 
-        // 900.00 (matured balance) - 950.00 (refund) = -50.00
+        // 900.00 (matured balance) - 950.00 (refund) + 100.00 (commission returned) = 50.00
         $this->turfAdmin->refresh();
-        $this->assertEquals(-50.00, (float)$this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(50.00, (float)$this->turfAdmin->commission_wallet_balance);
 
         Carbon::setTestNow();
     }
@@ -300,18 +300,18 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             ->where('type', 'payment_credit')->sum('amount');
         $this->assertEquals(210.00, $credits);
 
-        // Wallet: -10 platform fee - 100 commission + 210 = 100, i.e. the turf's ₹200 fee minus ₹100 commission.
+        // Wallet: -10 platform fee - 100 commission + 100 commission returned + 210 = 200 (full turf cancellation fee).
         $this->turfAdmin->refresh();
-        $this->assertEquals(100.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(200.00, (float) $this->turfAdmin->commission_wallet_balance);
 
         $payment = Payment::where('booking_id', $booking->id)->first();
         $this->assertNotNull($payment->wallet_cleared_at);
-        $this->assertEquals(100.00, (float) $payment->turf_payout_amount);
+        $this->assertEquals(200.00, (float) $payment->turf_payout_amount);
 
         // Idempotent: a second nightly run changes nothing.
         $this->artisan('wallet:clear-matured-entries');
         $this->turfAdmin->refresh();
-        $this->assertEquals(100.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(200.00, (float) $this->turfAdmin->commission_wallet_balance);
         $this->assertEquals(1, CommissionWalletTransaction::where('type', 'payment_credit')->count());
 
         Carbon::setTestNow();
@@ -481,9 +481,9 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
 
         $this->artisan('wallet:clear-matured-entries');
 
-        // Turf is owed its ₹1,000 first session + ₹200 fee on the second - ₹200 commission = ₹1,000.
+        // Turf is owed ₹1,000 first session + ₹200 fee on second - ₹100 commission on first session = ₹1,100 (+100 commission returned on cancelled session).
         $this->turfAdmin->refresh();
-        $this->assertEquals(1000.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(1100.00, (float) $this->turfAdmin->commission_wallet_balance);
         $this->assertNotNull(Payment::where('booking_date_id', $second->id)->first()->wallet_cleared_at);
 
         Carbon::setTestNow();
@@ -508,7 +508,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
         $this->artisan('wallet:clear-matured-entries');
 
         $this->turfAdmin->refresh();
-        $this->assertEquals(1000.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(1100.00, (float) $this->turfAdmin->commission_wallet_balance);
         $this->assertEquals(0, Payment::where('booking_id', $booking->id)->whereNull('wallet_cleared_at')->count());
 
         Carbon::setTestNow();

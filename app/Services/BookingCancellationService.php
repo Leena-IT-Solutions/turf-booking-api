@@ -172,6 +172,10 @@ class BookingCancellationService
                     'disbursement_channel' => null,
                 ]);
 
+                // Reverse deducted commission and gateway fees for the cancelled session back to the owner
+                $walletService = new \App\Services\WalletService();
+                $walletService->reverseDeductionsForCancellation($cancellation);
+
                 $createdCancellations[] = $cancellation;
                 $totalDatesCancelledNow++;
             }

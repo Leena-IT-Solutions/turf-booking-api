@@ -1793,7 +1793,6 @@ class BookingController extends Controller
             $hasOnlineRefund = false;
             $hasOfflineRefund = false;
             $lastRazorpayRefundId = null;
-            $dateCommissionReversed = 0.00;
 
             $turfAdminOwner = $booking->turf->location->user ?? null;
             $platformFeeShare = min((float)($platformFee ?? 0.00), max(0.0, (float)$dateFeeApplied - (float)($datePlatformFee ?? 0.00)));
@@ -1981,8 +1980,11 @@ class BookingController extends Controller
                 'refund_sgst_amount' => $feeRes['refund_sgst_amount'] ?? 0.00,
                 'refund_status' => $dateRefundStatus,
                 'razorpay_refund_id' => $lastRazorpayRefundId,
-                'commission_reversed_amount' => $dateCommissionReversed,
             ]);
+
+            // Reverse deducted commission and gateway fees for the cancelled session back to the owner
+            $walletService = new \App\Services\WalletService();
+            $walletService->reverseDeductionsForCancellation($cancellation);
 
             // On cash bookings (or where online money does not cover the platform cancellation fee),
             // debit the uncollected platform cancellation fee from the turf owner's wallet.
@@ -1999,7 +2001,6 @@ class BookingController extends Controller
 
                 if (!$alreadyDebited) {
                     $bookingDisplayId = $booking->booking_id ?? $booking->id;
-                    $walletService = new \App\Services\WalletService();
                     $walletService->applyDelta(
                         $turfAdminOwner,
                         -$cashFeeToDebit,

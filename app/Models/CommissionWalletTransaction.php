@@ -53,6 +53,8 @@ class CommissionWalletTransaction extends Model
             'refund_adjustment' => '- Refund Deduction',
             'payout_debit' => '- Bank Payout',
             'payout_reversal' => '+ Payout Reversal',
+            'commission_reversal' => '+ Commission Returned',
+            'gateway_charge_reversal' => '+ Gateway Charges Returned',
             'commission_due_settlement' => 'Debt Settlement',
             'payment_settlement' => $amount >= 0 ? '+ Payout Credit' : '- Fee & Commission',
             default => ucwords(str_replace('_', ' ', $type)),

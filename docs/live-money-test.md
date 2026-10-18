@@ -3,16 +3,17 @@
 This is the owner's step-by-step guide for testing real-money flows on live before accepting real customer bookings.
 
 ### Before you start
-1. Deploy: `git pull`, `composer install --no-dev --optimize-autoloader`, `php artisan optimize:clear`.
-2. Razorpay live key/secret rotated and saved in SaaS settings. RazorpayX webhook secret set.
-3. `php artisan gst:turfs-missing-state` lists nothing, or only turfs you don't use for this test.
-4. **Test turf:**
+1. Deploy: `git pull`, `composer install --no-dev --optimize-autoloader`, `php artisan migrate --force`, `php artisan optimize:clear`.
+2. Fix any past cancellations: `php artisan wallet:reverse-cancelled-commissions --dry-run`, then `php artisan wallet:reverse-cancelled-commissions`.
+3. Razorpay live key/secret rotated and saved in SaaS settings. RazorpayX webhook secret set.
+4. `php artisan gst:turfs-missing-state` lists nothing, or only turfs you don't use for this test.
+5. **Test turf:**
    - Use one of your own turfs, owned by an account whose wallet starts at ₹0 (a fresh test owner is best). Note its owner's user id.
    - Set its slot price to **₹100/hour** for every day, so a payout is possible: payout charges are ₹40.
    - Set its turf cancellation fee to **₹5/slot**.
    - Turn on online payment, part payment (50%) and pay at venue.
    - Make sure you can book a slot **later today**, at least 2 hours ahead so cancellation is allowed. Credits are released by the nightly job once the session date arrives, and you will run the job by hand.
-5. Use a separate player account on the phone app.
+6. Use a separate player account on the phone app.
 
 Cost: you pay real money through Razorpay. Razorpay keeps about 2.4% of each online payment. The platform fee and commission go to your own SaaS account. Refunds take 5-7 working days to reach the card or UPI.
 
@@ -25,7 +26,7 @@ Replace `{B}` with the booking id shown in the turf dashboard, and `{O}` with th
 | 1 | Player books 1 slot today, **Pay online (full)** | `php artisan money:check --booking={B}` |
 | 2 | Player books 1 slot today, **Part payment**. At the venue, record the balance as **Cash** from the dashboard | `php artisan money:check --booking={B}` |
 | 3 | Player books 1 slot today, **Pay at venue**. Record full **Cash** | `php artisan money:check --booking={B}` |
-| 4 | Player books 1 slot **tomorrow**, pay online. Then the player cancels it from the app | `php artisan money:check --booking={B}` |
+| 4 | Player books 1 slot **tomorrow**, pay online. Then the player cancels it from the app. **What to expect:** The owner gets back the commission and Razorpay fee for the cancelled session. Their wallet for this booking ends at the turf cancellation fee. | `php artisan money:check --booking={B}` |
 | 5 | Player books 1 slot **tomorrow**, pay at venue, staff record Cash. Then cancel | `php artisan money:check --booking={B}` |
 | 6 | Player books 1 slot tomorrow, pay online. Staff **reschedule** it to a cheaper slot (set one slot to ₹50 first), so a refund goes out | `php artisan money:check --booking={B}` |
 | 7 | After all of today's sessions have ended: run `php artisan wallet:clear-matured-entries` | `php artisan money:check --owner={O}` |

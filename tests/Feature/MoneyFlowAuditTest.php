@@ -170,7 +170,9 @@ class MoneyFlowAuditTest extends TestCase
     {
         $keep = 0.0;
         foreach (Booking::all() as $b) {
-            $hasPayment = Payment::where('booking_id', $b->id)->where('status', 'Success')->exists();
+            $hasPayment = Payment::where('booking_id', $b->id)
+                ->where(fn ($q) => $q->where('status', 'Success')->orWhereNotNull('deductions_settled_at'))
+                ->exists();
             if ($hasPayment) {
                 $keep += (float) $b->platform_fee + (float) $b->platform_fee_gst
                     + (float) $b->commission_amount + (float) $b->commission_gst_amount;
@@ -183,6 +185,10 @@ class MoneyFlowAuditTest extends TestCase
         foreach (BookingCancellation::all() as $c) {
             $keep += min((float) $c->saas_cancellation_fee, max(0.0, (float) $c->total_cancellation_fee - (float) $c->platform_fee_retained));
         }
+
+        $commissionReturned = (float) CommissionWalletTransaction::where('type', 'commission_reversal')->sum('amount');
+        $gatewayFeeReturned = (float) CommissionWalletTransaction::where('type', 'gateway_charge_reversal')->sum('amount');
+        $keep -= ($commissionReturned + $gatewayFeeReturned);
 
         return round($keep, 2);
     }

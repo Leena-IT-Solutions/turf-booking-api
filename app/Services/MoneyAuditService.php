@@ -722,6 +722,67 @@ class MoneyAuditService
             }
         }
 
+        // 26. Commission returned for cancelled sessions
+        // 27. Razorpay fee returned for cancelled sessions
+        $cancellations = BookingCancellation::where('booking_id', $b->id)->get();
+        if ($cancellations->isEmpty()) {
+            $rows[] = [
+                'check' => '26. Commission returned for cancelled sessions',
+                'expected' => null,
+                'actual' => 'No cancellations',
+                'result' => 'SKIP',
+            ];
+            $rows[] = [
+                'check' => '27. Razorpay fee returned for cancelled sessions',
+                'expected' => null,
+                'actual' => 'No cancellations',
+                'result' => 'SKIP',
+            ];
+        } else {
+            $cancellationIds = $cancellations->pluck('id')->all();
+            $cancellationTxs = CommissionWalletTransaction::where('reference_type', BookingCancellation::class)
+                ->whereIn('reference_id', $cancellationIds)
+                ->get();
+
+            // Expected commission: Σ over cancelled dates of (commission_amount + commission_gst_amount), capped by the booking's commission debits. Use 0 if nothing was debited.
+            $cancelledDateIds = $cancellations->pluck('booking_date_id')->all();
+            $cancelledDates = $b->bookingDates->whereIn('id', $cancelledDateIds);
+            $cancelledCommissionSum = (float) $cancelledDates->sum(fn ($bd) => (float) $bd->commission_amount + (float) $bd->commission_gst_amount);
+
+            $debitedCommission = abs((float) CommissionWalletTransaction::where('reference_type', Payment::class)
+                ->whereIn('reference_id', $b->payments->pluck('id'))
+                ->where('type', 'commission_debit')
+                ->sum('amount'));
+
+            $expectedCommissionReturn = $debitedCommission > 0 ? round(min($cancelledCommissionSum, $debitedCommission), 2) : 0.00;
+            $actualCommissionReturn = round((float) $cancellationTxs->where('type', 'commission_reversal')->sum('amount'), 2);
+
+            $pass26 = abs($expectedCommissionReturn - $actualCommissionReturn) <= 0.01;
+            $rows[] = [
+                'check' => '26. Commission returned for cancelled sessions',
+                'expected' => number_format($expectedCommissionReturn, 2),
+                'actual' => number_format($actualCommissionReturn, 2),
+                'result' => $pass26 ? 'PASS' : 'FAIL',
+            ];
+
+            // Expected gateway fee: Σ over cancelled dates of the date's settled online payments' (gateway_charge_amount + gateway_tax_amount).
+            $cancelledOnlinePayments = $b->payments->whereIn('booking_date_id', $cancelledDateIds)
+                ->where('status', 'Success')
+                ->where('payment_method', 'App')
+                ->whereNotNull('deductions_settled_at');
+
+            $expectedGatewayReturn = round((float) $cancelledOnlinePayments->sum(fn ($p) => (float) $p->gateway_charge_amount + (float) $p->gateway_tax_amount), 2);
+            $actualGatewayReturn = round((float) $cancellationTxs->where('type', 'gateway_charge_reversal')->sum('amount'), 2);
+
+            $pass27 = abs($expectedGatewayReturn - $actualGatewayReturn) <= 0.01;
+            $rows[] = [
+                'check' => '27. Razorpay fee returned for cancelled sessions',
+                'expected' => number_format($expectedGatewayReturn, 2),
+                'actual' => number_format($actualGatewayReturn, 2),
+                'result' => $pass27 ? 'PASS' : 'FAIL',
+            ];
+        }
+
         return $rows;
     }
 
@@ -757,10 +818,9 @@ class MoneyAuditService
             ->get();
         $onlineNet = round((float) $onlinePayments->sum(fn ($p) => (float) $p->amount - (float) $p->refunded_amount), 2);
 
-        // platform keeps
-        // 1) Bookings with any Success payment
+        // 1) Bookings with any Success payment or settled deductions
         $bookingsWithSuccess = Booking::whereIn('turf_id', $ownerTurfIds)
-            ->whereHas('payments', fn ($q) => $q->where('status', 'Success'))
+            ->whereHas('payments', fn ($q) => $q->where('status', 'Success')->orWhereNotNull('deductions_settled_at'))
             ->get();
         $feesSum = (float) $bookingsWithSuccess->sum(fn ($b) =>
             (float) $b->platform_fee + (float) $b->platform_fee_gst +
@@ -781,7 +841,14 @@ class MoneyAuditService
             min((float) $c->saas_cancellation_fee, max(0.0, (float) $c->total_cancellation_fee - (float) $c->platform_fee_retained))
         );
 
-        $platformKeeps = round($feesSum + $gwFeeSum + $cancellationShareSum, 2);
+        $commissionReturned = (float) CommissionWalletTransaction::where('user_id', $owner->id)
+            ->where('type', 'commission_reversal')
+            ->sum('amount');
+        $gatewayFeeReturned = (float) CommissionWalletTransaction::where('user_id', $owner->id)
+            ->where('type', 'gateway_charge_reversal')
+            ->sum('amount');
+
+        $platformKeeps = round($feesSum + $gwFeeSum + $cancellationShareSum - $commissionReturned - $gatewayFeeReturned, 2);
 
         // payouts = sum(TurfPayout.requested_amount) where status is in ACTIVE_STATUSES
         $payouts = round((float) TurfPayout::where('user_id', $owner->id)->whereIn('status', TurfPayout::ACTIVE_STATUSES)->sum('requested_amount'), 2);
@@ -795,7 +862,9 @@ class MoneyAuditService
             'refund_adjustment',
             'platform_fee_debit',
             'commission_debit',
+            'commission_reversal',
             'gateway_charge_debit',
+            'gateway_charge_reversal',
             'offline_booking_record',
             'payout_debit',
             'payout_reversal',

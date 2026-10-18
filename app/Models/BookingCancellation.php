@@ -42,6 +42,7 @@ class BookingCancellation extends Model
         'resolved_at',
         'razorpay_refund_id',
         'commission_reversed_amount',
+        'gateway_fee_reversed_amount',
     ];
 
     protected $casts = [
@@ -64,6 +65,7 @@ class BookingCancellation extends Model
         'refund_cgst_amount' => 'decimal:2',
         'refund_sgst_amount' => 'decimal:2',
         'commission_reversed_amount' => 'decimal:2',
+        'gateway_fee_reversed_amount' => 'decimal:2',
         'resolved_at' => 'datetime',
     ];
 

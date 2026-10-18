@@ -195,7 +195,9 @@ class ReportService
             ->whereIn('type', [
                 'platform_fee_debit',
                 'commission_debit',
+                'commission_reversal',
                 'gateway_charge_debit',
+                'gateway_charge_reversal',
                 'payment_credit',
             ])
             ->whereBetween('created_at', [
@@ -215,8 +217,8 @@ class ReportService
         foreach ($txs as $month => $group) {
             $gross = (float) $group->where('type', 'payment_credit')->sum('amount');
             $platformFee = abs((float) $group->where('type', 'platform_fee_debit')->sum('amount'));
-            $commission = abs((float) $group->where('type', 'commission_debit')->sum('amount'));
-            $pgCharges = abs((float) $group->where('type', 'gateway_charge_debit')->sum('amount'));
+            $commission = max(0.0, round(abs((float) $group->where('type', 'commission_debit')->sum('amount')) - (float) $group->where('type', 'commission_reversal')->sum('amount'), 2));
+            $pgCharges = max(0.0, round(abs((float) $group->where('type', 'gateway_charge_debit')->sum('amount')) - (float) $group->where('type', 'gateway_charge_reversal')->sum('amount'), 2));
             $totalCut = $platformFee + $commission + $pgCharges;
             $effectiveRate = $gross > 0 ? round(($totalCut / $gross) * 100, 2) : 0.0;
 

@@ -335,17 +335,35 @@
                             ? \Carbon\Carbon::parse($item['charged_at'])->format('d M Y, h:i A')
                             : '—';
                         $gstTotal = (float)($item['cgst'] ?? 0) + (float)($item['sgst'] ?? 0) + (float)($item['igst'] ?? 0);
+                        $isNegative = (float)($item['total'] ?? 0) < 0;
                     @endphp
                     <tr>
                         <td class="text-muted">{{ $index + 1 }}</td>
-                        <td class="font-bold">{{ $item['booking_reference'] ?? ('#' . ($item['booking_id'] ?? '')) }}</td>
+                        <td class="font-bold">
+                            {{ $item['booking_reference'] ?? ('#' . ($item['booking_id'] ?? '')) }}
+                            @if(!empty($item['description']))
+                                <div style="font-size: 8.5px; color: #dc2626; font-weight: normal;">{{ $item['description'] }}</div>
+                            @endif
+                        </td>
                         <td class="text-muted">{{ $chargedDate }}</td>
-                        <td class="text-right">₹{{ number_format((float)($item['booking_amount'] ?? 0), 2) }}</td>
-                        <td class="text-right">₹{{ number_format((float)($item['taxable'] ?? 0), 2) }}</td>
+                        <td class="text-right">
+                            @if((float)($item['booking_amount'] ?? 0) > 0)
+                                ₹{{ number_format((float)$item['booking_amount'], 2) }}
+                            @else
+                                —
+                            @endif
+                        </td>
+                        <td class="text-right {{ (float)($item['taxable'] ?? 0) < 0 ? 'text-danger' : '' }}">
+                            {{ (float)($item['taxable'] ?? 0) < 0 ? '-₹' . number_format(abs((float)$item['taxable']), 2) : '₹' . number_format((float)$item['taxable'], 2) }}
+                        </td>
                         @if($invoice->is_gst_invoice)
-                            <td class="text-right">₹{{ number_format($gstTotal, 2) }}</td>
+                            <td class="text-right {{ $gstTotal < 0 ? 'text-danger' : '' }}">
+                                {{ $gstTotal < 0 ? '-₹' . number_format(abs($gstTotal), 2) : '₹' . number_format($gstTotal, 2) }}
+                            </td>
                         @endif
-                        <td class="text-right font-bold">₹{{ number_format((float)($item['total'] ?? 0), 2) }}</td>
+                        <td class="text-right font-bold {{ $isNegative ? 'text-danger' : '' }}">
+                            {{ $isNegative ? '-₹' . number_format(abs((float)$item['total']), 2) : '₹' . number_format((float)$item['total'], 2) }}
+                        </td>
                     </tr>
                 @empty
                     <tr>

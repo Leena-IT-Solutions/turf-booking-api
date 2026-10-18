@@ -33,7 +33,7 @@ class CommissionInvoiceService
             throw new InvalidArgumentException('Invoices can only be generated for closed past months.');
         }
 
-        $turfIds = CommissionWalletTransaction::query()
+        $debitTurfIds = CommissionWalletTransaction::query()
             ->join('payments', 'payments.id', '=', 'commission_wallet_transactions.reference_id')
             ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
             ->where('commission_wallet_transactions.type', 'commission_debit')
@@ -41,6 +41,17 @@ class CommissionInvoiceService
             ->whereBetween('commission_wallet_transactions.created_at', [$startOfMonth, $endOfMonth])
             ->distinct()
             ->pluck('bookings.turf_id');
+
+        $reversalTurfIds = CommissionWalletTransaction::query()
+            ->join('booking_cancellations', 'booking_cancellations.id', '=', 'commission_wallet_transactions.reference_id')
+            ->join('bookings', 'bookings.id', '=', 'booking_cancellations.booking_id')
+            ->where('commission_wallet_transactions.type', 'commission_reversal')
+            ->where('commission_wallet_transactions.reference_type', \App\Models\BookingCancellation::class)
+            ->whereBetween('commission_wallet_transactions.created_at', [$startOfMonth, $endOfMonth])
+            ->distinct()
+            ->pluck('bookings.turf_id');
+
+        $turfIds = $debitTurfIds->merge($reversalTurfIds)->unique();
 
         $created = [];
 
@@ -77,8 +88,8 @@ class CommissionInvoiceService
             return null;
         }
 
-        // 2. Query transactions
-        $transactions = CommissionWalletTransaction::query()
+        // 2. Query transactions (both debits and cancellation reversals)
+        $debitTransactions = CommissionWalletTransaction::query()
             ->join('payments', 'payments.id', '=', 'commission_wallet_transactions.reference_id')
             ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
             ->where('commission_wallet_transactions.type', 'commission_debit')
@@ -86,16 +97,30 @@ class CommissionInvoiceService
             ->whereBetween('commission_wallet_transactions.created_at', [$startOfMonth, $endOfMonth])
             ->where('bookings.turf_id', $turf->id)
             ->select('commission_wallet_transactions.*')
-            ->orderBy('commission_wallet_transactions.created_at')
             ->get();
+
+        $reversalTransactions = CommissionWalletTransaction::query()
+            ->join('booking_cancellations', 'booking_cancellations.id', '=', 'commission_wallet_transactions.reference_id')
+            ->join('bookings', 'bookings.id', '=', 'booking_cancellations.booking_id')
+            ->where('commission_wallet_transactions.type', 'commission_reversal')
+            ->where('commission_wallet_transactions.reference_type', \App\Models\BookingCancellation::class)
+            ->whereBetween('commission_wallet_transactions.created_at', [$startOfMonth, $endOfMonth])
+            ->where('bookings.turf_id', $turf->id)
+            ->select('commission_wallet_transactions.*')
+            ->get();
+
+        $transactions = $debitTransactions->concat($reversalTransactions)->sortBy('created_at');
 
         // 3. Skip if no commission rows
         if ($transactions->isEmpty()) {
             return null;
         }
 
-        $paymentIds = $transactions->pluck('reference_id')->unique()->filter();
+        $paymentIds = $debitTransactions->pluck('reference_id')->unique()->filter();
         $payments = Payment::with('booking')->whereIn('id', $paymentIds)->get()->keyBy('id');
+
+        $cancellationIds = $reversalTransactions->pluck('reference_id')->unique()->filter();
+        $cancellations = \App\Models\BookingCancellation::with('booking')->whereIn('id', $cancellationIds)->get()->keyBy('id');
 
         $saasSetting = SaasSetting::first();
         $isGstInvoice = (bool)($saasSetting?->is_gst_billing_active ?? false);
@@ -104,6 +129,47 @@ class CommissionInvoiceService
         $lines = [];
 
         foreach ($transactions as $tx) {
+            if ($tx->type === 'commission_reversal') {
+                // NOTE: A formal GST credit note for reversals of commission invoiced in an earlier month
+                // is a CA decision and is out of scope; here we carry negative line items in the cancellation month.
+                $cancellation = $cancellations->get($tx->reference_id);
+                $booking = $cancellation?->booking;
+                $meta = $tx->meta ?? [];
+
+                $commAmt = (float) ($meta['commission_amount'] ?? 0);
+                $cgstAmt = (float) ($meta['commission_cgst_amount'] ?? 0);
+                $sgstAmt = (float) ($meta['commission_sgst_amount'] ?? 0);
+                $igstAmt = (float) ($meta['commission_igst_amount'] ?? 0);
+                $rowTotal = (float) $tx->amount;
+
+                if (!$isGstInvoice) {
+                    $taxable = -$rowTotal;
+                    $cgst = 0.00;
+                    $sgst = 0.00;
+                    $igst = 0.00;
+                } else {
+                    $taxable = -$commAmt;
+                    $cgst = -$cgstAmt;
+                    $sgst = -$sgstAmt;
+                    $igst = -$igstAmt;
+                }
+
+                $lines[] = [
+                    'booking_id' => $booking?->id,
+                    'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
+                    'description' => 'Credit: session cancelled',
+                    'charged_at' => $tx->created_at->toDateTimeString(),
+                    'booking_amount' => 0.00,
+                    'commission_rate' => (float) ($booking?->commission_rate ?? 0),
+                    'taxable' => $taxable,
+                    'cgst' => $cgst,
+                    'sgst' => $sgst,
+                    'igst' => $igst,
+                    'total' => -$rowTotal,
+                ];
+                continue;
+            }
+
             $payment = $payments->get($tx->reference_id);
             $booking = $payment?->booking;
             $ledgerTotal = round(abs((float)$tx->amount), 2);
@@ -144,6 +210,7 @@ class CommissionInvoiceService
             $lines[] = [
                 'booking_id' => $booking?->id,
                 'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
+                'description' => null,
                 'charged_at' => $tx->created_at->toDateTimeString(),
                 'booking_amount' => (float)($booking?->total_amount ?? 0),
                 'commission_rate' => (float)($booking?->commission_rate ?? 0),
@@ -162,6 +229,11 @@ class CommissionInvoiceService
         $igstAmount = round($linesCollection->sum('igst'), 2);
         $totalAmount = round($linesCollection->sum('total'), 2);
         $isInterState = $igstAmount > 0;
+
+        if ($totalAmount <= 0) {
+            \Log::info("Skipping commission invoice for Turf {$turf->id} ({$turf->name}) for {$periodStart}: net total {$totalAmount} <= 0");
+            return null;
+        }
 
         // 7. Snapshots
         $supplierSnapshot = [

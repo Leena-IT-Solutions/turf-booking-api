@@ -434,6 +434,15 @@ class WalletService
                 ->whereIn('reference_id', Payment::where('booking_id', $booking->id)->pluck('id'))
                 ->whereIn('type', ['platform_fee_debit', 'commission_debit', 'gateway_charge_debit'])
                 ->sum('amount'); // stored negative
+
+            $cancellationIds = BookingCancellation::where('booking_id', $booking->id)->pluck('id');
+            if ($cancellationIds->isNotEmpty()) {
+                $deductionsPosted += (float) CommissionWalletTransaction::where('reference_type', BookingCancellation::class)
+                    ->whereIn('reference_id', $cancellationIds)
+                    ->whereIn('type', ['commission_reversal', 'gateway_charge_reversal'])
+                    ->sum('amount'); // stored positive
+            }
+
             $target = round($this->turfOnlineEntitlement($booking) + $deductionsPosted, 2);
             $alreadyCleared = (float) $onlinePayments->whereNotNull('wallet_cleared_at')->sum('turf_payout_amount');
             $lastToClear = $toClear->last();
@@ -523,6 +532,15 @@ class WalletService
                 ->whereIn('reference_id', $bookingPaymentIds)
                 ->whereIn('type', ['platform_fee_debit', 'commission_debit', 'gateway_charge_debit'])
                 ->sum('amount'); // stored negative
+
+            $cancellationIds = BookingCancellation::where('booking_id', $booking->id)->pluck('id');
+            if ($cancellationIds->isNotEmpty()) {
+                $totalDeductionsPosted += (float) CommissionWalletTransaction::where('reference_type', BookingCancellation::class)
+                    ->whereIn('reference_id', $cancellationIds)
+                    ->whereIn('type', ['commission_reversal', 'gateway_charge_reversal'])
+                    ->sum('amount'); // stored positive
+            }
+
             $netPayoutSoFar = round($totalPaid + $totalDeductionsPosted, 2);
 
             $activeDates = $booking->bookingDates()->where('status', '!=', 'Cancelled')->get();
@@ -601,5 +619,126 @@ class WalletService
     {
         $user = $this->settleDeductions($user, $payment, $isOnline);
         return $this->settleCredit($user, $payment, $isOnline);
+    }
+
+    /**
+     * When a session is cancelled, give the turf owner back the commission (online or cash) and
+     * Razorpay's fee (online only) that were deducted for that session. The platform keeps its
+     * platform fee and its cancellation fee; Razorpay's fee is absorbed by the platform.
+     * Idempotent per cancellation.
+     */
+    public function reverseDeductionsForCancellation(BookingCancellation $cancellation): void
+    {
+        // 1. Guard. Find the wallet owner: $cancellation->booking->turf->location->user. If there is none, return.
+        $booking = $cancellation->booking;
+        $owner = $booking?->turf?->location?->user;
+        if (!$owner) {
+            return;
+        }
+
+        // 2. Idempotency. If a commission_reversal or gateway_charge_reversal wallet row already exists
+        // with reference_type = BookingCancellation::class and reference_id = $cancellation->id, return without doing anything.
+        $alreadyReversed = CommissionWalletTransaction::where('reference_type', BookingCancellation::class)
+            ->where('reference_id', $cancellation->id)
+            ->whereIn('type', ['commission_reversal', 'gateway_charge_reversal'])
+            ->exists();
+
+        if ($alreadyReversed) {
+            return;
+        }
+
+        // 3. Commission to return.
+        // - $dateCommission = bookingDate.commission_amount + bookingDate.commission_gst_amount of the cancelled date.
+        // - $debited = Σ commission_debit amounts for the booking's payments. These rows reference Payment; store the value as positive.
+        // - $alreadyReturned = Σ commission_reversal amounts for all of this booking's cancellations.
+        // - $commissionBack = round(max(0, min($dateCommission, $debited - $alreadyReturned)), 2).
+        // - If no commission was ever debited for the booking, this is 0, because nothing was taken.
+        $bDate = $cancellation->bookingDate;
+        $dateCommission = (float) (($bDate?->commission_amount ?? 0) + ($bDate?->commission_gst_amount ?? 0));
+
+        $bookingPaymentIds = Payment::where('booking_id', $booking->id)->pluck('id');
+        $debited = abs((float) CommissionWalletTransaction::where('reference_type', Payment::class)
+            ->whereIn('reference_id', $bookingPaymentIds)
+            ->where('type', 'commission_debit')
+            ->sum('amount'));
+
+        $otherCancellationIds = BookingCancellation::where('booking_id', $booking->id)->pluck('id');
+        $alreadyReturned = (float) CommissionWalletTransaction::where('reference_type', BookingCancellation::class)
+            ->whereIn('reference_id', $otherCancellationIds)
+            ->where('type', 'commission_reversal')
+            ->sum('amount');
+
+        $commissionBack = round(max(0.0, min($dateCommission, $debited - $alreadyReturned)), 2);
+
+        // 4. Razorpay fee to return (online only).
+        // - $dateGatewayFee = Σ (gateway_charge_amount + gateway_tax_amount) over the cancelled date's payments where status = 'Success', payment_method = 'App' and deductions_settled_at is set.
+        // - Each payment row is stored per session (booking_date_id) and holds that session's share of the Razorpay fee, so a two-session payment returns only the cancelled session's share.
+        // - $gatewayDebited = Σ gateway_charge_debit amounts for those same payments, stored positive.
+        // - $gatewayBack = round(max(0, min($dateGatewayFee, $gatewayDebited)), 2).
+        $cancelledPayments = Payment::where('booking_date_id', $cancellation->booking_date_id)
+            ->where('status', 'Success')
+            ->where('payment_method', 'App')
+            ->whereNotNull('deductions_settled_at')
+            ->get();
+
+        $dateGatewayFee = (float) $cancelledPayments->sum(fn ($p) => (float) $p->gateway_charge_amount + (float) $p->gateway_tax_amount);
+        $gatewayDebited = abs((float) CommissionWalletTransaction::where('reference_type', Payment::class)
+            ->whereIn('reference_id', $cancelledPayments->pluck('id'))
+            ->where('type', 'gateway_charge_debit')
+            ->sum('amount'));
+
+        $gatewayBack = round(max(0.0, min($dateGatewayFee, $gatewayDebited)), 2);
+
+        $bookingDisplayId = $booking->booking_id ?? $booking->id;
+
+        // 5. Write the wallet rows, each only when the amount is > 0.
+        if ($commissionBack > 0) {
+            $scale = $dateCommission > 0 ? ($commissionBack / $dateCommission) : 1.0;
+            $commAmount = round((float) ($bDate?->commission_amount ?? 0) * $scale, 2);
+            $commGstAmount = round((float) ($bDate?->commission_gst_amount ?? 0) * $scale, 2);
+            $commCgstAmount = round((float) ($bDate?->commission_cgst_amount ?? 0) * $scale, 2);
+            $commSgstAmount = round((float) ($bDate?->commission_sgst_amount ?? 0) * $scale, 2);
+            $commIgstAmount = round((float) ($bDate?->commission_igst_amount ?? 0) * $scale, 2);
+
+            $this->applyDelta(
+                $owner,
+                $commissionBack,
+                'commission_reversal',
+                $cancellation,
+                "Booking #{$bookingDisplayId} Commission Returned (session cancelled)",
+                [
+                    'booking_id' => $booking->id,
+                    'booking_date_id' => $bDate?->id,
+                    'cancellation_id' => $cancellation->id,
+                    'commission_amount' => $commAmount,
+                    'commission_gst_amount' => $commGstAmount,
+                    'commission_cgst_amount' => $commCgstAmount,
+                    'commission_sgst_amount' => $commSgstAmount,
+                    'commission_igst_amount' => $commIgstAmount,
+                ]
+            );
+        }
+
+        if ($gatewayBack > 0) {
+            $this->applyDelta(
+                $owner,
+                $gatewayBack,
+                'gateway_charge_reversal',
+                $cancellation,
+                "Booking #{$bookingDisplayId} Payment Gateway Charges Returned (session cancelled)",
+                [
+                    'booking_id' => $booking->id,
+                    'booking_date_id' => $bDate?->id,
+                    'cancellation_id' => $cancellation->id,
+                    'gateway_fee_amount' => $gatewayBack,
+                ]
+            );
+        }
+
+        // 6. Record the amounts on the cancellation.
+        $cancellation->update([
+            'commission_reversed_amount' => $commissionBack,
+            'gateway_fee_reversed_amount' => $gatewayBack,
+        ]);
     }
 }

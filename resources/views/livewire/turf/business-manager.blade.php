@@ -608,6 +608,16 @@ new #[Layout('layouts.app')] class extends Component
                                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                                             {{ $txLabel }}
                                         </span>
+                                    @elseif ($tx->type === 'commission_reversal')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            {{ $txLabel }}
+                                        </span>
+                                    @elseif ($tx->type === 'gateway_charge_reversal')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                            {{ $txLabel }}
+                                        </span>
                                     @elseif ($tx->type === 'commission_due_settlement')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -648,6 +658,10 @@ new #[Layout('layouts.app')] class extends Component
                                             <div class="text-[11px] text-gray-400">Customer pays full amount directly at turf counter</div>
                                         @elseif ($tx->type === 'cancellation_fee_debit')
                                             <div class="text-[11px] text-gray-400">Platform cancellation fee retained on cash booking</div>
+                                        @elseif ($tx->type === 'commission_reversal')
+                                            <div class="text-[11px] text-gray-400">Platform commission returned to owner upon session cancellation</div>
+                                        @elseif ($tx->type === 'gateway_charge_reversal')
+                                            <div class="text-[11px] text-gray-400">Payment gateway charges returned to owner upon session cancellation</div>
                                         @endif
                                     @elseif ($tx->type === 'commission_debit' || $tx->type === 'offline_commission_debit' || ($tx->type === 'payment_settlement' && (float)$tx->amount < 0))
                                         <div class="font-bold text-gray-900">
@@ -669,6 +683,16 @@ new #[Layout('layouts.app')] class extends Component
                                             Booking #{{ $tx->reference?->booking_id ?? ($tx->reference?->id ?? $tx->reference_id) }} Platform Cancellation Fee
                                         </div>
                                         <div class="text-[11px] text-rose-600 font-medium">Cash booking cancellation fee debited from wallet</div>
+                                    @elseif ($tx->type === 'commission_reversal')
+                                        <div class="font-bold text-gray-900">
+                                            Booking #{{ $tx->reference?->booking_id ?? $tx->reference_id }} Commission Returned
+                                        </div>
+                                        <div class="text-[11px] text-gray-400">Commission returned on session cancellation</div>
+                                    @elseif ($tx->type === 'gateway_charge_reversal')
+                                        <div class="font-bold text-gray-900">
+                                            Booking #{{ $tx->reference?->booking_id ?? $tx->reference_id }} Gateway Charges Returned
+                                        </div>
+                                        <div class="text-[11px] text-gray-400">Gateway charges returned on session cancellation</div>
                                     @elseif ($tx->type === 'payout_debit')
                                         <div class="font-bold text-gray-900">
                                             Withdrawal Payout #{{ $tx->reference_id }}
