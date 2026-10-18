@@ -345,6 +345,9 @@ class TurfAdminPagesTest extends TestCase
             'is_active' => true,
         ]);
 
+        // The page lists upcoming sessions by default; pin the clock before the 6 PM slot so the
+        // test doesn't fail when run in the evening.
+        Carbon::setTestNow(Carbon::today('Asia/Kolkata')->setTime(10, 0));
         $today = Carbon::now('Asia/Kolkata')->toDateString();
 
         $booking = Booking::create([
@@ -396,6 +399,8 @@ class TurfAdminPagesTest extends TestCase
             ->assertDontSee('Peter Das')
             ->call('setStatusFilter', 'all')
             ->assertSee('Peter Das');
+
+        Carbon::setTestNow();
     }
 
     public function test_client_bookings_record_payment(): void

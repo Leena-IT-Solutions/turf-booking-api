@@ -853,7 +853,10 @@ class MoneyAuditService
         // payouts = sum(TurfPayout.requested_amount) where status is in ACTIVE_STATUSES
         $payouts = round((float) TurfPayout::where('user_id', $owner->id)->whereIn('status', TurfPayout::ACTIVE_STATUSES)->sum('requested_amount'), 2);
 
-        $expectedWallet = round($onlineNet - $platformKeeps - $payouts, 2);
+        // Online money for sessions that haven't happened yet is not in the wallet until the nightly
+        // job releases it, so it is subtracted too (it is exactly the Pending Clearance of check 32).
+        $pendingAmount = round((float) $walletService->pendingCredits($ownerTurfIds)->sum('amount'), 2);
+        $expectedWallet = round($onlineNet - $platformKeeps - $payouts - $pendingAmount, 2);
         $pass31 = abs($walletBalance - $expectedWallet) <= 0.05;
 
         // Check for unknown transaction types
@@ -890,13 +893,12 @@ class MoneyAuditService
 
         $rows[] = [
             'check' => '31. Balance rule: wallet = online net - platform keeps - payouts',
-            'expected' => number_format($expectedWallet, 2) . " (online: {$onlineNet}, keeps: {$platformKeeps}, payouts: {$payouts})",
+            'expected' => number_format($expectedWallet, 2) . " (online: {$onlineNet}, keeps: {$platformKeeps}, payouts: {$payouts}, pending: {$pendingAmount})",
             'actual' => number_format($walletBalance, 2),
             'result' => $pass31 ? 'PASS' : 'FAIL',
         ];
 
-        // 32. Pending Clearance
-        $pendingAmount = round((float) $walletService->pendingCredits($ownerTurfIds)->sum('amount'), 2);
+        // 32. Pending Clearance ($pendingAmount computed above for check 31)
         $pass32 = $pendingAmount >= -0.01;
         $rows[] = [
             'check' => '32. Pending Clearance',

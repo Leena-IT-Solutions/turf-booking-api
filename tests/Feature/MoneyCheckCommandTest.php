@@ -215,6 +215,22 @@ class MoneyCheckCommandTest extends TestCase
         $this->assertEquals('FAIL', $row17()['result']);
     }
 
+    public function test_balance_rule_holds_while_online_money_is_still_pending(): void
+    {
+        // Reproduces live owner #2: one session already credited, one still upcoming (Pending Clearance).
+        $this->bookOnline(['2026-10-05']);
+        $this->bookOnline(['2026-10-09']);
+        $this->runNightly('2026-10-06 01:00:00'); // releases only the first booking
+
+        $pending = (float) app(\App\Services\WalletService::class)->pendingCredits([$this->turf->id])->sum('amount');
+        $this->assertGreaterThan(0, $pending, 'the second booking must still be pending');
+
+        $rows = collect(app(MoneyAuditService::class)->checkOwner($this->owner->fresh(), true));
+        $row31 = $rows->first(fn ($r) => str_starts_with($r['check'], '31.'));
+        $this->assertEquals('PASS', $row31['result'], json_encode($row31));
+        $this->assertStringContainsString('pending: ' . $pending, $row31['expected']);
+    }
+
     public function test_happy_paths_across_all_money_scenarios(): void
     {
         $bookings = [];

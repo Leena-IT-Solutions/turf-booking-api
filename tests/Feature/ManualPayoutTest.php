@@ -536,10 +536,8 @@ class ManualPayoutTest extends TestCase
             'is_active' => true,
         ]);
 
-        // Start with wallet 0, credit 500 so wallet equals sum of transactions and online money
+        // Start with wallet 0; the 500 online payment is credited below, linked to its payment as the app does
         $this->turfAdmin->update(['commission_wallet_balance' => 0.00]);
-        $walletService = new WalletService();
-        $walletService->applyDelta($this->turfAdmin, 500.00, 'payment_credit');
 
         // Create mock payment so online net = 500 in check 31
         $booking = Booking::create([
@@ -563,7 +561,7 @@ class ManualPayoutTest extends TestCase
             'total_amount' => 500.00,
             'status' => 'Confirmed',
         ]);
-        Payment::create([
+        $payment = Payment::create([
             'booking_id' => $booking->id,
             'booking_date_id' => $bookingDate->id,
             'payment_method' => 'App',
@@ -571,6 +569,7 @@ class ManualPayoutTest extends TestCase
             'refunded_amount' => 0.00,
             'status' => 'Success',
         ]);
+        (new WalletService())->applyDelta($this->turfAdmin, 500.00, 'payment_credit', $payment);
 
         $payoutService = new PayoutService();
         $payout1 = $payoutService->requestPayout($this->turfAdmin, 100.00, 'manual');
