@@ -490,8 +490,6 @@ class BookingCancellationService
         $cancelledAt = Carbon::now('Asia/Kolkata');
         $turfAdminOwner = $booking->turf->location->user ?? null;
 
-        $onlinePayments = $successfulPayments->where('payment_method', 'App');
-        $onlineRemainingPaid = (float) $onlinePayments->sum(fn ($p) => max(0.0, (float) $p->amount - (float) $p->refunded_amount));
 
         foreach ($successfulPayments as $payment) {
             $refundable = max(0.0, (float) $payment->amount - (float) $payment->refunded_amount);
@@ -559,6 +557,10 @@ class BookingCancellationService
 
         // On cash bookings (or where online money does not cover the platform cancellation fee),
         // debit the uncollected platform cancellation fee from the turf owner's wallet.
+        // Measured after this cancellation's refunds (the loop above updated these payment models), so a
+        // refund that used up the online money is no longer counted as covering the fee.
+        $onlineRemainingPaid = (float) $successfulPayments->where('payment_method', 'App')
+            ->sum(fn ($p) => max(0.0, (float) $p->amount - (float) $p->refunded_amount));
         $cashFeeToDebit = round($platformFeeShare - max(0.0, min($platformFeeShare, $onlineRemainingPaid)), 2);
         if ($turfAdminOwner && $cashFeeToDebit > 0 && $cancellation) {
             $alreadyDebited = CommissionWalletTransaction::where('user_id', $turfAdminOwner->id)

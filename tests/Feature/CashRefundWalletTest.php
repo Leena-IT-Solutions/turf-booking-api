@@ -8,6 +8,7 @@ use App\Models\BookingDate;
 use App\Models\CommissionWalletTransaction;
 use App\Models\Location;
 use App\Models\Payment;
+use App\Models\PaymentGateway;
 use App\Models\SaasSetting;
 use App\Models\Turf;
 use App\Models\User;
@@ -15,6 +16,7 @@ use App\Services\BookingCancellationService;
 use Carbon\Carbon;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CashRefundWalletTest extends TestCase
@@ -445,5 +447,45 @@ class CashRefundWalletTest extends TestCase
         // Payment turf_payout_amount immediately drops by refund (750.00) AND platform cancellation fee (50.00):
         // 890.00 - 750.00 - 50.00 = 90.00
         $this->assertEquals(90.00, (float)$payment->turf_payout_amount);
+    }
+
+    public function test_fee_is_debited_when_the_refund_uses_up_the_online_money(): void
+    {
+        // ₹300 online + ₹700 cash. The ₹750 refund takes all ₹300 of online money first, so nothing
+        // online is left to cover the platform's ₹50 fee: it must be debited from the wallet.
+        Http::fake(['https://api.razorpay.com/*' => Http::response(['id' => 'rfnd_1', 'status' => 'captured', 'amount' => 30000], 200)]);
+        SaasSetting::first()->update(['razorpay_key' => 'k', 'razorpay_secret' => 's']);
+
+        $dateStr = now()->addDays(2)->format('Y-m-d');
+        $booking = Booking::create([
+            'user_id' => $this->customer->id, 'turf_id' => $this->turf->id, 'date_of_booking' => now(),
+            'booking_type' => 'day', 'status' => 'Confirmed', 'payment_status' => 'Paid', 'total_amount' => 1000.00,
+        ]);
+        $bDate = BookingDate::create([
+            'booking_id' => $booking->id, 'booking_date' => $dateStr, 'amount' => 1000.00, 'status' => 'Confirmed',
+            'paid_amount' => 1000.00, 'balance_amount' => 0.00, 'payment_status' => 'Paid',
+        ]);
+        $online = Payment::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id, 'payment_method' => 'App',
+            'amount' => 300.00, 'status' => 'Success', 'turf_payout_amount' => 300.00,
+        ]);
+        PaymentGateway::create(['payment_id' => $online->id, 'gateway_name' => 'razorpay', 'gateway_payment_id' => 'pay_on']);
+        Payment::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id, 'payment_method' => 'Cash',
+            'amount' => 700.00, 'status' => 'Success', 'wallet_cleared_at' => now(), 'turf_payout_amount' => 0.00,
+        ]);
+        $cancellation = BookingCancellation::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id,
+            'cancelled_by_user_id' => $this->customer->id, 'canceller_role' => 'customer', 'cancellation_scope' => 'date',
+            'gross_cancelled_amount' => 1000.00, 'turf_cancellation_fee' => 200.00, 'platform_fee_retained' => 0.00,
+            'saas_cancellation_fee' => 50.00, 'total_cancellation_fee' => 250.00, 'refund_amount' => 750.00,
+            'refund_status' => 'Pending Resolution',
+        ]);
+
+        app(BookingCancellationService::class)->resolveRefund($cancellation, 'standard_policy', 'online_gateway', $this->turfAdmin);
+
+        $this->assertEquals(300.00, (float) $online->fresh()->refunded_amount);
+        $this->assertEquals(-50.00, (float) CommissionWalletTransaction::where('type', 'cancellation_fee_debit')->sum('amount'));
+        $this->assertEquals(-160.00, (float) $this->turfAdmin->fresh()->commission_wallet_balance);
     }
 }
