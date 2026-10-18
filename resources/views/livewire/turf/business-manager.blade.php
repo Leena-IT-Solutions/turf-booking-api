@@ -166,7 +166,12 @@ new #[Layout('layouts.app')] class extends Component
             $payoutService = new PayoutService();
             $payout = $payoutService->requestPayout($user, $amount, 'manual');
 
-            session()->flash('status', "Payout request for ₹" . number_format($payout->requested_amount, 2) . " submitted successfully! (Net payout: ₹" . number_format($payout->net_amount, 2) . ")");
+            $msg = "Payout request for ₹" . number_format($payout->requested_amount, 2) . " submitted successfully! (Net payout: ₹" . number_format($payout->net_amount, 2) . ")";
+            if ($payout->mode === 'manual') {
+                $msg .= " The platform will transfer it to your account and share the UTR.";
+            }
+
+            session()->flash('status', $msg);
             $this->mount();
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());
@@ -673,7 +678,7 @@ new #[Layout('layouts.app')] class extends Component
                                         <div class="font-bold text-gray-900">
                                             Payout #{{ $tx->reference_id }} Reversal
                                         </div>
-                                        <div class="text-[11px] text-gray-400">Payout failed and returned to wallet balance</div>
+                                        <div class="text-[11px] text-gray-400">Payout failed or rejected and returned to wallet balance</div>
                                     @else
                                         <div class="font-bold text-gray-900">
                                             {{ ucfirst(str_replace('_', ' ', $tx->type)) }} #{{ $tx->reference_id }}

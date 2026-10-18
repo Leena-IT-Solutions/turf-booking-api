@@ -15,6 +15,7 @@ new #[Layout('layouts.app')] class extends Component
     public $cancellation_fee_percentage = 5.00;
     public $payout_hours = 24;
     public $payout_charges = 40.00;
+    public string $payout_mode = 'manual';
     public $max_commission_due = 2000.00;
     public $commission_due_grace_days = 7;
 
@@ -36,6 +37,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->cancellation_fee_percentage = (float) ($setting->cancellation_fee_percentage ?? 5.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
         $this->payout_charges = (float) ($setting->payout_charges ?? 40.00);
+        $this->payout_mode = $setting->payout_mode ?? 'manual';
         $this->max_commission_due = (float) ($setting->max_commission_due ?? 2000.00);
         $this->commission_due_grace_days = (int) ($setting->commission_due_grace_days ?? 7);
     }
@@ -52,9 +54,17 @@ new #[Layout('layouts.app')] class extends Component
             'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
+            'payout_mode' => 'required|in:manual,razorpayx',
             'max_commission_due' => 'required|numeric|min:0',
             'commission_due_grace_days' => 'required|integer|min:0',
         ]);
+
+        if ($propertyName === 'payout_mode' && $this->payout_mode === 'razorpayx') {
+            $setting = SaasSetting::first();
+            if (empty($setting?->razorpay_key) || empty($setting?->razorpay_secret) || empty($setting?->razorpayx_account_number) || empty($setting?->razorpayx_webhook_secret)) {
+                $this->addError('payout_mode', 'Fill in the Razorpay key, secret, RazorpayX account number and webhook secret on the Credentials tab first.');
+            }
+        }
     }
 
     public function saveSettings()
@@ -69,9 +79,18 @@ new #[Layout('layouts.app')] class extends Component
             'cancellation_fee_percentage' => 'required|numeric|min:0|max:100',
             'payout_hours' => 'required|integer|min:0',
             'payout_charges' => 'required|numeric|min:0',
+            'payout_mode' => 'required|in:manual,razorpayx',
             'max_commission_due' => 'required|numeric|min:0',
             'commission_due_grace_days' => 'required|integer|min:0',
         ]);
+
+        if ($this->payout_mode === 'razorpayx') {
+            $setting = SaasSetting::first();
+            if (empty($setting?->razorpay_key) || empty($setting?->razorpay_secret) || empty($setting?->razorpayx_account_number) || empty($setting?->razorpayx_webhook_secret)) {
+                $this->addError('payout_mode', 'Fill in the Razorpay key, secret, RazorpayX account number and webhook secret on the Credentials tab first.');
+                return;
+            }
+        }
 
         $setting = SaasSetting::first() ?? new SaasSetting();
 
@@ -85,6 +104,7 @@ new #[Layout('layouts.app')] class extends Component
             'cancellation_fee_percentage' => $this->cancellation_fee_percentage,
             'payout_hours' => $this->payout_hours,
             'payout_charges' => $this->payout_charges,
+            'payout_mode' => $this->payout_mode,
             'max_commission_due' => $this->max_commission_due,
             'commission_due_grace_days' => $this->commission_due_grace_days,
         ];
@@ -305,6 +325,35 @@ new #[Layout('layouts.app')] class extends Component
                         </div>
                     </div>
 
+                    <!-- Row: Payout Mode -->
+                    <div class="py-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                        <div class="space-y-1 max-w-xl">
+                            <label class="text-xs font-bold text-gray-900 block">
+                                {{ __('Payout Mode') }}
+                            </label>
+                            <p class="text-xs text-gray-500 leading-relaxed">
+                                {{ __('Switching only affects new payout requests. Payouts already requested are finished the way they started.') }}
+                            </p>
+                            <x-input-error :messages="$errors->get('payout_mode')" class="mt-1" />
+                        </div>
+                        <div class="w-full sm:w-80 space-y-2 shrink-0">
+                            <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition {{ $payout_mode === 'manual' ? 'border-indigo-500 bg-indigo-50/30' : 'border-gray-200 hover:bg-gray-50' }}">
+                                <input type="radio" wire:model.live="payout_mode" value="manual" class="mt-0.5 text-indigo-600 focus:ring-indigo-500">
+                                <div>
+                                    <span class="text-xs font-bold text-gray-900 block">{{ __('Manual') }}</span>
+                                    <span class="text-[11px] text-gray-500 block leading-tight">{{ __('You transfer payouts yourself from your bank and record the UTR.') }}</span>
+                                </div>
+                            </label>
+                            <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition {{ $payout_mode === 'razorpayx' ? 'border-indigo-500 bg-indigo-50/30' : 'border-gray-200 hover:bg-gray-50' }}">
+                                <input type="radio" wire:model.live="payout_mode" value="razorpayx" class="mt-0.5 text-indigo-600 focus:ring-indigo-500">
+                                <div>
+                                    <span class="text-xs font-bold text-gray-900 block">{{ __('RazorpayX') }}</span>
+                                    <span class="text-[11px] text-gray-500 block leading-tight">{{ __('Payouts are sent automatically through RazorpayX.') }}</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Row 3: Payout Processing Hours -->
                     <div class="py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div class="space-y-1 max-w-xl">
@@ -312,15 +361,15 @@ new #[Layout('layouts.app')] class extends Component
                                 {{ __('Payout Processing Window') }}
                             </label>
                             <p class="text-xs text-gray-500 leading-relaxed">
-                                {{ __('Minimum hours after booking completion before payout release.') }}
+                                {{ __('A second payout requested within this many hours of the last completed payout is charged the payout fee below.') }}
                             </p>
                             <x-input-error :messages="$errors->get('payout_hours')" class="mt-1" />
                         </div>
                         <div class="shrink-0 flex items-center">
                             <div class="relative w-full sm:w-44">
                                 <input wire:model.live.debounce.250ms="payout_hours" id="payoutHours" type="number" min="0" 
-                                    class="w-full pr-14 pl-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
-                                    placeholder="24" />
+                                     class="w-full pr-14 pl-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
+                                     placeholder="24" />
                                 <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">hours</span>
                             </div>
                         </div>

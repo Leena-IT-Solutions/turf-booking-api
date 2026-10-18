@@ -88,7 +88,12 @@ new #[Layout('layouts.app')] class extends Component
             $payoutService = new PayoutService();
             $payout = $payoutService->requestPayout($user, $amount, 'manual');
 
-            session()->flash('status', "Payout request for ₹" . number_format($payout->requested_amount, 2) . " submitted successfully! (Net payout: ₹" . number_format($payout->net_amount, 2) . ")");
+            $msg = "Payout request for ₹" . number_format($payout->requested_amount, 2) . " submitted successfully! (Net payout: ₹" . number_format($payout->net_amount, 2) . ")";
+            if ($payout->mode === 'manual') {
+                $msg .= " The platform will transfer it to your account and share the UTR.";
+            }
+
+            session()->flash('status', $msg);
             $this->mount();
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());
@@ -100,7 +105,7 @@ new #[Layout('layouts.app')] class extends Component
         $user = auth()->user();
         $balance = $user ? (float) $user->commission_wallet_balance : 0.00;
         $totalPayoutsReceived = $user ? (float) TurfPayout::where('user_id', $user->id)->where('status', 'completed')->sum('net_amount') : 0.00;
-        $pendingPayoutsAmount = $user ? (float) TurfPayout::where('user_id', $user->id)->whereIn('status', ['requested', 'processing'])->sum('net_amount') : 0.00;
+        $pendingPayoutsAmount = $user ? (float) TurfPayout::where('user_id', $user->id)->whereIn('status', ['pending', 'processing'])->sum('net_amount') : 0.00;
 
         $recentPayouts = $user ? TurfPayout::where('user_id', $user->id)->latest()->paginate(10) : collect();
 
@@ -353,7 +358,7 @@ new #[Layout('layouts.app')] class extends Component
                                 ₹{{ number_format($p->requested_amount, 2) }}
                             </td>
                             <td class="p-3 text-rose-600">
-                                -₹{{ number_format($p->tds_amount + $p->fee_amount, 2) }}
+                                -₹{{ number_format($p->charge_applied, 2) }}
                             </td>
                             <td class="p-3 font-black text-emerald-600 text-sm">
                                 ₹{{ number_format($p->net_amount, 2) }}
@@ -370,10 +375,38 @@ new #[Layout('layouts.app')] class extends Component
                                 {{ $p->created_at->format('d M Y, h:i A') }}
                             </td>
                             <td class="p-3">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase
-                                    {{ $p->status === 'completed' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : ($p->status === 'failed' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-amber-50 text-amber-700 border border-amber-200') }}">
-                                    {{ ucfirst($p->status) }}
-                                </span>
+                                @if ($p->status === 'completed')
+                                    <div class="space-y-0.5">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            Paid {{ $p->paid_at ? $p->paid_at->format('d M Y') : ($p->processed_at ? $p->processed_at->format('d M Y') : '') }}
+                                        </span>
+                                        @if ($p->utr)
+                                            <span class="text-[10px] text-gray-500 block font-mono">UTR {{ $p->utr }}</span>
+                                        @endif
+                                    </div>
+                                @elseif ($p->status === 'pending')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                        Requested: awaiting transfer
+                                    </span>
+                                @elseif ($p->status === 'processing')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                        Processing
+                                    </span>
+                                @elseif ($p->status === 'rejected')
+                                    <div class="space-y-0.5">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            Rejected: {{ $p->failure_reason }}. Amount returned to wallet
+                                        </span>
+                                    </div>
+                                @elseif ($p->status === 'failed')
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                        Failed. Amount returned to wallet
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-gray-50 text-gray-700 border border-gray-200">
+                                        {{ ucfirst($p->status) }}
+                                    </span>
+                                @endif
                             </td>
                         </tr>
                     @empty

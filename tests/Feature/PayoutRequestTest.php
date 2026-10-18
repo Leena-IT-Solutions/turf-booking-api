@@ -24,6 +24,7 @@ class PayoutRequestTest extends TestCase
         SaasSetting::create([
             'payout_hours' => 24,
             'payout_charges' => 40.00,
+            'payout_mode' => 'razorpayx',
         ]);
 
         $this->turfAdmin = User::factory()->create([

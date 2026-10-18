@@ -772,8 +772,8 @@ class MoneyAuditService
 
         $platformKeeps = round($feesSum + $gwFeeSum + $cancellationShareSum, 2);
 
-        // payouts = sum(TurfPayout.requested_amount) where status != 'failed'
-        $payouts = round((float) TurfPayout::where('user_id', $owner->id)->where('status', '!=', 'failed')->sum('requested_amount'), 2);
+        // payouts = sum(TurfPayout.requested_amount) where status is in ACTIVE_STATUSES
+        $payouts = round((float) TurfPayout::where('user_id', $owner->id)->whereIn('status', TurfPayout::ACTIVE_STATUSES)->sum('requested_amount'), 2);
 
         $expectedWallet = round($onlineNet - $platformKeeps - $payouts, 2);
         $pass31 = abs($walletBalance - $expectedWallet) <= 0.05;
@@ -837,14 +837,14 @@ class MoneyAuditService
         } else {
             $payoutFailures = [];
             foreach ($ownerPayouts as $payout) {
-                if ($payout->status === 'failed') {
+                if (in_array($payout->status, [TurfPayout::STATUS_FAILED, TurfPayout::STATUS_REJECTED], true)) {
                     $hasReversal = CommissionWalletTransaction::where('user_id', $owner->id)
                         ->where('type', 'payout_reversal')
                         ->where('reference_type', TurfPayout::class)
                         ->where('reference_id', $payout->id)
                         ->exists();
                     if (!$hasReversal) {
-                        $payoutFailures[] = "Payout #{$payout->id} (failed) missing payout_reversal";
+                        $payoutFailures[] = "Payout #{$payout->id} ({$payout->status}) missing payout_reversal";
                     }
                 } else {
                     $hasDebit = CommissionWalletTransaction::where('user_id', $owner->id)
@@ -863,6 +863,32 @@ class MoneyAuditService
                 'expected' => 'Matching debit/reversal for each payout',
                 'actual' => $pass33 ? 'All payouts matched in ledger' : implode(', ', $payoutFailures),
                 'result' => $pass33 ? 'PASS' : 'FAIL',
+            ];
+        }
+
+        // 34. Manual payouts finished correctly
+        $manualPayouts = TurfPayout::where('user_id', $owner->id)->where('mode', 'manual')->get();
+        if ($manualPayouts->isEmpty()) {
+            $rows[] = [
+                'check' => '34. Manual payouts finished correctly',
+                'expected' => null,
+                'actual' => 'No manual payouts',
+                'result' => 'SKIP',
+            ];
+        } else {
+            $completedManual = $manualPayouts->where('status', TurfPayout::STATUS_COMPLETED);
+            $c34Fails = [];
+            foreach ($completedManual as $mp) {
+                if (empty(trim((string) $mp->utr)) || empty($mp->paid_at)) {
+                    $c34Fails[] = "Payout #{$mp->id} missing " . (empty(trim((string) $mp->utr)) ? 'UTR ' : '') . (empty($mp->paid_at) ? 'paid_at' : '');
+                }
+            }
+            $pass34 = empty($c34Fails);
+            $rows[] = [
+                'check' => '34. Manual payouts finished correctly',
+                'expected' => 'Completed manual payouts have UTR and paid_at',
+                'actual' => $pass34 ? 'All completed manual payouts have UTR and paid_at' : implode(', ', $c34Fails),
+                'result' => $pass34 ? 'PASS' : 'FAIL',
             ];
         }
 

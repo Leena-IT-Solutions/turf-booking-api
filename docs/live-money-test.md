@@ -29,7 +29,7 @@ Replace `{B}` with the booking id shown in the turf dashboard, and `{O}` with th
 | 5 | Player books 1 slot **tomorrow**, pay at venue, staff record Cash. Then cancel | `php artisan money:check --booking={B}` |
 | 6 | Player books 1 slot tomorrow, pay online. Staff **reschedule** it to a cheaper slot (set one slot to ₹50 first), so a refund goes out | `php artisan money:check --booking={B}` |
 | 7 | After all of today's sessions have ended: run `php artisan wallet:clear-matured-entries` | `php artisan money:check --owner={O}` |
-| 8 | Request a payout from the turf dashboard (Business & Earnings) | `php artisan money:check --owner={O}` |
+| 8 | Request a payout. In Payout Manager → Pending transfers, transfer the net amount from your bank, then Mark as paid with the UTR. Run `money:check --owner={O}`. Also try a Reject on a second small request and run it again. | `php artisan money:check --owner={O}` |
 
 For steps 4-6, credits are released on the session date. Run `php artisan wallet:clear-matured-entries` again the next day, then `money:check --owner={O}` once more.
 

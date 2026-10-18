@@ -53,6 +53,7 @@ class SaasSetting extends Model
         'cancellation_fee_percentage',
         'payout_hours',
         'payout_charges',
+        'payout_mode',
         'razorpayx_account_number',
         'razorpayx_webhook_secret',
         'max_commission_due',

@@ -271,7 +271,7 @@ class ReportService
         $totalRequested = (float) $allPayouts->sum('requested_amount');
         $totalCharges = (float) $allPayouts->sum('charge_applied');
         $totalNet = (float) $allPayouts->sum('net_amount');
-        $successfulNet = (float) $allPayouts->where('status', 'Processed')->sum('net_amount');
+        $successfulNet = (float) $allPayouts->where('status', 'completed')->sum('net_amount');
 
         $previewPayouts = (clone $query)->orderBy('created_at', 'desc')->take($limit)->get();
 

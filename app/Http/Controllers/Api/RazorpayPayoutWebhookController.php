@@ -63,7 +63,7 @@ class RazorpayPayoutWebhookController extends Controller
         if ($razorpayPayoutId) {
             $payout = TurfPayout::where('razorpay_payout_id', $razorpayPayoutId)->first();
 
-            if ($payout) {
+            if ($payout && $payout->mode === 'razorpayx') {
                 $walletService = new WalletService();
 
                 if ($eventType === 'payout.processed') {

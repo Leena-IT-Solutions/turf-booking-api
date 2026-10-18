@@ -64,8 +64,8 @@
                             <td class="px-4 py-3 text-right text-rose-600 whitespace-nowrap">₹{{ number_format((float)$p->charge_applied, 2) }}</td>
                             <td class="px-4 py-3 font-bold text-right text-emerald-600 whitespace-nowrap">₹{{ number_format((float)$p->net_amount, 2) }}</td>
                             <td class="px-4 py-3 text-center whitespace-nowrap">
-                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $p->status === 'Processed' ? 'bg-emerald-100 text-emerald-800' : ($p->status === 'Failed' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800') }}">
-                                    {{ $p->status }}
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $p->status === 'completed' ? 'bg-emerald-100 text-emerald-800' : (in_array($p->status, ['failed', 'rejected']) ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800') }}">
+                                    {{ ucfirst($p->status) }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ $p->razorpay_payout_id ?? '-' }}</td>
