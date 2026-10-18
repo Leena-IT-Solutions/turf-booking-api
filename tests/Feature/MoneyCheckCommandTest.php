@@ -248,6 +248,9 @@ class MoneyCheckCommandTest extends TestCase
         $ownerRows = $service->checkOwner($this->owner->fresh(), true);
         $ownerFailed = collect($ownerRows)->where('result', 'FAIL')->all();
         $this->assertEmpty($ownerFailed, 'Owner checks failed: ' . json_encode($ownerFailed));
+        // Every wallet row type these scenarios produce (incl. the cash cancellation fee) is a known type.
+        $this->assertNull(collect($ownerRows)->first(fn ($r) => str_starts_with($r['check'], 'Note: Other wallet')),
+            'Unexpected "other wallet types" note: ' . json_encode($ownerRows));
 
         // Verify command execution
         $this->artisan('money:check', ['--owner' => $this->owner->id])

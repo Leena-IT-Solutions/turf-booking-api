@@ -788,6 +788,7 @@ class MoneyAuditService
             'offline_booking_record',
             'payout_debit',
             'payout_reversal',
+            'cancellation_fee_debit', // platform cancellation fee on cash bookings
         ];
         $otherTypes = CommissionWalletTransaction::where('user_id', $owner->id)
             ->whereNotIn('type', $knownTypes)
