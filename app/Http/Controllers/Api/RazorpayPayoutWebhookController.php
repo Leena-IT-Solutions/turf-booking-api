@@ -23,15 +23,19 @@ class RazorpayPayoutWebhookController extends Controller
         $signature = $request->header('X-Razorpay-Signature');
         $payload = $request->getContent();
 
-        // 1. Verify HMAC Signature if secret configured
-        if ($webhookSecret) {
-            if (!$signature) {
-                return response()->json(['message' => 'Missing X-Razorpay-Signature header'], 400);
-            }
-            $expectedSignature = hash_hmac('sha256', $payload, $webhookSecret);
-            if (!hash_equals($expectedSignature, $signature)) {
-                return response()->json(['message' => 'Invalid webhook signature'], 400);
-            }
+        // 1. Verify HMAC signature. Without a configured secret anyone could post a fake
+        // "payout failed" event and have money credited back while the bank transfer still goes out,
+        // so unsigned webhooks are refused outright.
+        if (!$webhookSecret) {
+            \Illuminate\Support\Facades\Log::critical('RazorpayX webhook received but no webhook secret is configured; event rejected.');
+            return response()->json(['message' => 'Webhook secret not configured'], 503);
+        }
+        if (!$signature) {
+            return response()->json(['message' => 'Missing X-Razorpay-Signature header'], 400);
+        }
+        $expectedSignature = hash_hmac('sha256', $payload, $webhookSecret);
+        if (!hash_equals($expectedSignature, $signature)) {
+            return response()->json(['message' => 'Invalid webhook signature'], 400);
         }
 
 

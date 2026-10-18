@@ -134,11 +134,13 @@ class BusinessPageTest extends TestCase
         // 2. Now the panel should render with booking and payout details
         Volt::test('turf.business-manager')
             ->assertSee('Pending Clearance — not yet in the statement below', false)
-            ->assertSee("Booking #{$booking->id}", false)
-            ->assertSee('₹450.00 online payment pending clearance', false)
+            ->assertSee("Booking #{$booking->booking_reference}", false)
+            // The full online amount is still to be credited (fees were already debited separately).
+            ->assertSee('₹500.00 online payment pending clearance', false)
             ->assertSee(\Carbon\Carbon::parse($bookingDate->booking_date)->format('d M Y'), false);
 
-        // 3. Mark payment as cleared -> panel should disappear
+        // 3. Credit the payment to the wallet -> nothing left pending, panel disappears
+        (new \App\Services\WalletService())->applyDelta($this->turfAdmin, 500.00, 'payment_credit', $payment);
         $payment->update(['wallet_cleared_at' => now()]);
 
         Volt::test('turf.business-manager')

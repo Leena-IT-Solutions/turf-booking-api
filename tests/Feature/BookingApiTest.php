@@ -11,11 +11,12 @@ use App\Models\Booking;
 use App\Models\BookingDate;
 use App\Models\Payment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\FakesRazorpay;
 use Tests\TestCase;
 
 class BookingApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, FakesRazorpay;
 
     public function test_cannot_access_bookings_without_authentication(): void
     {
@@ -342,7 +343,7 @@ class BookingApiTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'razorpay_payment_id' => 'pay_12345full',
+            ...$this->razorpayPayment(2000),
         ]);
 
         $response->assertStatus(200);
@@ -357,7 +358,7 @@ class BookingApiTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'part',
-            'razorpay_payment_id' => 'pay_12345part',
+            ...$this->razorpayPayment(1000),
         ]);
 
         $response2->assertStatus(200);

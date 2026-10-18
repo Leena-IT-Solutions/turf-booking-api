@@ -18,11 +18,12 @@ use App\Services\WalletService;
 use Carbon\Carbon;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\FakesRazorpay;
 use Tests\TestCase;
 
 class ImmediateDeductionsDeferredCreditTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, FakesRazorpay;
 
     protected User $turfAdmin;
     protected User $customer;
@@ -96,7 +97,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 1010.00,
+            ...$this->razorpayPayment(1010.00),
         ]);
 
         $response->assertStatus(200);
@@ -132,7 +133,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 1010.00,
+            ...$this->razorpayPayment(1010.00),
         ]);
 
         $response->assertStatus(200);
@@ -186,7 +187,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 1010.00,
+            ...$this->razorpayPayment(1010.00),
         ]);
 
         $response->assertStatus(200);
@@ -229,7 +230,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 1010.00,
+            ...$this->razorpayPayment(1010.00),
         ]);
 
         $bookingId = $response->json('booking.id');
@@ -276,7 +277,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 1010.00,
+            ...$this->razorpayPayment(1010.00),
         ]);
         $booking = Booking::find($response->json('booking.id'));
         $bookingDate = $booking->bookingDates()->first();
@@ -329,7 +330,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
             'booking_type' => 'long',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 2010.00,
+            ...$this->razorpayPayment(2010.00),
         ]);
 
         $response->assertStatus(200);
@@ -430,7 +431,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00'));
         $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
             'slot_ids' => [$this->slot->id], 'booking_dates' => ['2026-10-05'], 'booking_type' => 'day',
-            'payment_method' => 'App', 'payment_option' => 'part', 'amount_received' => 505.00,
+            'payment_method' => 'App', 'payment_option' => 'part', ...$this->razorpayPayment(505.00),
         ])->assertStatus(200);
         $bookingDate = Booking::find($response->json('booking.id'))->bookingDates()->first();
         $this->actingAs($this->turfAdmin, 'sanctum')
@@ -453,7 +454,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
         $this->turf->update(['cancellation_fee' => 200.00]);
         $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
             'slot_ids' => [$this->slot->id], 'booking_dates' => ['2026-10-05', '2026-10-06'], 'booking_type' => 'long',
-            'payment_method' => 'App', 'payment_option' => 'full', 'amount_received' => 2010.00,
+            'payment_method' => 'App', 'payment_option' => 'full', ...$this->razorpayPayment(2010.00),
         ])->assertStatus(200);
 
         return Booking::find($response->json('booking.id'));
@@ -519,7 +520,7 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
         $this->turf->update(['cancellation_fee' => 200.00]);
         $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
             'slot_ids' => [$this->slot->id], 'booking_dates' => ['2026-10-05'], 'booking_type' => 'day',
-            'payment_method' => 'App', 'payment_option' => 'full', 'amount_received' => 1010.00,
+            'payment_method' => 'App', 'payment_option' => 'full', ...$this->razorpayPayment(1010.00),
         ]);
         $booking = Booking::find($response->json('booking.id'));
         $this->actingAs($this->customer, 'sanctum')

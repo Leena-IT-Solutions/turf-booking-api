@@ -10,11 +10,12 @@ use Carbon\Carbon;
 use Livewire\Volt\Volt;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\FakesRazorpay;
 use Tests\TestCase;
 
 class TurfAdminPagesTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, FakesRazorpay;
 
     protected function setUp(): void
     {
@@ -185,7 +186,7 @@ class TurfAdminPagesTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'part',
-            'amount_received' => 6.00,
+            ...$this->razorpayPayment(6.00),
         ]);
         $response->assertStatus(200);
         $bookingId = $response->json('booking.id');

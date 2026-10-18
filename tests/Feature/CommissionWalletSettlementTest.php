@@ -12,11 +12,12 @@ use App\Models\Turf;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\FakesRazorpay;
 use Tests\TestCase;
 
 class CommissionWalletSettlementTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, FakesRazorpay;
 
     protected User $turfAdmin;
     protected Turf $turf;
@@ -91,7 +92,7 @@ class CommissionWalletSettlementTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'part',
-            'amount_received' => 300.00,
+            ...$this->razorpayPayment(300.00),
         ]);
 
 
@@ -253,7 +254,7 @@ class CommissionWalletSettlementTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'part',
-            'amount_received' => 6.00,
+            ...$this->razorpayPayment(6.00),
         ]);
         $response->assertStatus(200);
         $bookingId = $response->json('booking.id');

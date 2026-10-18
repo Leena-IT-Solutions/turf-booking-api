@@ -449,6 +449,54 @@ class WalletService
         return $user;
     }
 
+    /**
+     * What the nightly payout job will still add to the wallet for this booking. Platform fee,
+     * commission and gateway charges are already debited at payment time, so this is the remaining
+     * online entitlement, not a net-of-fees figure (subtracting fees again would double count them).
+     */
+    public function pendingCredit(Booking $booking): float
+    {
+        $onlineIds = Payment::where('booking_id', $booking->id)->where('status', 'Success')
+            ->where('payment_method', 'App')->pluck('id');
+        if ($onlineIds->isEmpty()) {
+            return 0.0;
+        }
+
+        $credited = (float) CommissionWalletTransaction::where('reference_type', Payment::class)
+            ->whereIn('reference_id', $onlineIds)
+            ->whereIn('type', ['payment_credit', 'refund_adjustment'])
+            ->sum('amount');
+
+        return max(0.0, round($this->turfOnlineEntitlement($booking) - $credited, 2));
+    }
+
+    /**
+     * Pending Clearance rows for the given turfs: bookings with online money not yet released.
+     *
+     * @return \Illuminate\Support\Collection<int, array{booking: Booking, amount: float, expected: ?string}>
+     */
+    public function pendingCredits(array $turfIds): \Illuminate\Support\Collection
+    {
+        $bookingIds = Payment::where('status', 'Success')->where('payment_method', 'App')
+            ->whereNull('wallet_cleared_at')
+            ->whereHas('booking', fn ($q) => $q->whereIn('turf_id', $turfIds))
+            ->distinct()->pluck('booking_id');
+
+        return Booking::with('bookingDates')->whereIn('id', $bookingIds)->get()
+            ->map(function (Booking $booking) {
+                $lastActive = $booking->bookingDates->where('status', '!=', 'Cancelled')->max('booking_date');
+                return [
+                    'booking' => $booking,
+                    'amount' => $this->pendingCredit($booking),
+                    // All sessions cancelled -> released on the next nightly run.
+                    'expected' => $lastActive ?: Carbon::tomorrow()->toDateString(),
+                ];
+            })
+            ->filter(fn ($row) => $row['amount'] > 0)
+            ->sortBy('expected')
+            ->values();
+    }
+
     public function settleCredit(User $user, Payment $payment, bool $isOnline): User
     {
         if ($payment->wallet_cleared_at) {

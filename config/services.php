@@ -43,8 +43,9 @@ return [
     ],
 
     'razorpay' => [
-        'key' => env('RAZORPAY_KEY', 'rzp_live_TdA0suhdYSbqZy'),
-        'secret' => env('RAZORPAY_SECRET', 'N5aqTWfquuJouMspqn3NELj0'),
+        // Never hard-code credentials here: the real values live in SaaS Settings (or .env).
+        'key' => env('RAZORPAY_KEY'),
+        'secret' => env('RAZORPAY_SECRET'),
     ],
 
 ];

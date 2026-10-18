@@ -15,11 +15,12 @@ use App\Models\User;
 use Carbon\Carbon;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\FakesRazorpay;
 use Tests\TestCase;
 
 class MultiDateConsolidatedDeductionsTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, FakesRazorpay;
 
     protected User $turfAdmin;
     protected User $customer;
@@ -94,8 +95,7 @@ class MultiDateConsolidatedDeductionsTest extends TestCase
             'booking_type' => 'long',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 24.00,
-            'razorpay_payment_id' => 'pay_test_12345',
+            ...$this->razorpayPayment(24.00),
         ]);
 
         $response->assertStatus(200);
@@ -172,7 +172,7 @@ class MultiDateConsolidatedDeductionsTest extends TestCase
             'booking_type' => 'long',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'amount_received' => 810.00,
+            ...$this->razorpayPayment(810.00),
         ]);
 
         $response->assertStatus(200);
@@ -223,7 +223,7 @@ class MultiDateConsolidatedDeductionsTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'part',
-            'amount_received' => 505.00,
+            ...$this->razorpayPayment(505.00),
         ]);
 
         $response->assertStatus(200);
@@ -276,7 +276,7 @@ class MultiDateConsolidatedDeductionsTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'part',
-            'amount_received' => 705.00,
+            ...$this->razorpayPayment(705.00),
         ]);
 
         $response->assertStatus(200);

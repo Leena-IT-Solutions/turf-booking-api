@@ -668,6 +668,41 @@ class BookingController extends Controller
      */
     public function store(Request $request, Turf $turf): JsonResponse
     {
+        // The player pays Razorpay before this request arrives. If the booking then can't be made
+        // (slot taken meanwhile, amount mismatch, validation error...), refund that payment rather than
+        // keep the money with no booking. refundUnusedPayment() only acts on a correctly signed payment
+        // for one of our orders that isn't already linked to a booking.
+        $refundIfPaid = function () use ($request): bool {
+            if ($request->input('payment_method') !== 'App' || !$request->filled('razorpay_payment_id')) {
+                return false;
+            }
+
+            return app(\App\Services\RazorpayPaymentVerifier::class)->refundUnusedPayment(
+                $request->input('razorpay_payment_id'),
+                $request->input('razorpay_order_id'),
+                $request->input('razorpay_signature')
+            );
+        };
+
+        try {
+            $response = $this->createBooking($request, $turf);
+        } catch (\Throwable $e) {
+            $refundIfPaid();
+            throw $e;
+        }
+
+        if ($response->getStatusCode() !== 200 && $refundIfPaid()) {
+            $data = $response->getData(true);
+            $data['message'] = trim(($data['message'] ?? 'Booking failed.') . ' Your payment has been refunded and will reach your account in 5-7 working days.');
+            $data['payment_refunded'] = true;
+            $response->setData($data);
+        }
+
+        return $response;
+    }
+
+    private function createBooking(Request $request, Turf $turf): JsonResponse
+    {
         $validated = $request->validate([
             'slot_ids' => 'required|array',
             'slot_ids.*' => 'required|exists:slots,id',
@@ -688,8 +723,25 @@ class BookingController extends Controller
         ]);
 
         $userId = auth()->id();
-        $isStaffOrAdmin = auth()->user()->hasAnyRole(['saas-admin', 'turf-admin', 'manager']);
+        // Staff privileges (booking for a customer, manual discount, recording money received) only
+        // apply at turfs this user actually manages. Anyone else books as an ordinary customer.
+        $user = auth()->user();
+        $isStaffOrAdmin = $user->hasRole('saas-admin')
+            || ($user->hasAnyRole(['turf-admin', 'manager'])
+                && Turf::manageable($user)->where('turfs.id', $turf->id)->exists());
         $customerId = $validated['customer_id'] ?? null;
+
+        if (!$isStaffOrAdmin) {
+            if ($customerId || isset($validated['additional_discount']) || isset($validated['amount_received'])) {
+                return response()->json(['message' => 'You can only book on behalf of customers at turfs you manage.'], 403);
+            }
+            if (!in_array($validated['payment_method'], ['App', 'offline'], true)) {
+                return response()->json(['message' => 'Please pay online or choose Pay at Venue.'], 422);
+            }
+        } elseif ($customerId && $validated['payment_method'] === 'App') {
+            // Online money can only enter through a verified Razorpay payment, never by staff entry.
+            return response()->json(['message' => 'Staff bookings can only record Cash, UPI or Other payments.'], 422);
+        }
         
         $targetUserId = ($isStaffOrAdmin && $customerId) ? $customerId : $userId;
 
@@ -958,6 +1010,22 @@ class BookingController extends Controller
                 $paymentOption
             );
 
+            // A customer's online payment must be confirmed with Razorpay before anything is recorded:
+            // right order, signature, amount, captured, and not already used for another booking.
+            $verifiedPayment = null;
+            if (!($isStaffOrAdmin && $customerId) && $paymentMethod === 'App' && (float) $pricing['payable_now'] > 0) {
+                $verifiedPayment = app(\App\Services\RazorpayPaymentVerifier::class)->verify(
+                    $request->input('razorpay_payment_id'),
+                    $request->input('razorpay_order_id'),
+                    $request->input('razorpay_signature'),
+                    (float) $pricing['payable_now']
+                );
+                if (!$verifiedPayment['ok']) {
+                    \DB::rollBack();
+                    return response()->json(['message' => $verifiedPayment['message']], 422);
+                }
+            }
+
             // Create parent booking record with full financial snapshot
             $booking = Booking::create([
                 'user_id' => $targetUserId,
@@ -1073,45 +1141,10 @@ class BookingController extends Controller
                     $paidAmount = (float) $pricing['payable_now'];
 
                     if ($paidAmount > 0) {
-                        if ($rzpPaymentId) {
-                            $setting = \App\Models\SaasSetting::first();
-                            $rzpKey = $setting?->razorpay_key ?: config('services.razorpay.key');
-                            $rzpSecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
-
-                            if ($rzpKey && $rzpSecret) {
-                                try {
-                                    $fetch = \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
-                                        ->get("https://api.razorpay.com/v1/payments/{$rzpPaymentId}");
-                                    if ($fetch->successful()) {
-                                        $pData = $fetch->json();
-                                        $rzpPayload = $pData;
-                                        if (empty($rzpOrderId) && !empty($pData['order_id'])) {
-                                            $rzpOrderId = $pData['order_id'];
-                                        }
-                                        if (($pData['status'] ?? '') === 'authorized') {
-                                            $captureRes = \Illuminate\Support\Facades\Http::withBasicAuth($rzpKey, $rzpSecret)
-                                                ->asForm()
-                                                ->post("https://api.razorpay.com/v1/payments/{$rzpPaymentId}/capture", [
-                                                    'amount' => $pData['amount'],
-                                                    'currency' => $pData['currency'] ?? 'INR',
-                                                ]);
-                                            if ($captureRes->successful()) {
-                                                $pData = $captureRes->json();
-                                                $rzpPayload = $pData;
-                                            }
-                                        }
-                                        if (isset($pData['fee'])) {
-                                            $gatewayCharge = round((float)$pData['fee'] / 100, 2);
-                                        }
-                                        if (isset($pData['tax'])) {
-                                            $gatewayTax = round((float)$pData['tax'] / 100, 2);
-                                        }
-                                    }
-                                } catch (\Exception $e) {
-                                    \Illuminate\Support\Facades\Log::error('Razorpay auto-capture/fee fetch error on store: ' . $e->getMessage());
-                                }
-                            }
-                        }
+                        // Verified (and captured) before the booking was created.
+                        $rzpPayload = $verifiedPayment['payload'];
+                        $gatewayCharge = $verifiedPayment['gateway_charge'];
+                        $gatewayTax = $verifiedPayment['gateway_tax'];
 
                         $this->distributePaymentToBooking(
                             $booking,

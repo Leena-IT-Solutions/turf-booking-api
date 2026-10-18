@@ -19,11 +19,12 @@ use App\Services\CommissionCalculator;
 use Carbon\Carbon;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Concerns\FakesRazorpay;
 use Tests\TestCase;
 
 class BookingCalculationAndTaxTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase, FakesRazorpay;
 
     protected User $admin;
     protected User $customer;
@@ -415,7 +416,7 @@ class BookingCalculationAndTaxTest extends TestCase
             'slot_ids' => [$this->slot1->id, $this->slot2->id],
             'booking_dates' => [$dateStr],
             'booking_type' => 'day',
-            'payment_method' => 'Cash',
+            'payment_method' => 'offline', // pay at venue: a player can't record a cash payment themselves
             'customer_gstin' => '27AAECP1234F1Z5',
             'customer_company_name' => 'Corporate Sports Club',
         ];
@@ -524,7 +525,7 @@ class BookingCalculationAndTaxTest extends TestCase
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
-            'razorpay_payment_id' => 'pay_test_1010',
+            ...$this->razorpayPayment(1010.00),
         ]);
 
         $response->assertOk();

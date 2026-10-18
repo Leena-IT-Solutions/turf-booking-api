@@ -90,18 +90,9 @@ new #[Layout('layouts.app')] class extends Component
             ->paginate($this->pmtPerPage, ['*'], 'pmtPage', 1)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
-        $pendingPayments = $user ? Payment::with(['booking', 'bookingDate'])
-            ->whereHas('booking.turf.location', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
-            ->whereNull('wallet_cleared_at')
-            ->where('status', 'Success')
-            ->where('turf_payout_amount', '>', 0)
-            ->limit(25)
-            ->get()
-            ->sortBy(fn ($p) => $p->bookingDate?->booking_date ?? '9999-12-31')
-            ->values()
-            : collect();
+        // Pending Clearance: online money the nightly payout job will still add to the wallet.
+        $ownedTurfIds = $user ? \App\Models\Turf::whereHas('location', fn ($q) => $q->where('user_id', $user->id))->pluck('id')->all() : [];
+        $pendingPayments = $user ? (new \App\Services\WalletService())->pendingCredits($ownedTurfIds)->take(25) : collect();
 
         $manageableTurfIds = $user ? \App\Models\Turf::manageable($user)->pluck('turfs.id')->toArray() : [];
         $activeTurfId = session('active_turf_id');
@@ -363,14 +354,12 @@ new #[Layout('layouts.app')] class extends Component
         $hasActiveSub = $user ? (bool) $user->activeSubscription : false;
         $balance = $user ? (float) $user->commission_wallet_balance : 0.00;
 
-        // Pending Clearance: Online payments where booking date is in the future
-        $pendingClearanceAmount = $user ? (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
-            ->whereNull('wallet_cleared_at')
-            ->where('status', 'Success')
-            ->where('turf_payout_amount', '>', 0)
-            ->sum('turf_payout_amount') : 0.00;
+        // Pending Clearance total: same rule as the list above (what will still be credited).
+        $pendingClearanceAmount = $user
+            ? (float) (new \App\Services\WalletService())->pendingCredits(
+                \App\Models\Turf::whereHas('location', fn ($q) => $q->where('user_id', $user->id))->pluck('id')->all()
+            )->sum('amount')
+            : 0.00;
 
 
         $totalCommissionEarned = $user ? (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
@@ -529,14 +518,13 @@ new #[Layout('layouts.app')] class extends Component
                         <span class="text-[10px] text-amber-600 font-semibold">{{ $pendingPayments->count() }} item{{ $pendingPayments->count() === 1 ? '' : 's' }}</span>
                     </div>
                     @foreach ($pendingPayments as $pp)
-                        @php $expectedDate = $pp->bookingDate?->booking_date; @endphp
                         <div class="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 text-xs">
                             <div>
-                                <span class="font-bold text-gray-900">Booking #{{ $pp->booking_id }}</span>
-                                <span class="text-gray-500"> — ₹{{ number_format((float)$pp->turf_payout_amount, 2) }} online payment pending clearance</span>
+                                <span class="font-bold text-gray-900">Booking #{{ $pp['booking']->booking_reference }}</span>
+                                <span class="text-gray-500"> — ₹{{ number_format($pp['amount'], 2) }} online payment pending clearance</span>
                             </div>
                             <span class="text-[11px] font-semibold text-amber-700">
-                                Expected {{ $expectedDate ? \Carbon\Carbon::parse($expectedDate)->format('d M Y') : 'on booking date' }}
+                                Expected {{ \Carbon\Carbon::parse($pp['expected'])->format('d M Y') }}
                             </span>
                         </div>
                     @endforeach

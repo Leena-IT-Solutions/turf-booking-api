@@ -335,11 +335,8 @@ class ReportController extends Controller
                 ]);
             }
 
-            $pendingClearance = (float) Payment::whereHas('booking', fn($q) => $q->whereIn('turf_id', $turfIds))
-                ->where('status', 'Success')
-                ->whereNull('wallet_cleared_at')
-                ->where('turf_payout_amount', '>', 0)
-                ->sum('turf_payout_amount');
+            // Same rule as the Business & Earnings panel: online money still to be credited.
+            $pendingClearance = (float) (new \App\Services\WalletService())->pendingCredits($turfIds)->sum('amount');
 
             // Summary totals
             fputcsv($handle, []);
