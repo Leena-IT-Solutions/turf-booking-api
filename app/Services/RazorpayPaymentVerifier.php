@@ -141,7 +141,7 @@ class RazorpayPaymentVerifier
         return false;
     }
 
-    private function credentials(): array
+    public static function credentials(): array
     {
         $saas = SaasSetting::first();
 

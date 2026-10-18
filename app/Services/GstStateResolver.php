@@ -11,6 +11,13 @@ class GstStateResolver
 {
     public const GSTIN_REGEX = '/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i';
 
+    private static array $warnedTurfIds = [];
+
+    public static function resetWarnings(): void
+    {
+        self::$warnedTurfIds = [];
+    }
+
     public static function stateFromGstin(?string $gstin): ?string
     {
         if ($gstin === null) {
@@ -68,9 +75,12 @@ class GstStateResolver
         $turfState = self::turfStateCode($turf);
 
         if ($turfState === null) {
-            Log::warning('GST: turf has no state; treating as intra-state', [
-                'turf_id' => $turf->id,
-            ]);
+            if (!isset(self::$warnedTurfIds[$turf->id])) {
+                Log::warning('GST: turf has no state; treating as intra-state', [
+                    'turf_id' => $turf->id,
+                ]);
+                self::$warnedTurfIds[$turf->id] = true;
+            }
             return true;
         }
 

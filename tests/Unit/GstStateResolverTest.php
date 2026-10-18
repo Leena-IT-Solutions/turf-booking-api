@@ -17,6 +17,12 @@ class GstStateResolverTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        GstStateResolver::resetWarnings();
+    }
+
     public function test_indian_states_lookup_and_validation(): void
     {
         $this->assertSame('Karnataka', IndianStates::name('29'));
@@ -165,5 +171,32 @@ class GstStateResolverTest extends TestCase
         $turf->unsetRelation('turfSetting');
         $turf->unsetRelation('setting');
         $this->assertFalse(GstStateResolver::isIntraState($turf, $saas));
+    }
+
+    public function test_is_intra_state_warning_is_logged_only_once_per_turf(): void
+    {
+        $user = User::factory()->create();
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'City Arena 2',
+            'address' => 'Sample Road',
+        ]);
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Main Turf 2',
+            'type' => 'Cricket',
+        ]);
+        $saas = SaasSetting::create([
+            'state_code' => '27',
+        ]);
+
+        Log::spy();
+
+        // Call three times for the same turf with no state
+        GstStateResolver::isIntraState($turf, $saas);
+        GstStateResolver::isIntraState($turf, $saas);
+        GstStateResolver::isIntraState($turf, $saas);
+
+        Log::shouldHaveReceived('warning')->once();
     }
 }

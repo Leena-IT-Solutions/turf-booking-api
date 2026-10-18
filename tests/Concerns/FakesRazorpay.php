@@ -24,7 +24,18 @@ trait FakesRazorpay
     /** Razorpay's actual fee (GST included) per payment id. */
     protected array $razorpayFees = [];
 
+    /** Refunds per payment id, in paise. */
+    protected array $razorpayRefunds = [];
+
+    protected ?\Closure $razorpayOverride = null;
+
     private bool $razorpayFaked = false;
+
+    protected function withRazorpayOverride(?\Closure $callback): void
+    {
+        $this->ensureRazorpayFake();
+        $this->razorpayOverride = $callback;
+    }
 
     protected function razorpayPayment(float $amount): array
     {
@@ -54,14 +65,34 @@ trait FakesRazorpay
         $this->razorpayFaked = true;
 
         Http::fake(function (Request $request) {
-            if (!preg_match('#/v1/payments/(pay_(\d+)_\d+)(/(capture|refund))?$#', $request->url(), $m)) {
+            if ($this->razorpayOverride !== null) {
+                $override = ($this->razorpayOverride)($request);
+                if ($override !== null) {
+                    return $override;
+                }
+            }
+
+            if (!preg_match('#/v1/payments/(pay_(\d+)_\d+)(/(capture|refund|refunds))?$#', $request->url(), $m)) {
                 return null; // not ours: let other fakes in the test answer
             }
             [$all, $paymentId, $paise] = $m;
             $action = $m[4] ?? null;
 
             if ($action === 'refund') {
-                return Http::response(['id' => 'rfnd_' . uniqid(), 'payment_id' => $paymentId, 'status' => 'processed'], 200);
+                $refundPaise = (int) ($request->data()['amount'] ?? $paise);
+                $this->razorpayRefunds[$paymentId][] = [
+                    'id' => 'rfnd_' . uniqid(),
+                    'payment_id' => $paymentId,
+                    'amount' => $refundPaise,
+                    'status' => 'processed',
+                ];
+                return Http::response(['id' => 'rfnd_' . uniqid(), 'payment_id' => $paymentId, 'amount' => $refundPaise, 'status' => 'processed'], 200);
+            }
+
+            if ($action === 'refunds') {
+                return Http::response([
+                    'items' => $this->razorpayRefunds[$paymentId] ?? [],
+                ], 200);
             }
 
             $base = (int) round((int) $paise * $this->razorpayFeePercent / 100);
