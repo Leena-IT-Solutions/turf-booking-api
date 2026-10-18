@@ -322,7 +322,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="space-y-5 max-w-5xl mx-auto px-2 sm:px-4 py-4">
+<div class="w-full space-y-5">
 
     <!-- Flash Notifications -->
     @if (session('status'))
