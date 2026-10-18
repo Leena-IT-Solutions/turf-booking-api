@@ -2,51 +2,13 @@
 
 use App\Models\Turf;
 use App\Models\TurfSetting;
+use App\Support\IndianStates;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.app')] class extends Component
 {
-    public const INDIAN_STATES = [
-        '01' => 'Jammu and Kashmir',
-        '02' => 'Himachal Pradesh',
-        '03' => 'Punjab',
-        '04' => 'Chandigarh',
-        '05' => 'Uttarakhand',
-        '06' => 'Haryana',
-        '07' => 'Delhi',
-        '08' => 'Rajasthan',
-        '09' => 'Uttar Pradesh',
-        '10' => 'Bihar',
-        '11' => 'Sikkim',
-        '12' => 'Arunachal Pradesh',
-        '13' => 'Nagaland',
-        '14' => 'Manipur',
-        '15' => 'Mizoram',
-        '16' => 'Tripura',
-        '17' => 'Meghalaya',
-        '18' => 'Assam',
-        '19' => 'West Bengal',
-        '20' => 'Jharkhand',
-        '21' => 'Odisha',
-        '22' => 'Chhattisgarh',
-        '23' => 'Madhya Pradesh',
-        '24' => 'Gujarat',
-        '26' => 'Dadra and Nagar Haveli and Daman and Diu',
-        '27' => 'Maharashtra',
-        '29' => 'Karnataka',
-        '30' => 'Goa',
-        '31' => 'Lakshadweep',
-        '32' => 'Kerala',
-        '33' => 'Tamil Nadu',
-        '34' => 'Puducherry',
-        '35' => 'Andaman and Nicobar Islands',
-        '36' => 'Telangana',
-        '37' => 'Andhra Pradesh',
-        '38' => 'Ladakh',
-        '97' => 'Other Territory',
-    ];
 
     public $turfId = null;
     public $turfName = '';
@@ -126,7 +88,7 @@ new #[Layout('layouts.app')] class extends Component
             $this->gst_number = $setting->gst_number ?? '';
 
             if (empty($this->state_code) && !empty($this->state)) {
-                $code = array_search($this->state, self::INDIAN_STATES);
+                $code = array_search($this->state, IndianStates::ALL);
                 if ($code !== false) {
                     $this->state_code = (string)$code;
                 }
@@ -146,11 +108,11 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        $code = array_search($value, self::INDIAN_STATES);
+        $code = array_search($value, IndianStates::ALL);
         if ($code !== false) {
             $this->state_code = (string)$code;
-        } elseif (isset(self::INDIAN_STATES[$value])) {
-            $this->state = self::INDIAN_STATES[$value];
+        } elseif (isset(IndianStates::ALL[$value])) {
+            $this->state = IndianStates::ALL[$value];
             $this->state_code = (string)$value;
         }
     }
@@ -159,11 +121,10 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->gst_number = strtoupper(trim((string)$this->gst_number));
 
-        // If state is not selected yet and GSTIN starts with a valid state code, auto-select state
-        if (empty($this->state) && strlen($this->gst_number) >= 2) {
+        if (strlen($this->gst_number) >= 2) {
             $prefix = substr($this->gst_number, 0, 2);
-            if (isset(self::INDIAN_STATES[$prefix])) {
-                $this->state = self::INDIAN_STATES[$prefix];
+            if (IndianStates::isValid($prefix)) {
+                $this->state = IndianStates::name($prefix);
                 $this->state_code = $prefix;
             }
         }
@@ -179,35 +140,61 @@ new #[Layout('layouts.app')] class extends Component
 
         // Ensure state_code is synchronized with selected state
         if (!empty($this->state)) {
-            $code = array_search($this->state, self::INDIAN_STATES);
+            $code = array_search($this->state, IndianStates::ALL);
             if ($code !== false) {
                 $this->state_code = (string)$code;
+            } elseif (isset(IndianStates::ALL[$this->state])) {
+                $this->state_code = (string)$this->state;
+                $this->state = IndianStates::ALL[$this->state];
             }
         } else {
             $this->state_code = null;
         }
 
-        $validated = $this->validate([
+        $rules = [
             'company_name' => 'nullable|string|max:150',
             'company_email' => 'nullable|email|max:150',
             'company_phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:500',
             'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'state_code' => 'nullable|string|max:10',
+            'state' => 'required|string|max:100',
             'country' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:15',
             'is_gst_billing_active' => 'required|boolean',
             'gst_pricing_type' => 'required|in:included,excluded',
             'gst_percentage' => 'required|numeric|min:0|max:100',
-            'gst_number' => ['nullable', 'string', 'max:20', 'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i'],
-        ], [
+            'gst_number' => [
+                $this->is_gst_billing_active ? 'required' : 'nullable',
+                'string',
+                'max:20',
+                'regex:/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/i',
+            ],
+        ];
+
+        $messages = [
+            'state.required' => 'Select the state where this turf is located. It decides how GST is charged.',
+            'gst_number.required' => 'Enter your GSTIN to issue GST invoices.',
             'gst_number.regex' => 'Please enter a valid 15-character GSTIN format (e.g., 27AAAAA0000A1Z5).',
-        ]);
+        ];
+
+        $validated = $this->validate($rules, $messages);
+
+        if (!IndianStates::isValid($this->state_code)) {
+            $this->addError('state', 'Select the state where this turf is located. It decides how GST is charged.');
+            return;
+        }
 
         if (!empty($validated['gst_number'])) {
             $validated['gst_number'] = strtoupper(trim($validated['gst_number']));
+            $prefix = substr($validated['gst_number'], 0, 2);
+            if ($prefix !== $this->state_code) {
+                $prefixStateName = IndianStates::name($prefix) ?? 'another state';
+                $this->addError('gst_number', "This GSTIN is registered in {$prefixStateName}, but the turf's state is {$this->state}. A turf must use a GSTIN from the state where the venue is.");
+                return;
+            }
         }
+
+        $validated['state_code'] = $this->state_code;
 
         TurfSetting::updateOrCreate(
             ['turf_id' => $turf->id],
@@ -228,6 +215,15 @@ new #[Layout('layouts.app')] class extends Component
                 </svg>
             </div>
             <span>{{ session('status') }}</span>
+        </div>
+    @endif
+
+    @if ($turfId && (!\App\Support\IndianStates::isValid($state_code) || empty($state)))
+        <div class="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-2xl text-xs font-semibold flex items-center gap-3 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 text-base">
+                ⚠️
+            </div>
+            <span>{{ __("Your turf's state is not set. Set it on the Taxation page so GST on your bookings and commission is charged correctly.") }}</span>
         </div>
     @endif
 
@@ -513,7 +509,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </div>
                                 <select wire:model.live="state" class="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-semibold text-gray-900 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition shadow-2xs cursor-pointer">
                                     <option value="">{{ __('-- Select State --') }}</option>
-                                    @foreach (self::INDIAN_STATES as $code => $name)
+                                    @foreach (\App\Support\IndianStates::ALL as $code => $name)
                                         <option value="{{ $name }}">{{ $name }} ({{ $code }})</option>
                                     @endforeach
                                 </select>

@@ -168,6 +168,7 @@ class TurfTaxationTest extends TestCase
         $this->actingAs($this->admin);
 
         Volt::test('turf.taxation-manager')
+            ->set('state', 'Maharashtra')
             ->set('is_gst_billing_active', false)
             ->call('save')
             ->assertHasNoErrors();
@@ -175,6 +176,8 @@ class TurfTaxationTest extends TestCase
         $this->assertDatabaseHas('turf_settings', [
             'turf_id' => $this->turf->id,
             'is_gst_billing_active' => false,
+            'state' => 'Maharashtra',
+            'state_code' => '27',
         ]);
     }
 
@@ -183,8 +186,62 @@ class TurfTaxationTest extends TestCase
         $this->actingAs($this->admin);
 
         Volt::test('turf.taxation-manager')
+            ->set('state', 'Maharashtra')
             ->set('gst_number', 'INVALID123')
             ->call('save')
             ->assertHasErrors(['gst_number']);
+    }
+
+    public function test_saving_with_no_state_shows_error_and_does_not_save(): void
+    {
+        $this->actingAs($this->admin);
+
+        Volt::test('turf.taxation-manager')
+            ->set('state', '')
+            ->call('save')
+            ->assertHasErrors(['state'])
+            ->assertSee('Select the state where this turf is located. It decides how GST is charged.');
+
+        $this->assertDatabaseMissing('turf_settings', [
+            'turf_id' => $this->turf->id,
+            'state' => '',
+        ]);
+    }
+
+    public function test_gstin_mismatch_with_state_shows_error_and_does_not_save(): void
+    {
+        $this->actingAs($this->admin);
+
+        Volt::test('turf.taxation-manager')
+            ->set('gst_number', '29ABCDE1234F1Z5')
+            ->set('state', 'Maharashtra')
+            ->call('save')
+            ->assertHasErrors(['gst_number'])
+            ->assertSee('This GSTIN is registered in Karnataka, but the turf\'s state is Maharashtra');
+    }
+
+    public function test_gst_billing_active_requires_gst_number(): void
+    {
+        $this->actingAs($this->admin);
+
+        Volt::test('turf.taxation-manager')
+            ->set('state', 'Maharashtra')
+            ->set('is_gst_billing_active', true)
+            ->set('gst_number', '')
+            ->call('save')
+            ->assertHasErrors(['gst_number'])
+            ->assertSee('Enter your GSTIN to issue GST invoices.');
+    }
+
+    public function test_typing_gstin_switches_state_and_code(): void
+    {
+        $this->actingAs($this->admin);
+
+        Volt::test('turf.taxation-manager')
+            ->set('state', 'Maharashtra')
+            ->assertSet('state_code', '27')
+            ->set('gst_number', '29ABCDE1234F1Z5')
+            ->assertSet('state', 'Karnataka')
+            ->assertSet('state_code', '29');
     }
 }

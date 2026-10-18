@@ -518,4 +518,67 @@ class CommissionInvoiceTest extends TestCase
         $component->call('clearInvoiceFilters')
             ->assertSee($augA->invoice_number)->assertSee($sepA->invoice_number)->assertSee($sepB->invoice_number);
     }
+
+    public function test_mixed_tax_invoice_displays_igst_and_cgst_sgst(): void
+    {
+        $turf = $this->turfA;
+        $turf->turfSetting->update([
+            'state' => null,
+            'state_code' => null,
+            'gst_number' => null,
+        ]);
+        $turf->unsetRelation('turfSetting');
+
+        // Booking 1: created while turf has no state (intra-state CGST/SGST)
+        $this->createBookingWithCommission(
+            $turf,
+            Carbon::parse('2026-08-10 10:00:00'),
+            1000.00,
+            100.00,
+            18.00,
+            isInterState: false
+        );
+
+        // State is subsequently set to 29 (Karnataka - inter-state against MH SaaS)
+        $turf->turfSetting->update([
+            'state' => 'Karnataka',
+            'state_code' => '29',
+            'gst_number' => '29AABCA1234A1Z1',
+        ]);
+        $turf->unsetRelation('turfSetting');
+
+        // Booking 2: created with IGST
+        $this->createBookingWithCommission(
+            $turf,
+            Carbon::parse('2026-08-20 10:00:00'),
+            1000.00,
+            100.00,
+            18.00,
+            isInterState: true
+        );
+
+        $invoice = $this->service->generateForTurf($turf, Carbon::parse('2026-08-01'));
+
+        $this->assertNotNull($invoice);
+        $this->assertGreaterThan(0, (float)$invoice->cgst_amount);
+        $this->assertGreaterThan(0, (float)$invoice->sgst_amount);
+        $this->assertGreaterThan(0, (float)$invoice->igst_amount);
+
+        // Taxable + CGST + SGST + IGST = Grand Total, to the paisa
+        $calculatedSum = round(
+            (float)$invoice->taxable_amount +
+            (float)$invoice->cgst_amount +
+            (float)$invoice->sgst_amount +
+            (float)$invoice->igst_amount,
+            2
+        );
+        $this->assertEquals($calculatedSum, (float)$invoice->total_amount);
+
+        // In rendered PDF view, check that IGST, CGST, and SGST rows all appear
+        $view = view('invoices.commission-invoice', ['invoice' => $invoice])->render();
+        $this->assertStringContainsString('Integrated GST (IGST', $view);
+        $this->assertStringContainsString('Central GST (CGST', $view);
+        $this->assertStringContainsString('State GST (SGST', $view);
+        $this->assertStringContainsString('Place of Supply: Karnataka (29)', $view);
+    }
 }

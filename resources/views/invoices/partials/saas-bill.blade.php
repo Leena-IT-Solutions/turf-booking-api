@@ -21,6 +21,14 @@
     $totalPaidAcrossBooking = (float) $booking->payments->sum('amount');
     $platformPaidShare = min($totalPaidAcrossBooking, $platformTotal);
     $platformBalanceDue = max(0.00, round($platformTotal - $platformPaidShare, 2));
+
+    $posCode = \App\Services\GstStateResolver::turfStateCode($booking->turf) ?? \App\Services\GstStateResolver::saasStateCode($saasSetting);
+    $posName = \App\Support\IndianStates::name($posCode) ?? 'Unknown';
+
+    $gstRate = (float) ($saasSetting?->booking_gst_percentage ?? 18);
+    $formattedGstRate = rtrim(rtrim(number_format($gstRate, 2), '0'), '.');
+    $halfGstRate = $gstRate / 2;
+    $formattedHalfGstRate = rtrim(rtrim(number_format($halfGstRate, 2), '0'), '.');
 @endphp
 
 <!-- Header Row -->
@@ -86,6 +94,7 @@
                 </div>
                 <div style="font-size: 9.5px; color: #475569;">
                     Service Category: <strong>Platform Technology & Booking Convenience</strong><br>
+                    Place of Supply: <strong>{{ $posName }} ({{ $posCode }})</strong><br>
                     Supply Type: <strong>{{ $isIgst ? 'Inter-State Supply (IGST)' : 'Intra-State Supply (CGST + SGST)' }}</strong><br>
                     Linked Booking: <strong>{{ $booking->booking_reference }}</strong><br>
                     Payment Mode: <strong>Online Gateway</strong>
@@ -137,7 +146,7 @@
                 </div>
                 <div style="font-size: 9px; color: #64748b; line-height: 1.35;">
                     @if($isGst)
-                        GST charged at 18% on technology platform convenience fee. Statutory credit is available for GST registered business entities.
+                        GST charged at {{ $formattedGstRate }}% on technology platform convenience fee. Statutory credit is available for GST registered business entities.
                     @else
                         This platform fee receipt is issued by the technology operator. No input tax credit is applicable.
                     @endif
@@ -153,16 +162,16 @@
                     </tr>
                     @if($isIgst)
                         <tr>
-                            <td class="text-muted">IGST (18%):</td>
+                            <td class="text-muted">IGST ({{ $formattedGstRate }}%):</td>
                             <td class="text-right">₹{{ number_format($igstAmount, 2) }}</td>
                         </tr>
                     @else
                         <tr>
-                            <td class="text-muted">CGST (9%):</td>
+                            <td class="text-muted">CGST ({{ $formattedHalfGstRate }}%):</td>
                             <td class="text-right">₹{{ number_format($cgstAmount, 2) }}</td>
                         </tr>
                         <tr>
-                            <td class="text-muted">SGST (9%):</td>
+                            <td class="text-muted">SGST ({{ $formattedHalfGstRate }}%):</td>
                             <td class="text-right">₹{{ number_format($sgstAmount, 2) }}</td>
                         </tr>
                     @endif

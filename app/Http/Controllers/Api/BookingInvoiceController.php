@@ -44,6 +44,23 @@ class BookingInvoiceController extends Controller
     }
 
     /**
+     * Compute invoice tax flags based on charges persisted at booking creation.
+     */
+    public static function invoiceFlags(Booking $booking): array
+    {
+        $turfIsGstActive = in_array($booking->turf_gst_type, ['included', 'excluded'], true)
+            || (float) $booking->turf_gst_amount > 0;
+        $saasIsGstActive = (float) $booking->platform_fee_gst > 0;
+        $includeSaasPage = (float) $booking->platform_fee > 0;
+
+        return [
+            'turfIsGstActive' => $turfIsGstActive,
+            'saasIsGstActive' => $saasIsGstActive,
+            'includeSaasPage' => $includeSaasPage,
+        ];
+    }
+
+    /**
      * Generate the PDF response for a booking.
      */
     protected function generatePdfResponse(Booking $booking): Response
@@ -61,9 +78,10 @@ class BookingInvoiceController extends Controller
         $turfSetting = $booking->turf?->turfSetting;
         $saasSetting = SaasSetting::first();
 
-        $turfIsGstActive = (bool) ($turfSetting?->is_gst_billing_active ?? false);
-        $saasIsGstActive = (bool) ($saasSetting?->is_gst_billing_active ?? false);
-        $includeSaasPage = (float) $booking->platform_fee > 0;
+        $flags = self::invoiceFlags($booking);
+        $turfIsGstActive = $flags['turfIsGstActive'];
+        $saasIsGstActive = $flags['saasIsGstActive'];
+        $includeSaasPage = $flags['includeSaasPage'];
 
         // Persist stable invoice numbers lazily on first generation
         if ($turfIsGstActive && empty($booking->turf_invoice_number)) {

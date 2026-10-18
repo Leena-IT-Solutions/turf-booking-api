@@ -3,8 +3,8 @@
     $companyName = $turfSetting?->company_name ?: $turfName;
     $address = $turfSetting?->address ?: ($booking->turf->location?->address ?? '');
     $city = $turfSetting?->city ?: ($booking->turf->location?->city ?? '');
-    $state = $turfSetting?->state ?: ($booking->turf->location?->state ?? 'Maharashtra');
-    $stateCode = $turfSetting?->state_code ?: '27';
+    $stateCode = \App\Services\GstStateResolver::turfStateCode($booking->turf);
+    $state = \App\Support\IndianStates::name($stateCode) ?? $turfSetting?->state;
     $pincode = $turfSetting?->pincode ?? '';
     $phone = $turfSetting?->company_phone ?? '';
     $email = $turfSetting?->company_email ?? '';
@@ -34,7 +34,7 @@
                 @if($city) {{ $city }} @endif
                 @if($pincode) - {{ $pincode }} @endif
                 <br>
-                @if($state) State: <strong>{{ $state }}</strong> (State Code: <strong>{{ $stateCode }}</strong>) <br> @endif
+                @if($stateCode && $state) State: <strong>{{ $state }}</strong> (State Code: <strong>{{ $stateCode }}</strong>) <br> @endif
                 @if($phone) Phone: {{ $phone }} &nbsp;|&nbsp; @endif
                 @if($email) Email: {{ $email }} @endif
                 @if($isGst && $gstNumber)
@@ -90,7 +90,9 @@
                 </div>
                 <div style="font-size: 9.5px; color: #475569;">
                     Session Type: <strong>{{ ucfirst($booking->booking_type ?? 'day') }} Session</strong><br>
-                    Place of Supply: <strong>{{ $state }} ({{ $stateCode }})</strong><br>
+                    @if($stateCode && $state)
+                        Place of Supply: <strong>{{ $state }} ({{ $stateCode }})</strong><br>
+                    @endif
                     Status: <strong style="color: {{ $booking->status === 'Confirmed' ? '#047857' : '#b91c1c' }}">{{ $booking->status }}</strong><br>
                     Payment Status: <strong style="color: {{ $booking->payment_status === 'Paid' ? '#047857' : '#b45309' }}">{{ $booking->payment_status }}</strong>
                 </div>
@@ -168,7 +170,7 @@
                     </div>
                 </td>
                 @if($isGst)
-                    <td class="text-center font-bold">{{ $bookingGstSac }}</td>
+                    <td class="text-center font-bold">{{ $bookingGstSac ?? '999652' }}</td>
                 @endif
                 <td class="text-right font-bold">
                     {{ number_format($dateTurfAmount, 2) }}

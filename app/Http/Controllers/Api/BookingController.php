@@ -413,7 +413,7 @@ class BookingController extends Controller
                 'additional_discount' => (float)($booking->additional_discount ?? 0),
                 'taxable_amount' => (float)($booking->taxable_amount ?? 0),
                 'turf_gst_rate' => (float)($booking->turf_gst_rate ?? 0),
-                'turf_gst_type' => $booking->turf->gst_type ?? 'exempt',
+                'turf_gst_type' => $booking->turf_gst_type ?? 'exempt',
                 'turf_gst_amount' => (float)($booking->turf_gst_amount ?? 0),
                 'platform_fee' => (float)($booking->platform_fee ?? 0),
                 'platform_fee_gst' => (float)($booking->platform_fee_gst ?? 0),

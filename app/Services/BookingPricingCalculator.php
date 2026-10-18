@@ -150,9 +150,7 @@ class BookingPricingCalculator
         $saasCancellationFeePct = $saas ? (float) ($saas->cancellation_fee_percentage ?? 5.00) : 0.00;
 
         // State code comparison for SaaS Tax (Inter vs Intra state)
-        $saasState = trim((string) ($saas?->state_code ?? '27'));
-        $turfState = trim((string) ($turfSetting?->state_code ?? $saasState));
-        $isSaaSIntraState = ($saasState === '' || $turfState === '' || $saasState === $turfState);
+        $isSaaSIntraState = GstStateResolver::isIntraState($turf, $saas);
 
         // Cancellation policy snapshot from Turf
         $isCancellationActive = (bool) ($turf->is_cancellation_active ?? false);

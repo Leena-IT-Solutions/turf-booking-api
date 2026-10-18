@@ -223,6 +223,15 @@
                                 @endif
                             </div>
                         @endif
+                        @php
+                            $recipientStateCode = $recipient['state_code'] ?? null;
+                            $recipientStateName = $recipient['state'] ?? ($recipientStateCode ? \App\Support\IndianStates::name($recipientStateCode) : null);
+                        @endphp
+                        @if($recipientStateCode || $recipientStateName)
+                            <div style="font-size: 9px; color: #475569; margin-top: 2px;">
+                                Place of Supply: {{ $recipientStateName ?? 'N/A' }}@if($recipientStateCode) ({{ $recipientStateCode }})@endif
+                            </div>
+                        @endif
                         @if(!empty($recipient['gst_number']))
                             <div style="font-size: 9px; font-weight: 700; color: #0f172a; margin-top: 2px;">
                                 GSTIN: {{ $recipient['gst_number'] }}
@@ -246,15 +255,21 @@
                 </tr>
 
                 @if($invoice->is_gst_invoice)
-                    @if($invoice->is_inter_state)
+                    @php
+                        $hasIgst = (float)$invoice->igst_amount > 0;
+                        $hasCgstSgst = ((float)$invoice->cgst_amount + (float)$invoice->sgst_amount) > 0;
+                        $showDefaultCgstSgst = !$hasIgst && !$hasCgstSgst;
+                        $halfRate = ($supplier['commission_gst_percentage'] ?? 18) / 2;
+                    @endphp
+
+                    @if($hasIgst)
                         <tr>
                             <td style="color: #475569; padding: 2px 0;">Integrated GST (IGST @ {{ $supplier['commission_gst_percentage'] ?? 18 }}%):</td>
                             <td style="text-align: right; font-weight: 700; padding: 2px 0;">₹{{ number_format($invoice->igst_amount, 2) }}</td>
                         </tr>
-                    @else
-                        @php
-                            $halfRate = ($supplier['commission_gst_percentage'] ?? 18) / 2;
-                        @endphp
+                    @endif
+
+                    @if($hasCgstSgst || $showDefaultCgstSgst)
                         <tr>
                             <td style="color: #475569; padding: 2px 0;">Central GST (CGST @ {{ $halfRate }}%):</td>
                             <td style="text-align: right; font-weight: 700; padding: 2px 0;">₹{{ number_format($invoice->cgst_amount, 2) }}</td>

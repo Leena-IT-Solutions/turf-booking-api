@@ -51,6 +51,13 @@ new #[Layout('layouts.app')] class extends Component
             ->distinct('sport_id')
             ->count();
 
+        $activeTurfId = session('active_turf_id');
+        $activeTurf = $activeTurfId ? Turf::manageable()->find($activeTurfId) : null;
+        if (!$activeTurf) {
+            $activeTurf = Turf::manageable()->first();
+        }
+        $missingGstState = $activeTurf ? (\App\Services\GstStateResolver::turfStateCode($activeTurf) === null) : false;
+
         return [
             'locationsCount' => $locationsCount,
             'turfsCount' => $turfsCount,
@@ -59,11 +66,26 @@ new #[Layout('layouts.app')] class extends Component
             'equipmentsCount' => $equipmentsCount,
             'sportsCount' => $sportsCount,
             'locations' => $locations->load('turfs'),
+            'missingGstState' => $missingGstState,
         ];
     }
 }; ?>
 
 <div class="w-full space-y-6">
+
+        @if ($missingGstState)
+            <div class="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-2xl text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0 text-base">
+                        ⚠️
+                    </div>
+                    <span>{{ __("Your turf's state is not set. Set it on the Taxation page so GST on your bookings and commission is charged correctly.") }}</span>
+                </div>
+                <a href="{{ route('turf.taxation') }}" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs transition shrink-0 text-center">
+                    {{ __('Configure Taxation →') }}
+                </a>
+            </div>
+        @endif
 
         <!-- Welcome Banner -->
         <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-8 rounded-3xl text-white shadow-md relative overflow-hidden">

@@ -1371,4 +1371,50 @@ class BookingApiTest extends TestCase
         // Cancelled tab: also Date DESC, Time ASC
         $this->assertEquals([$bd3->id, $bd2->id, $bd1->id], $cancelledIds);
     }
+
+    public function test_get_bookings_returns_turf_gst_type_from_booking(): void
+    {
+        $user = User::factory()->create();
+
+        $location = Location::create([
+            'user_id' => $user->id,
+            'name' => 'Test Location',
+            'address' => 'Test Address',
+        ]);
+
+        $turf = Turf::create([
+            'location_id' => $location->id,
+            'name' => 'Test Turf',
+            'type' => 'Football',
+        ]);
+
+        $booking = Booking::create([
+            'booking_number' => 'BK-' . uniqid(),
+            'turf_id' => $turf->id,
+            'user_id' => $user->id,
+            'date_of_booking' => now()->addDay()->toDateString(),
+            'booking_type' => 'Online',
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+            'total_amount' => 1000.00,
+            'taxable_amount' => 847.46,
+            'turf_gst_rate' => 18.00,
+            'turf_gst_type' => 'included',
+            'turf_gst_amount' => 152.54,
+        ]);
+
+        BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => now()->addDay()->toDateString(),
+            'amount' => 1000.00,
+            'status' => 'Confirmed',
+        ]);
+
+        $response = $this->actingAs($user, 'sanctum')->getJson('/api/bookings?filter=upcoming');
+        $response->assertStatus(200);
+
+        $data = $response->json('data');
+        $this->assertNotEmpty($data);
+        $this->assertEquals('included', $data[0]['turf_gst_type']);
+    }
 }

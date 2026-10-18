@@ -127,11 +127,7 @@ class CancellationFeeCalculator
         $base = round($saasFeeTotal / (1 + $saasGstRate / 100), 2);
         $gst = round($saasFeeTotal - $base, 2);
 
-        $saasState = trim((string) ($saas->state_code ?? '27'));
-        $turfSetting = $turf->setting ?? $turf->turfSetting;
-        $turfState = trim((string) ($turfSetting?->state_code ?? $saasState));
-
-        if ($saasState === '' || $turfState === '' || $saasState === $turfState) {
+        if (GstStateResolver::isIntraState($turf, $saas)) {
             $cgst = round($gst / 2, 2);
             $sgst = round($gst - $cgst, 2);
             return ['base' => $base, 'gst' => $gst, 'cgst' => $cgst, 'sgst' => $sgst, 'igst' => 0.00];

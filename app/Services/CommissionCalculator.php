@@ -40,11 +40,7 @@ class CommissionCalculator
             $commissionAmount = round($commissionTotal / (1 + ($commissionGstRate / 100)), 2);
             $commissionGstAmount = round($commissionTotal - $commissionAmount, 2);
 
-            $saasState = trim((string) ($saas->state_code ?? '27'));
-            $turfSetting = $turf->setting ?? $turf->turfSetting;
-            $turfState = trim((string) ($turfSetting?->state_code ?? $saasState));
-
-            if ($saasState === '' || $turfState === '' || $saasState === $turfState) {
+            if (GstStateResolver::isIntraState($turf, $saas)) {
                 // Intra-State (CGST + SGST) with 1-paisa rounding guardrail
                 $commissionCgstAmount = round($commissionGstAmount / 2, 2);
                 $commissionSgstAmount = round($commissionGstAmount - $commissionCgstAmount, 2);

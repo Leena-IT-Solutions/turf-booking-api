@@ -71,8 +71,7 @@ class BookingInvoiceTest extends TestCase
             'gst_percentage' => 18.00,
         ]);
 
-        $slotCategory = SlotCategory::create([
-            'turf_id' => $turf->id,
+        $slotCategory = SlotCategory::firstOrCreate([
             'name' => 'Regular',
         ]);
 
@@ -473,5 +472,249 @@ class BookingInvoiceTest extends TestCase
         $this->assertStringContainsString('PaidviaOnlinePayment:</td><tdclass="text-rightfont-bold"style="color:#047857;padding-top:6px;">₹10.00</td>', $compactView);
         // Page 2: Balance Due must be 0.00 (not 7.41)
         $this->assertStringContainsString('BalanceDue:</td><tdclass="text-rightfont-bold"style="color:#475569;">₹0.00</td>', $compactView);
+    }
+
+    public function test_invoice_follows_booking_gst_charge_when_turf_setting_toggled(): void
+    {
+        [$customer, $turfOwner, $booking, $turfSetting] = $this->createBookingFixture();
+
+        // 1. Booking made with turf GST
+        $booking->update([
+            'turf_gst_type' => 'excluded',
+            'turf_gst_rate' => 18.00,
+            'turf_gst_amount' => 180.00,
+        ]);
+
+        // Owner disables GST billing afterwards
+        $turfSetting->update(['is_gst_billing_active' => false]);
+
+        $flags = \App\Http\Controllers\Api\BookingInvoiceController::invoiceFlags($booking);
+        $this->assertTrue($flags['turfIsGstActive']);
+
+        $view = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting->fresh(),
+            'saasSetting' => SaasSetting::first(),
+            'turfIsGstActive' => $flags['turfIsGstActive'],
+            'saasIsGstActive' => $flags['saasIsGstActive'],
+            'includeSaasPage' => $flags['includeSaasPage'],
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringContainsString('TAX INVOICE', $view);
+        $this->assertStringContainsString('CGST', $view);
+        $this->assertStringContainsString('SGST', $view);
+
+        // 2. Booking made without turf GST
+        $booking->update([
+            'turf_gst_type' => 'exempt',
+            'turf_gst_rate' => 0.00,
+            'turf_gst_amount' => 0.00,
+            'turf_invoice_number' => null,
+        ]);
+
+        // Owner enables GST billing afterwards
+        $turfSetting->update(['is_gst_billing_active' => true]);
+
+        $flagsNoGst = \App\Http\Controllers\Api\BookingInvoiceController::invoiceFlags($booking);
+        $this->assertFalse($flagsNoGst['turfIsGstActive']);
+
+        $viewReceipt = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting->fresh(),
+            'saasSetting' => SaasSetting::first(),
+            'turfIsGstActive' => $flagsNoGst['turfIsGstActive'],
+            'saasIsGstActive' => $flagsNoGst['saasIsGstActive'],
+            'includeSaasPage' => $flagsNoGst['includeSaasPage'],
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringContainsString('BOOKING RECEIPT', $viewReceipt);
+        $this->assertNull($booking->fresh()->turf_invoice_number);
+    }
+
+    public function test_invoice_follows_saas_platform_fee_gst_charge_when_saas_setting_toggled(): void
+    {
+        [$customer, $turfOwner, $booking, $turfSetting] = $this->createBookingFixture();
+        $saasSetting = SaasSetting::first();
+
+        // 1. Booking charged with platform fee GST
+        $booking->update([
+            'platform_fee' => 10.00,
+            'platform_fee_gst' => 1.80,
+            'platform_fee_cgst' => 0.90,
+            'platform_fee_sgst' => 0.90,
+            'platform_fee_igst' => 0.00,
+        ]);
+
+        // SaaS disables GST billing afterwards
+        $saasSetting->update(['is_gst_billing_active' => false]);
+
+        $flags = \App\Http\Controllers\Api\BookingInvoiceController::invoiceFlags($booking);
+        $this->assertTrue($flags['saasIsGstActive']);
+
+        $view = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting,
+            'saasSetting' => $saasSetting->fresh(),
+            'turfIsGstActive' => $flags['turfIsGstActive'],
+            'saasIsGstActive' => $flags['saasIsGstActive'],
+            'includeSaasPage' => $flags['includeSaasPage'],
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringContainsString('CGST (9%)', $view);
+
+        // 2. Booking charged without platform fee GST
+        $booking->update([
+            'platform_fee' => 10.00,
+            'platform_fee_gst' => 0.00,
+            'platform_fee_cgst' => 0.00,
+            'platform_fee_sgst' => 0.00,
+            'platform_fee_igst' => 0.00,
+        ]);
+
+        // SaaS enables GST billing afterwards
+        $saasSetting->update(['is_gst_billing_active' => true]);
+
+        $flagsNoGst = \App\Http\Controllers\Api\BookingInvoiceController::invoiceFlags($booking);
+        $this->assertFalse($flagsNoGst['saasIsGstActive']);
+
+        $viewReceipt = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting,
+            'saasSetting' => $saasSetting->fresh(),
+            'turfIsGstActive' => $flagsNoGst['turfIsGstActive'],
+            'saasIsGstActive' => $flagsNoGst['saasIsGstActive'],
+            'includeSaasPage' => $flagsNoGst['includeSaasPage'],
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringNotContainsString('CGST (9%)', $viewReceipt);
+    }
+
+    public function test_turf_with_no_state_does_not_print_made_up_state(): void
+    {
+        [$customer, $turfOwner, $booking, $turfSetting] = $this->createBookingFixture();
+        $turfSetting->update([
+            'state' => null,
+            'state_code' => null,
+            'gst_number' => null,
+        ]);
+
+        $booking->turf->unsetRelation('turfSetting');
+        $booking->turf->unsetRelation('setting');
+
+        $turfBill = view('invoices.partials.turf-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting->fresh(),
+            'isGst' => true,
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        // Must not print made-up 'Maharashtra' or '(27)' on turf bill
+        $this->assertStringNotContainsString('Maharashtra', $turfBill);
+        $this->assertStringNotContainsString('(27)', $turfBill);
+        $this->assertStringNotContainsString('State:', $turfBill);
+        $this->assertStringNotContainsString('Place of Supply:', $turfBill);
+
+        // Entire booking invoice without SaaS bill should not contain Maharashtra or (27)
+        $viewNoSaas = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting->fresh(),
+            'saasSetting' => SaasSetting::first(),
+            'turfIsGstActive' => true,
+            'saasIsGstActive' => false,
+            'includeSaasPage' => false,
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringNotContainsString('Maharashtra', $viewNoSaas);
+        $this->assertStringNotContainsString('(27)', $viewNoSaas);
+    }
+
+    public function test_place_of_supply_and_rates_on_platform_fee_invoice(): void
+    {
+        // 1. Cross-state booking (turf 29)
+        [$customer, $turfOwner, $booking, $turfSetting] = $this->createBookingFixture([
+            'turf_state' => 'Karnataka',
+            'turf_state_code' => '29',
+            'turf_gst_number' => '29AAACH1234A1Z1',
+        ]);
+        $booking->update([
+            'platform_fee' => 10.00,
+            'platform_fee_gst' => 1.80,
+            'platform_fee_cgst' => 0.00,
+            'platform_fee_sgst' => 0.00,
+            'platform_fee_igst' => 1.80,
+        ]);
+
+        $viewCross = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting->fresh(),
+            'saasSetting' => SaasSetting::first(),
+            'turfIsGstActive' => true,
+            'saasIsGstActive' => true,
+            'includeSaasPage' => true,
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringContainsString('Place of Supply: <strong>Karnataka (29)</strong>', $viewCross);
+        $this->assertStringContainsString('IGST (18%)', $viewCross);
+
+        // 2. Intra-state booking (turf 27, SaaS 27)
+        [$customerIntra, $turfOwnerIntra, $bookingIntra, $turfSettingIntra] = $this->createBookingFixture([
+            'turf_state' => 'Maharashtra',
+            'turf_state_code' => '27',
+            'turf_gst_number' => '27AAACH1234A1Z1',
+        ]);
+        $bookingIntra->update([
+            'platform_fee' => 10.00,
+            'platform_fee_gst' => 1.80,
+            'platform_fee_cgst' => 0.90,
+            'platform_fee_sgst' => 0.90,
+            'platform_fee_igst' => 0.00,
+        ]);
+
+        $viewIntra = view('invoices.booking-bill', [
+            'booking' => $bookingIntra->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSettingIntra->fresh(),
+            'saasSetting' => SaasSetting::first(),
+            'turfIsGstActive' => true,
+            'saasIsGstActive' => true,
+            'includeSaasPage' => true,
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringContainsString('Place of Supply: <strong>Maharashtra (27)</strong>', $viewIntra);
+        $this->assertStringContainsString('CGST (9%)', $viewIntra);
+
+        // 3. Dynamic rate (booking_gst_percentage = 12)
+        $saasSetting = SaasSetting::first();
+        $saasSetting->update(['booking_gst_percentage' => 12.00]);
+
+        $view12Pct = view('invoices.booking-bill', [
+            'booking' => $booking->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSetting->fresh(),
+            'saasSetting' => $saasSetting->fresh(),
+            'turfIsGstActive' => true,
+            'saasIsGstActive' => true,
+            'includeSaasPage' => true,
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringContainsString('IGST (12%)', $view12Pct);
+
+        $view12PctIntra = view('invoices.booking-bill', [
+            'booking' => $bookingIntra->fresh(['bookingDates.bookingSlots.slot', 'payments', 'turf.turfSetting', 'user']),
+            'turfSetting' => $turfSettingIntra->fresh(),
+            'saasSetting' => $saasSetting->fresh(),
+            'turfIsGstActive' => true,
+            'saasIsGstActive' => true,
+            'includeSaasPage' => true,
+            'bookingGstSac' => '999652',
+        ])->render();
+
+        $this->assertStringContainsString('CGST (6%)', $view12PctIntra);
     }
 }

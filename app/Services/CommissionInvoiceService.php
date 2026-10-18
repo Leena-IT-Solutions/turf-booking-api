@@ -10,6 +10,7 @@ use App\Models\SaasSetting;
 use App\Models\Turf;
 use App\Models\TurfSetting;
 use App\Models\User;
+use App\Support\IndianStates;
 use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -189,12 +190,15 @@ class CommissionInvoiceService
             ? $turfSetting->gst_number
             : null;
 
+        $turfStateCode = GstStateResolver::turfStateCode($turf);
+        $turfStateName = IndianStates::name($turfStateCode) ?? $turfSetting?->state;
+
         $recipientSnapshot = [
             'company_name' => $recipientName,
             'turf_name' => $turf->name,
             'address' => $recipientAddress,
-            'state' => $turfSetting?->state,
-            'state_code' => $turfSetting?->state_code,
+            'state' => $turfStateName,
+            'state_code' => $turfStateCode,
             'gst_number' => $recipientGstin,
         ];
 

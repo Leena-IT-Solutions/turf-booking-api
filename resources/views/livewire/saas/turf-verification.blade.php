@@ -1,6 +1,9 @@
 <?php
 
 use App\Models\Turf;
+use App\Models\TurfSetting;
+use App\Services\GstStateResolver;
+use App\Support\IndianStates;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
@@ -15,6 +18,7 @@ new #[Layout('layouts.app')] class extends Component
     // Modal verification states
     public $selectedTurfId = null;
     public $showVerifyModal = false;
+    public $stateCode = '';
     public $isLocationVerified = false;
     public $isDetailsVerified = false;
     public $isPhotosVerified = false;
@@ -37,6 +41,24 @@ new #[Layout('layouts.app')] class extends Component
     public function updateStatus($turfId, $status)
     {
         $turf = Turf::findOrFail($turfId);
+
+        if ($status === 'Approved') {
+            if (!IndianStates::isValid($this->stateCode)) {
+                $this->addError('stateCode', "Set the turf's state before approving. It decides how GST is charged.");
+                return;
+            }
+
+            $setting = $turf->turfSetting;
+            if ($setting && !empty($setting->gst_number)) {
+                $prefix = substr(strtoupper(trim($setting->gst_number)), 0, 2);
+                if ($prefix !== $this->stateCode) {
+                    $prefixStateName = IndianStates::name($prefix) ?? 'another state';
+                    $stateName = IndianStates::name($this->stateCode);
+                    $this->addError('stateCode', "This GSTIN is registered in {$prefixStateName}, but the selected state is {$stateName}. A turf must use a GSTIN from the state where the venue is.");
+                    return;
+                }
+            }
+        }
         
         // If status is set to Approved, automatically mark all checklist items as verified (true)
         if ($status === 'Approved') {
@@ -62,6 +84,22 @@ new #[Layout('layouts.app')] class extends Component
             'is_pricing_verified' => $this->isPricingVerified,
         ]);
 
+        if (IndianStates::isValid($this->stateCode)) {
+            $setting = TurfSetting::firstOrCreate(
+                ['turf_id' => $turf->id],
+                [
+                    'country' => 'India',
+                    'is_gst_billing_active' => false,
+                    'gst_pricing_type' => 'included',
+                    'gst_percentage' => 18.00,
+                ]
+            );
+            $setting->update([
+                'state' => IndianStates::name($this->stateCode),
+                'state_code' => $this->stateCode,
+            ]);
+        }
+
         session()->flash('status', __('Turf status updated to :status successfully.', ['status' => $status]));
         if ($this->selectedTurfId == $turfId) {
             $this->showVerifyModal = false;
@@ -72,6 +110,7 @@ new #[Layout('layouts.app')] class extends Component
     {
         $turf = Turf::findOrFail($turfId);
         $this->selectedTurfId = $turf->id;
+        $this->stateCode = GstStateResolver::turfStateCode($turf) ?? '';
         
         $isApproved = $turf->status === 'Approved';
         
@@ -101,6 +140,24 @@ new #[Layout('layouts.app')] class extends Component
 
         $status = $allChecked ? 'Approved' : 'Review';
 
+        if ($status === 'Approved') {
+            if (!IndianStates::isValid($this->stateCode)) {
+                $this->addError('stateCode', "Set the turf's state before approving. It decides how GST is charged.");
+                return;
+            }
+
+            $setting = $turf->turfSetting;
+            if ($setting && !empty($setting->gst_number)) {
+                $prefix = substr(strtoupper(trim($setting->gst_number)), 0, 2);
+                if ($prefix !== $this->stateCode) {
+                    $prefixStateName = IndianStates::name($prefix) ?? 'another state';
+                    $stateName = IndianStates::name($this->stateCode);
+                    $this->addError('stateCode', "This GSTIN is registered in {$prefixStateName}, but the selected state is {$stateName}. A turf must use a GSTIN from the state where the venue is.");
+                    return;
+                }
+            }
+        }
+
         $turf->update([
             'is_location_verified' => $this->isLocationVerified,
             'is_details_verified' => $this->isDetailsVerified,
@@ -112,6 +169,22 @@ new #[Layout('layouts.app')] class extends Component
             'is_pricing_verified' => $this->isPricingVerified,
             'status' => $status
         ]);
+
+        if (IndianStates::isValid($this->stateCode)) {
+            $setting = TurfSetting::firstOrCreate(
+                ['turf_id' => $turf->id],
+                [
+                    'country' => 'India',
+                    'is_gst_billing_active' => false,
+                    'gst_pricing_type' => 'included',
+                    'gst_percentage' => 18.00,
+                ]
+            );
+            $setting->update([
+                'state' => IndianStates::name($this->stateCode),
+                'state_code' => $this->stateCode,
+            ]);
+        }
 
         $this->showVerifyModal = false;
         session()->flash('status', __('Verification saved. Status updated to :status.', ['status' => $status]));
@@ -694,8 +767,28 @@ new #[Layout('layouts.app')] class extends Component
                             <div>
                                 <h3 class="text-sm font-black text-gray-900 uppercase tracking-wider">{{ __('Verification Checklist') }}</h3>
                                 <p class="text-[10px] text-gray-400 font-semibold mt-1">{{ __('Mark all specifications as verified and correct. Unchecked items indicate review feedback.') }}</p>
-                            </div>                            <!-- Checkboxes List -->
-                            <div class="space-y-2 overflow-y-auto pr-1.5 custom-scrollbar mt-3" style="max-height: calc(85vh - 380px);">
+                            </div>
+
+                            <!-- State for GST -->
+                            <div class="mt-3.5 mb-2 bg-white p-3 rounded-2xl border border-gray-200/60 shadow-2xs">
+                                <label class="block text-[11px] font-bold text-gray-800 uppercase tracking-wider mb-1">
+                                    {{ __('State (for GST)') }} <span class="text-rose-500">*</span>
+                                </label>
+                                <select wire:model.live="stateCode" class="w-full px-3 py-2 bg-gray-50/70 hover:bg-white focus:bg-white rounded-xl border border-gray-200 text-xs font-semibold text-gray-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition cursor-pointer">
+                                    <option value="">{{ __('-- Select State --') }}</option>
+                                    @foreach (\App\Support\IndianStates::ALL as $code => $name)
+                                        <option value="{{ $code }}">{{ $name }} ({{ $code }})</option>
+                                    @endforeach
+                                </select>
+                                @error('stateCode')
+                                    <p class="text-[10px] text-rose-600 font-bold mt-1.5 flex items-center gap-1">
+                                        <span>⚠</span> {{ $message }}
+                                    </p>
+                                @enderror
+                            </div>
+
+                            <!-- Checkboxes List -->
+                            <div class="space-y-2 overflow-y-auto pr-1.5 custom-scrollbar mt-3" style="max-height: calc(85vh - 440px);">
                                 <!-- Location -->
                                 <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-gray-50 rounded-2xl border border-gray-200/50 transition duration-150 cursor-pointer">
                                     <input type="checkbox" wire:model="isLocationVerified" class="mt-0.5 h-4 w-4 text-indigo-600 border-gray-300 rounded-lg focus:ring-indigo-500 cursor-pointer">
