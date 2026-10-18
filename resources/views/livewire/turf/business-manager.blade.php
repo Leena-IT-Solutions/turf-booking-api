@@ -585,6 +585,11 @@ new #[Layout('layouts.app')] class extends Component
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
                                             {{ $txLabel }}
                                         </span>
+                                    @elseif ($tx->type === 'cancellation_fee_debit')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                            {{ $txLabel }}
+                                        </span>
                                     @elseif ($tx->type === 'gateway_charge_debit')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
@@ -648,6 +653,8 @@ new #[Layout('layouts.app')] class extends Component
                                             <div class="text-[11px] text-gray-400">Payment gateway processing fees & GST</div>
                                         @elseif ($tx->type === 'offline_booking_record')
                                             <div class="text-[11px] text-gray-400">Customer pays full amount directly at turf counter</div>
+                                        @elseif ($tx->type === 'cancellation_fee_debit')
+                                            <div class="text-[11px] text-gray-400">Platform cancellation fee retained on cash booking</div>
                                         @endif
                                     @elseif ($tx->type === 'commission_debit' || $tx->type === 'offline_commission_debit' || ($tx->type === 'payment_settlement' && (float)$tx->amount < 0))
                                         <div class="font-bold text-gray-900">
@@ -664,6 +671,11 @@ new #[Layout('layouts.app')] class extends Component
                                             Booking #{{ $tx->reference?->booking_id ?? $tx->reference_id }} Cancellation Refund Reversal
                                         </div>
                                         <div class="text-[11px] text-rose-600 font-medium">Customer refund adjusted from wallet balance</div>
+                                    @elseif ($tx->type === 'cancellation_fee_debit')
+                                        <div class="font-bold text-rose-900">
+                                            Booking #{{ $tx->reference?->booking_id ?? ($tx->reference?->id ?? $tx->reference_id) }} Platform Cancellation Fee
+                                        </div>
+                                        <div class="text-[11px] text-rose-600 font-medium">Cash booking cancellation fee debited from wallet</div>
                                     @elseif ($tx->type === 'payout_debit')
                                         <div class="font-bold text-gray-900">
                                             Withdrawal Payout #{{ $tx->reference_id }}

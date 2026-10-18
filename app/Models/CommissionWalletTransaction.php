@@ -47,6 +47,7 @@ class CommissionWalletTransaction extends Model
             'payment_credit' => '+ Booking Credit',
             'platform_fee_debit' => '- Platform Fee',
             'commission_debit' => '- Commission',
+            'cancellation_fee_debit' => '- Cancellation Fee',
             'gateway_charge_debit' => '- PG Charges',
             'offline_booking_record' => 'Pay at Venue',
             'refund_adjustment' => '- Refund Deduction',

@@ -329,20 +329,35 @@ class WalletService
     }
 
     /**
-     * The platform's own cancellation fee, which it keeps out of the online money it holds (it is
-     * never debited from the wallet separately). Per cancellation: the platform takes its share
-     * first, capped at its recorded SaaS cancellation fee, from whatever fee was finally applied
-     * beyond the retained platform fee. Standard policy -> its full fee; full refund -> 0;
+     * The platform's own cancellation fee, which it keeps out of the online money it holds (unless
+     * it was already debited from the owner's wallet on cash bookings). Per cancellation: the platform
+     * takes its share first, capped at its recorded SaaS cancellation fee, from whatever fee was finally
+     * applied beyond the retained platform fee. Standard policy -> its full fee; full refund -> 0;
      * custom fee -> platform first, turf gets the rest.
      */
     public function platformCancellationShare(Booking $booking): float
     {
-        return round((float) BookingCancellation::where('booking_id', $booking->id)
+        $rawShare = (float) BookingCancellation::where('booking_id', $booking->id)
             ->get(['saas_cancellation_fee', 'total_cancellation_fee', 'platform_fee_retained'])
             ->sum(fn ($c) => min(
                 (float) $c->saas_cancellation_fee,
                 max(0.0, (float) $c->total_cancellation_fee - (float) $c->platform_fee_retained)
-            )), 2);
+            ));
+
+        $cancellationIds = BookingCancellation::where('booking_id', $booking->id)->pluck('id');
+        $alreadyDebited = abs((float) CommissionWalletTransaction::where('type', 'cancellation_fee_debit')
+            ->where(function ($q) use ($booking, $cancellationIds) {
+                $q->where(function ($sub) use ($cancellationIds) {
+                    $sub->where('reference_type', BookingCancellation::class)
+                        ->whereIn('reference_id', $cancellationIds);
+                })->orWhere(function ($sub) use ($booking) {
+                    $sub->where('reference_type', Booking::class)
+                        ->where('reference_id', $booking->id);
+                });
+            })
+            ->sum('amount'));
+
+        return round(max(0.0, $rawShare - $alreadyDebited), 2);
     }
 
     /**

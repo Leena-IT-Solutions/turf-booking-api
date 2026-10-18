@@ -1762,15 +1762,19 @@ class BookingController extends Controller
             $lastRazorpayRefundId = null;
             $dateCommissionReversed = 0.00;
 
+            $turfAdminOwner = $booking->turf->location->user ?? null;
+            $platformFeeShare = min((float)($platformFee ?? 0.00), max(0.0, (float)$dateFeeApplied - (float)($datePlatformFee ?? 0.00)));
+            $remainingPlatformFeeToDeduct = $platformFeeShare;
             $remainingRefundToDistribute = $dateRefundDue;
             foreach ($successfulPayments as $payment) {
                 $refundable = max(0.0, (float)$payment->amount - (float)$payment->refunded_amount);
-                if ($remainingRefundToDistribute <= 0 || $refundable <= 0) {
+                $isOnline = ($payment->payment_method === 'App');
+
+                if ($remainingRefundToDistribute <= 0 && (!$isOnline || $remainingPlatformFeeToDeduct <= 0)) {
                     continue;
                 }
 
                 $paymentRefund = min($refundable, $remainingRefundToDistribute);
-                $isOnline = ($payment->payment_method === 'App');
                 $paymentRefundStatus = $isOnline ? 'Refunded' : 'Cash / Offline Refund';
 
                 $gateway = \App\Models\PaymentGateway::where('payment_id', $payment->id)->first();
@@ -1866,23 +1870,27 @@ class BookingController extends Controller
                 // Only online ('App') payments ever credited the wallet (or pending payout).
                 // Offline payments were collected directly at venue, so turf owner returns cash directly — no wallet debit.
                 $turfAdminOwner = $booking->turf->location->user ?? null;
-                if ($turfAdminOwner && $paymentRefund > 0 && $isOnline) {
+                if ($turfAdminOwner && $isOnline) {
                     if ($payment->wallet_cleared_at) {
-                        // Payment contribution was already applied to wallet -> Deduct entire refund amount
-                        $reversalAmount = -round($paymentRefund, 2);
-                        $walletService = new \App\Services\WalletService();
-                        $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment, "Booking #{$booking->id} Refund Adjustment");
+                        if ($paymentRefund > 0) {
+                            $reversalAmount = -round($paymentRefund, 2);
+                            $walletService = new \App\Services\WalletService();
+                            $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment, "Booking #{$booking->id} Refund Adjustment");
 
-                        $newPayoutAmount = max(0.00, round(((float)$payment->turf_payout_amount) - $paymentRefund, 2));
-                        $payment->update([
-                            'turf_payout_amount' => $newPayoutAmount,
-                        ]);
+                            $newPayoutAmount = max(0.00, round(((float)$payment->turf_payout_amount) - $paymentRefund, 2));
+                            $payment->update([
+                                'turf_payout_amount' => $newPayoutAmount,
+                            ]);
+                        }
                     } else {
-                        // Payment contribution was still pending clearance -> Reduce pending payout
-                        $newPayoutAmount = max(0.00, round(((float)$payment->turf_payout_amount) - $paymentRefund, 2));
+                        // Deduct refund AND platform cancellation fee share immediately so Pending Clearance
+                        // matches net entitlement without waiting for the nightly payout job.
+                        $feeToDeduct = min($remainingPlatformFeeToDeduct, max(0.0, (float)$payment->turf_payout_amount - $paymentRefund));
+                        $newPayoutAmount = max(0.00, round(((float)$payment->turf_payout_amount) - $paymentRefund - $feeToDeduct, 2));
                         $payment->update([
                             'turf_payout_amount' => $newPayoutAmount,
                         ]);
+                        $remainingPlatformFeeToDeduct -= $feeToDeduct;
                     }
                 }
 
@@ -1913,7 +1921,7 @@ class BookingController extends Controller
             ]);
 
             // Create Master Cancellation Event Audit Record
-            \App\Models\BookingCancellation::create([
+            $cancellation = \App\Models\BookingCancellation::create([
                 'booking_id' => $booking->id,
                 'booking_date_id' => $bDate->id,
                 'cancelled_by_user_id' => $user->id,
@@ -1942,6 +1950,38 @@ class BookingController extends Controller
                 'razorpay_refund_id' => $lastRazorpayRefundId,
                 'commission_reversed_amount' => $dateCommissionReversed,
             ]);
+
+            // On cash bookings (or where online money does not cover the platform cancellation fee),
+            // debit the uncollected platform cancellation fee from the turf owner's wallet.
+            $onlinePayments = $successfulPayments->where('payment_method', 'App');
+            $onlineRemainingPaid = (float) $onlinePayments->sum(fn ($p) => max(0.0, (float) $p->amount - (float) $p->refunded_amount));
+            $cashFeeToDebit = round($platformFeeShare - max(0.0, min($platformFeeShare, $onlineRemainingPaid)), 2);
+
+            if ($turfAdminOwner && $cashFeeToDebit > 0) {
+                $alreadyDebited = \App\Models\CommissionWalletTransaction::where('user_id', $turfAdminOwner->id)
+                    ->where('type', 'cancellation_fee_debit')
+                    ->where('reference_type', \App\Models\BookingCancellation::class)
+                    ->where('reference_id', $cancellation->id)
+                    ->exists();
+
+                if (!$alreadyDebited) {
+                    $bookingDisplayId = $booking->booking_id ?? $booking->id;
+                    $walletService = new \App\Services\WalletService();
+                    $walletService->applyDelta(
+                        $turfAdminOwner,
+                        -$cashFeeToDebit,
+                        'cancellation_fee_debit',
+                        $cancellation,
+                        "Booking #{$bookingDisplayId} Platform Cancellation Fee",
+                        [
+                            'booking_id' => $booking->id,
+                            'booking_date_id' => $bDate->id,
+                            'cancellation_id' => $cancellation->id,
+                            'fee_amount' => $cashFeeToDebit,
+                        ]
+                    );
+                }
+            }
 
             $totalDatesCancelledNow++;
             $totalRefundProcessedNow += $dateRefundDue;

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Booking;
 use App\Models\BookingCancellation;
 use App\Models\BookingDate;
+use App\Models\CommissionWalletTransaction;
 use App\Models\Payment;
 use App\Models\PaymentGateway;
 use App\Models\SaasSetting;
@@ -274,10 +275,13 @@ class BookingCancellationService
                 }
             }
 
-            // Update payment records
-            if ($bDate) {
-                $this->updatePaymentRecords($booking, $bDate, $finalRefund, $disbursementChannel, $resolvedBy);
-            }
+            // Update payment records and adjust wallet/payout
+            $platformFeeShare = min(
+                (float) $cancellation->saas_cancellation_fee,
+                max(0.0, (float) $finalFee - (float) $cancellation->platform_fee_retained)
+            );
+
+            $this->updatePaymentRecords($booking, $bDate, $finalRefund, $disbursementChannel, $resolvedBy, $platformFeeShare, $cancellation);
 
             // Update the cancellation record
             $refundGst = $bDate
@@ -462,23 +466,42 @@ class BookingCancellationService
     /**
      * Update payment records with refund information and handle wallet reversals.
      */
-    private function updatePaymentRecords(Booking $booking, BookingDate $bDate, float $finalRefund, string $channel, User $resolvedBy): void
-    {
-        $successfulPayments = Payment::where('booking_date_id', $bDate->id)
-            ->where('status', 'Success')
-            ->get();
+    private function updatePaymentRecords(
+        Booking $booking,
+        ?BookingDate $bDate,
+        float $finalRefund,
+        string $channel,
+        User $resolvedBy,
+        float $platformFeeShare = 0.00,
+        ?BookingCancellation $cancellation = null
+    ): void {
+        $successfulPayments = $bDate
+            ? Payment::where('booking_date_id', $bDate->id)->where('status', 'Success')->get()
+            : Payment::where('booking_id', $booking->id)->where('status', 'Success')->get();
+
+        if ($successfulPayments->isEmpty()) {
+            $successfulPayments = Payment::where('booking_id', $booking->id)
+                ->where('status', 'Success')
+                ->get();
+        }
 
         $remainingRefund = $finalRefund;
+        $remainingPlatformFeeToDeduct = $platformFeeShare;
         $cancelledAt = Carbon::now('Asia/Kolkata');
+        $turfAdminOwner = $booking->turf->location->user ?? null;
+
+        $onlinePayments = $successfulPayments->where('payment_method', 'App');
+        $onlineRemainingPaid = (float) $onlinePayments->sum(fn ($p) => max(0.0, (float) $p->amount - (float) $p->refunded_amount));
 
         foreach ($successfulPayments as $payment) {
             $refundable = max(0.0, (float) $payment->amount - (float) $payment->refunded_amount);
-            if ($remainingRefund <= 0 || $refundable <= 0) {
+            $isOnline = ($payment->payment_method === 'App');
+
+            if ($remainingRefund <= 0 && (!$isOnline || $remainingPlatformFeeToDeduct <= 0)) {
                 continue;
             }
 
             $paymentRefund = min($refundable, $remainingRefund);
-            $isOnline = ($payment->payment_method === 'App');
 
             if ($isOnline && $channel === 'offline') {
                 // The turf refunded an online payment out of its own cash (e.g. after a failed gateway
@@ -506,28 +529,61 @@ class BookingCancellationService
                 'refunded_at' => $cancelledAt,
             ]);
 
-            // Wallet reversal logic: Only online ('App') payments ever credited the wallet (or pending payout).
-            // Offline payments were collected directly at venue, so turf owner returns cash directly — no wallet debit.
-            $turfAdminOwner = $booking->turf->location->user ?? null;
-            if ($turfAdminOwner && $paymentRefund > 0 && $isOnline) {
+            // Wallet reversal / pending payout adjustment logic
+            if ($turfAdminOwner && $isOnline) {
                 if ($payment->wallet_cleared_at) {
-                    $reversalAmount = -round($paymentRefund, 2);
-                    $walletService = new WalletService();
-                    $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
+                    if ($paymentRefund > 0) {
+                        $reversalAmount = -round($paymentRefund, 2);
+                        $walletService = new WalletService();
+                        $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
 
-                    $newPayoutAmount = max(0.00, round(((float) $payment->turf_payout_amount) - $paymentRefund, 2));
-                    $payment->update([
-                        'turf_payout_amount' => $newPayoutAmount,
-                    ]);
+                        $newPayoutAmount = max(0.00, round(((float) $payment->turf_payout_amount) - $paymentRefund, 2));
+                        $payment->update([
+                            'turf_payout_amount' => $newPayoutAmount,
+                        ]);
+                    }
                 } else {
-                    $newPayoutAmount = max(0.00, round(((float) $payment->turf_payout_amount) - $paymentRefund, 2));
+                    // Deduct refund AND platform cancellation fee share immediately so Pending Clearance
+                    // matches net entitlement without waiting for the nightly payout job.
+                    $feeToDeduct = min($remainingPlatformFeeToDeduct, max(0.0, (float) $payment->turf_payout_amount - $paymentRefund));
+                    $newPayoutAmount = max(0.00, round(((float) $payment->turf_payout_amount) - $paymentRefund - $feeToDeduct, 2));
                     $payment->update([
                         'turf_payout_amount' => $newPayoutAmount,
                     ]);
+                    $remainingPlatformFeeToDeduct -= $feeToDeduct;
                 }
             }
 
             $remainingRefund -= $paymentRefund;
+        }
+
+        // On cash bookings (or where online money does not cover the platform cancellation fee),
+        // debit the uncollected platform cancellation fee from the turf owner's wallet.
+        $cashFeeToDebit = round($platformFeeShare - max(0.0, min($platformFeeShare, $onlineRemainingPaid)), 2);
+        if ($turfAdminOwner && $cashFeeToDebit > 0 && $cancellation) {
+            $alreadyDebited = CommissionWalletTransaction::where('user_id', $turfAdminOwner->id)
+                ->where('type', 'cancellation_fee_debit')
+                ->where('reference_type', BookingCancellation::class)
+                ->where('reference_id', $cancellation->id)
+                ->exists();
+
+            if (!$alreadyDebited) {
+                $bookingDisplayId = $booking->booking_id ?? $booking->id;
+                $walletService = new WalletService();
+                $walletService->applyDelta(
+                    $turfAdminOwner,
+                    -$cashFeeToDebit,
+                    'cancellation_fee_debit',
+                    $cancellation,
+                    "Booking #{$bookingDisplayId} Platform Cancellation Fee",
+                    [
+                        'booking_id' => $booking->id,
+                        'booking_date_id' => $bDate?->id,
+                        'cancellation_id' => $cancellation->id,
+                        'fee_amount' => $cashFeeToDebit,
+                    ]
+                );
+            }
         }
     }
 

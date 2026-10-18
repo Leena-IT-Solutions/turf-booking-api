@@ -322,4 +322,128 @@ class CashRefundWalletTest extends TestCase
         $this->assertEquals(0.00, (float) $payment->refunded_amount);
         $this->assertEquals(890.00, (float) $payment->turf_payout_amount);
     }
+
+    public function test_cash_booking_cancellation_debits_platform_cancellation_fee_from_wallet(): void
+    {
+        SaasSetting::first()->update(['cancellation_fee_percentage' => 5.00]);
+        $this->turf->update(['cancellation_fee' => 50.00]);
+
+        $dateStr = now()->addDays(2)->format('Y-m-d');
+        $booking = Booking::create([
+            'user_id' => $this->customer->id, 'turf_id' => $this->turf->id, 'date_of_booking' => now(),
+            'booking_type' => 'day', 'status' => 'Confirmed', 'payment_status' => 'Paid', 'total_amount' => 1000.00,
+            'platform_fee' => 0.00, 'platform_fee_gst' => 0.00,
+        ]);
+        $bDate = BookingDate::create([
+            'booking_id' => $booking->id, 'booking_date' => $dateStr, 'amount' => 1000.00, 'status' => 'Confirmed',
+            'paid_amount' => 1000.00, 'balance_amount' => 0.00, 'payment_status' => 'Paid',
+        ]);
+        Payment::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id, 'payment_method' => 'Cash',
+            'amount' => 1000.00, 'status' => 'Success', 'wallet_cleared_at' => now(), 'turf_payout_amount' => 0.00,
+        ]);
+
+        $this->turfAdmin->update(['commission_wallet_balance' => -100.00]);
+
+        $response = $this->actingAs($this->turfAdmin, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel", [
+            'reason' => 'Customer cancelled cash booking',
+        ]);
+        $response->assertStatus(200);
+
+        // 5% of 1000 = 50.00 SaaS cancellation fee
+        $cancellation = BookingCancellation::where('booking_id', $booking->id)->first();
+        $this->assertNotNull($cancellation);
+        $this->assertEquals(50.00, (float)$cancellation->saas_cancellation_fee);
+
+        $this->turfAdmin->refresh();
+        // -100.00 initial - 50.00 cancellation fee debit = -150.00
+        $this->assertEquals(-150.00, (float)$this->turfAdmin->commission_wallet_balance);
+
+        $tx = CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
+            ->where('type', 'cancellation_fee_debit')
+            ->first();
+        $this->assertNotNull($tx);
+        $this->assertEquals(-50.00, (float)$tx->amount);
+        $this->assertEquals('- Cancellation Fee', CommissionWalletTransaction::typeLabel($tx->type));
+    }
+
+    public function test_admin_resolution_path_for_cash_booking_debits_platform_cancellation_fee(): void
+    {
+        $dateStr = now()->addDays(2)->format('Y-m-d');
+        $booking = Booking::create([
+            'user_id' => $this->customer->id, 'turf_id' => $this->turf->id, 'date_of_booking' => now(),
+            'booking_type' => 'day', 'status' => 'Confirmed', 'payment_status' => 'Paid', 'total_amount' => 1000.00,
+        ]);
+        $bDate = BookingDate::create([
+            'booking_id' => $booking->id, 'booking_date' => $dateStr, 'amount' => 1000.00, 'status' => 'Confirmed',
+            'paid_amount' => 1000.00, 'balance_amount' => 0.00, 'payment_status' => 'Paid',
+        ]);
+        Payment::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id, 'payment_method' => 'Cash',
+            'amount' => 1000.00, 'status' => 'Success', 'wallet_cleared_at' => now(), 'turf_payout_amount' => 0.00,
+        ]);
+
+        $this->turfAdmin->update(['commission_wallet_balance' => 0.00]);
+
+        $cancellation = BookingCancellation::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id,
+            'cancelled_by_user_id' => $this->customer->id, 'canceller_role' => 'customer', 'cancellation_scope' => 'date',
+            'turf_cancellation_fee' => 75.00, 'platform_fee_retained' => 0.00, 'saas_cancellation_fee' => 25.00,
+            'total_cancellation_fee' => 100.00, 'refund_amount' => 900.00, 'refund_status' => 'Pending Resolution',
+        ]);
+
+        $service = app(BookingCancellationService::class);
+        $service->resolveRefund($cancellation, 'standard_policy', 'offline', $this->turfAdmin, null, 'Cash refund at desk');
+
+        $this->turfAdmin->refresh();
+        $this->assertEquals(-25.00, (float)$this->turfAdmin->commission_wallet_balance);
+
+        $tx = CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
+            ->where('type', 'cancellation_fee_debit')
+            ->first();
+        $this->assertNotNull($tx);
+        $this->assertEquals(-25.00, (float)$tx->amount);
+    }
+
+    public function test_online_booking_cancellation_immediately_deducts_platform_fee_from_pending_payout(): void
+    {
+        SaasSetting::first()->update(['cancellation_fee_percentage' => 5.00]);
+        $this->turf->update(['cancellation_fee' => 200.00]);
+
+        $dateStr = now()->addDays(3)->format('Y-m-d');
+        $booking = Booking::create([
+            'user_id' => $this->customer->id, 'turf_id' => $this->turf->id, 'date_of_booking' => now(),
+            'booking_type' => 'day', 'status' => 'Confirmed', 'payment_status' => 'Paid', 'total_amount' => 1000.00,
+            'platform_fee' => 0.00, 'platform_fee_gst' => 0.00,
+        ]);
+        $bDate = BookingDate::create([
+            'booking_id' => $booking->id, 'booking_date' => $dateStr, 'amount' => 1000.00, 'status' => 'Confirmed',
+            'paid_amount' => 1000.00, 'balance_amount' => 0.00, 'payment_status' => 'Paid',
+        ]);
+        $payment = Payment::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id, 'payment_method' => 'App',
+            'amount' => 1000.00, 'status' => 'Success', 'wallet_cleared_at' => null, 'turf_payout_amount' => 890.00,
+        ]);
+
+        $this->turfAdmin->update(['commission_wallet_balance' => 0.00]);
+
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/bookings/{$booking->id}/cancel", [
+            'booking_date_ids' => [$bDate->id],
+        ]);
+        $response->assertStatus(200);
+
+        // Since it's online, NO cancellation_fee_debit is posted to wallet (it is retained from online money)
+        $this->assertEquals(0, CommissionWalletTransaction::where('type', 'cancellation_fee_debit')->count());
+
+        $cancellation = BookingCancellation::where('booking_id', $booking->id)->first();
+        $this->assertNotNull($cancellation);
+        $this->assertEquals(200.00, (float)$cancellation->turf_cancellation_fee);
+        $this->assertEquals(50.00, (float)$cancellation->saas_cancellation_fee);
+        $this->assertEquals(750.00, (float)$cancellation->refund_amount);
+
+        $payment->refresh();
+        // Payment turf_payout_amount immediately drops by refund (750.00) AND platform cancellation fee (50.00):
+        // 890.00 - 750.00 - 50.00 = 90.00
+        $this->assertEquals(90.00, (float)$payment->turf_payout_amount);
+    }
 }
