@@ -131,13 +131,23 @@ new #[Layout('layouts.app')] class extends Component
 
         $this->validate($rules);
 
-        auth()->user()->update([
-            'payout_method' => $this->payoutMethod,
-            'bank_account_name' => $this->bankAccountName,
-            'bank_account_number' => $this->bankAccountNumber,
-            'bank_ifsc' => strtoupper($this->bankIfsc),
-            'upi_id' => strtolower($this->upiId),
-        ]);
+        // Same rules the payout request enforces (App\Support\PayoutDestination): format, not just presence.
+        $details = \App\Support\PayoutDestination::normalize(
+            $this->payoutMethod, $this->bankAccountName, $this->bankAccountNumber, $this->bankIfsc, $this->upiId
+        );
+        if ($problem = \App\Support\PayoutDestination::problem($details)) {
+            $field = [
+                'payout_method' => 'payoutMethod',
+                'bank_account_name' => 'bankAccountName',
+                'bank_account_number' => 'bankAccountNumber',
+                'bank_ifsc' => 'bankIfsc',
+                'upi_id' => 'upiId',
+            ][$problem['field']];
+            $this->addError($field, $problem['message']);
+            return;
+        }
+
+        auth()->user()->update($details);
 
         session()->flash('kyc_status', 'Payment payout details saved successfully!');
     }

@@ -58,8 +58,8 @@ class PayoutService
             }
 
             // Ensure bank/UPI details exist
-            if (!$lockedUser->payout_method || ($lockedUser->payout_method === 'bank' && (!$lockedUser->bank_account_number || !$lockedUser->bank_ifsc)) || ($lockedUser->payout_method === 'upi' && !$lockedUser->upi_id)) {
-                throw new \Exception("Payment details missing. Please save your bank account or UPI details before requesting a payout.");
+            if ($destinationError = \App\Support\PayoutDestination::errorFor($lockedUser)) {
+                throw new \Exception($destinationError);
             }
 
             $mode = $saas?->payout_mode === 'razorpayx' ? 'razorpayx' : 'manual';
