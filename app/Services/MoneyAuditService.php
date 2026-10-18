@@ -395,7 +395,18 @@ class MoneyAuditService
         $entitlement = $walletService->turfOnlineEntitlement($b);
         $pendingCredit = $walletService->pendingCredit($b);
 
-        if (!$hasFutureActive && !$hasPendingCancel) {
+        // The nightly job (wallet:clear-matured-entries) pays the credit and then stamps the online
+        // payments as cleared. Until it has processed this booking, money still to credit is expected.
+        $awaitingNightlyJob = $successAppPayments->whereNull('wallet_cleared_at')->isNotEmpty();
+
+        if (!$hasFutureActive && !$hasPendingCancel && $pendingCredit > 0.01 && $awaitingNightlyJob) {
+            $rows[] = [
+                'check' => '17. Turf credit matches entitlement',
+                'expected' => number_format($entitlement, 2) . ' after the nightly job',
+                'actual' => 'Waiting for nightly job (wallet:clear-matured-entries): ₹' . number_format($pendingCredit, 2) . ' still to credit',
+                'result' => 'SKIP',
+            ];
+        } elseif (!$hasFutureActive && !$hasPendingCancel) {
             $pass17 = abs($credited - $entitlement) <= 0.01 && $pendingCredit <= 0.01;
             $rows[] = [
                 'check' => '17. Turf credit matches entitlement',

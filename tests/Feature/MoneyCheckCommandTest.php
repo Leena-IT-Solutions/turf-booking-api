@@ -186,6 +186,35 @@ class MoneyCheckCommandTest extends TestCase
 
     // ---------------------------------------------------------------- tests
 
+    public function test_cancelled_online_booking_waits_for_nightly_job_before_credit_check(): void
+    {
+        // Reproduces live booking #3: online booking cancelled, money:check run before the nightly job.
+        $booking = $this->bookOnline(['2026-10-05']);
+        $this->actingAs($this->customer, 'sanctum')
+            ->postJson("/api/bookings/{$booking->id}/cancel", ['booking_date_ids' => [$booking->bookingDates()->first()->id]])
+            ->assertStatus(200);
+
+        $row17 = fn () => collect(app(MoneyAuditService::class)->checkBooking($booking->fresh(), true))
+            ->first(fn ($r) => str_starts_with($r['check'], '17.'));
+
+        // Before the job: the turf's share of the cancellation fee is still to be credited -> not a failure.
+        $before = $row17();
+        $this->assertEquals('SKIP', $before['result'], json_encode($before));
+        $this->assertStringContainsString('Waiting for nightly job', $before['actual']);
+        $this->artisan('money:check', ['--booking' => [$booking->id]])->assertExitCode(0);
+
+        // After the job: credited in full.
+        $this->runNightly('2026-10-02 01:00:00');
+        $after = $row17();
+        $this->assertEquals('PASS', $after['result'], json_encode($after));
+
+        // After the job, a missing credit is still caught.
+        $credit = CommissionWalletTransaction::where('type', 'payment_credit')->latest('id')->first();
+        $this->owner->update(['commission_wallet_balance' => (float) $this->owner->fresh()->commission_wallet_balance - (float) $credit->amount]);
+        $credit->delete();
+        $this->assertEquals('FAIL', $row17()['result']);
+    }
+
     public function test_happy_paths_across_all_money_scenarios(): void
     {
         $bookings = [];
