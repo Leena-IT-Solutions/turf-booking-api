@@ -55,7 +55,33 @@ class ClearMaturedWalletEntries extends Command
             }
         }
 
-        $this->info("Cleared {$clearedCount} matured wallet payment contributions.");
+        // Final balancing, once per booking and only after all regular payouts above have run (so a
+        // second matured session's own payout isn't pre-empted). This also releases online money left
+        // on cancelled sessions (e.g. the turf's cancellation fee), which the query above deliberately
+        // excludes. trueUpBookingCredit() itself waits while any session is still in the future.
+        $cancelledSessionBookings = Payment::with(['booking.turf.location.user'])
+            ->whereNull('wallet_cleared_at')
+            ->where('status', 'Success')
+            ->where('payment_method', 'App')
+            ->whereHas('bookingDate', fn ($query) => $query->where('status', 'Cancelled'))
+            ->get()
+            ->pluck('booking');
+
+        $bookingsToBalance = $pendingPayments->pluck('booking')
+            ->merge($cancelledSessionBookings)
+            ->filter()
+            ->unique('id');
+
+        $balancedCount = 0;
+        foreach ($bookingsToBalance as $booking) {
+            $owner = $booking->turf?->location?->user;
+            if ($owner) {
+                $walletService->trueUpBookingCredit($owner, $booking);
+                $balancedCount++;
+            }
+        }
+
+        $this->info("Cleared {$clearedCount} matured wallet payment contributions; balanced {$balancedCount} booking(s).");
         return Command::SUCCESS;
     }
 }

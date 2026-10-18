@@ -264,46 +264,54 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_cancelled_date_is_excluded_from_matured_release()
+    public function test_cancelled_online_booking_releases_only_the_turf_share()
     {
+        // ₹1,010 online, cancelled before the session with a ₹200 turf cancellation fee.
         Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00'));
+        $this->turf->update(['cancellation_fee' => 200.00]);
 
-        $futureDate = '2026-10-05';
         $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
             'slot_ids' => [$this->slot->id],
-            'booking_dates' => [$futureDate],
+            'booking_dates' => ['2026-10-05'],
             'booking_type' => 'day',
             'payment_method' => 'App',
             'payment_option' => 'full',
             'amount_received' => 1010.00,
         ]);
-
-        $bookingId = $response->json('booking.id');
-        $booking = Booking::find($bookingId);
+        $booking = Booking::find($response->json('booking.id'));
         $bookingDate = $booking->bookingDates()->first();
 
-        // Cancel before maturity via API
-        $cancelResponse = $this->actingAs($this->customer, 'sanctum')
-            ->postJson("/api/bookings/{$booking->id}/cancel", [
-                'booking_date_ids' => [$bookingDate->id],
-            ]);
-        $cancelResponse->assertStatus(200);
+        $this->actingAs($this->customer, 'sanctum')
+            ->postJson("/api/bookings/{$booking->id}/cancel", ['booking_date_ids' => [$bookingDate->id]])
+            ->assertStatus(200);
 
-        $payment = Payment::where('booking_id', $bookingId)->first();
-        $this->assertNull($payment->wallet_cleared_at);
+        $cancellation = \App\Models\BookingCancellation::where('booking_id', $booking->id)->first();
+        $this->assertEquals(200.00, (float) $cancellation->turf_cancellation_fee);
+        $this->assertEquals(50.00, (float) $cancellation->saas_cancellation_fee);
+        $this->assertEquals(750.00, (float) $cancellation->refund_amount);
 
-        // Now move time past booking date
-        Carbon::setTestNow(Carbon::parse('2026-10-06 10:00:00'));
+        // Every session is cancelled, so the money is final: released on the next nightly run.
         $this->artisan('wallet:clear-matured-entries');
 
-        $payment->refresh();
-        $this->assertNull($payment->wallet_cleared_at);
+        // The platform holds 1010 - 750 = 260 online and keeps its own ₹50 cancellation fee,
+        // so the turf is credited ₹210.
+        $credits = (float) CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
+            ->where('type', 'payment_credit')->sum('amount');
+        $this->assertEquals(210.00, $credits);
 
-        // Payment credit should NEVER have been created
-        $hasCredit = CommissionWalletTransaction::where('user_id', $this->turfAdmin->id)
-            ->where('type', 'payment_credit')
-            ->exists();
-        $this->assertFalse($hasCredit);
+        // Wallet: -10 platform fee - 100 commission + 210 = 100, i.e. the turf's ₹200 fee minus ₹100 commission.
+        $this->turfAdmin->refresh();
+        $this->assertEquals(100.00, (float) $this->turfAdmin->commission_wallet_balance);
+
+        $payment = Payment::where('booking_id', $booking->id)->first();
+        $this->assertNotNull($payment->wallet_cleared_at);
+        $this->assertEquals(100.00, (float) $payment->turf_payout_amount);
+
+        // Idempotent: a second nightly run changes nothing.
+        $this->artisan('wallet:clear-matured-entries');
+        $this->turfAdmin->refresh();
+        $this->assertEquals(100.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(1, CommissionWalletTransaction::where('type', 'payment_credit')->count());
 
         Carbon::setTestNow();
     }
@@ -411,6 +419,118 @@ class ImmediateDeductionsDeferredCreditTest extends TestCase
         // Wallet balance remains unchanged at -110.00 (cash retained by venue, no double commission)
         $this->turfAdmin->refresh();
         $this->assertEquals(-110.00, (float)$this->turfAdmin->commission_wallet_balance);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_part_online_part_cash_credits_only_the_online_money()
+    {
+        // ₹505 online now, ₹505 cash at the venue. Only the ₹505 that passed through the platform may
+        // reach the wallet; the cash is already with the turf.
+        Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00'));
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
+            'slot_ids' => [$this->slot->id], 'booking_dates' => ['2026-10-05'], 'booking_type' => 'day',
+            'payment_method' => 'App', 'payment_option' => 'part', 'amount_received' => 505.00,
+        ])->assertStatus(200);
+        $bookingDate = Booking::find($response->json('booking.id'))->bookingDates()->first();
+        $this->actingAs($this->turfAdmin, 'sanctum')
+            ->postJson("/api/booking-dates/{$bookingDate->id}/payments", ['payment_method' => 'Cash', 'amount' => 505.00])
+            ->assertStatus(200);
+
+        Carbon::setTestNow(Carbon::parse('2026-10-06 10:00:00'));
+        $this->artisan('wallet:clear-matured-entries');
+
+        $this->assertEquals(505.00, (float) CommissionWalletTransaction::where('type', 'payment_credit')->sum('amount'));
+        $this->turfAdmin->refresh();
+        $this->assertEquals(395.00, (float) $this->turfAdmin->commission_wallet_balance); // 505 - 10 fee - 100 commission
+
+        Carbon::setTestNow();
+    }
+
+    /** Two-session booking, ₹2,010 online. Commission 10% of ₹2,000 = ₹200, platform fee ₹10. */
+    private function bookTwoOnlineSessions(): Booking
+    {
+        $this->turf->update(['cancellation_fee' => 200.00]);
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
+            'slot_ids' => [$this->slot->id], 'booking_dates' => ['2026-10-05', '2026-10-06'], 'booking_type' => 'long',
+            'payment_method' => 'App', 'payment_option' => 'full', 'amount_received' => 2010.00,
+        ])->assertStatus(200);
+
+        return Booking::find($response->json('booking.id'));
+    }
+
+    public function test_cancellation_after_other_session_was_paid_out_still_releases_turf_share()
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00'));
+        $booking = $this->bookTwoOnlineSessions();
+        [$first, $second] = $booking->bookingDates()->orderBy('booking_date')->get()->all();
+
+        // First session's day: its share is paid out.
+        Carbon::setTestNow(Carbon::parse('2026-10-05 12:00:00'));
+        $this->artisan('wallet:clear-matured-entries');
+        $this->turfAdmin->refresh();
+        $this->assertEquals(795.00, (float) $this->turfAdmin->commission_wallet_balance); // 1005 - 210 deductions
+
+        // Second session cancelled the same day, before it starts.
+        $this->actingAs($this->customer, 'sanctum')
+            ->postJson("/api/bookings/{$booking->id}/cancel", ['booking_date_ids' => [$second->id]])
+            ->assertStatus(200);
+        $cancellation = \App\Models\BookingCancellation::where('booking_date_id', $second->id)->first();
+        $this->assertEquals(200.00, (float) $cancellation->turf_cancellation_fee);
+
+        $this->artisan('wallet:clear-matured-entries');
+
+        // Turf is owed its ₹1,000 first session + ₹200 fee on the second - ₹200 commission = ₹1,000.
+        $this->turfAdmin->refresh();
+        $this->assertEquals(1000.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertNotNull(Payment::where('booking_date_id', $second->id)->first()->wallet_cleared_at);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_cancellation_before_other_session_is_paid_out_in_one_credit()
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00'));
+        $booking = $this->bookTwoOnlineSessions();
+        [$first, $second] = $booking->bookingDates()->orderBy('booking_date')->get()->all();
+
+        $this->actingAs($this->customer, 'sanctum')
+            ->postJson("/api/bookings/{$booking->id}/cancel", ['booking_date_ids' => [$second->id]])
+            ->assertStatus(200);
+
+        // The remaining session is still in the future: nothing is released yet.
+        $this->artisan('wallet:clear-matured-entries');
+        $this->assertEquals(0, CommissionWalletTransaction::where('type', 'payment_credit')->count());
+
+        Carbon::setTestNow(Carbon::parse('2026-10-05 12:00:00'));
+        $this->artisan('wallet:clear-matured-entries');
+        $this->artisan('wallet:clear-matured-entries');
+
+        $this->turfAdmin->refresh();
+        $this->assertEquals(1000.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(0, Payment::where('booking_id', $booking->id)->whereNull('wallet_cleared_at')->count());
+
+        Carbon::setTestNow();
+    }
+
+    public function test_cancellation_awaiting_admin_decision_holds_the_money()
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00'));
+        $this->turf->update(['cancellation_fee' => 200.00]);
+        $response = $this->actingAs($this->customer, 'sanctum')->postJson("/api/turfs/{$this->turf->id}/bookings", [
+            'slot_ids' => [$this->slot->id], 'booking_dates' => ['2026-10-05'], 'booking_type' => 'day',
+            'payment_method' => 'App', 'payment_option' => 'full', 'amount_received' => 1010.00,
+        ]);
+        $booking = Booking::find($response->json('booking.id'));
+        $this->actingAs($this->customer, 'sanctum')
+            ->postJson("/api/bookings/{$booking->id}/cancel", ['booking_date_ids' => [$booking->bookingDates()->first()->id]])
+            ->assertStatus(200);
+        \App\Models\BookingCancellation::where('booking_id', $booking->id)->update(['refund_status' => 'Pending Resolution']);
+
+        $this->artisan('wallet:clear-matured-entries');
+
+        $this->assertEquals(0, CommissionWalletTransaction::where('type', 'payment_credit')->count());
+        $this->assertNull(Payment::where('booking_id', $booking->id)->first()->wallet_cleared_at);
 
         Carbon::setTestNow();
     }

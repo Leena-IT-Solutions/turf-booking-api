@@ -281,4 +281,45 @@ class CashRefundWalletTest extends TestCase
         // Refund capped at remaining 800.00, bringing cumulative total to 1000.00
         $this->assertEquals(1000.00, (float)$payment->refunded_amount);
     }
+
+    public function test_online_payment_refunded_in_cash_by_turf_keeps_owner_whole(): void
+    {
+        // Online money already credited to the owner's wallet; the turf then hands the refund back in cash
+        // (e.g. after a failed gateway refund). The owner has paid once, in cash: the wallet must not be
+        // debited again, and the refund must not count against the online payment's payout.
+        $dateStr = now()->addDays(2)->format('Y-m-d');
+
+        $booking = Booking::create([
+            'user_id' => $this->customer->id, 'turf_id' => $this->turf->id, 'date_of_booking' => now(),
+            'booking_type' => 'day', 'status' => 'Confirmed', 'payment_status' => 'Paid', 'total_amount' => 1000.00,
+        ]);
+        $bDate = BookingDate::create([
+            'booking_id' => $booking->id, 'booking_date' => $dateStr, 'amount' => 1000.00, 'status' => 'Confirmed',
+            'paid_amount' => 1000.00, 'balance_amount' => 0.00, 'payment_status' => 'Paid',
+        ]);
+        $payment = Payment::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id, 'payment_method' => 'App',
+            'amount' => 1000.00, 'status' => 'Success', 'wallet_cleared_at' => now(), 'turf_payout_amount' => 890.00,
+        ]);
+        $this->turfAdmin->update(['commission_wallet_balance' => 890.00]);
+
+        $cancellation = BookingCancellation::create([
+            'booking_id' => $booking->id, 'booking_date_id' => $bDate->id,
+            'cancelled_by_user_id' => $this->customer->id, 'canceller_role' => 'customer', 'cancellation_scope' => 'date',
+            'turf_cancellation_fee' => 0.00, 'platform_fee_retained' => 0.00, 'saas_cancellation_fee' => 0.00,
+            'total_cancellation_fee' => 0.00, 'refund_amount' => 1000.00, 'refund_status' => 'Pending Resolution',
+        ]);
+
+        app(BookingCancellationService::class)
+            ->resolveRefund($cancellation, 'standard_policy', 'offline', $this->turfAdmin, null, 'Gateway failed, paid cash');
+
+        $this->turfAdmin->refresh();
+        $this->assertEquals(890.00, (float) $this->turfAdmin->commission_wallet_balance);
+        $this->assertEquals(0, CommissionWalletTransaction::where('type', 'refund_adjustment')->count());
+
+        $payment->refresh();
+        $this->assertEquals('Cash / Offline Refund', $payment->refund_status);
+        $this->assertEquals(0.00, (float) $payment->refunded_amount);
+        $this->assertEquals(890.00, (float) $payment->turf_payout_amount);
+    }
 }

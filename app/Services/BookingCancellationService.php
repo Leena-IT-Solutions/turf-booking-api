@@ -480,6 +480,19 @@ class BookingCancellationService
             $paymentRefund = min($refundable, $remainingRefund);
             $isOnline = ($payment->payment_method === 'App');
 
+            if ($isOnline && $channel === 'offline') {
+                // The turf refunded an online payment out of its own cash (e.g. after a failed gateway
+                // refund). The platform still holds, or has already credited, that online money, so the
+                // turf must stay whole: no wallet debit, no payout reduction, and not counted in
+                // refunded_amount, which WalletService::settleCredit subtracts from the turf's payout.
+                $payment->update([
+                    'refund_status' => 'Cash / Offline Refund',
+                    'refunded_at' => $cancelledAt,
+                ]);
+                $remainingRefund -= $paymentRefund;
+                continue;
+            }
+
             $refundStatus = match (true) {
                 $channel === 'online_gateway' && $isOnline => 'Refunded',
                 $channel === 'offline' => 'Cash / Offline Refund',

@@ -18,6 +18,8 @@ new #[Layout('layouts.app')] class extends Component
     public string $activeTab = 'bookings'; // 'bookings', 'cancellations', 'turfs', 'settlements'
     public string $search = '';
     public string $paymentMethodFilter = 'all';
+    public string $invoiceMonth = '';   // 'YYYY-MM' billing period filter for the invoices tab
+    public string $invoiceTurfId = '';  // turf filter for the invoices tab
 
     // Timeframe filter state: default 'month'
     public string $filterMode = 'month'; // 'day', 'month', 'year'
@@ -71,6 +73,15 @@ new #[Layout('layouts.app')] class extends Component
     public function updatingSearch() { $this->resetPage(); }
     public function updatingPaymentMethodFilter() { $this->resetPage(); }
     public function updatingActiveTab() { $this->resetPage(); }
+    public function updatingInvoiceMonth() { $this->resetPage(); }
+    public function updatingInvoiceTurfId() { $this->resetPage(); }
+
+    public function clearInvoiceFilters(): void
+    {
+        $this->invoiceMonth = '';
+        $this->invoiceTurfId = '';
+        $this->resetPage();
+    }
 
     public function with(): array
     {
@@ -222,7 +233,18 @@ new #[Layout('layouts.app')] class extends Component
                   });
             });
         }
+        if (preg_match('/^\d{4}-\d{2}$/', $this->invoiceMonth)) {
+            $invoicesQuery->whereDate('period_start', $this->invoiceMonth . '-01');
+        }
+        if ($this->invoiceTurfId !== '') {
+            $invoicesQuery->where('turf_id', (int) $this->invoiceTurfId);
+        }
         $invoices = $invoicesQuery->paginate(15);
+
+        // Only turfs that actually have invoices, so the filter never offers an empty choice.
+        $invoiceTurfOptions = \App\Models\Turf::whereIn('id', \App\Models\CommissionInvoice::whereNotNull('turf_id')->select('turf_id'))
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return [
             'filterMode' => $this->filterMode,
@@ -241,6 +263,7 @@ new #[Layout('layouts.app')] class extends Component
             'managers' => $managers,
             'settlements' => $settlements,
             'invoices' => $invoices,
+            'invoiceTurfOptions' => $invoiceTurfOptions,
         ];
     }
 }; ?>
@@ -448,6 +471,21 @@ new #[Layout('layouts.app')] class extends Component
                     @endif
 
                     @if ($activeTab === 'invoices')
+                        <input type="month" wire:model.live="invoiceMonth" max="{{ now()->subMonth()->format('Y-m') }}" title="Filter by billing period"
+                            class="h-10 py-1.5 px-3 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition">
+                        <select wire:model.live="invoiceTurfId" title="Filter by turf"
+                            class="h-10 py-1.5 pl-3 pr-8 text-xs rounded-xl border border-gray-200 bg-gray-50/60 focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition">
+                            <option value="">All turfs</option>
+                            @foreach ($invoiceTurfOptions as $turfOption)
+                                <option value="{{ $turfOption->id }}">{{ $turfOption->name }}</option>
+                            @endforeach
+                        </select>
+                        @if ($invoiceMonth !== '' || $invoiceTurfId !== '')
+                            <button type="button" wire:click="clearInvoiceFilters" class="h-10 px-3 rounded-xl text-xs font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition cursor-pointer">
+                                Clear
+                            </button>
+                        @endif
+                        <span class="h-6 w-px bg-gray-200 mx-1"></span>
                         <form action="{{ route('saas.commission-invoices.generate') }}" method="POST" class="flex items-center gap-2">
                             @csrf
                             <input type="month" name="month" max="{{ now()->subMonth()->format('Y-m') }}" value="{{ now()->subMonth()->format('Y-m') }}" required

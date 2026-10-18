@@ -569,66 +569,67 @@ new #[Layout('layouts.app')] class extends Component
                                     <span class="text-[10px] text-gray-400">{{ $tx->created_at->format('h:i A') }}</span>
                                 </td>
                                 <td class="p-3">
+                                    @php $txLabel = \App\Models\CommissionWalletTransaction::typeLabel($tx->type, (float) $tx->amount); @endphp
                                     @if ($tx->type === 'payment_credit')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            + Booking Credit
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'platform_fee_debit')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            - Platform Fee
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'commission_debit')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            - Commission
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'gateway_charge_debit')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            - PG Charges
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'offline_booking_record')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                            Pay at Venue
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'refund_adjustment')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            - Refund Deduction
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'payout_debit')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                                            - Bank Payout
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'payout_reversal')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                            + Payout Reversal
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'commission_due_settlement')
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                             <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                            Debt Settlement
+                                            {{ $txLabel }}
                                         </span>
                                     @elseif ($tx->type === 'payment_settlement')
                                         @if ((float)$tx->amount >= 0)
                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                + Payout Credit
+                                                {{ $txLabel }}
                                             </span>
                                         @else
                                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                                 <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                                - Fee & Commission
+                                                {{ $txLabel }}
                                             </span>
                                         @endif
                                     @else
                                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
-                                            {{ ucfirst(str_replace('_', ' ', $tx->type)) }}
+                                            {{ $txLabel }}
                                         </span>
                                     @endif
                                 </td>

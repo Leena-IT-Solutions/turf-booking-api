@@ -496,4 +496,26 @@ class CommissionInvoiceTest extends TestCase
 
         Carbon::setTestNow();
     }
+
+    public function test_saas_invoice_tab_filters_by_period_and_turf(): void
+    {
+        $this->createBookingWithCommission($this->turfA, Carbon::parse('2026-08-12 10:00:00'));
+        $this->createBookingWithCommission($this->turfA, Carbon::parse('2026-09-12 10:00:00'));
+        $this->createBookingWithCommission($this->turfB, Carbon::parse('2026-09-15 10:00:00'));
+        $augA = $this->service->generateForTurf($this->turfA, Carbon::parse('2026-08-01'));
+        $sepA = $this->service->generateForTurf($this->turfA, Carbon::parse('2026-09-01'));
+        $sepB = $this->service->generateForTurf($this->turfB, Carbon::parse('2026-09-01'));
+
+        $this->actingAs($this->saasAdmin);
+        $component = \Livewire\Volt\Volt::test('saas.commission-manager')->set('activeTab', 'invoices');
+
+        $component->set('invoiceMonth', '2026-09')
+            ->assertSee($sepA->invoice_number)->assertSee($sepB->invoice_number)->assertDontSee($augA->invoice_number);
+
+        $component->set('invoiceTurfId', (string) $this->turfB->id)
+            ->assertSee($sepB->invoice_number)->assertDontSee($sepA->invoice_number)->assertDontSee($augA->invoice_number);
+
+        $component->call('clearInvoiceFilters')
+            ->assertSee($augA->invoice_number)->assertSee($sepA->invoice_number)->assertSee($sepB->invoice_number);
+    }
 }

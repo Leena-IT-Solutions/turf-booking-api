@@ -2,9 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\Booking;
+use App\Models\BookingCancellation;
 use App\Models\CommissionWalletTransaction;
 use App\Models\Payment;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 
@@ -310,6 +313,127 @@ class WalletService
      * credited amount is net of any refund already applied to this payment (payment.amount minus
      * payment.refunded_amount) so a partial refund issued before maturity is never over-credited.
      */
+    /**
+     * Online money the platform still holds for a booking: online payments minus their refunds.
+     * refunded_amount only ever records money that left the platform (gateway refunds); a turf
+     * refunding an online payment in cash doesn't touch it (see BookingCancellationService).
+     */
+    public function onlineNetPaid(Booking $booking): float
+    {
+        $online = Payment::where('booking_id', $booking->id)
+            ->where('status', 'Success')
+            ->where('payment_method', 'App')
+            ->get(['amount', 'refunded_amount']);
+
+        return round((float) $online->sum(fn ($p) => (float) $p->amount - (float) $p->refunded_amount), 2);
+    }
+
+    /**
+     * The platform's own cancellation fee, which it keeps out of the online money it holds (it is
+     * never debited from the wallet separately). Per cancellation: the platform takes its share
+     * first, capped at its recorded SaaS cancellation fee, from whatever fee was finally applied
+     * beyond the retained platform fee. Standard policy -> its full fee; full refund -> 0;
+     * custom fee -> platform first, turf gets the rest.
+     */
+    public function platformCancellationShare(Booking $booking): float
+    {
+        return round((float) BookingCancellation::where('booking_id', $booking->id)
+            ->get(['saas_cancellation_fee', 'total_cancellation_fee', 'platform_fee_retained'])
+            ->sum(fn ($c) => min(
+                (float) $c->saas_cancellation_fee,
+                max(0.0, (float) $c->total_cancellation_fee - (float) $c->platform_fee_retained)
+            )), 2);
+    }
+
+    /**
+     * Online money the turf is entitled to have credited: online net paid, minus the platform's
+     * cancellation share.
+     */
+    public function turfOnlineEntitlement(Booking $booking): float
+    {
+        return max(0.0, round($this->onlineNetPaid($booking) - $this->platformCancellationShare($booking), 2));
+    }
+
+    /**
+     * Final balancing for a booking once none of its sessions is still waiting for its date:
+     * release whatever online money the turf is owed but hasn't been credited yet, then mark
+     * every remaining online payment as cleared.
+     *
+     * Per-session credits only cover active sessions, so without this, money kept from a
+     * cancelled session (the cancellation fee) is never paid out when every session is
+     * cancelled, or when the remaining sessions were already paid out before the cancellation.
+     * Idempotent: compares against credits (and refund reversals) already posted.
+     */
+    public function trueUpBookingCredit(User $user, Booking $booking): User
+    {
+        $today = Carbon::today()->format('Y-m-d');
+        $hasFutureActiveSession = $booking->bookingDates()
+            ->where('status', '!=', 'Cancelled')
+            ->where('booking_date', '>', $today)
+            ->exists();
+        // A cancellation awaiting the admin's decision hasn't been refunded yet and its fee may still change.
+        $hasUnresolvedCancellation = BookingCancellation::where('booking_id', $booking->id)
+            ->whereIn('refund_status', ['Pending', 'Pending Resolution'])
+            ->exists();
+        if ($hasFutureActiveSession || $hasUnresolvedCancellation) {
+            return $user;
+        }
+
+        $onlinePayments = Payment::where('booking_id', $booking->id)
+            ->where('status', 'Success')
+            ->where('payment_method', 'App')
+            ->orderBy('id')
+            ->get();
+        if ($onlinePayments->isEmpty()) {
+            return $user;
+        }
+
+        $alreadyCredited = (float) CommissionWalletTransaction::where('reference_type', Payment::class)
+            ->whereIn('reference_id', $onlinePayments->pluck('id'))
+            ->whereIn('type', ['payment_credit', 'refund_adjustment'])
+            ->sum('amount');
+        $remaining = round($this->turfOnlineEntitlement($booking) - $alreadyCredited, 2);
+
+        $anchor = $onlinePayments->last();
+        if ($remaining > 0) {
+            $bookingDisplayId = $booking->booking_id ?? $booking->id;
+            $user = $this->recordTraits($user, [[
+                'type' => 'payment_credit',
+                'amount' => $remaining,
+                'description' => "Booking #{$bookingDisplayId} Online Payment Received (cancellation retention)",
+                'meta' => [
+                    'booking_id' => $booking->id,
+                    'payment_id' => $anchor->id,
+                    'true_up' => true,
+                ],
+            ]], $anchor);
+        }
+
+        // Keep turf_payout_amount (Pending Clearance, Turf Earnings report) consistent with what was
+        // actually credited: across the booking's online payments it must add up to the turf's
+        // entitlement minus the deductions already posted. Payments cleared earlier keep their value;
+        // the difference lands on the payments cleared now (on the anchor, the rest to 0).
+        $toClear = $onlinePayments->whereNull('wallet_cleared_at');
+        if ($toClear->isNotEmpty()) {
+            $deductionsPosted = (float) CommissionWalletTransaction::where('reference_type', Payment::class)
+                ->whereIn('reference_id', Payment::where('booking_id', $booking->id)->pluck('id'))
+                ->whereIn('type', ['platform_fee_debit', 'commission_debit', 'gateway_charge_debit'])
+                ->sum('amount'); // stored negative
+            $target = round($this->turfOnlineEntitlement($booking) + $deductionsPosted, 2);
+            $alreadyCleared = (float) $onlinePayments->whereNotNull('wallet_cleared_at')->sum('turf_payout_amount');
+            $lastToClear = $toClear->last();
+
+            foreach ($toClear as $payment) {
+                $payment->update([
+                    'wallet_cleared_at' => now(),
+                    'turf_payout_amount' => $payment->is($lastToClear) ? round($target - $alreadyCleared, 2) : 0.00,
+                ]);
+            }
+        }
+
+        return $user;
+    }
+
     public function settleCredit(User $user, Payment $payment, bool $isOnline): User
     {
         if ($payment->wallet_cleared_at) {
@@ -328,11 +452,10 @@ class WalletService
             // Net entitlement is stored in turf_payout_amount for Pending Clearance tracking.
             $bookingPaymentIds = Payment::where('booking_id', $booking->id)->pluck('id')->toArray();
 
-            $totalPaid = round(
-                (float) Payment::whereIn('id', $bookingPaymentIds)->where('status', 'Success')->sum('amount')
-                - (float) Payment::whereIn('id', $bookingPaymentIds)->sum('refunded_amount'),
-                2
-            );
+            // Only online money passes through the platform. Cash/UPI collected at the venue is
+            // already in the turf's hands, so it must never be credited to the wallet. The
+            // platform's own cancellation fee is kept out of it too.
+            $totalPaid = $this->turfOnlineEntitlement($booking);
             $totalDeductionsPosted = (float) CommissionWalletTransaction::where('reference_type', Payment::class)
                 ->whereIn('reference_id', $bookingPaymentIds)
                 ->whereIn('type', ['platform_fee_debit', 'commission_debit', 'gateway_charge_debit'])
