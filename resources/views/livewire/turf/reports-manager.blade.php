@@ -374,45 +374,45 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         </div>
 
-        @if ($activeTab === 'overview')
-        <!-- Modern Period Analytics Dashboard -->
-        <div class="space-y-6">
-            <!-- Period Filter Controller Bar -->
-            <div class="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <!-- Left: Period Pills -->
-                <div class="flex items-center gap-2.5">
-                    <span class="text-xs font-black uppercase text-gray-500 tracking-wider">PERIOD:</span>
-                    <div class="inline-flex p-1 bg-gray-100/90 rounded-full border border-gray-200/80">
-                        <button type="button" wire:click="setPeriod('day')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'day' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Day</button>
-                        <button type="button" wire:click="setPeriod('month')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'month' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Month</button>
-                        <button type="button" wire:click="setPeriod('year')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'year' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Year</button>
-                        <button type="button" wire:click="setPeriod('all')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'all' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">All Time</button>
-                    </div>
-                </div>
-
-                <!-- Right: Prev / Calendar Pill / Next / Today -->
-                <div class="flex flex-wrap items-center gap-2">
-                    <button type="button" wire:click="prevPeriod" class="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition flex items-center gap-1">
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                        Prev
-                    </button>
-
-                    <div class="px-4 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-800 bg-white flex items-center gap-2 shadow-2xs">
-                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                        <span>{{ $periodLabel }}</span>
-                    </div>
-
-                    <button type="button" wire:click="nextPeriod" class="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition flex items-center gap-1">
-                        Next
-                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </button>
-
-                    <button type="button" wire:click="goToToday" class="px-4 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition">
-                        Today
-                    </button>
+        <!-- Period Filter Controller Bar (Universal on All Report Pages) -->
+        <div class="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <!-- Left: Period Pills -->
+            <div class="flex items-center gap-2.5">
+                <span class="text-xs font-black uppercase text-gray-500 tracking-wider">PERIOD:</span>
+                <div class="inline-flex p-1 bg-gray-100/90 rounded-full border border-gray-200/80">
+                    <button type="button" wire:click="setPeriod('day')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'day' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Day</button>
+                    <button type="button" wire:click="setPeriod('month')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'month' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Month</button>
+                    <button type="button" wire:click="setPeriod('year')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'year' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Year</button>
+                    <button type="button" wire:click="setPeriod('all')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'all' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">All Time</button>
                 </div>
             </div>
 
+            <!-- Right: Prev / Calendar Pill / Next / Today -->
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="button" wire:click="prevPeriod" class="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    Prev
+                </button>
+
+                <div class="px-4 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-800 bg-white flex items-center gap-2 shadow-2xs">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span>{{ $periodLabel }}</span>
+                </div>
+
+                <button type="button" wire:click="nextPeriod" class="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition flex items-center gap-1">
+                    Next
+                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </button>
+
+                <button type="button" wire:click="goToToday" class="px-4 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition">
+                    Today
+                </button>
+            </div>
+        </div>
+
+        @if ($activeTab === 'overview')
+        <!-- Modern Period Analytics Dashboard -->
+        <div class="space-y-6">
             <!-- Row 1: FINANCIAL SUMMARY -->
             <div class="space-y-3">
                 <div class="text-xs font-black uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
@@ -663,63 +663,41 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
         </div>
         @else
-        <!-- Filter Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
-                <div class="flex gap-2">
-                    <button wire:click="setQuickFilter('today')" type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition {{ $startDate === Carbon::today('Asia/Kolkata')->toDateString() && $endDate === Carbon::today('Asia/Kolkata')->toDateString() ? 'bg-indigo-50 border-indigo-300 text-indigo-700 ' : 'bg-gray-50 border-gray-200 text-gray-700 ' }}">
-                        Today
-                    </button>
-                    <button wire:click="setQuickFilter('week')" type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300">
-                        This Week
-                    </button>
-                    <button wire:click="setQuickFilter('month')" type="button" 
-                        class="px-3 py-1.5 text-xs font-semibold rounded-lg border transition bg-gray-50 border-gray-200 text-gray-700 hover:border-gray-300">
-                        This Month
-                    </button>
+            @if (in_array($activeTab, ['passbook', 'commission', 'payouts']))
+                <div class="text-xs text-indigo-700 bg-indigo-50/80 px-4 py-2.5 rounded-xl border border-indigo-100 flex items-center gap-2 mb-4">
+                    <svg class="w-4 h-4 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span>Showing account-wide records for owner wallet across <strong>{{ $periodLabel }}</strong>.</span>
                 </div>
+            @endif
 
-                @if (in_array($activeTab, ['passbook', 'commission', 'payouts']))
-                    <div class="text-xs text-indigo-700 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Showing account-wide records for owner wallet
+            @if ($activeTab === 'bookings')
+                <!-- Bookings Sub-filters (Status & Payment Status) -->
+                <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Status:</label>
+                            <select wire:model.live="statusFilter" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
+                                <option value="all">All Statuses</option>
+                                <option value="Confirmed">Confirmed</option>
+                                <option value="Partially Cancelled">Partially Cancelled</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment:</label>
+                            <select wire:model.live="paymentStatusFilter" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
+                                <option value="all">All Payment Statuses</option>
+                                <option value="Paid">Paid (Full)</option>
+                                <option value="Partially Paid">Partially Paid</option>
+                                <option value="Unpaid">Unpaid</option>
+                            </select>
+                        </div>
                     </div>
-                @endif
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 {{ $activeTab === 'bookings' ? 'md:grid-cols-4' : 'md:grid-cols-2' }} gap-4">
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
-                    <input type="date" wire:model.live="startDate" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <div class="text-xs text-gray-500">
+                        Showing <strong>{{ number_format($totalBookingsCount) }}</strong> records for <strong>{{ $periodLabel }}</strong>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-medium text-gray-700 mb-1">End Date</label>
-                    <input type="date" wire:model.live="endDate" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                </div>
-                @if ($activeTab === 'bookings')
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Booking Status</label>
-                        <select wire:model.live="statusFilter" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="all">All Statuses</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Partially Cancelled">Partially Cancelled</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Payment Status</label>
-                        <select wire:model.live="paymentStatusFilter" class="w-full rounded-lg border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="all">All Payment Statuses</option>
-                            <option value="Paid">Paid (Full)</option>
-                            <option value="Partially Paid">Partially Paid</option>
-                            <option value="Unpaid">Unpaid</option>
-                        </select>
-                    </div>
-                @endif
-            </div>
-        </div>
+            @endif
 
         <!-- Tab Contents -->
         @if ($activeTab === 'bookings')

@@ -493,6 +493,15 @@ class FinancialReportsExportTest extends TestCase
             $response = $this->get(route($route));
             $response->assertStatus(200);
             $response->assertSee($expectedTitle, false);
+            // Verify universal Period Filter Controller is present on every single report page
+            $response->assertSee('PERIOD:');
+            $response->assertSee('Day');
+            $response->assertSee('Month');
+            $response->assertSee('Year');
+            $response->assertSee('All Time');
+            $response->assertSee('Prev');
+            $response->assertSee('Next');
+            $response->assertSee('Today');
             // Verify sidebar links are rendered
             $response->assertSee(route('turf.reports.overview'));
             $response->assertSee(route('turf.reports.bookings'));
