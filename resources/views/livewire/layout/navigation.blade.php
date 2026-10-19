@@ -305,8 +305,14 @@ new class extends Component
                     <!-- Reports -->
                     <div class="space-y-1">
                         <div class="px-3 py-1 text-[9px] font-black uppercase text-gray-400 tracking-widest">{{ __('Reports') }}</div>
-                        <a href="{{ route('turf.reports.bookings') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.reports.bookings') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports.bookings') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <a href="{{ route('turf.reports.overview') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.reports.overview') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports.overview') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Overview') }}</span>
+                        </a>
+                        <a href="{{ route('turf.reports.bookings') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.reports.bookings') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports.bookings') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <span class="ms-3">{{ __('Bookings Ledger') }}</span>
@@ -771,8 +777,14 @@ new class extends Component
                     <!-- Reports -->
                     <div class="space-y-1">
                         <div class="px-3 py-1 text-[9px] font-black uppercase text-gray-400 tracking-widest">{{ __('Reports') }}</div>
-                        <a href="{{ route('turf.reports.bookings') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.reports.bookings') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeClass : $inactiveClass }}">
-                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports.bookings') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <a href="{{ route('turf.reports.overview') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.reports.overview') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports.overview') || (request()->routeIs('turf.reports') && !request()->routeIs('turf.reports.*')) ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            <span class="ms-3">{{ __('Overview') }}</span>
+                        </a>
+                        <a href="{{ route('turf.reports.bookings') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.reports.bookings') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.reports.bookings') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             <span class="ms-3">{{ __('Bookings Ledger') }}</span>

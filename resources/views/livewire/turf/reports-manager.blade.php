@@ -29,7 +29,9 @@ new #[Layout('layouts.app')] class extends Component
     public function mount()
     {
         $currentRoute = request()->route() ? request()->route()->getName() : '';
-        if ($currentRoute === 'turf.reports.passbook') {
+        if ($currentRoute === 'turf.reports.bookings') {
+            $this->activeTab = 'bookings';
+        } elseif ($currentRoute === 'turf.reports.passbook') {
             $this->activeTab = 'passbook';
         } elseif ($currentRoute === 'turf.reports.turf-earnings') {
             $this->activeTab = 'turf-earnings';
@@ -42,7 +44,7 @@ new #[Layout('layouts.app')] class extends Component
         } elseif ($currentRoute === 'turf.reports.payouts') {
             $this->activeTab = 'payouts';
         } else {
-            $this->activeTab = 'bookings';
+            $this->activeTab = 'overview';
         }
 
         $now = Carbon::now('Asia/Kolkata');
@@ -226,6 +228,153 @@ new #[Layout('layouts.app')] class extends Component
             $payoutData = $activeTab === 'payouts' ? $reportService->getPayoutHistorySummary($user, $this->startDate, $this->endDate) : null;
         @endphp
 
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+            <div>
+                <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1">
+                    <a href="{{ route('turf.reports.overview') }}" wire:navigate class="hover:underline">Reports</a>
+                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    @if ($activeTab === 'overview')
+                        <span class="text-gray-500 font-medium">Overview</span>
+                    @elseif ($activeTab === 'bookings')
+                        <span class="text-gray-500 font-medium">Bookings Ledger</span>
+                    @elseif ($activeTab === 'passbook')
+                        <span class="text-gray-500 font-medium">Wallet Passbook</span>
+                    @elseif ($activeTab === 'turf-earnings')
+                        <span class="text-gray-500 font-medium">Turf Earnings Breakdown</span>
+                    @elseif ($activeTab === 'gst')
+                        <span class="text-gray-500 font-medium">GST Output Tax (GSTR-1)</span>
+                    @elseif ($activeTab === 'cancellations')
+                        <span class="text-gray-500 font-medium">Cancellations & Refunds</span>
+                    @elseif ($activeTab === 'commission')
+                        <span class="text-gray-500 font-medium">Monthly Commission Summary</span>
+                    @elseif ($activeTab === 'payouts')
+                        <span class="text-gray-500 font-medium">Bank Payout History</span>
+                    @endif
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    @if ($activeTab === 'overview')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Financial & Operations Overview
+                    @elseif ($activeTab === 'bookings')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Bookings Ledger
+                    @elseif ($activeTab === 'passbook')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                        Wallet Passbook
+                    @elseif ($activeTab === 'turf-earnings')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Turf Earnings Breakdown
+                    @elseif ($activeTab === 'gst')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                        GST Output Tax (GSTR-1)
+                    @elseif ($activeTab === 'cancellations')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Cancellations & Refunds
+                    @elseif ($activeTab === 'commission')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        Monthly Commission Summary
+                    @elseif ($activeTab === 'payouts')
+                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+                        Bank Payout History
+                    @endif
+                </h1>
+                <p class="text-sm text-gray-600 mt-1">
+                    @if ($activeTab === 'overview')
+                        Executive period analytics, billing breakdown, pitch occupancy, and cash collections.
+                    @elseif ($activeTab === 'bookings')
+                        Audit-ready booking transaction logs with payment modes, status breakdowns, and customer details.
+                    @elseif ($activeTab === 'passbook')
+                        Account-wide ledger entries for owner wallet balance credits, debits, online booking settlements, and payouts.
+                    @elseif ($activeTab === 'turf-earnings')
+                        Revenue breakdown across your turfs including gross volume, platform fee, GST collected, and operator net share.
+                    @elseif ($activeTab === 'gst')
+                        B2C and B2B GST tax collection audit report with CGST, SGST, IGST liability, and SAC compliance.
+                    @elseif ($activeTab === 'cancellations')
+                        Tracking of cancelled slots, refund amounts, retention fees, and cancellation reasons.
+                    @elseif ($activeTab === 'commission')
+                        Detailed monthly statement of SaaS platform fees, GST on service commissions, and official tax invoices.
+                    @elseif ($activeTab === 'payouts')
+                        Comprehensive log of automated bank payouts, UTR numbers, settlement dates, and transfer statuses.
+                    @endif
+                </p>
+            </div>
+
+            <!-- Dynamic Export Button for Active Tab -->
+            <div class="flex flex-wrap items-center gap-2">
+                @if ($activeTab === 'overview')
+                    <a href="{{ route('reports.export-revenue', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Export Revenue Summary CSV
+                    </a>
+                    <a href="{{ route('reports.export-bookings', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Bookings CSV
+                    </a>
+                @elseif ($activeTab === 'bookings')
+                    <a href="{{ route('reports.export-bookings', ['start_date' => $startDate, 'end_date' => $endDate, 'status' => $statusFilter, 'payment_status' => $paymentStatusFilter]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Bookings CSV
+                    </a>
+                    <a href="{{ route('reports.export-revenue', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        Export Revenue Summary CSV
+                    </a>
+                @elseif ($activeTab === 'passbook')
+                    <a href="{{ route('reports.export-passbook', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Wallet Passbook CSV
+                    </a>
+                @elseif ($activeTab === 'turf-earnings')
+                    <a href="{{ route('reports.export-turf-earnings', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Turf Earnings CSV
+                    </a>
+                @elseif ($activeTab === 'gst')
+                    <a href="{{ route('reports.export-gst', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                        Export GSTR-1 CSV
+                    </a>
+                @elseif ($activeTab === 'cancellations')
+                    <a href="{{ route('reports.export-cancellations', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Cancellations CSV
+                    </a>
+                @elseif ($activeTab === 'commission')
+                    <a href="{{ route('reports.export-commission-summary', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Commission Summary CSV
+                    </a>
+                @elseif ($activeTab === 'payouts')
+                    <a href="{{ route('reports.export-payouts', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
+                       target="_blank"
+                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Export Payouts CSV
+                    </a>
+                @endif
+            </div>
+        </div>
+
+        @if ($activeTab === 'overview')
         <!-- Modern Period Analytics Dashboard -->
         <div class="space-y-6">
             <!-- Period Filter Controller Bar -->
@@ -394,134 +543,126 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
             </div>
-        </div>
+        
 
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-            <div>
-                <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1">
-                    <a href="{{ route('turf.reports.bookings') }}" wire:navigate class="hover:underline">Reports</a>
-                    <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    @if ($activeTab === 'bookings')
-                        <span class="text-gray-500 font-medium">Bookings Ledger</span>
-                    @elseif ($activeTab === 'passbook')
-                        <span class="text-gray-500 font-medium">Wallet Passbook</span>
-                    @elseif ($activeTab === 'turf-earnings')
-                        <span class="text-gray-500 font-medium">Turf Earnings Breakdown</span>
-                    @elseif ($activeTab === 'gst')
-                        <span class="text-gray-500 font-medium">GST Output Tax (GSTR-1)</span>
-                    @elseif ($activeTab === 'cancellations')
-                        <span class="text-gray-500 font-medium">Cancellations & Refunds</span>
-                    @elseif ($activeTab === 'commission')
-                        <span class="text-gray-500 font-medium">Monthly Commission Summary</span>
-                    @elseif ($activeTab === 'payouts')
-                        <span class="text-gray-500 font-medium">Bank Payout History</span>
-                    @endif
+                <!-- Detailed Reports Hub -->
+                <div class="mt-8 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-base font-bold text-gray-900">Financial Reports & Statements</h2>
+                            <p class="text-xs text-gray-500">Access specialized ledgers, tax documentation, and settlement audits.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        <!-- Bookings Ledger Card -->
+                        <a href="{{ route('turf.reports.bookings') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">Bookings Ledger</h3>
+                                <p class="text-xs text-gray-500 mt-1">Full audit trail of customer reservations, payment modes, and slot times.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>{{ number_format($confirmedBookingsCount) }} reservations</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+
+                        <!-- Wallet Passbook Card -->
+                        <a href="{{ route('turf.reports.passbook') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">Wallet Passbook</h3>
+                                <p class="text-xs text-gray-500 mt-1">Chronological credit and debit entries for owner master wallet.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>Balance & Settlements</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+
+                        <!-- Turf Earnings Breakdown Card -->
+                        <a href="{{ route('turf.reports.turf-earnings') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">Turf Earnings</h3>
+                                <p class="text-xs text-gray-500 mt-1">Net revenue share, commission, and tax breakdown across each turf.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>Turf-by-turf share</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+
+                        <!-- GST Output Tax Card -->
+                        <a href="{{ route('turf.reports.gst') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">GST Output Tax</h3>
+                                <p class="text-xs text-gray-500 mt-1">Taxable values, CGST, SGST, IGST liabilities for official return filing.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>GSTR-1 audit</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+
+                        <!-- Cancellations & Refunds Card -->
+                        <a href="{{ route('turf.reports.cancellations') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">Cancellations & Refunds</h3>
+                                <p class="text-xs text-gray-500 mt-1">Customer cancellation requests, retained fees, and refund statuses.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>{{ number_format($cancellationsCount) }} cancelled</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+
+                        <!-- Monthly Commission Card -->
+                        <a href="{{ route('turf.reports.commission') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">Monthly Commission</h3>
+                                <p class="text-xs text-gray-500 mt-1">Platform service fee deductions, GST on commissions, and monthly invoices.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>Commission invoices</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+
+                        <!-- Bank Payout History Card -->
+                        <a href="{{ route('turf.reports.payouts') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">Bank Payout History</h3>
+                                <p class="text-xs text-gray-500 mt-1">Automated bank settlements, UTR tracking, and historical transfer records.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>UTR & Settlements</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+                    </div>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    @if ($activeTab === 'bookings')
-                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Bookings Ledger
-                    @elseif ($activeTab === 'passbook')
-                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                        Wallet Passbook
-                    @elseif ($activeTab === 'turf-earnings')
-                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Turf Earnings Breakdown
-                    @elseif ($activeTab === 'gst')
-                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/></svg>
-                        GST Output Tax (GSTR-1)
-                    @elseif ($activeTab === 'cancellations')
-                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        Cancellations & Refunds
-                    @elseif ($activeTab === 'commission')
-                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                        Monthly Commission Summary
-                    @elseif ($activeTab === 'payouts')
-                        <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
-                        Bank Payout History
-                    @endif
-                </h1>
-                <p class="text-sm text-gray-600 mt-1">
-                    @if ($activeTab === 'bookings')
-                        Audit-ready booking transaction logs with payment modes, status breakdowns, and customer details.
-                    @elseif ($activeTab === 'passbook')
-                        Account-wide ledger entries for owner wallet balance credits, debits, online booking settlements, and payouts.
-                    @elseif ($activeTab === 'turf-earnings')
-                        Revenue breakdown across your turfs including gross volume, platform fee, GST collected, and operator net share.
-                    @elseif ($activeTab === 'gst')
-                        B2C and B2B GST tax collection audit report with CGST, SGST, IGST liability, and SAC compliance.
-                    @elseif ($activeTab === 'cancellations')
-                        Tracking of cancelled slots, refund amounts, retention fees, and cancellation reasons.
-                    @elseif ($activeTab === 'commission')
-                        Detailed monthly statement of SaaS platform fees, GST on service commissions, and official tax invoices.
-                    @elseif ($activeTab === 'payouts')
-                        Comprehensive log of automated bank payouts, UTR numbers, settlement dates, and transfer statuses.
-                    @endif
-                </p>
-            </div>
-
-            <!-- Dynamic Export Button for Active Tab -->
-            <div class="flex flex-wrap items-center gap-2">
-                @if ($activeTab === 'bookings')
-                    <a href="{{ route('reports.export-bookings', ['start_date' => $startDate, 'end_date' => $endDate, 'status' => $statusFilter, 'payment_status' => $paymentStatusFilter]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export Bookings CSV
-                    </a>
-                    <a href="{{ route('reports.export-revenue', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-                        Export Revenue Summary CSV
-                    </a>
-                @elseif ($activeTab === 'passbook')
-                    <a href="{{ route('reports.export-passbook', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export Wallet Passbook CSV
-                    </a>
-                @elseif ($activeTab === 'turf-earnings')
-                    <a href="{{ route('reports.export-turf-earnings', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export Turf Earnings CSV
-                    </a>
-                @elseif ($activeTab === 'gst')
-                    <a href="{{ route('reports.export-gst', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export GSTR-1 CSV
-                    </a>
-                @elseif ($activeTab === 'cancellations')
-                    <a href="{{ route('reports.export-cancellations', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export Cancellations CSV
-                    </a>
-                @elseif ($activeTab === 'commission')
-                    <a href="{{ route('reports.export-commission-summary', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export Commission Summary CSV
-                    </a>
-                @elseif ($activeTab === 'payouts')
-                    <a href="{{ route('reports.export-payouts', ['start_date' => $startDate, 'end_date' => $endDate]) }}" 
-                       target="_blank"
-                       class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        Export Payouts CSV
-                    </a>
-                @endif
-            </div>
         </div>
-
+        @else
         <!-- Filter Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div class="flex flex-wrap items-center justify-between gap-4 mb-4 pb-4 border-b border-gray-100">
@@ -677,6 +818,7 @@ new #[Layout('layouts.app')] class extends Component
             @include('livewire.turf.reports._commission-tab', ['data' => $commissionData])
         @elseif ($activeTab === 'payouts' && $payoutData)
             @include('livewire.turf.reports._payouts-tab', ['data' => $payoutData])
+        @endif
         @endif
     </div>
 </div>

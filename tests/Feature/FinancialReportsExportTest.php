@@ -478,6 +478,8 @@ class FinancialReportsExportTest extends TestCase
         $this->actingAs($this->owner);
 
         $routes = [
+            'turf.reports' => 'Financial & Operations Overview',
+            'turf.reports.overview' => 'Financial & Operations Overview',
             'turf.reports.bookings' => 'Bookings Ledger',
             'turf.reports.passbook' => 'Wallet Passbook',
             'turf.reports.turf-earnings' => 'Turf Earnings Breakdown',
@@ -490,8 +492,9 @@ class FinancialReportsExportTest extends TestCase
         foreach ($routes as $route => $expectedTitle) {
             $response = $this->get(route($route));
             $response->assertStatus(200);
-            $response->assertSee($expectedTitle);
+            $response->assertSee($expectedTitle, false);
             // Verify sidebar links are rendered
+            $response->assertSee(route('turf.reports.overview'));
             $response->assertSee(route('turf.reports.bookings'));
             $response->assertSee(route('turf.reports.passbook'));
             $response->assertSee(route('turf.reports.turf-earnings'));
