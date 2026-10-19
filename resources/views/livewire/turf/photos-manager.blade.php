@@ -37,6 +37,13 @@ new #[Layout('layouts.app')] class extends Component
         $this->showUploadModal = false;
     }
 
+    public function updatedPhotoFile()
+    {
+        $this->validate([
+            'photoFile' => 'required|image|max:2048',
+        ]);
+    }
+
     public function uploadPhoto()
     {
         $this->validate([
@@ -310,14 +317,25 @@ new #[Layout('layouts.app')] class extends Component
 
                             <!-- Upload Preview -->
                             @if ($photoFile && !$errors->has('photoFile'))
-                                <div class="mt-4">
-                                    <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                                        {{ __('Image Preview') }}
-                                    </label>
-                                    <div class="aspect-video w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-                                        <img src="{{ $photoFile->temporaryUrl() }}" class="w-full h-full object-cover">
+                                @php
+                                    $isImage = false;
+                                    try {
+                                        if (method_exists($photoFile, 'getClientOriginalExtension')) {
+                                            $ext = strtolower($photoFile->getClientOriginalExtension());
+                                            $isImage = in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg']);
+                                        }
+                                    } catch (\Throwable $e) {}
+                                @endphp
+                                @if ($isImage)
+                                    <div class="mt-4">
+                                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                                            {{ __('Image Preview') }}
+                                        </label>
+                                        <div class="aspect-video w-full rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
+                                            <img src="{{ $photoFile->temporaryUrl() }}" class="w-full h-full object-cover">
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                             @endif
 
                             <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
