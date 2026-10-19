@@ -36,6 +36,10 @@ Route::get('dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+Route::get('/bookings/{booking}/invoice', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'show'])
+    ->middleware(['auth'])
+    ->name('bookings.invoice');
+
 Route::view('profile', 'profile')
     ->middleware(['auth'])
     ->name('profile');
