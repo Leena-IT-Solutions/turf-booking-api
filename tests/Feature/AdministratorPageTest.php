@@ -90,5 +90,50 @@ class AdministratorPageTest extends TestCase
         $response = $this->actingAs($admin)->get('/saas/administrator');
         $response->assertOk();
         $response->assertSee('SaaS Business Analytics');
+        $response->assertSee('PERIOD:');
+        $response->assertSee('TOTAL GMV');
+        $response->assertSee('SAAS EARNINGS');
+        $response->assertSee('NETWORK BOOKINGS');
+    }
+
+    public function test_saas_admin_can_access_saas_reports_route(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $response = $this->actingAs($admin)->get('/saas/reports');
+        $response->assertOk();
+        $response->assertSee('Network Financial & Operations Reports');
+        $response->assertSee('PERIOD:');
+        $response->assertSee('TOTAL GMV');
+        $response->assertSee('Network Bookings Ledger');
+    }
+
+    public function test_saas_reports_manager_component_interactions(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $this->actingAs($admin);
+
+        \Livewire\Volt\Volt::test('saas.reports-manager')
+            ->assertSee('PERIOD:')
+            ->assertSee('TOTAL GMV')
+            ->assertSee('SAAS EARNINGS')
+            ->assertSee('PENDING PAYOUTS')
+            ->assertSee('AVG ORDER VALUE')
+            ->assertSee('NETWORK BOOKINGS')
+            ->assertSee('ACTIVE TURFS')
+            ->assertSee('ACTIVE PLAYERS')
+            ->assertSee('CANCELLATIONS')
+            ->call('setPeriod', 'day')
+            ->assertSet('period', 'day')
+            ->call('nextPeriod')
+            ->call('prevPeriod')
+            ->call('goToToday')
+            ->call('setPeriod', 'year')
+            ->assertSet('period', 'year')
+            ->call('setPeriod', 'all')
+            ->assertSet('period', 'all');
     }
 }

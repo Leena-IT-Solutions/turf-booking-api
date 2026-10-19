@@ -447,4 +447,29 @@ class FinancialReportsExportTest extends TestCase
             ->call('switchTab', 'payouts')
             ->assertSee('Account-Wide Bank Payout History');
     }
+
+    public function test_reports_manager_period_filter_and_kpi_cards()
+    {
+        $this->actingAs($this->owner);
+
+        Volt::test('turf.reports-manager')
+            ->assertSee('PERIOD:')
+            ->assertSee('TOTAL BILLING')
+            ->assertSee('TOTAL RECEIVED')
+            ->assertSee('PENDING PAYMENTS')
+            ->assertSee('AVG BOOKING VALUE')
+            ->assertSee('TOTAL BOOKINGS')
+            ->assertSee('PITCH OCCUPANCY')
+            ->assertSee('SHOW-UP RATE')
+            ->assertSee('CANCELLATIONS')
+            ->call('setPeriod', 'day')
+            ->assertSet('period', 'day')
+            ->call('nextPeriod')
+            ->call('prevPeriod')
+            ->call('goToToday')
+            ->call('setPeriod', 'year')
+            ->assertSet('period', 'year')
+            ->call('setPeriod', 'all')
+            ->assertSet('period', 'all');
+    }
 }

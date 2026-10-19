@@ -13,6 +13,8 @@ use Livewire\Volt\Component;
 new #[Layout('layouts.app')] class extends Component
 {
     public string $activeTab = 'bookings';
+    public string $period = 'month'; // 'day', 'month', 'year', 'all'
+    public string $cursorDate = '';
     public string $startDate = '';
     public string $endDate = '';
     public string $statusFilter = 'all';
@@ -26,8 +28,70 @@ new #[Layout('layouts.app')] class extends Component
 
     public function mount()
     {
-        $this->startDate = Carbon::now('Asia/Kolkata')->startOfMonth()->toDateString();
-        $this->endDate = Carbon::now('Asia/Kolkata')->endOfMonth()->toDateString();
+        $now = Carbon::now('Asia/Kolkata');
+        $this->cursorDate = $now->toDateString();
+        $this->updateDateRange();
+    }
+
+    public function setPeriod(string $p)
+    {
+        $this->period = $p;
+        $this->updateDateRange();
+    }
+
+    public function prevPeriod()
+    {
+        if ($this->period === 'all') return;
+        $d = Carbon::parse($this->cursorDate ?: Carbon::now('Asia/Kolkata')->toDateString(), 'Asia/Kolkata');
+        if ($this->period === 'day') {
+            $this->cursorDate = $d->subDay()->toDateString();
+        } elseif ($this->period === 'month') {
+            $this->cursorDate = $d->subMonth()->toDateString();
+        } elseif ($this->period === 'year') {
+            $this->cursorDate = $d->subYear()->toDateString();
+        }
+        $this->updateDateRange();
+    }
+
+    public function nextPeriod()
+    {
+        if ($this->period === 'all') return;
+        $d = Carbon::parse($this->cursorDate ?: Carbon::now('Asia/Kolkata')->toDateString(), 'Asia/Kolkata');
+        if ($this->period === 'day') {
+            $this->cursorDate = $d->addDay()->toDateString();
+        } elseif ($this->period === 'month') {
+            $this->cursorDate = $d->addMonth()->toDateString();
+        } elseif ($this->period === 'year') {
+            $this->cursorDate = $d->addYear()->toDateString();
+        }
+        $this->updateDateRange();
+    }
+
+    public function goToToday()
+    {
+        $this->cursorDate = Carbon::now('Asia/Kolkata')->toDateString();
+        if ($this->period === 'all') {
+            $this->period = 'month';
+        }
+        $this->updateDateRange();
+    }
+
+    protected function updateDateRange()
+    {
+        $d = Carbon::parse($this->cursorDate ?: Carbon::now('Asia/Kolkata')->toDateString(), 'Asia/Kolkata');
+        if ($this->period === 'day') {
+            $this->startDate = $d->copy()->startOfDay()->toDateString();
+            $this->endDate = $d->copy()->endOfDay()->toDateString();
+        } elseif ($this->period === 'month') {
+            $this->startDate = $d->copy()->startOfMonth()->toDateString();
+            $this->endDate = $d->copy()->endOfMonth()->toDateString();
+        } elseif ($this->period === 'year') {
+            $this->startDate = $d->copy()->startOfYear()->toDateString();
+            $this->endDate = $d->copy()->endOfYear()->toDateString();
+        } else { // 'all'
+            $this->startDate = '2020-01-01';
+            $this->endDate = Carbon::now('Asia/Kolkata')->endOfDay()->toDateString();
+        }
     }
 
     public function switchTab(string $tab)
@@ -37,16 +101,14 @@ new #[Layout('layouts.app')] class extends Component
 
     public function setQuickFilter(string $range)
     {
-        $now = Carbon::now('Asia/Kolkata');
         if ($range === 'today') {
-            $this->startDate = $now->toDateString();
-            $this->endDate = $now->toDateString();
+            $this->setPeriod('day');
         } elseif ($range === 'week') {
+            $now = Carbon::now('Asia/Kolkata');
             $this->startDate = $now->copy()->startOfWeek()->toDateString();
             $this->endDate = $now->copy()->endOfWeek()->toDateString();
         } elseif ($range === 'month') {
-            $this->startDate = $now->copy()->startOfMonth()->toDateString();
-            $this->endDate = $now->copy()->endOfMonth()->toDateString();
+            $this->setPeriod('month');
         }
     }
 }; ?>
@@ -59,10 +121,25 @@ new #[Layout('layouts.app')] class extends Component
             $manageableTurfIds = Turf::manageable($user)->pluck('id')->toArray();
             $reportService = app(ReportService::class);
 
+            // Compute dynamic Period Label
+            $d = Carbon::parse($this->cursorDate ?: Carbon::now('Asia/Kolkata')->toDateString(), 'Asia/Kolkata');
+            if ($this->period === 'day') {
+                $periodLabel = $d->isToday() ? 'Today (' . $d->format('d M Y') . ')' : $d->format('d M Y');
+            } elseif ($this->period === 'month') {
+                $periodLabel = $d->isCurrentMonth() ? 'This Month (' . $d->format('F Y') . ')' : $d->format('F Y');
+            } elseif ($this->period === 'year') {
+                $periodLabel = $d->isCurrentYear() ? 'This Year (' . $d->format('Y') . ')' : $d->format('Y');
+            } else {
+                $periodLabel = 'All Time';
+            }
+
             // Fetch statistics for bookings tab
-            $bookingsQuery = Booking::with(['bookingDates', 'payments', 'turf', 'user'])
-                ->whereHas('bookingDates', function ($q) {
-                    $q->whereBetween('booking_date', [$this->startDate, $this->endDate]);
+            $bookingsQuery = Booking::with(['bookingDates.bookingSlots', 'payments', 'turf', 'user', 'bookingCancellations'])
+                ->where(function ($q) {
+                    $q->whereBetween('created_at', [$this->startDate . ' 00:00:00', $this->endDate . ' 23:59:59'])
+                      ->orWhereHas('bookingDates', function ($bq) {
+                          $bq->whereBetween('booking_date', [$this->startDate, $this->endDate]);
+                      });
                 });
 
             if ($activeTurfId && in_array($activeTurfId, $manageableTurfIds)) {
@@ -70,6 +147,8 @@ new #[Layout('layouts.app')] class extends Component
             } else {
                 $bookingsQuery->whereIn('turf_id', $manageableTurfIds);
             }
+
+            $allScopeBookings = (clone $bookingsQuery)->get();
 
             if ($this->statusFilter !== 'all') {
                 $bookingsQuery->where('status', $this->statusFilter);
@@ -80,15 +159,46 @@ new #[Layout('layouts.app')] class extends Component
 
             $bookings = $bookingsQuery->orderBy('created_at', 'desc')->get();
 
-            $totalBookingsCount = $bookings->count();
-            $totalAmountSum = 0.00;
-            $totalPaidSum = 0.00;
+            // Financial Metrics Calculations
+            $confirmedBookings = $allScopeBookings->where('status', 'Confirmed');
+            $totalBilling = 0.00;
+            $totalReceived = 0.00;
+            $slotsUtilized = 0;
 
-            foreach ($bookings as $b) {
-                $totalAmountSum += (float)$b->bookingDates->where('status', '!=', 'Cancelled')->sum('amount');
-                $totalPaidSum += (float)$b->payments->where('status', 'Success')->sum('amount');
+            foreach ($confirmedBookings as $b) {
+                $totalBilling += (float)($b->total_amount ?: $b->bookingDates->where('status', '!=', 'Cancelled')->sum('amount'));
+                $totalReceived += (float)$b->payments->where('status', 'Success')->sum('amount');
+                foreach ($b->bookingDates as $bd) {
+                    if ($bd->status !== 'Cancelled') {
+                        $slotsUtilized += $bd->bookingSlots->count() ?: 1;
+                    }
+                }
             }
-            $totalOutstandingBalance = max(0.00, $totalAmountSum - $totalPaidSum);
+
+            $pendingPayments = max(0.00, $totalBilling - $totalReceived);
+            $collectionPercentage = $totalBilling > 0 ? round(($totalReceived / $totalBilling) * 100, 1) : 0.0;
+            $confirmedBookingsCount = $confirmedBookings->count();
+            $avgBookingValue = $confirmedBookingsCount > 0 ? ($totalBilling / $confirmedBookingsCount) : 0.00;
+
+            // Operational Metrics
+            $daysInPeriod = max(1, Carbon::parse($this->startDate)->diffInDays(Carbon::parse($this->endDate)) + 1);
+            $turfsCountInScope = max(1, count($activeTurfId && in_array($activeTurfId, $manageableTurfIds) ? [$activeTurfId] : $manageableTurfIds));
+            $totalCapacitySlots = $this->period === 'all' ? max(1, $slotsUtilized) : ($daysInPeriod * 16 * $turfsCountInScope);
+            $pitchOccupancy = $totalCapacitySlots > 0 ? min(100.0, round(($slotsUtilized / $totalCapacitySlots) * 100, 1)) : 0.0;
+
+            $checkedInOrPaidCount = $confirmedBookings->filter(function($b) {
+                return $b->payment_status === 'Paid' || (float)$b->balance_amount <= 0;
+            })->count();
+            $showUpRate = $confirmedBookingsCount > 0 ? round(($checkedInOrPaidCount / $confirmedBookingsCount) * 100, 1) : 100.0;
+
+            $cancelledBookings = $allScopeBookings->where('status', 'Cancelled');
+            $cancellationsCount = $cancelledBookings->count();
+            $totalRefunded = $cancelledBookings->sum('refund_amount');
+
+            $totalBookingsCount = $bookings->count();
+            $totalOutstandingBalance = $pendingPayments;
+            $totalAmountSum = $totalBilling;
+            $totalPaidSum = $totalReceived;
 
             // Fetch tab data on demand
             $passbookData = $activeTab === 'passbook' ? $reportService->getWalletPassbookSummary($user, $this->startDate, $this->endDate) : null;
@@ -98,6 +208,176 @@ new #[Layout('layouts.app')] class extends Component
             $commissionData = $activeTab === 'commission' ? $reportService->getCommissionFeeSummary($user, $this->startDate, $this->endDate) : null;
             $payoutData = $activeTab === 'payouts' ? $reportService->getPayoutHistorySummary($user, $this->startDate, $this->endDate) : null;
         @endphp
+
+        <!-- Modern Period Analytics Dashboard -->
+        <div class="space-y-6">
+            <!-- Period Filter Controller Bar -->
+            <div class="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <!-- Left: Period Pills -->
+                <div class="flex items-center gap-2.5">
+                    <span class="text-xs font-black uppercase text-gray-500 tracking-wider">PERIOD:</span>
+                    <div class="inline-flex p-1 bg-gray-100/90 rounded-full border border-gray-200/80">
+                        <button type="button" wire:click="setPeriod('day')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'day' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Day</button>
+                        <button type="button" wire:click="setPeriod('month')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'month' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Month</button>
+                        <button type="button" wire:click="setPeriod('year')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'year' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">Year</button>
+                        <button type="button" wire:click="setPeriod('all')" class="px-4 py-1.5 rounded-full text-xs font-bold transition {{ $period === 'all' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900' }}">All Time</button>
+                    </div>
+                </div>
+
+                <!-- Right: Prev / Calendar Pill / Next / Today -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" wire:click="prevPeriod" class="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Prev
+                    </button>
+
+                    <div class="px-4 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-800 bg-white flex items-center gap-2 shadow-2xs">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        <span>{{ $periodLabel }}</span>
+                    </div>
+
+                    <button type="button" wire:click="nextPeriod" class="px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition flex items-center gap-1">
+                        Next
+                        <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+
+                    <button type="button" wire:click="goToToday" class="px-4 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-700 bg-white hover:bg-gray-50 shadow-2xs transition">
+                        Today
+                    </button>
+                </div>
+            </div>
+
+            <!-- Row 1: FINANCIAL SUMMARY -->
+            <div class="space-y-3">
+                <div class="text-xs font-black uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                    <span>FINANCIAL SUMMARY</span>
+                    <span class="text-emerald-600 font-bold lowercase">({{ $periodLabel }})</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- TOTAL BILLING -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-blue-500 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">TOTAL BILLING</span>
+                            <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">₹{{ number_format($totalBilling, 2) }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Billed in selected period</div>
+                        </div>
+                    </div>
+
+                    <!-- TOTAL RECEIVED -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-emerald-500 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">TOTAL RECEIVED</span>
+                            <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">₹{{ number_format($totalReceived, 2) }}</div>
+                            <div class="text-xs font-bold text-emerald-600 mt-1">{{ $collectionPercentage }}% collected</div>
+                        </div>
+                    </div>
+
+                    <!-- PENDING PAYMENTS -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-rose-500 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">PENDING PAYMENTS</span>
+                            <span class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">₹{{ number_format($pendingPayments, 2) }}</div>
+                            <div class="text-xs font-bold text-rose-600 mt-1">Uncollected balance</div>
+                        </div>
+                    </div>
+
+                    <!-- AVG BOOKING VALUE -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-purple-500 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">AVG BOOKING VALUE</span>
+                            <span class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">₹{{ number_format($avgBookingValue, 2) }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Per booking ticket size</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: BOOKINGS & PITCH OPERATIONS -->
+            <div class="space-y-3">
+                <div class="text-xs font-black uppercase tracking-wider text-gray-500">
+                    BOOKINGS & PITCH OPERATIONS
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- TOTAL BOOKINGS -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-cyan-500 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">TOTAL BOOKINGS</span>
+                            <span class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">{{ number_format($confirmedBookingsCount) }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Confirmed reservations</div>
+                        </div>
+                    </div>
+
+                    <!-- PITCH OCCUPANCY -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-amber-500 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">PITCH OCCUPANCY</span>
+                            <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">{{ $pitchOccupancy }}%</div>
+                            <div class="text-xs text-gray-400 mt-1">{{ $slotsUtilized }} slot(s) utilized</div>
+                        </div>
+                    </div>
+
+                    <!-- SHOW-UP RATE -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-teal-500 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">SHOW-UP RATE</span>
+                            <span class="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">{{ $showUpRate }}%</div>
+                            <div class="text-xs text-gray-400 mt-1">{{ $checkedInOrPaidCount }} players checked-in</div>
+                        </div>
+                    </div>
+
+                    <!-- CANCELLATIONS -->
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-slate-700 relative transition hover:shadow-md">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">CANCELLATIONS</span>
+                            <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            </span>
+                        </div>
+                        <div class="mt-3">
+                            <div class="text-2xl sm:text-3xl font-black text-gray-900 font-mono tracking-tight">{{ number_format($cancellationsCount) }}</div>
+                            <div class="text-xs text-gray-400 mt-1">Cancelled bookings {{ $totalRefunded > 0 ? '(₹' . number_format($totalRefunded, 0) . ' refunded)' : '' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">

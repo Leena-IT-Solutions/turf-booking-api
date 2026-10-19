@@ -113,6 +113,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:saas-admin')
         ->name('saas.administrator');
 
+    Volt::route('saas/reports', 'saas.reports-manager')
+        ->middleware('role:saas-admin')
+        ->name('saas.reports');
+
     Volt::route('saas/contact-messages', 'saas.contact-messages')
         ->middleware('role:saas-admin')
         ->name('saas.contact-messages');
