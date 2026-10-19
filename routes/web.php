@@ -196,6 +196,27 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('turf/reports', 'turf.reports-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.reports');
+    Volt::route('turf/reports/bookings', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports.bookings');
+    Volt::route('turf/reports/passbook', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports.passbook');
+    Volt::route('turf/reports/turf-earnings', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports.turf-earnings');
+    Volt::route('turf/reports/gst', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports.gst');
+    Volt::route('turf/reports/cancellations', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports.cancellations');
+    Volt::route('turf/reports/commission', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports.commission');
+    Volt::route('turf/reports/payouts', 'turf.reports-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.reports.payouts');
     Route::get('/turf/reports/export-bookings', [\App\Http\Controllers\ReportController::class, 'exportBookings'])
         ->middleware('role:turf-admin|manager|admin')
         ->name('reports.export-bookings');

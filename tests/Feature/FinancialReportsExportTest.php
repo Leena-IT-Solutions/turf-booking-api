@@ -472,4 +472,33 @@ class FinancialReportsExportTest extends TestCase
             ->call('setPeriod', 'all')
             ->assertSet('period', 'all');
     }
+
+    public function test_each_report_route_renders_proper_page_with_correct_title()
+    {
+        $this->actingAs($this->owner);
+
+        $routes = [
+            'turf.reports.bookings' => 'Bookings Ledger',
+            'turf.reports.passbook' => 'Wallet Passbook',
+            'turf.reports.turf-earnings' => 'Turf Earnings Breakdown',
+            'turf.reports.gst' => 'GST Output Tax (GSTR-1)',
+            'turf.reports.cancellations' => 'Cancellations & Refunds',
+            'turf.reports.commission' => 'Monthly Commission Summary',
+            'turf.reports.payouts' => 'Bank Payout History',
+        ];
+
+        foreach ($routes as $route => $expectedTitle) {
+            $response = $this->get(route($route));
+            $response->assertStatus(200);
+            $response->assertSee($expectedTitle);
+            // Verify sidebar links are rendered
+            $response->assertSee(route('turf.reports.bookings'));
+            $response->assertSee(route('turf.reports.passbook'));
+            $response->assertSee(route('turf.reports.turf-earnings'));
+            $response->assertSee(route('turf.reports.gst'));
+            $response->assertSee(route('turf.reports.cancellations'));
+            $response->assertSee(route('turf.reports.commission'));
+            $response->assertSee(route('turf.reports.payouts'));
+        }
+    }
 }
