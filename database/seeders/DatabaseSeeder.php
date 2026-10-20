@@ -27,17 +27,6 @@ class DatabaseSeeder extends Seeder
         $this->call(SportSeeder::class);
         $this->call(PaymentGatewayChargeSeeder::class);
         $this->call(SubscriptionPackageSeeder::class);
-
-        $sandeep = User::firstOrCreate([
-            'email' => 'sandeep198558@gmail.com',
-        ], [
-            'name' => 'Sandeep Rathod',
-            'mobile' => '9664588677',
-            'password' => Hash::make('password'),
-        ]);
-        
-        $sandeep->roles()->sync(
-            \App\Models\Role::whereIn('name', ['saas-admin', 'customer'])->pluck('id')->toArray()
-        );
+        $this->call(UserSeeder::class);
     }
 }
