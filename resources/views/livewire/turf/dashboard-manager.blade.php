@@ -234,11 +234,11 @@ new #[Layout('layouts.app')] class extends Component
 
                 <!-- Quick Action Buttons -->
                 <div class="flex items-center gap-2 self-start sm:self-auto">
-                    <a href="{{ route('turf.client-bookings') }}" wire:navigate class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition duration-150">
+                    <a href="{{ route('turf.bookings') }}" wire:navigate class="inline-flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs transition duration-150">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
-                        <span>{{ __('New Booking') }}</span>
+                        <span>{{ __('Show Bookings') }}</span>
                     </a>
                     <a href="{{ route('turf.slot-locks') }}" wire:navigate class="inline-flex items-center gap-1.5 px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-xl text-xs font-semibold transition duration-150">
                         <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
