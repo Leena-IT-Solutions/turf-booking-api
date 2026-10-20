@@ -322,7 +322,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="w-full space-y-5">
+<div class="space-y-6">
 
     <!-- Flash Notifications -->
     @if (session('status'))

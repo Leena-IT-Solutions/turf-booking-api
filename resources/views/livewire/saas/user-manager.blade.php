@@ -212,8 +212,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="sm:px-6 lg:px-8 space-y-6">
+<div class="space-y-6">
         
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 shadow-sm rounded-3xl border border-gray-100">
@@ -496,5 +495,4 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @endif
 
-    </div>
 </div>

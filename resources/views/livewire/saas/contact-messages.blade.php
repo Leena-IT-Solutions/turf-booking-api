@@ -103,9 +103,9 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div x-data="{ detailModal: @entangle('showDetailModal'), deleteConfirm: @entangle('showDeleteConfirm') }" class="p-6 space-y-6">
-    <!-- Breadcrumbs -->
-    <div class="flex items-center justify-between">
+<div x-data="{ detailModal: @entangle('showDetailModal'), deleteConfirm: @entangle('showDeleteConfirm') }" class="space-y-6">
+    <!-- Header Card -->
+    <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-xl font-bold text-gray-900">{{ __('Contact Messages') }}</h1>
             <p class="text-xs text-gray-500 mt-1">{{ __('Manage and review inquiries submitted by users through the contact form.') }}</p>

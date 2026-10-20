@@ -104,9 +104,8 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="sm:px-6 lg:px-8 space-y-6">
-        <!-- Header Card -->
+<div class="space-y-6">
+    <!-- Header Card -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 shadow-sm rounded-3xl border border-gray-100">
             <div class="flex items-center gap-3.5">
                 <div class="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-sm shrink-0">
@@ -341,5 +340,4 @@ new #[Layout('layouts.app')] class extends Component
                 </table>
             </div>
         </div>
-    </div>
 </div>

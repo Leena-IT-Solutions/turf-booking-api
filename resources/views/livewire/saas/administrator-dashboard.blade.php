@@ -229,8 +229,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6 w-full">
-    <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
+<div class="space-y-6">
         
         <!-- Welcome banner -->
         <div class="bg-white p-6 shadow-sm rounded-3xl border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -620,4 +619,3 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
     </div>
-</div>

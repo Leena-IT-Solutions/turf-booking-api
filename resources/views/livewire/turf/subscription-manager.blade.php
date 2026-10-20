@@ -723,7 +723,8 @@ new #[Layout('layouts.app')] class extends Component
             rzp.on('payment.failed', function (response) {
                 alert("Payment Failed: " + (response.error.description || "Transaction cancelled."));
             });
-            rzp.open();
         });
     });
 </script>
+</div>
+

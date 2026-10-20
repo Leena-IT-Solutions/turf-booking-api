@@ -238,9 +238,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6" x-data="{ verifyModal: @entangle('showVerifyModal') }">
-    <div class="sm:px-6 lg:px-8 space-y-6">
-        
+<div class="space-y-6" x-data="{ verifyModal: @entangle('showVerifyModal') }">
         <!-- Header Section -->
         <div class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -376,8 +374,6 @@ new #[Layout('layouts.app')] class extends Component
                 {{ $turfs->links() }}
             </div>
         @endif
-
-    </div>
 
     <!-- Verify Details Modal Dialog -->
     <div 

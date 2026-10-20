@@ -206,8 +206,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="w-full sm:px-6 lg:px-8 space-y-6">
+<div class="space-y-6">
 
         <!-- Top Header Card -->
         <div class="bg-white p-6 sm:p-8 shadow-sm rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -674,5 +673,4 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @endif
 
-    </div>
 </div>

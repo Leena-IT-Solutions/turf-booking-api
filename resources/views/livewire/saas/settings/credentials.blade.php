@@ -160,9 +160,8 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="py-6">
-    <div class="sm:px-6 lg:px-8 space-y-6">
-        <!-- Top Tab Bar -->
+<div class="space-y-6">
+    <!-- Top Tab Bar -->
         @include('livewire.saas.settings.tabs', ['active' => 'credentials'])
 
         <form wire:submit="saveSettings" class="space-y-6">
@@ -379,5 +378,4 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             </div>
         </form>
-    </div>
 </div>

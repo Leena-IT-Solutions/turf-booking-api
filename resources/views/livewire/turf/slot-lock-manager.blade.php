@@ -151,10 +151,9 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="w-full">
-    <div class="w-full space-y-6">
-        <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2">
                     <svg class="w-7 h-7 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -302,5 +301,4 @@ new #[Layout('layouts.app')] class extends Component
                 @endforeach
             </div>
         @endif
-    </div>
 </div>

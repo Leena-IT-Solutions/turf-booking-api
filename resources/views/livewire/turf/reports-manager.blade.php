@@ -132,8 +132,7 @@ new #[Layout('layouts.app')] class extends Component
     }
 }; ?>
 
-<div class="w-full">
-    <div class="w-full space-y-6">
+<div class="space-y-6">
         @php
             $user = auth()->user();
             $activeTurfId = session('active_turf_id');
@@ -229,7 +228,7 @@ new #[Layout('layouts.app')] class extends Component
         @endphp
 
         <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
                 <div class="flex items-center gap-2 text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-1">
                     <a href="{{ route('turf.reports.overview') }}" wire:navigate class="hover:underline">Reports</a>
@@ -798,5 +797,4 @@ new #[Layout('layouts.app')] class extends Component
             @include('livewire.turf.reports._payouts-tab', ['data' => $payoutData])
         @endif
         @endif
-    </div>
 </div>
