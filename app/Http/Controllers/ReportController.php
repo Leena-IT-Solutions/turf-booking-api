@@ -9,6 +9,7 @@ use App\Models\CommissionWalletTransaction;
 use App\Models\Payment;
 use App\Models\Turf;
 use App\Models\TurfPayout;
+use App\Services\WalletLedgerService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -203,51 +204,83 @@ class ReportController extends Controller
     }
 
     /**
-     * 1. Export Wallet Passbook Statement (Account-wide, running balance preserved).
+     * 1. Export Wallet Passbook Statement (Account-wide, running balance preserved, Part 5 layout).
      */
     public function exportWalletPassbook(Request $request): StreamedResponse
     {
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
-        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
-        $ownerId = auth()->user()->getOwnerId();
+        $startDate = $request->input('start_date', Carbon::now('Asia/Kolkata')->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now('Asia/Kolkata')->endOfMonth()->toDateString());
+        $group = $request->input('group', 'all');
+        $groupFilter = ($group && $group !== 'all') ? $group : null;
+        $includeZero = (bool) $request->input('zero', false);
 
-        $txs = CommissionWalletTransaction::where('user_id', $ownerId)
-            ->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(),
-                Carbon::parse($endDate)->endOfDay()
-            ])
+        /** @var WalletLedgerService $service */
+        $service = app(WalletLedgerService::class);
+        $user = auth()->user();
+        $owner = $service->ownerFor($user);
+
+        $summary = $service->summary($owner, $startDate, $endDate);
+
+        $query = $service->query($owner, $startDate, $endDate, $groupFilter, $includeZero);
+        // Overwrite the order to OLDEST FIRST (accounting order)
+        $txs = $query->reorder()
+            ->orderBy('created_at', 'asc')
             ->orderBy('id', 'asc')
             ->get();
 
         $filename = 'wallet_passbook_' . $startDate . '_to_' . $endDate . '.csv';
 
-        return response()->streamDownload(function () use ($txs) {
+        return response()->streamDownload(function () use ($txs, $owner, $startDate, $endDate, $summary) {
             $handle = fopen('php://output', 'w');
             fputs($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            fputcsv($handle, ['# Wallet Passbook Statement (Account-Wide across all owned turfs)']);
+            fputcsv($handle, ['# Wallet Passbook — ' . $owner->name . ' — ' . $startDate . ' to ' . $endDate]);
+            fputcsv($handle, ['Opening balance (INR)', number_format($summary['opening_balance'], 2, '.', '')]);
+            fputcsv($handle, ['Closing balance (INR)', number_format($summary['closing_balance'], 2, '.', '')]);
+            fputcsv($handle, []);
+
             fputcsv($handle, [
-                'Tx ID',
-                'Date & Time',
-                'Transaction Type',
+                'Date',
+                'Time',
+                'Booking',
+                'Turf',
+                'Type',
                 'Description',
                 'Amount (INR)',
-                'Running Balance (INR)',
+                'Balance After (INR)',
             ]);
 
             foreach ($txs as $tx) {
                 $amount = (float) $tx->amount;
                 $label = CommissionWalletTransaction::typeLabel($tx->type, $amount);
+                $cleanType = trim(preg_replace('/^[+\-]\s*/', '', $label));
+
+                $booking = WalletLedgerService::bookingFor($tx);
+                if ($booking) {
+                    $bookingCol = $booking->booking_reference ?? ('#' . $booking->id);
+                } elseif ($tx->reference instanceof TurfPayout || in_array($tx->type, ['payout_debit', 'payout_reversal'], true)) {
+                    $bookingCol = 'Payout #' . ($tx->reference_id ?? $tx->id);
+                } else {
+                    $bookingCol = '—';
+                }
+
+                $turfName = WalletLedgerService::turfNameFor($tx);
 
                 fputcsv($handle, [
-                    '#TX-' . $tx->id,
-                    $tx->created_at->format('Y-m-d H:i:s'),
-                    $label,
+                    $tx->created_at->format('Y-m-d'),
+                    $tx->created_at->format('H:i:s'),
+                    $bookingCol,
+                    $turfName,
+                    $cleanType,
                     $tx->description ?? '',
                     number_format($amount, 2, '.', ''),
                     number_format((float) $tx->balance_after, 2, '.', ''),
                 ]);
             }
+
+            fputcsv($handle, []);
+            fputcsv($handle, ['Total credits (INR)', number_format($summary['period_credits'], 2, '.', '')]);
+            fputcsv($handle, ['Total debits (INR)', number_format($summary['period_debits'], 2, '.', '')]);
 
             fclose($handle);
         }, $filename, [

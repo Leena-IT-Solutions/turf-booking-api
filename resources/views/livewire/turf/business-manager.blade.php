@@ -54,15 +54,16 @@ new #[Layout('layouts.app')] class extends Component
         if (!$user) {
             return;
         }
-        $this->payoutMethod = $user->payout_method ?: 'bank';
-        $this->bankAccountName = $user->bank_account_name ?: '';
-        $this->bankAccountNumber = $user->bank_account_number ?: '';
-        $this->bankIfsc = $user->bank_ifsc ?: '';
-        $this->upiId = $user->upi_id ?: '';
-        $this->payoutSchedule = $user->payout_schedule ?: 'manual';
-        $this->payoutScheduleDay = $user->payout_schedule_day ?? 1;
+        $owner = app(\App\Services\WalletLedgerService::class)->ownerFor($user);
+        $this->payoutMethod = $owner->payout_method ?: 'bank';
+        $this->bankAccountName = $owner->bank_account_name ?: '';
+        $this->bankAccountNumber = $owner->bank_account_number ?: '';
+        $this->bankIfsc = $owner->bank_ifsc ?: '';
+        $this->upiId = $owner->upi_id ?: '';
+        $this->payoutSchedule = $owner->payout_schedule ?: 'manual';
+        $this->payoutScheduleDay = $owner->payout_schedule_day ?? 1;
 
-        $balance = (float) $user->commission_wallet_balance;
+        $balance = (float) $owner->commission_wallet_balance;
         if ($balance > 0) {
             $this->payoutAmount = (string) $balance;
         } elseif ($balance < 0) {
@@ -148,7 +149,8 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        auth()->user()->update($details);
+        $owner = app(\App\Services\WalletLedgerService::class)->ownerFor(auth()->user());
+        $owner->update($details);
 
         session()->flash('kyc_status', 'Payment payout details saved successfully!');
     }
@@ -160,7 +162,8 @@ new #[Layout('layouts.app')] class extends Component
             'payoutScheduleDay' => 'nullable|integer|between:0,6',
         ]);
 
-        auth()->user()->update([
+        $owner = app(\App\Services\WalletLedgerService::class)->ownerFor(auth()->user());
+        $owner->update([
             'payout_schedule' => $this->payoutSchedule,
             'payout_schedule_day' => $this->payoutSchedule === 'weekly' ? $this->payoutScheduleDay : null,
         ]);
@@ -171,11 +174,12 @@ new #[Layout('layouts.app')] class extends Component
     public function requestPayout()
     {
         $user = auth()->user();
+        $owner = app(\App\Services\WalletLedgerService::class)->ownerFor($user);
         $amount = (float) $this->payoutAmount;
 
         try {
             $payoutService = new PayoutService();
-            $payout = $payoutService->requestPayout($user, $amount, 'manual');
+            $payout = $payoutService->requestPayout($owner, $amount, 'manual');
 
             $msg = "Payout request for ₹" . number_format($payout->requested_amount, 2) . " submitted successfully! (Net payout: ₹" . number_format($payout->net_amount, 2) . ")";
             if ($payout->mode === 'manual') {
@@ -192,6 +196,7 @@ new #[Layout('layouts.app')] class extends Component
     public function initiateDueSettlement()
     {
         $user = auth()->user();
+        $owner = app(\App\Services\WalletLedgerService::class)->ownerFor($user);
         $amount = (float) $this->settleAmount;
 
         if ($amount <= 0) {
@@ -211,7 +216,7 @@ new #[Layout('layouts.app')] class extends Component
                     ->post('https://api.razorpay.com/v1/orders', [
                         'amount' => $amountInPaise,
                         'currency' => 'INR',
-                        'receipt' => 'due_' . time() . '_' . $user->id,
+                        'receipt' => 'due_' . time() . '_' . $owner->id,
                     ]);
 
                 if ($response->successful()) {
@@ -223,7 +228,7 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $settlement = CommissionSettlement::create([
-            'user_id' => $user->id,
+            'user_id' => $owner->id,
             'amount' => $amount,
             'razorpay_order_id' => $orderId,
             'status' => 'created',
@@ -237,9 +242,9 @@ new #[Layout('layouts.app')] class extends Component
             'description' => "Commission Due Settlement: ₹" . number_format($amount, 2),
             'order_id' => $orderId,
             'prefill' => [
-                'name' => $user->name,
-                'email' => $user->email,
-                'contact' => $user->mobile ?? '',
+                'name' => $owner->name,
+                'email' => $owner->email,
+                'contact' => $owner->mobile ?? '',
             ],
             'settlement_id' => $settlement->id,
         ]);
@@ -276,6 +281,7 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $user = auth()->user();
+        $owner = app(\App\Services\WalletLedgerService::class)->ownerFor($user);
         $settlement->update([
             'razorpay_payment_id' => $paymentId ?: ('pay_simulated_' . time()),
             'razorpay_signature' => $signature ?: 'simulated_sig',
@@ -285,7 +291,7 @@ new #[Layout('layouts.app')] class extends Component
 
         // Credit settlement amount into wallet
         $walletService = new WalletService();
-        $walletService->applyDelta($user, (float)$settlement->amount, 'commission_due_settlement', $settlement);
+        $walletService->applyDelta($owner, (float)$settlement->amount, 'commission_due_settlement', $settlement);
 
         session()->flash('status', "Commission due of ₹" . number_format($settlement->amount, 2) . " settled successfully!");
         $this->mount();
