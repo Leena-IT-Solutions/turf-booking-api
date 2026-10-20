@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
 
@@ -16,6 +17,7 @@ new #[Layout('layouts.app')] class extends Component
     use WithPagination;
 
     // Filters & Search
+    #[Url]
     public string $search = '';
     public string $datePreset = 'all'; // 'day', 'month', 'year', 'all'
     public string $currentDateCursor = '';

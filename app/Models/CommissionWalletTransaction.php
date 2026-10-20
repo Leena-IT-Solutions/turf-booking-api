@@ -38,6 +38,53 @@ class CommissionWalletTransaction extends Model
         return $this->morphTo();
     }
 
+    public const GROUPS = [
+        'earnings' => [
+            'label' => 'Booking earnings',
+            'types' => ['payment_credit'],
+        ],
+        'deductions' => [
+            'label' => 'Platform fees & commission',
+            'types' => ['platform_fee_debit', 'commission_debit', 'gateway_charge_debit', 'cancellation_fee_debit'],
+        ],
+        'returns' => [
+            'label' => 'Returned on cancellation',
+            'types' => ['commission_reversal', 'gateway_charge_reversal'],
+        ],
+        'refunds' => [
+            'label' => 'Refunds to players',
+            'types' => ['refund_adjustment'],
+        ],
+        'payouts' => [
+            'label' => 'Bank payouts',
+            'types' => ['payout_debit', 'payout_reversal'],
+        ],
+        'other' => [
+            'label' => 'Other',
+            'types' => ['offline_booking_record', 'commission_due_settlement', 'payment_settlement'],
+        ],
+    ];
+
+    public static function groupOf(string $type): string
+    {
+        foreach (self::GROUPS as $groupKey => $group) {
+            if ($groupKey !== 'other' && in_array($type, $group['types'], true)) {
+                return $groupKey;
+            }
+        }
+        return 'other';
+    }
+
+    public static function groupColor(string $group): string
+    {
+        return match ($group) {
+            'earnings', 'returns' => 'bg-emerald-50 text-emerald-700 border-emerald-200/60',
+            'deductions', 'refunds' => 'bg-rose-50 text-rose-700 border-rose-200/60',
+            'payouts' => 'bg-indigo-50 text-indigo-700 border-indigo-200/60',
+            default => 'bg-gray-100 text-gray-700 border-gray-200/60',
+        };
+    }
+
     /**
      * Get a human-readable label for a transaction type.
      */
@@ -61,3 +108,4 @@ class CommissionWalletTransaction extends Model
         };
     }
 }
+

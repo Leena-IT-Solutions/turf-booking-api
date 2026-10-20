@@ -29,32 +29,29 @@ class ReportService
     /**
      * 1. Wallet Passbook Summary (Account-wide, chronological for running balance).
      */
-    public function getWalletPassbookSummary(User $user, string $startDate, string $endDate, int $limit = 20): array
-    {
-        $ownerId = $user->getOwnerId();
+    public function getWalletPassbookSummary(
+        User $user,
+        string $startDate,
+        string $endDate,
+        int $limit = 25,
+        ?string $group = null,
+        bool $includeZero = false
+    ): array {
+        $walletLedgerService = app(WalletLedgerService::class);
+        $owner = $walletLedgerService->ownerFor($user);
 
-        $baseQuery = CommissionWalletTransaction::where('user_id', $ownerId)
-            ->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(),
-                Carbon::parse($endDate)->endOfDay()
-            ]);
-
-        $totalTransactions = (clone $baseQuery)->count();
-        $totalCredits = (float) (clone $baseQuery)->where('amount', '>', 0)->sum('amount');
-        $totalDebits = (float) abs((clone $baseQuery)->where('amount', '<', 0)->sum('amount'));
-
-        // For on-screen display, get latest chronological or preview
-        $transactions = (clone $baseQuery)
-            ->orderBy('id', 'asc')
-            ->take($limit)
-            ->get();
+        $summary = $walletLedgerService->summary($owner, $startDate, $endDate);
+        $paginator = $walletLedgerService->query($owner, $startDate, $endDate, $group, $includeZero)
+            ->paginate($limit, ['*'], 'pbPage', 1);
 
         return [
-            'transactions' => $transactions,
-            'total_count' => $totalTransactions,
-            'total_credits' => $totalCredits,
-            'total_debits' => $totalDebits,
-            'current_balance' => (float) ($user->commission_wallet_balance ?? 0),
+            'transactions' => $paginator,
+            'summary' => $summary,
+            'owner' => $owner,
+            'total_count' => $paginator->total(),
+            'total_credits' => $summary['period_credits'],
+            'total_debits' => $summary['period_debits'],
+            'current_balance' => $summary['current_balance'],
         ];
     }
 

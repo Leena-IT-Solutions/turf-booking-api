@@ -20,6 +20,25 @@ new #[Layout('layouts.app')] class extends Component
     public string $statusFilter = 'all';
     public string $paymentStatusFilter = 'all';
 
+    public int $passbookPerPage = 25;
+    public string $passbookGroupFilter = 'all';
+    public bool $passbookIncludeZero = false;
+
+    public function loadMorePassbook(): void
+    {
+        $this->passbookPerPage += 25;
+    }
+
+    public function updatedPassbookGroupFilter(): void
+    {
+        $this->passbookPerPage = 25;
+    }
+
+    public function updatedPassbookIncludeZero(): void
+    {
+        $this->passbookPerPage = 25;
+    }
+
     #[On('global-context-updated')]
     public function refreshContext()
     {
@@ -97,6 +116,7 @@ new #[Layout('layouts.app')] class extends Component
 
     protected function updateDateRange()
     {
+        $this->passbookPerPage = 25;
         $d = Carbon::parse($this->cursorDate ?: Carbon::now('Asia/Kolkata')->toDateString(), 'Asia/Kolkata');
         if ($this->period === 'day') {
             $this->startDate = $d->copy()->startOfDay()->toDateString();
@@ -120,14 +140,27 @@ new #[Layout('layouts.app')] class extends Component
 
     public function setQuickFilter(string $range)
     {
+        $this->passbookPerPage = 25;
         if ($range === 'today') {
             $this->setPeriod('day');
         } elseif ($range === 'week') {
             $now = Carbon::now('Asia/Kolkata');
             $this->startDate = $now->copy()->startOfWeek()->toDateString();
             $this->endDate = $now->copy()->endOfWeek()->toDateString();
-        } elseif ($range === 'month') {
+            $this->period = 'custom';
+        } elseif ($range === 'month' || $range === 'this_month') {
+            $now = Carbon::now('Asia/Kolkata');
+            $this->cursorDate = $now->toDateString();
             $this->setPeriod('month');
+        } elseif ($range === 'last_month') {
+            $lm = Carbon::now('Asia/Kolkata')->subMonth();
+            $this->cursorDate = $lm->toDateString();
+            $this->setPeriod('month');
+        } elseif ($range === 'last_3_months') {
+            $now = Carbon::now('Asia/Kolkata');
+            $this->startDate = $now->copy()->subMonths(2)->startOfMonth()->toDateString();
+            $this->endDate = $now->copy()->endOfMonth()->toDateString();
+            $this->period = 'custom';
         }
     }
 }; ?>
@@ -219,7 +252,16 @@ new #[Layout('layouts.app')] class extends Component
             $totalPaidSum = $totalReceived;
 
             // Fetch tab data on demand
-            $passbookData = $activeTab === 'passbook' ? $reportService->getWalletPassbookSummary($user, $this->startDate, $this->endDate) : null;
+            $passbookData = $activeTab === 'passbook'
+                ? $reportService->getWalletPassbookSummary(
+                    $user,
+                    $this->startDate,
+                    $this->endDate,
+                    $this->passbookPerPage,
+                    $this->passbookGroupFilter !== 'all' ? $this->passbookGroupFilter : null,
+                    $this->passbookIncludeZero
+                )
+                : null;
             $turfEarningsData = $activeTab === 'turf-earnings' ? $reportService->getTurfEarningsSummary($user, $activeTurfId, $this->startDate, $this->endDate) : null;
             $gstData = $activeTab === 'gst' ? $reportService->getTurfGstSummary($user, $activeTurfId, $this->startDate, $this->endDate) : null;
             $cancellationData = $activeTab === 'cancellations' ? $reportService->getCancellationSummary($user, $activeTurfId, $this->startDate, $this->endDate) : null;
@@ -260,7 +302,7 @@ new #[Layout('layouts.app')] class extends Component
                         Bookings Ledger
                     @elseif ($activeTab === 'passbook')
                         <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-                        Wallet Passbook
+                        Account-Wide Wallet Passbook
                     @elseif ($activeTab === 'turf-earnings')
                         <svg class="w-7 h-7 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         Turf Earnings Breakdown

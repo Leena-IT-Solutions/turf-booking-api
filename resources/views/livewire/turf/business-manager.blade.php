@@ -73,26 +73,27 @@ new #[Layout('layouts.app')] class extends Component
     public function with(): array
     {
         $user = auth()->user();
+        $owner = $user ? app(\App\Services\WalletLedgerService::class)->ownerFor($user) : null;
 
-        $walletTransactions = $user
-            ? CommissionWalletTransaction::where('user_id', $user->id)
+        $walletTransactions = $owner
+            ? CommissionWalletTransaction::where('user_id', $owner->id)
                 ->with('reference')
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')
                 ->paginate($this->txPerPage, ['*'], 'txPage', 1)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
-        $payments = $user ? Payment::with(['booking.turf', 'bookingDate'])
-            ->whereHas('booking.turf.location', function($q) use ($user) {
-                $q->where('user_id', $user->id);
+        $payments = $owner ? Payment::with(['booking.turf', 'bookingDate'])
+            ->whereHas('booking.turf.location', function($q) use ($owner) {
+                $q->where('user_id', $owner->id);
             })
             ->latest()
             ->paginate($this->pmtPerPage, ['*'], 'pmtPage', 1)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
         // Pending Clearance: online money the nightly payout job will still add to the wallet.
-        $ownedTurfIds = $user ? \App\Models\Turf::whereHas('location', fn ($q) => $q->where('user_id', $user->id))->pluck('id')->all() : [];
-        $pendingPayments = $user ? (new \App\Services\WalletService())->pendingCredits($ownedTurfIds)->take(25) : collect();
+        $ownedTurfIds = $owner ? \App\Models\Turf::whereHas('location', fn ($q) => $q->where('user_id', $owner->id))->pluck('id')->all() : [];
+        $pendingPayments = $owner ? (new \App\Services\WalletService())->pendingCredits($ownedTurfIds)->take(25) : collect();
 
         $manageableTurfIds = $user ? \App\Models\Turf::manageable($user)->pluck('turfs.id')->toArray() : [];
         $activeTurfId = session('active_turf_id');
@@ -555,6 +556,8 @@ new #[Layout('layouts.app')] class extends Component
                     <thead class="bg-gray-50 text-gray-400 font-extrabold uppercase tracking-wider border-b border-gray-100">
                         <tr>
                             <th class="p-3">Date & Time</th>
+                            <th class="p-3">Booking</th>
+                            <th class="p-3">Turf</th>
                             <th class="p-3">Transaction Type</th>
                             <th class="p-3">Details / Reference</th>
                             <th class="p-3 text-right">Debit / Credit</th>
@@ -571,85 +574,14 @@ new #[Layout('layouts.app')] class extends Component
                                     <span class="font-bold block text-gray-900">{{ $tx->created_at->format('d M Y') }}</span>
                                     <span class="text-[10px] text-gray-400">{{ $tx->created_at->format('h:i A') }}</span>
                                 </td>
-                                <td class="p-3">
-                                    @php $txLabel = \App\Models\CommissionWalletTransaction::typeLabel($tx->type, (float) $tx->amount); @endphp
-                                    @if ($tx->type === 'payment_credit')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'platform_fee_debit')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'commission_debit')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'cancellation_fee_debit')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'gateway_charge_debit')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'offline_booking_record')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'refund_adjustment')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'payout_debit')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'payout_reversal')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'commission_reversal')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'gateway_charge_reversal')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'commission_due_settlement')
-                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                            {{ $txLabel }}
-                                        </span>
-                                    @elseif ($tx->type === 'payment_settlement')
-                                        @if ((float)$tx->amount >= 0)
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                                {{ $txLabel }}
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                                                {{ $txLabel }}
-                                            </span>
-                                        @endif
-                                    @else
-                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700">
-                                            {{ $txLabel }}
-                                        </span>
-                                    @endif
+                                <td class="p-3 whitespace-nowrap">
+                                    @include('livewire.turf.partials.wallet-entry-cells', ['tx' => $tx, 'part' => 'booking'])
+                                </td>
+                                <td class="p-3 whitespace-nowrap">
+                                    @include('livewire.turf.partials.wallet-entry-cells', ['tx' => $tx, 'part' => 'turf'])
+                                </td>
+                                <td class="p-3 whitespace-nowrap">
+                                    @include('livewire.turf.partials.wallet-entry-cells', ['tx' => $tx, 'part' => 'badge'])
                                 </td>
                                 <td class="p-3">
                                     @if ($tx->description)
@@ -734,7 +666,7 @@ new #[Layout('layouts.app')] class extends Component
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="p-8 text-center text-gray-400">
+                                <td colspan="7" class="p-8 text-center text-gray-400">
                                     No wallet ledger transactions recorded yet.
                                 </td>
                             </tr>

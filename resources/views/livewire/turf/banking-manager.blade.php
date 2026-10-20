@@ -636,7 +636,7 @@ new #[Layout('layouts.app')] class extends Component
                     🔄
                 </div>
                 <div>
-                    <h3 class="text-sm font-bold text-gray-900">{{ __('Automated Payout Schedule & Frequency') }}</h3>
+                    <h3 class="text-sm font-bold text-gray-900">{{ __('Automatic Payout Schedule') }}</h3>
                     <p class="text-xs text-gray-500">{{ __('Automate wallet settlements so your cleared earnings transfer on a recurring schedule.') }}</p>
                 </div>
             </div>
