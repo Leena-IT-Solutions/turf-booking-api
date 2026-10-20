@@ -422,7 +422,7 @@ new #[Layout('layouts.app')] class extends Component
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- TOTAL BILLING -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-blue-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">TOTAL BILLING</span>
                             <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -436,7 +436,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- TOTAL RECEIVED -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-emerald-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">TOTAL RECEIVED</span>
                             <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -450,7 +450,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- PENDING PAYMENTS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-rose-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">PENDING PAYMENTS</span>
                             <span class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -464,7 +464,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- AVG BOOKING VALUE -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-purple-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">AVG BOOKING VALUE</span>
                             <span class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
@@ -487,7 +487,7 @@ new #[Layout('layouts.app')] class extends Component
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- TOTAL BOOKINGS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-cyan-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">TOTAL BOOKINGS</span>
                             <span class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
@@ -501,7 +501,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- PITCH OCCUPANCY -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-amber-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">PITCH OCCUPANCY</span>
                             <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -515,7 +515,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- SHOW-UP RATE -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-teal-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">SHOW-UP RATE</span>
                             <span class="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -529,7 +529,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- CANCELLATIONS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-slate-700 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">CANCELLATIONS</span>
                             <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">

@@ -238,9 +238,15 @@ new #[Layout('layouts.app')] class extends Component
                 <h2 class="text-xl font-bold text-gray-900">{{ __('SaaS Business Analytics & Performance') }}</h2>
                 <p class="text-xs text-gray-500 mt-1.5">{{ __('Real-time platform usage metrics, overall financial statistics, and multi-venue operations review.') }}</p>
             </div>
-            <div class="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black uppercase tracking-wider">
-                <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse"></span>
-                {{ __('Platform Dashboard') }}
+            <div class="flex flex-wrap items-center gap-3">
+                <a href="{{ route('saas.contact-messages') }}" wire:navigate class="inline-flex items-center gap-2 px-3.5 py-1.5 bg-gray-50 hover:bg-rose-50 text-gray-700 hover:text-rose-600 rounded-full text-xs font-semibold border border-gray-200 hover:border-rose-200 transition">
+                    <span class="w-2 h-2 {{ $unreadContacts > 0 ? 'bg-rose-500 animate-ping' : 'bg-emerald-500' }} rounded-full"></span>
+                    <span>{{ $unreadContacts }} {{ __('Unread Inquiries') }}</span>
+                </a>
+                <div class="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-xs font-black uppercase tracking-wider">
+                    <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-pulse"></span>
+                    {{ __('Platform Dashboard') }}
+                </div>
             </div>
         </div>
 
@@ -291,7 +297,7 @@ new #[Layout('layouts.app')] class extends Component
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- TOTAL GMV -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-blue-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">TOTAL GMV</span>
                             <span class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
@@ -305,7 +311,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- SAAS EARNINGS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-emerald-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">SAAS EARNINGS</span>
                             <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -319,7 +325,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- PENDING PAYOUTS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-rose-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">PENDING PAYOUTS</span>
                             <span class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
@@ -333,7 +339,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- AVG ORDER VALUE -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-purple-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">AVG ORDER VALUE</span>
                             <span class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
@@ -356,7 +362,7 @@ new #[Layout('layouts.app')] class extends Component
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- NETWORK BOOKINGS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-cyan-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">NETWORK BOOKINGS</span>
                             <span class="w-8 h-8 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center">
@@ -370,7 +376,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- ACTIVE TURFS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-amber-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">ACTIVE TURFS</span>
                             <span class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
@@ -384,7 +390,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- ACTIVE PLAYERS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-teal-500 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">ACTIVE PLAYERS</span>
                             <span class="w-8 h-8 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -398,7 +404,7 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- PLATFORM CANCELLATIONS -->
-                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-slate-700 relative transition hover:shadow-md">
+                    <div class="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm relative transition hover:shadow-md">
                         <div class="flex items-center justify-between">
                             <span class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">CANCELLATIONS</span>
                             <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center">
@@ -412,26 +418,6 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
                 </div>
             </div>
-        </div>
-
-
-            <!-- Contact Messages Stat Card -->
-            <a href="{{ route('saas.contact-messages') }}" wire:navigate class="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group block hover:shadow-md transition duration-300">
-                <div class="absolute -right-4 -bottom-4 w-24 h-24 bg-rose-50/50 rounded-full group-hover:scale-110 transition duration-300"></div>
-                <div class="flex items-center justify-between relative z-10">
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">{{ __('Unread Inquiries') }}</span>
-                    <span class="p-2 bg-rose-50 text-rose-600 rounded-xl">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0a2 2 0 01-2 2H6a2 2 0 01-2-2m16 0V9a2 2 0 00-2-2M4 11v4a2 2 0 002 2h12a2 2 0 002-2v-4M9 21h6" />
-                        </svg>
-                    </span>
-                </div>
-                <div class="mt-4 relative z-10">
-                    <span class="text-2xl font-black text-gray-900 font-mono">{{ number_format($unreadContacts) }}</span>
-                    <span class="block text-[10px] text-gray-400 mt-1">{{ __('Unread contact us messages') }}</span>
-                </div>
-            </a>
-
         </div>
 
         <!-- Detail breakdowns -->
@@ -491,9 +477,23 @@ new #[Layout('layouts.app')] class extends Component
                                         </td>
                                         <!-- Status Badge -->
                                         <td class="py-3.5 pl-2 text-center">
-                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{ $bk['status'] === 'Confirmed' ? 'bg-emerald-50 text-emerald-600 ' : 'bg-rose-50 text-rose-600 ' }}">
-                                                {{ $bk['status'] }}
-                                            </span>
+                                            @if($bk['status'] === 'Confirmed')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600">
+                                                    {{ __('Confirmed') }}
+                                                </span>
+                                            @elseif($bk['status'] === 'Partially Cancelled')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-700 border border-amber-200/60">
+                                                    {{ __('Partially Cancelled') }}
+                                                </span>
+                                            @elseif($bk['status'] === 'Cancelled')
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-50 text-rose-600">
+                                                    {{ __('Cancelled') }}
+                                                </span>
+                                            @else
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-100 text-gray-700">
+                                                    {{ $bk['status'] }}
+                                                </span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -503,7 +503,7 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             </div>
 
-            <!-- Side Widgets: Types and Top Performing Turfs -->
+            <!-- Side Widgets: Types, Top Performing Turfs, and Customer Inquiries -->
             <div class="space-y-6">
                 
                 <!-- Booking Types distribution -->
@@ -575,6 +575,44 @@ new #[Layout('layouts.app')] class extends Component
                             @endforeach
                         @endif
                     </div>
+                </div>
+
+                <!-- Customer Inquiries Widget -->
+                <div class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 flex flex-col justify-between">
+                    <div class="flex items-center justify-between pb-3 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                                </svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-gray-900">{{ __('Customer Inquiries') }}</h3>
+                        </div>
+                        @if($unreadContacts > 0)
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-600">
+                                {{ $unreadContacts }} {{ __('New') }}
+                            </span>
+                        @else
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">
+                                {{ __('All read') }}
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="py-3">
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-2xl font-black text-gray-900 font-mono">{{ number_format($unreadContacts) }}</span>
+                            <span class="text-xs text-gray-500">{{ __('unread contact messages') }}</span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">
+                            {{ $unreadContacts > 0 ? __('Inquiries requiring platform administrator response.') : __('All customer contact inquiries have been addressed and cleared.') }}
+                        </p>
+                    </div>
+
+                    <a href="{{ route('saas.contact-messages') }}" wire:navigate class="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-gray-50 hover:bg-indigo-50 text-gray-700 hover:text-indigo-600 rounded-xl text-xs font-bold border border-gray-200/80 hover:border-indigo-200 transition">
+                        <span>{{ __('Open Inquiries Inbox') }}</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </a>
                 </div>
 
             </div>
