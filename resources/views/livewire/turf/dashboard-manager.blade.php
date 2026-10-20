@@ -87,18 +87,6 @@ new #[Layout('layouts.app')] class extends Component
             </div>
         @endif
 
-        <!-- Welcome Banner -->
-        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-8 rounded-3xl text-white shadow-md relative overflow-hidden">
-            <div class="relative z-10">
-                <h2 class="text-2xl font-extrabold tracking-tight">{{ __('Welcome, ') . auth()->user()->name }}!</h2>
-                <p class="text-xs text-indigo-100 mt-2 max-w-xl leading-relaxed">
-                    {{ __('This is your Turf Admin Workspace. Here is a summary of your locations, turfs, active slot schedules, and coupon campaigns.') }}
-                </p>
-            </div>
-            <!-- Decorative Background Graphic -->
-            <div class="absolute -right-10 -bottom-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-            <div class="absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-        </div>
 
         <!-- Statistics Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
