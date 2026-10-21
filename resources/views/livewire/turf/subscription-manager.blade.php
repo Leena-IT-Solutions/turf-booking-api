@@ -138,7 +138,7 @@ new #[Layout('layouts.app')] class extends Component
         ]);
 
 
-        $this->dispatch('open-razorpay-checkout', [
+        $this->dispatch('open-razorpay-checkout', payload: [
             'key' => $this->razorpayKey,
             'amount' => $amountInPaise,
             'currency' => 'INR',
@@ -475,11 +475,14 @@ new #[Layout('layouts.app')] class extends Component
                                 <!-- Action Button & Reassurance -->
                                 <div class="space-y-3 pt-2">
                                     <button wire:click="initiatePayment({{ $pkg->id }}, '{{ $billingCycle }}')"
+                                        wire:loading.attr="disabled" wire:target="initiatePayment"
                                         @if ($selectedCount === 0) disabled @endif
                                         type="button"
-                                        class="w-full py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.99] hover:shadow-indigo-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' }}">
-                                        <span>Subscribe / Renew {{ $selectedCount > 0 ? "($selectedCount Turfs)" : '' }}</span>
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                        class="w-full py-4 px-6 rounded-2xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-70 {{ $selectedCount > 0 ? 'bg-indigo-600 hover:bg-indigo-700 text-white active:scale-[0.99] hover:shadow-indigo-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' }}">
+                                        <span wire:loading.remove wire:target="initiatePayment">Subscribe / Renew {{ $selectedCount > 0 ? "($selectedCount Turfs)" : '' }}</span>
+                                        <span wire:loading wire:target="initiatePayment">Opening secure checkout…</span>
+                                        <svg wire:loading.remove wire:target="initiatePayment" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                        <svg wire:loading wire:target="initiatePayment" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path></svg>
                                     </button>
 
                                     <div class="flex items-center justify-center gap-3 text-[10px] text-gray-400 font-medium">
@@ -692,39 +695,47 @@ new #[Layout('layouts.app')] class extends Component
 </div>
 
 <!-- Razorpay Checkout Script Integration -->
+@assets
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+@endassets
+
+@script
 <script>
-    document.addEventListener('livewire:initialized', () => {
-        Livewire.on('open-razorpay-checkout', (data) => {
-            const payload = data[0] || data;
-            
-            if (!payload.key) {
-                alert('Razorpay key is not configured in SaaS Settings.');
-                return;
-            }
+    $wire.on('open-razorpay-checkout', (event) => {
+        const payload = event.payload || event[0] || event;
 
-            const options = {
-                "key": payload.key,
-                "amount": payload.amount,
-                "currency": payload.currency || "INR",
-                "name": payload.name,
-                "description": payload.description,
-                "order_id": payload.order_id || "",
-                "handler": function (response) {
-                    Livewire.dispatch('verify-subscription-payment', [payload.payment_record_id, response.razorpay_payment_id, response.razorpay_signature || ""]);
-                },
-                "prefill": payload.prefill || {},
-                "theme": {
-                    "color": "#4F46E5"
-                }
-            };
+        if (!payload || !payload.key) {
+            alert('Razorpay key is not configured in SaaS Settings.');
+            return;
+        }
+        if (typeof window.Razorpay === 'undefined') {
+            alert('Could not load the Razorpay checkout. Please check your internet connection and try again.');
+            return;
+        }
 
-            const rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (response) {
-                alert("Payment Failed: " + (response.error.description || "Transaction cancelled."));
-            });
+        const options = {
+            key: payload.key,
+            amount: payload.amount,
+            currency: payload.currency || 'INR',
+            name: payload.name,
+            description: payload.description,
+            prefill: payload.prefill || {},
+            theme: { color: '#4F46E5' },
+            handler: function (response) {
+                $wire.verifyPayment(payload.payment_record_id, response.razorpay_payment_id, response.razorpay_signature || '');
+            },
+        };
+        if (payload.order_id) {
+            options.order_id = payload.order_id;
+        }
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+            alert('Payment Failed: ' + ((response.error && response.error.description) || 'Transaction cancelled.'));
         });
+        rzp.open();
     });
 </script>
+@endscript
 </div>
 

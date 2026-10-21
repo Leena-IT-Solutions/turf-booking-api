@@ -173,4 +173,37 @@ class TurfSubscriptionRenewalTest extends TestCase
             ->assertSee('Net Banking')
             ->assertSee('Credit Cards (Domestic)');
     }
+
+    public function test_subscribe_button_dispatches_checkout_and_opens_razorpay(): void
+    {
+        \Illuminate\Support\Facades\Http::fake([
+            'api.razorpay.com/v1/orders' => \Illuminate\Support\Facades\Http::response(['id' => 'order_test_abc'], 200),
+        ]);
+
+        $this->actingAs($this->turfAdmin);
+
+        // The page script opens the Razorpay popup (rzp.open() was missing, so nothing happened)
+        $this->get(route('turf.subscription'))
+            ->assertOk()
+            ->assertSee('checkout.razorpay.com/v1/checkout.js', false)
+            ->assertSee('rzp.open()', false);
+
+        Volt::test('turf.subscription-manager')
+            ->set('selectedTurfIds', [$this->turfNew->id])
+            ->call('initiatePayment', $this->package->id, 'monthly')
+            ->assertDispatched('open-razorpay-checkout', function ($event, $params) {
+                $p = $params['payload'] ?? [];
+
+                return ($p['key'] ?? null) === 'rzp_test_key'
+                    && ($p['amount'] ?? null) === 150000
+                    && ($p['order_id'] ?? null) === 'order_test_abc'
+                    && !empty($p['payment_record_id']);
+            });
+
+        $this->assertDatabaseHas('subscription_payments', [
+            'user_id' => $this->turfAdmin->id,
+            'razorpay_order_id' => 'order_test_abc',
+            'status' => 'pending',
+        ]);
+    }
 }
