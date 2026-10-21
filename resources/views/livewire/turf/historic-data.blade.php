@@ -283,9 +283,9 @@ new #[Layout('layouts.app')] class extends Component
             @continue($key === 'cancellations_value')
             <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-3 sm:p-4 relative overflow-hidden" id="historic-total-{{ $key }}">
                 <span class="absolute inset-x-0 top-0 h-1" style="background-color: {{ $colors[$key] }}"></span>
-                <div class="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    <span class="w-2 h-2 rounded-full" style="background-color: {{ $colors[$key] }}"></span>
-                    <span class="truncate">{{ $metricDefs[$key]['label'] }}</span>
+                <div class="flex items-start gap-1.5 text-[11px] sm:text-xs font-semibold text-gray-500 uppercase tracking-wide leading-tight">
+                    <span class="w-2 h-2 rounded-full mt-0.5 shrink-0" style="background-color: {{ $colors[$key] }}"></span>
+                    <span>{{ $metricDefs[$key]['label'] }}</span>
                 </div>
                 <div class="mt-1.5 text-lg sm:text-xl font-bold text-gray-900 tabular-nums break-words">
                     @if ($metricDefs[$key]['unit'] === 'inr')

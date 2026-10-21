@@ -42,21 +42,20 @@ const buildHistoricOptions = (payload, isMobile) => {
     const hasCount = series.some((s) => s.unit === 'count');
     const hasInr = series.some((s) => s.unit === 'inr');
 
-    const yaxis = series.map((s, i) => {
-        const firstOfUnit = series.findIndex((x) => x.unit === s.unit) === i;
-        return {
-            seriesName: series.find((x) => x.unit === s.unit).name,
-            show: firstOfUnit,
-            opposite: s.unit === 'inr' && hasCount,
-            min: 0,
-            forceNiceScale: true,
-            decimalsInFloat: 0,
-            labels: {
-                style: { colors: '#6b7280', fontSize: '11px' },
-                formatter: (v) => (s.unit === 'inr' ? formatInr(v) : Math.round(v)),
-            },
-        };
+    const axisFor = (unit, opposite) => ({
+        seriesName: series.filter((s) => s.unit === unit).map((s) => s.name),
+        opposite,
+        min: 0,
+        forceNiceScale: true,
+        decimalsInFloat: 0,
+        labels: {
+            style: { colors: '#6b7280', fontSize: '11px' },
+            formatter: (v) => (unit === 'inr' ? formatInr(v) : Math.round(v)),
+        },
     });
+    const yaxis = [];
+    if (hasCount) yaxis.push(axisFor('count', false));
+    if (hasInr) yaxis.push(axisFor('inr', hasCount));
 
     return {
         chart: {
@@ -80,7 +79,7 @@ const buildHistoricOptions = (payload, isMobile) => {
             categories: payload.categories || [],
             tickAmount: isMobile ? 6 : undefined,
             tickPlacement: 'on',
-            labels: { rotate: 0, hideOverlappingLabels: true, trim: true, style: { colors: '#6b7280', fontSize: '11px' } },
+            labels: { rotate: 0, hideOverlappingLabels: true, trim: false, style: { colors: '#6b7280', fontSize: '11px' } },
             axisBorder: { show: false },
             axisTicks: { show: false },
             tooltip: { enabled: false },
@@ -123,9 +122,15 @@ const registerHistoricChart = (Alpine) => {
         async init() {
             this._onUpdate = (e) => {
                 const detail = e.detail || {};
-                this.payload = detail.payload || (Array.isArray(detail) ? detail[0]?.payload : null) || this.payload;
+                const next = detail.payload || (Array.isArray(detail) ? detail[0]?.payload : null);
+                if (!next) return;
+                const sig = JSON.stringify(next);
+                if (sig === this._sig) return; // nothing changed (e.g. the dispatch from the first render)
+                this._sig = sig;
+                this.payload = next;
                 this.redraw();
             };
+            this._sig = JSON.stringify(this.payload);
             window.addEventListener('historic-chart-updated', this._onUpdate);
 
             const ApexCharts = await window.loadApexCharts();
