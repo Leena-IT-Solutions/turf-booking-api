@@ -74,13 +74,11 @@ new #[Layout('layouts.app')] class extends Component
     public function with(): array
     {
         $user = auth()->user();
-        $owner = $user ? app(\App\Services\WalletLedgerService::class)->ownerFor($user) : null;
+        $walletLedgerService = app(\App\Services\WalletLedgerService::class);
+        $owner = $user ? $walletLedgerService->ownerFor($user) : null;
 
         $walletTransactions = $owner
-            ? CommissionWalletTransaction::where('user_id', $owner->id)
-                ->with('reference')
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
+            ? $walletLedgerService->query($owner, null, null, null, includeZero: true)
                 ->paginate($this->txPerPage, ['*'], 'txPage', 1)
             : new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
 
