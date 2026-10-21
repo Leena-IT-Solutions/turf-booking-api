@@ -710,6 +710,21 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
                         </a>
 
+                        <!-- Historic Data Card -->
+                        <a href="{{ route('turf.reports.historic') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
+                            <div>
+                                <div class="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center mb-3 group-hover:scale-105 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+                                </div>
+                                <h3 class="font-bold text-gray-900 group-hover:text-indigo-600 transition text-sm">Historic Data</h3>
+                                <p class="text-xs text-gray-500 mt-1">Charts of bookings, revenue, collections, slots and cancellations by day, week, month and year.</p>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-indigo-600">
+                                <span>Trends & Charts</span>
+                                <span class="group-hover:translate-x-1 transition">&rarr;</span>
+                            </div>
+                        </a>
+
                         <!-- Turf Earnings Breakdown Card -->
                         <a href="{{ route('turf.reports.turf-earnings') }}" wire:navigate class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:shadow-md hover:border-indigo-300 transition group flex flex-col justify-between">
                             <div>

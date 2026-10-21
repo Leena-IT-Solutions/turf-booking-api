@@ -1,4 +1,10 @@
 {
+  "node_modules/apexcharts/dist/apexcharts.esm.js": {
+    "file": "assets/apexcharts.esm-CMXjlsXq.js",
+    "name": "apexcharts.esm",
+    "src": "node_modules/apexcharts/dist/apexcharts.esm.js",
+    "isDynamicEntry": true
+  },
   "node_modules/leaflet/dist/images/layers-2x.png": {
     "file": "assets/layers-2x-Bpkbi35X.png",
     "src": "node_modules/leaflet/dist/images/layers-2x.png"
@@ -12,7 +18,7 @@
     "src": "node_modules/leaflet/dist/images/marker-icon.png"
   },
   "resources/css/app.css": {
-    "file": "assets/app-B3I2LUOx.css",
+    "file": "assets/app-DcN-1-z0.css",
     "name": "app",
     "names": [
       "app.css"
@@ -21,10 +27,13 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-BSuItBFH.js",
+    "file": "assets/app-yrpFKIwX.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
+    "dynamicImports": [
+      "node_modules/apexcharts/dist/apexcharts.esm.js"
+    ],
     "css": [
       "assets/app-BYfHiZ-E.css"
     ],
