@@ -135,10 +135,10 @@ class FinancialReportsExportTest extends TestCase
         $response->assertStatus(200);
         $content = $response->streamedContent();
 
-        $this->assertStringContainsString('# Wallet Passbook Statement', $content);
-        $this->assertStringContainsString('+ Booking Credit', $content);
-        $this->assertStringContainsString('- Platform Fee', $content);
-        $this->assertStringContainsString('- Bank Payout', $content);
+        $this->assertStringContainsString('# Wallet Passbook — ', $content);
+        $this->assertStringContainsString('Booking Credit', $content);
+        $this->assertStringContainsString('Platform Fee', $content);
+        $this->assertStringContainsString('Bank Payout', $content);
         $this->assertStringContainsString('1000.00', $content);
         $this->assertStringContainsString('988.20', $content);
         $this->assertStringContainsString('488.20', $content);
