@@ -64,7 +64,7 @@ return new class extends Migration
             $table->unsignedInteger('free_trial_days')->default(30);
 
             // Commission, Platform Fees & Cancellations
-            $table->decimal('commission_percentage', 5, 2)->default(7.00);
+            $table->decimal('commission_percentage', 5, 2)->default(8.00);
             $table->decimal('platform_fee', 10, 2)->default(0.00);
             $table->decimal('cancellation_fee_percentage', 5, 2)->default(5.00);
             $table->integer('payout_hours')->default(24);

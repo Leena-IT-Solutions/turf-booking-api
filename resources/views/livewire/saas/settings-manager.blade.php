@@ -28,7 +28,7 @@ new #[Layout('layouts.app')] class extends Component
     public $mailgun_endpoint = 'api.mailgun.net';
     public $turf_search_km = 10;
     public $min_slots_booking = 2;
-    public $commission_percentage = 7.00;
+    public $commission_percentage = 8.00;
     public $platform_fee = 0.00;
     public $cancellation_fee_percentage = 5.00;
     public $payout_hours = 24;
@@ -53,7 +53,7 @@ new #[Layout('layouts.app')] class extends Component
             'is_maintenance_mode' => false,
             'turf_search_km' => 10,
             'min_slots_booking' => 2,
-            'commission_percentage' => 7.00,
+            'commission_percentage' => 8.00,
             'platform_fee' => 0.00,
             'cancellation_fee_percentage' => 5.00,
             'payout_hours' => 24,
@@ -81,7 +81,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->mailgun_endpoint = $setting->mailgun_endpoint ?: 'api.mailgun.net';
         $this->turf_search_km = $setting->turf_search_km ?? 5;
         $this->min_slots_booking = $setting->min_slots_booking ?? 1;
-        $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
+        $this->commission_percentage = (float) ($setting->commission_percentage ?? 8.00);
         $this->platform_fee = (float) ($setting->platform_fee ?? 0.00);
         $this->cancellation_fee_percentage = (float) ($setting->cancellation_fee_percentage ?? 5.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
@@ -355,7 +355,7 @@ new #[Layout('layouts.app')] class extends Component
                         <!-- Commission Percentage % -->
                         <div>
                             <x-input-label for="commissionPercentage" :value="__('Commission Percentage (%)')" />
-                            <x-text-input wire:model.live.debounce.250ms="commission_percentage" id="commissionPercentage" type="number" step="0.01" min="0" max="100" class="mt-1.5 block w-full" placeholder="7.00" />
+                            <x-text-input wire:model.live.debounce.250ms="commission_percentage" id="commissionPercentage" type="number" step="0.01" min="0" max="100" class="mt-1.5 block w-full" placeholder="8.00" />
                             <span class="text-[10px] text-gray-400 font-semibold mt-1.5 block">
                                 {{ __('Default platform commission percentage applied for bookings.') }}
                             </span>

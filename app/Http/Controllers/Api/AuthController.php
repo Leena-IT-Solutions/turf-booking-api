@@ -43,6 +43,8 @@ class AuthController extends Controller
                 'mobile' => $user->mobile,
                 'roles' => $user->roles()->pluck('name'),
                 'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
+                'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
+                'on_trial' => $user->onTrial(),
             ]
         ]);
     }
@@ -73,6 +75,8 @@ class AuthController extends Controller
             'mobile' => $user->mobile,
             'roles' => $user->roles()->pluck('name')->toArray(),
             'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
+            'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
+            'on_trial' => $user->onTrial(),
         ]);
     }
 
@@ -160,6 +164,8 @@ class AuthController extends Controller
                     'mobile' => $existingUser->mobile,
                     'roles' => $existingUser->roles()->pluck('name'),
                     'manageable_turf_ids' => $existingUser->manageableTurfs()->pluck('turfs.id')->toArray(),
+                    'trial_ends_at' => $existingUser->trial_ends_at?->toIso8601String(),
+                    'on_trial' => $existingUser->onTrial(),
                 ]
             ], 201);
         }
@@ -196,6 +202,8 @@ class AuthController extends Controller
                 'mobile' => $user->mobile,
                 'roles' => $user->roles()->pluck('name'),
                 'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
+                'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
+                'on_trial' => $user->onTrial(),
             ]
         ], 201);
     }
@@ -454,6 +462,8 @@ class AuthController extends Controller
                 'mobile' => $user->mobile,
                 'roles' => $user->roles()->pluck('name'),
                 'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
+                'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
+                'on_trial' => $user->onTrial(),
             ]
         ]);
     }

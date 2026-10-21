@@ -190,6 +190,8 @@ new #[Layout('layouts.app')] class extends Component
 
         if ($this->editingId) {
             $user = User::findOrFail($this->editingId);
+            $hadTurfAdmin = $user->hasRole('turf-admin');
+
             $user->update([
                 'name' => $this->name,
                 'email' => $this->email,
@@ -208,6 +210,10 @@ new #[Layout('layouts.app')] class extends Component
                 Role::whereIn('name', $rolesToSync)->pluck('id')->toArray()
             );
 
+            if (!$hadTurfAdmin && in_array('turf-admin', $rolesToSync)) {
+                $user->startTurfOwnerTrial();
+            }
+
             session()->flash('status', 'User details updated successfully.');
         } else {
             $user = User::create([
@@ -223,10 +229,37 @@ new #[Layout('layouts.app')] class extends Component
                 Role::whereIn('name', $rolesToSync)->pluck('id')->toArray()
             );
 
+            if (in_array('turf-admin', $rolesToSync)) {
+                $user->startTurfOwnerTrial();
+            }
+
             session()->flash('status', 'User created successfully.');
         }
 
         $this->resetForm();
+    }
+
+    public function extendTrial($userId, ?int $days = null): void
+    {
+        $user = User::findOrFail($userId);
+        $saas = \App\Models\SaasSetting::first();
+        $daysToAdd = $days ?: (int) ($saas?->free_trial_days ?? 30);
+        if ($daysToAdd <= 0) {
+            $daysToAdd = 30;
+        }
+
+        $base = ($user->trial_ends_at && $user->trial_ends_at->isFuture())
+            ? $user->trial_ends_at
+            : now();
+
+        if ($user->trial_started_at === null) {
+            $user->trial_started_at = now();
+        }
+
+        $user->trial_ends_at = $base->copy()->addDays($daysToAdd);
+        $user->save();
+
+        session()->flash('status', "Free trial extended by {$daysToAdd} days for {$user->name}.");
     }
 
     public function deleteUser($id)
@@ -735,16 +768,40 @@ new #[Layout('layouts.app')] class extends Component
                     <!-- Right: Role Badges + Edit/Delete Actions -->
                     <div class="flex items-center justify-between md:justify-end gap-3.5 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-gray-50">
                         <!-- Roles Badges -->
-                        <div class="flex flex-wrap gap-1.5">
+                        <div class="flex flex-wrap items-center gap-1.5">
                             @foreach ($user->roles as $role)
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{ $role->name === 'saas-admin' ? 'bg-indigo-100 text-indigo-700 border border-indigo-200/20' : ( $role->name === 'turf-admin' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200/20' : ( $role->name === 'manager' ? 'bg-amber-100 text-amber-700 border border-amber-200/20' : 'bg-blue-100 text-blue-700 border border-blue-200/20')) }}">
                                     {{ $role->display_name }}
                                 </span>
                             @endforeach
+
+                            @if ($user->roles->contains('name', 'turf-admin'))
+                                @if ($user->onTrial())
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-300">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        Trial · ends {{ $user->trial_ends_at->format('d M') }}
+                                    </span>
+                                @elseif ($user->trial_started_at !== null)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 border border-gray-200">
+                                        Trial ended
+                                    </span>
+                                @endif
+                            @endif
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-1.5 shrink-0 pl-2 md:border-l md:border-gray-100">
+                            @if ($user->roles->contains('name', 'turf-admin'))
+                                <!-- Extend Trial Button -->
+                                <button wire:click="extendTrial({{ $user->id }})" 
+                                        title="{{ $user->onTrial() ? 'Extend Free Trial (+30 days)' : 'Grant / Extend Free Trial' }}" 
+                                        class="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition cursor-pointer border border-amber-200/50 flex items-center justify-center">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </button>
+                            @endif
+
                             <!-- Edit Button -->
                             <button wire:click="editUser({{ $user->id }})" 
                                     title="Edit User Profile" 

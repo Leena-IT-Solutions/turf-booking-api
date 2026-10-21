@@ -17,7 +17,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'name', 'email', 'mobile', 'password', 'is_quick_created',
     'commission_wallet_balance', 'commission_due_since', 'payout_method',
     'bank_account_name', 'bank_account_number', 'bank_ifsc', 'upi_id',
-    'razorpay_contact_id', 'razorpay_fund_account_id', 'payout_schedule', 'payout_schedule_day'
+    'razorpay_contact_id', 'razorpay_fund_account_id', 'payout_schedule', 'payout_schedule_day',
+    'trial_started_at', 'trial_ends_at', 'trial_reminder_3d_sent_at', 'trial_reminder_0d_sent_at'
 ])]
 #[Hidden(['password', 'remember_token'])]
 
@@ -37,7 +38,57 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_quick_created' => 'boolean',
+            'trial_started_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
+            'trial_reminder_3d_sent_at' => 'datetime',
+            'trial_reminder_0d_sent_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Start the free trial for a new turf owner.
+     */
+    public function startTurfOwnerTrial(): void
+    {
+        if ($this->trial_started_at !== null) {
+            return;
+        }
+
+        $saas = SaasSetting::first();
+        $days = (int) ($saas ? $saas->free_trial_days : 30);
+
+        if ($days <= 0) {
+            return;
+        }
+
+        $this->trial_started_at = now();
+        $this->trial_ends_at = now()->addDays($days);
+        $this->save();
+    }
+
+    /**
+     * Determine if the user is currently in a free trial.
+     */
+    public function onTrial(): bool
+    {
+        return $this->trial_ends_at !== null && $this->trial_ends_at->isFuture();
+    }
+
+    /**
+     * Get remaining days in the trial, rounded up.
+     */
+    public function trialDaysLeft(): int
+    {
+        if (!$this->onTrial()) {
+            return 0;
+        }
+
+        $diff = now()->diffInSeconds($this->trial_ends_at, false);
+        if ($diff <= 0) {
+            return 0;
+        }
+
+        return (int) ceil($diff / 86400);
     }
 
     /**

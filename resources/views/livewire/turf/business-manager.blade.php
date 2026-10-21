@@ -310,6 +310,36 @@ new #[Layout('layouts.app')] class extends Component
 }; ?>
 
 <div class="space-y-6">
+    @php
+        $user = auth()->user();
+        $saas = \App\Models\SaasSetting::first();
+        $ownerTurfs = $user ? \App\Models\Turf::whereHas('location', fn($q) => $q->where('user_id', $user->id))->with('activeSubscription')->get() : collect();
+        $firstTurf = $ownerTurfs->first();
+        $effectiveRate = $firstTurf ? $firstTurf->commission_percentage : ($user && $user->onTrial() ? 0.00 : (float)($saas?->commission_percentage ?? 8.00));
+        $hasActiveSub = $ownerTurfs->contains(fn($t) => $t->activeSubscription !== null);
+        $onTrial = $user && $user->onTrial();
+        $trialDaysLeft = $onTrial ? $user->trialDaysLeft() : 0;
+        $balance = $user ? (float) $user->commission_wallet_balance : 0.00;
+
+        // Pending Clearance total: same rule as the list above (what will still be credited).
+        $pendingClearanceAmount = $user
+            ? (float) (new \App\Services\WalletService())->pendingCredits(
+                $ownerTurfs->pluck('id')->all()
+            )->sum('amount')
+            : 0.00;
+
+        $totalCommissionEarned = $user ? (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })->where('status', 'Success')->sum('commission_amount') : 0.00;
+
+        $totalPayoutsReceived = $user ? (float) TurfPayout::where('user_id', $user->id)->where('status', 'completed')->sum('net_amount') : 0.00;
+
+        $maxDue = (float) ($saas?->max_commission_due ?? 2000.00);
+        $graceDays = (int) ($saas?->commission_due_grace_days ?? 7);
+        $dueDays = ($user && $user->commission_due_since) ? now()->diffInDays($user->commission_due_since) : 0;
+        $isOfflineLocked = $balance <= -$maxDue || ($balance < 0 && $dueDays >= $graceDays);
+    @endphp
+
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-6 rounded-3xl border border-gray-200 shadow-xs">
         <div class="flex items-center gap-3">
@@ -319,8 +349,24 @@ new #[Layout('layouts.app')] class extends Component
                 </svg>
             </div>
             <div>
-                <h1 class="text-2xl font-black text-gray-900 tracking-tight">Business & Earnings</h1>
-                <p class="text-xs text-gray-500">Track platform commission, withdraw earnings, and manage payout preferences.</p>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-2xl font-black text-gray-900 tracking-tight">Business & Earnings</h1>
+                    @if ($onTrial)
+                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            0% · Free Trial ({{ $trialDaysLeft }} {{ \Illuminate\Support\Str::plural('day', $trialDaysLeft) }} left)
+                        </span>
+                    @elseif ($hasActiveSub)
+                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-2xs">
+                            {{ number_format($effectiveRate, 2) }}% · Subscribed
+                        </span>
+                    @else
+                        <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-700 border border-gray-200">
+                            {{ number_format($effectiveRate, 2) }}% Commission
+                        </span>
+                    @endif
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5">Track platform commission, withdraw earnings, and manage payout preferences.</p>
             </div>
         </div>
 
@@ -366,20 +412,6 @@ new #[Layout('layouts.app')] class extends Component
             <button type="button" onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800 text-lg leading-none">&times;</button>
         </div>
     @endif
-
-    @php
-        $user = auth()->user();
-        $saas = \App\Models\SaasSetting::first();
-        $effectiveRate = $user?->commission_percentage ?? 7.00;
-        $hasActiveSub = $user ? (bool) $user->activeSubscription : false;
-        $balance = $user ? (float) $user->commission_wallet_balance : 0.00;
-
-        // Pending Clearance total: same rule as the list above (what will still be credited).
-        $pendingClearanceAmount = $user
-            ? (float) (new \App\Services\WalletService())->pendingCredits(
-                \App\Models\Turf::whereHas('location', fn ($q) => $q->where('user_id', $user->id))->pluck('id')->all()
-            )->sum('amount')
-            : 0.00;
 
 
         $totalCommissionEarned = $user ? (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
@@ -734,7 +766,7 @@ new #[Layout('layouts.app')] class extends Component
                                     </span>
                                 </td>
                                 <td class="p-3 font-bold">₹{{ number_format($pmt->amount, 2) }}</td>
-                                <td class="p-3 font-mono text-gray-500">{{ number_format($pmt->commission_percentage ?? 7.00, 2) }}%</td>
+                                <td class="p-3 font-mono text-gray-500">{{ number_format($pmt->commission_percentage ?? 8.00, 2) }}%</td>
                                 <td class="p-3 font-mono font-bold text-red-600">-₹{{ number_format($pmt->commission_amount ?? 0, 2) }}</td>
                                 <td class="p-3 font-mono text-gray-600">₹{{ number_format($pmt->cash_held_amount ?? 0, 2) }}</td>
                                 <td class="p-3">

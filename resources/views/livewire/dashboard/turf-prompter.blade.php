@@ -23,8 +23,11 @@ new class extends Component
         // Assign turf-admin and manager roles to the customer
         $user->assignRole('turf-admin');
         $user->assignRole('manager');
+        $user->startTurfOwnerTrial();
         
-        session()->flash('success', 'Congratulations! You are now a Turf Admin and Manager. Welcome to your Turf Dashboard.');
+        $days = (int) (\App\Models\SaasSetting::first()?->free_trial_days ?? 30);
+        $trialMsg = ($days > 0 && $user->onTrial()) ? " You have a free {$days}-day trial with 0% commission." : "";
+        session()->flash('success', 'Congratulations! You are now a Turf Admin and Manager. Welcome to your Turf Dashboard.' . $trialMsg);
         
         // Redirect to the turf dashboard
         $this->redirect(route('turf.dashboard'), navigate: true);

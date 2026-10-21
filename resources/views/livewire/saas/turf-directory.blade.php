@@ -289,7 +289,18 @@ new #[Layout('layouts.app')] class extends Component
                                             {{ $ownerInitials }}
                                         </div>
                                         <div class="min-w-0 flex-1">
-                                            <span class="font-bold text-xs text-gray-900 block truncate">{{ $owner->name }}</span>
+                                            <div class="flex items-center gap-1.5 justify-between">
+                                                <span class="font-bold text-xs text-gray-900 block truncate">{{ $owner->name }}</span>
+                                                @if ($owner->onTrial())
+                                                    <span class="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                                        Trial · {{ $owner->trial_ends_at->format('d M') }}
+                                                    </span>
+                                                @elseif ($owner->trial_started_at !== null)
+                                                    <span class="shrink-0 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-gray-100 text-gray-500">
+                                                        Trial ended
+                                                    </span>
+                                                @endif
+                                            </div>
                                             <span class="text-[11px] text-gray-500 block truncate font-medium">{{ $owner->mobile ?: $owner->email }}</span>
                                         </div>
                                     </div>

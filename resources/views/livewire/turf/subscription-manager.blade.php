@@ -241,8 +241,14 @@ new #[Layout('layouts.app')] class extends Component
                 $activeSub->update(['status' => 'expired']);
             } else {
                 // Lapsed or new subscription
-                $startsAt = now();
-                $newExpiresAt = now()->addDays($days);
+                $owner = $turf->owner;
+                if ($owner && $owner->onTrial()) {
+                    $startsAt = $owner->trial_ends_at->copy();
+                    $newExpiresAt = $owner->trial_ends_at->copy()->addDays($days);
+                } else {
+                    $startsAt = now();
+                    $newExpiresAt = now()->addDays($days);
+                }
 
                 // Expire any lingering records for this turf
                 TurfSubscription::where('turf_id', $turf->id)
@@ -319,7 +325,52 @@ new #[Layout('layouts.app')] class extends Component
         $manageableLocations = $user ? $user->manageableLocations()->with(['turfs.activeSubscription.package'])->get() : collect();
         $allTurfsCount = $manageableLocations->pluck('turfs')->flatten()->count();
         $selectedCount = count($selectedTurfIds);
+        $hasActivePlan = $manageableLocations->pluck('turfs')->flatten()->filter(fn($t) => $t->activeSubscription !== null)->isNotEmpty();
     @endphp
+
+    <!-- Free Trial Banner -->
+    @if ($user && $user->onTrial())
+        @php
+            $daysLeft = $user->trialDaysLeft();
+            $isAmber = $daysLeft <= 7;
+        @endphp
+        <div class="p-5 sm:p-6 rounded-3xl border transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 {{ $isAmber ? 'bg-gradient-to-r from-amber-50/90 via-orange-50/50 to-amber-50/80 border-amber-300 text-amber-950 shadow-sm' : 'bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-emerald-50/80 border-emerald-300 text-emerald-950 shadow-sm' }}">
+            <div class="flex items-center gap-3.5">
+                <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 {{ $isAmber ? 'bg-amber-500 text-white shadow-xs' : 'bg-emerald-600 text-white shadow-xs' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="space-y-0.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="text-xs font-black uppercase tracking-wider {{ $isAmber ? 'text-amber-800' : 'text-emerald-800' }}">Free Trial</span>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase {{ $isAmber ? 'bg-amber-200 text-amber-900' : 'bg-emerald-200 text-emerald-900' }}">
+                            {{ $daysLeft }} {{ \Illuminate\Support\Str::plural('day', $daysLeft) }} left
+                        </span>
+                    </div>
+                    <p class="text-sm font-black tracking-tight">
+                        Free trial: {{ $daysLeft }} {{ \Illuminate\Support\Str::plural('day', $daysLeft) }} left <span class="font-normal text-xs opacity-90">(ends {{ $user->trial_ends_at?->format('d M Y') }})</span>
+                    </p>
+                    <p class="text-xs opacity-80 leading-relaxed font-medium">
+                        You pay 0% commission until then. Subscribe now and your plan starts when the trial ends.
+                    </p>
+                </div>
+            </div>
+            <a href="#packagesSection" class="shrink-0 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition shadow-xs {{ $isAmber ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white' }}">
+                Lock In Plan &rarr;
+            </a>
+        </div>
+    @elseif ($user && $user->trial_started_at !== null && !$hasActivePlan)
+        <div class="p-4 rounded-2xl bg-gray-50 border border-gray-200 text-gray-700 text-xs font-semibold flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                <span>Your free trial ended on {{ $user->trial_ends_at?->format('d M Y') }}. Subscribe to get 0% commission again.</span>
+            </div>
+            <a href="#packagesSection" class="text-indigo-600 hover:text-indigo-800 font-bold underline">
+                View Plans &rarr;
+            </a>
+        </div>
+    @endif
 
     <div class="bg-white p-6 sm:p-8 rounded-3xl border border-gray-200 shadow-xs space-y-5">
         <div class="flex items-center justify-between">
@@ -350,13 +401,22 @@ new #[Layout('layouts.app')] class extends Component
                                     @php
                                         $isSelected = in_array($turf->id, $selectedTurfIds);
                                         $activeSub = $turf->activeSubscription;
+                                        $owner = $turf->owner;
                                     @endphp
                                     <div wire:click="toggleTurf({{ $turf->id }})"
                                         class="p-3.5 rounded-xl border transition cursor-pointer flex items-center justify-between gap-3 {{ $isSelected ? 'bg-indigo-50/80 border-indigo-500 shadow-sm' : 'bg-white border-gray-200 opacity-80' }}">
                                         <div class="min-w-0">
                                             <span class="font-bold text-xs text-gray-900 block truncate">{{ $turf->name }}</span>
                                             <span class="text-[10px] text-gray-500 block truncate mt-0.5">
-                                                Plan: {{ $activeSub ? ($activeSub->package?->name ?? 'Subscribed') : 'No Active Plan' }}
+                                                @if ($activeSub)
+                                                    Plan: {{ $activeSub->package?->name ?? 'Subscribed' }}
+                                                @elseif ($owner && $owner->onTrial())
+                                                    Plan: <strong class="text-emerald-700 font-extrabold">Free Trial</strong> · ends {{ $owner->trial_ends_at?->format('d M') }}
+                                                @elseif ($owner && $owner->trial_started_at !== null)
+                                                    Plan: <span class="text-gray-500">Trial ended ({{ $owner->trial_ends_at?->format('d M') }})</span>
+                                                @else
+                                                    Plan: No Active Plan
+                                                @endif
                                             </span>
                                             @if ($activeSub)
                                                 <span class="text-[9px] text-emerald-600 block font-semibold">Exp: {{ $activeSub->expires_at?->format('d M Y') }}</span>
@@ -378,7 +438,7 @@ new #[Layout('layouts.app')] class extends Component
     </div>
 
     <!-- STEP 2: SUBSCRIPTION PACKAGES -->
-    <div class="space-y-4">
+    <div id="packagesSection" class="space-y-4">
         <div class="px-2">
             <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600">STEP 2</span>
             <h2 class="text-xl font-black text-gray-900">Select Subscription Package</h2>

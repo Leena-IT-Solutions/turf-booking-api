@@ -10,7 +10,7 @@ new #[Layout('layouts.app')] class extends Component
     public $min_slots_booking = 2;
     public $free_trial_days = 30;
     public $is_maintenance_mode = false;
-    public $commission_percentage = 7.00;
+    public $commission_percentage = 8.00;
     public $platform_fee = 0.00;
     public $cancellation_fee_percentage = 5.00;
     public $payout_hours = 24;
@@ -32,7 +32,7 @@ new #[Layout('layouts.app')] class extends Component
         $this->min_slots_booking = $setting->min_slots_booking ?? 2;
         $this->free_trial_days = (int) ($setting->free_trial_days ?? 30);
         $this->is_maintenance_mode = (bool) $setting->is_maintenance_mode;
-        $this->commission_percentage = (float) ($setting->commission_percentage ?? 7.00);
+        $this->commission_percentage = (float) ($setting->commission_percentage ?? 8.00);
         $this->platform_fee = (float) ($setting->platform_fee ?? 0.00);
         $this->cancellation_fee_percentage = (float) ($setting->cancellation_fee_percentage ?? 5.00);
         $this->payout_hours = (int) ($setting->payout_hours ?? 24);
@@ -297,7 +297,7 @@ new #[Layout('layouts.app')] class extends Component
                             <div class="relative w-full sm:w-44">
                                 <input wire:model.live.debounce.250ms="commission_percentage" id="commissionPerc" type="number" step="0.01" min="0" max="100" 
                                     class="w-full pr-10 pl-4 py-2.5 bg-gray-50/60 hover:bg-white focus:bg-white rounded-2xl border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 text-sm font-semibold text-gray-900 text-right transition" 
-                                    placeholder="7.00" />
+                                    placeholder="8.00" />
                                 <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-xs font-bold text-gray-400">%</span>
                             </div>
                         </div>

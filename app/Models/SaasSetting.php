@@ -9,6 +9,11 @@ class SaasSetting extends Model
 {
     use HasFactory;
 
+    protected $attributes = [
+        'commission_percentage' => 8.00,
+        'free_trial_days' => 30,
+    ];
+
     protected $fillable = [
         'app_name',
         'contact_email',

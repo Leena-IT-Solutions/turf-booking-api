@@ -189,6 +189,31 @@ new #[Layout('layouts.app')] class extends Component
 
 <div class="w-full space-y-6">
 
+        @php
+            $authUser = auth()->user();
+            $onTrial = $authUser && $authUser->onTrial();
+            $trialDaysLeft = $onTrial ? $authUser->trialDaysLeft() : 0;
+            $userTurfs = $authUser ? $authUser->manageableTurfs()->with('activeSubscription')->get() : collect();
+            $hasActivePlan = $userTurfs->filter(fn($t) => $t->activeSubscription !== null)->isNotEmpty();
+        @endphp
+
+        @if ($onTrial && $trialDaysLeft <= 7 && !$hasActivePlan)
+            <div class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/15 border border-amber-300/80 text-amber-950 px-5 py-3 rounded-2xl text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                <div class="flex items-center gap-2.5">
+                    <span class="flex h-2 w-2 relative shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <span>
+                        {{ __('Your free trial ends in :count :days. Subscribe to keep 0% commission.', ['count' => $trialDaysLeft, 'days' => \Illuminate\Support\Str::plural('day', $trialDaysLeft)]) }}
+                    </span>
+                </div>
+                <a href="{{ route('turf.subscription') }}" wire:navigate class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs transition shrink-0 text-center shadow-xs">
+                    {{ __('Subscribe →') }}
+                </a>
+            </div>
+        @endif
+
         @if ($missingGstState)
             <div class="bg-amber-50 border border-amber-200 text-amber-900 px-5 py-4 rounded-2xl text-xs font-semibold flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
                 <div class="flex items-center gap-3">

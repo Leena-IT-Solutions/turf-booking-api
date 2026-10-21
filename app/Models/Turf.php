@@ -149,9 +149,26 @@ class Turf extends Model
         if ($sub) {
             return (float) $sub->commission_percentage;
         }
+
+        $owner = $this->owner;
+        if ($owner && $owner->onTrial()) {
+            return 0.00;
+        }
+
         $saas = \App\Models\SaasSetting::first();
-        return $saas ? (float) $saas->commission_percentage : 7.00;
+        return $saas ? (float) $saas->commission_percentage : 8.00;
     }
+
+    public function getOwnerAttribute(): ?User
+    {
+        return $this->location?->user;
+    }
+
+    public function owner(): ?User
+    {
+        return $this->owner;
+    }
+
     public function setting(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(TurfSetting::class);

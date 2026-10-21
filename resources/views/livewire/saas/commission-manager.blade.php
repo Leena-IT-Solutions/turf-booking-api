@@ -542,7 +542,7 @@ new #[Layout('layouts.app')] class extends Component
                                     ₹{{ number_format($b->total_amount, 2) }}
                                 </td>
                                 <td class="py-3.5 px-4 font-semibold text-gray-600">
-                                    {{ (float)($b->commission_rate ?? $b->turf?->commission_percentage ?? 7.00) }}%
+                                    {{ (float)($b->commission_rate ?? $b->turf?->commission_percentage ?? 8.00) }}%
                                 </td>
                                 <td class="py-3.5 px-4 font-black text-indigo-600">
                                     ₹{{ number_format($commAmount, 2) }}
@@ -680,7 +680,7 @@ new #[Layout('layouts.app')] class extends Component
                                     <div class="text-[11px] text-gray-400">{{ $mgr->phone }}</div>
                                 </td>
                                 <td class="py-3.5 px-4 font-semibold text-emerald-700">
-                                    {{ (float)($mgr->commission_percentage ?? 7.00) }}%
+                                    {{ (float)($mgr->commission_percentage ?? 8.00) }}%
                                 </td>
                                 <td class="py-3.5 px-4 font-semibold">
                                     {{ $turfsCount }} Turf(s)
