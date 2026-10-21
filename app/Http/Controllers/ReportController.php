@@ -164,6 +164,38 @@ class ReportController extends Controller
                 number_format($totalDiscount, 2, '.', ''),
             ]);
 
+            // Blank line before Summary Block
+            fputcsv($handle, []);
+
+            // Summary Block (Part 3)
+            fputcsv($handle, ['Bookings', $summary['count']]);
+            fputcsv($handle, ['Active', $summary['count_active']]);
+            fputcsv($handle, ['Cancelled', $summary['count_cancelled']]);
+            fputcsv($handle, ['Partly cancelled', $summary['count_partly_cancelled']]);
+            fputcsv($handle, ['Booking value', number_format($summary['booking_value'], 2, '.', '')]);
+            fputcsv($handle, ['Active value', number_format($summary['active_value'], 2, '.', '')]);
+            fputcsv($handle, ['Cancelled value', number_format($summary['cancelled_value'], 2, '.', '')]);
+            fputcsv($handle, ['Received', number_format($summary['received'], 2, '.', '')]);
+            fputcsv($handle, ['Refunded', number_format($summary['refunded'], 2, '.', '')]);
+            fputcsv($handle, ['Refund pending', number_format($summary['refund_pending'], 2, '.', '')]);
+            fputcsv($handle, ['Net collected', number_format($summary['net_collected'], 2, '.', '')]);
+            fputcsv($handle, ['Due at venue', number_format($summary['due_at_venue'], 2, '.', '')]);
+            fputcsv($handle, ['By App received', number_format($summary['online_collected'], 2, '.', '')]);
+            fputcsv($handle, [
+                'At Location received',
+                number_format($summary['venue_collected'], 2, '.', '') . ' (Cash ' . number_format($summary['venue_split']['Cash'], 2, '.', '') . ' · UPI ' . number_format($summary['venue_split']['UPI'], 2, '.', '') . ' · Other ' . number_format($summary['venue_split']['Other'], 2, '.', '') . ')'
+            ]);
+            fputcsv($handle, ['Cancelled sessions', $summary['cancelled_sessions']]);
+            fputcsv($handle, ['Cancellation refunded', number_format($summary['cancellation_refunded'], 2, '.', '')]);
+            fputcsv($handle, ['Kept by turf', number_format($summary['cancellation_kept_turf'], 2, '.', '')]);
+            fputcsv($handle, ['Kept by platform', number_format($summary['cancellation_kept_platform'], 2, '.', '')]);
+            fputcsv($handle, ['Coupon discounts', number_format($summary['discount_coupon'], 2, '.', '')]);
+            fputcsv($handle, ['Staff discounts', number_format($summary['discount_staff'], 2, '.', '')]);
+            fputcsv($handle, ['Hours booked', number_format($summary['active_hours'], 1, '.', '')]);
+            fputcsv($handle, ['Avg booking value', number_format($summary['avg_booking_value'], 2, '.', '')]);
+            fputcsv($handle, ['Collection rate %', number_format($summary['collection_rate'], 1, '.', '') . '%']);
+            fputcsv($handle, ['Cancellation rate %', number_format($summary['cancellation_rate'], 1, '.', '') . '%']);
+
             fclose($handle);
         }, $filename, [
             'Content-Type' => 'text/csv; charset=UTF-8',

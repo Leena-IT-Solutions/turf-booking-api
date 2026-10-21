@@ -9,6 +9,7 @@ use App\Models\BookingReschedule;
 use App\Models\Payment;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 
 class BookingsLedgerService
 {
@@ -142,6 +143,32 @@ class BookingsLedgerService
                     'venue' => 0,
                     'mixed' => 0,
                 ],
+
+                // Part 1 New Figures
+                'count_active' => 0,
+                'count_cancelled' => 0,
+                'count_partly_cancelled' => 0,
+                'active_value' => 0.00,
+                'cancelled_value' => 0.00,
+                'received' => 0.00,
+                'due_count' => 0,
+                'app_booking_count' => 0,
+                'cancelled_sessions' => 0,
+                'all_sessions' => 0,
+                'cancellation_refunded' => 0.00,
+                'cancellation_kept_turf' => 0.00,
+                'cancellation_kept_platform' => 0.00,
+                'discount_coupon' => 0.00,
+                'discount_staff' => 0.00,
+                'active_hours' => 0.0,
+                'avg_booking_value' => 0.00,
+                'collection_rate' => 0.0,
+                'cancellation_rate' => 0.0,
+                'booked_by' => [
+                    'app' => 0,
+                    'staff' => 0,
+                    'unknown' => 0,
+                ],
             ];
         }
 
@@ -163,6 +190,7 @@ class BookingsLedgerService
         $upiCollected = (float) ($paymentsAgg?->upi_collected ?? 0.0);
         $otherCollected = (float) ($paymentsAgg?->other_collected ?? 0.0);
         $venueCollected = round($cashCollected + $upiCollected + $otherCollected, 2);
+        $received = round($onlineCollected + $venueCollected, 2);
 
         // Aggregated refunds from cancellation and reschedule records
         $cancellationRefund = (float) BookingCancellation::whereIn('booking_id', $bookingIds)
@@ -181,21 +209,26 @@ class BookingsLedgerService
 
         $netCollected = round(($onlineCollected + $venueCollected) - $refunded, 2);
 
-        // Due at venue: sum of balance_due over non-cancelled bookings
+        // Due at venue and due_count: sum of balance_due over non-cancelled bookings
         $nonCancelledBookings = (clone $baseQuery)
             ->where('status', '!=', 'Cancelled')
             ->with([
                 'bookingDates' => fn($q) => $q->select('id', 'booking_id', 'amount', 'status'),
                 'bookingDates.reschedules' => fn($q) => $q->where('settlement_type', 'refund')->select('id', 'booking_date_id', 'refund_amount', 'settlement_type'),
+                'reschedules' => fn($q) => $q->where('settlement_type', 'refund')->select('id', 'booking_id', 'refund_amount', 'settlement_type'),
                 'payments' => fn($q) => $q->select('id', 'booking_id', 'amount', 'payment_method', 'status'),
                 'bookingCancellations' => fn($q) => $q->whereIn('refund_status', ['Refunded', 'Cash / Offline Refund'])->select('id', 'booking_id', 'refund_amount', 'refund_status'),
             ])
             ->get();
 
         $dueAtVenue = 0.00;
+        $dueCount = 0;
         foreach ($nonCancelledBookings as $b) {
             $rowMetrics = $this->rowMetrics($b);
             $dueAtVenue += $rowMetrics['balance_due'];
+            if ($rowMetrics['balance_due'] > 0) {
+                $dueCount++;
+            }
         }
         $dueAtVenue = round($dueAtVenue, 2);
 
@@ -212,6 +245,106 @@ class BookingsLedgerService
             }
         }
 
+        // Part 1 New Figures
+        // 1. Booking status counts, discounts, and booking_source breakdown
+        $bookingsAgg = Booking::whereIn('id', $bookingIds)
+            ->selectRaw("
+                SUM(CASE WHEN status = 'Confirmed' THEN 1 ELSE 0 END) as count_active,
+                SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as count_cancelled,
+                SUM(CASE WHEN status = 'Partially Cancelled' THEN 1 ELSE 0 END) as count_partly_cancelled,
+                SUM(COALESCE(coupon_discount, 0)) as discount_coupon,
+                SUM(COALESCE(additional_discount, 0)) as discount_staff,
+                SUM(CASE WHEN booking_source = 'app' THEN 1 ELSE 0 END) as booked_app,
+                SUM(CASE WHEN booking_source = 'staff' THEN 1 ELSE 0 END) as booked_staff,
+                SUM(CASE WHEN booking_source IS NULL OR booking_source NOT IN ('app', 'staff') THEN 1 ELSE 0 END) as booked_unknown
+            ")
+            ->first();
+
+        $countActive = (int) ($bookingsAgg?->count_active ?? 0);
+        $countCancelled = (int) ($bookingsAgg?->count_cancelled ?? 0);
+        $countPartlyCancelled = (int) ($bookingsAgg?->count_partly_cancelled ?? 0);
+        $discountCoupon = round((float) ($bookingsAgg?->discount_coupon ?? 0.0), 2);
+        $discountStaff = round((float) ($bookingsAgg?->discount_staff ?? 0.0), 2);
+        $bookedBy = [
+            'app' => (int) ($bookingsAgg?->booked_app ?? 0),
+            'staff' => (int) ($bookingsAgg?->booked_staff ?? 0),
+            'unknown' => (int) ($bookingsAgg?->booked_unknown ?? 0),
+        ];
+
+        // 2. Booking dates aggregates: active_value, cancelled_value, session counts
+        $datesAgg = BookingDate::whereIn('booking_id', $bookingIds)
+            ->selectRaw("
+                SUM(CASE WHEN status != 'Cancelled' THEN amount ELSE 0 END) as active_value,
+                SUM(CASE WHEN status = 'Cancelled' THEN amount ELSE 0 END) as cancelled_value,
+                SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as cancelled_sessions,
+                COUNT(*) as all_sessions
+            ")
+            ->first();
+
+        $activeValue = round((float) ($datesAgg?->active_value ?? 0.0), 2);
+        $cancelledValue = round((float) ($datesAgg?->cancelled_value ?? 0.0), 2);
+        $cancelledSessions = (int) ($datesAgg?->cancelled_sessions ?? 0);
+        $allSessions = (int) ($datesAgg?->all_sessions ?? 0);
+
+        // 3. App booking count (bookings with any Success App payment)
+        $appBookingCount = Payment::whereIn('booking_id', $bookingIds)
+            ->where('status', 'Success')
+            ->where('payment_method', 'App')
+            ->distinct()
+            ->count('booking_id');
+
+        // 4. Cancellation figures: refunded, kept by turf, kept by platform
+        $cancellationsAgg = BookingCancellation::whereIn('booking_id', $bookingIds)
+            ->selectRaw("
+                SUM(CASE WHEN refund_status IN ('Refunded', 'Cash / Offline Refund') THEN refund_amount ELSE 0 END) as cancellation_refunded,
+                SUM(CASE WHEN refund_status NOT IN ('Pending', 'Pending Resolution') THEN turf_cancellation_fee ELSE 0 END) as cancellation_kept_turf,
+                SUM(CASE WHEN refund_status NOT IN ('Pending', 'Pending Resolution') THEN (COALESCE(platform_fee_retained, 0) + COALESCE(saas_cancellation_fee, 0)) ELSE 0 END) as cancellation_kept_platform
+            ")
+            ->first();
+
+        $cancellationRefunded = round((float) ($cancellationsAgg?->cancellation_refunded ?? 0.0), 2);
+        $cancellationKeptTurf = round((float) ($cancellationsAgg?->cancellation_kept_turf ?? 0.0), 2);
+        $cancellationKeptPlatform = round((float) ($cancellationsAgg?->cancellation_kept_platform ?? 0.0), 2);
+
+        // 5. Active hours (cross-db compatible for MySQL & SQLite)
+        $knownDurationMinutes = (int) DB::table('booking_slots')
+            ->join('booking_dates', 'booking_slots.booking_date_id', '=', 'booking_dates.id')
+            ->join('slots', 'booking_slots.slot_id', '=', 'slots.id')
+            ->whereIn('booking_dates.booking_id', $bookingIds)
+            ->where('booking_dates.status', '!=', 'Cancelled')
+            ->where('booking_slots.status', '!=', 'cancelled')
+            ->where('slots.duration', '>', 0)
+            ->sum('slots.duration');
+
+        $fallbackSlots = DB::table('booking_slots')
+            ->join('booking_dates', 'booking_slots.booking_date_id', '=', 'booking_dates.id')
+            ->join('slots', 'booking_slots.slot_id', '=', 'slots.id')
+            ->whereIn('booking_dates.booking_id', $bookingIds)
+            ->where('booking_dates.status', '!=', 'Cancelled')
+            ->where('booking_slots.status', '!=', 'cancelled')
+            ->where(function ($q) {
+                $q->whereNull('slots.duration')->orWhere('slots.duration', '<=', 0);
+            })
+            ->select('slots.from_time', 'slots.to_time')
+            ->get();
+
+        $fallbackMinutes = 0;
+        foreach ($fallbackSlots as $fs) {
+            if ($fs->from_time && $fs->to_time) {
+                $f = Carbon::parse($fs->from_time);
+                $t = Carbon::parse($fs->to_time);
+                $fallbackMinutes += abs((float) $t->diffInMinutes($f));
+            }
+        }
+
+        $activeHours = round(($knownDurationMinutes + $fallbackMinutes) / 60, 1);
+
+        // 6. Derived ratios (unclamped)
+        $activeBookingsCount = $countActive + $countPartlyCancelled;
+        $avgBookingValue = $activeBookingsCount > 0 ? round($activeValue / $activeBookingsCount, 2) : 0.00;
+        $collectionRate = $activeValue > 0 ? round((($activeValue - $dueAtVenue) / $activeValue) * 100, 1) : 0.0;
+        $cancellationRate = $allSessions > 0 ? round(($cancelledSessions / $allSessions) * 100, 1) : 0.0;
+
         return [
             'count' => $count,
             'booking_value' => $bookingValue,
@@ -227,6 +360,28 @@ class BookingsLedgerService
             'net_collected' => $netCollected,
             'due_at_venue' => $dueAtVenue,
             'by_channel_count' => $byChannelCount,
+
+            // Part 1 New Figures
+            'count_active' => $countActive,
+            'count_cancelled' => $countCancelled,
+            'count_partly_cancelled' => $countPartlyCancelled,
+            'active_value' => $activeValue,
+            'cancelled_value' => $cancelledValue,
+            'received' => $received,
+            'due_count' => $dueCount,
+            'app_booking_count' => $appBookingCount,
+            'cancelled_sessions' => $cancelledSessions,
+            'all_sessions' => $allSessions,
+            'cancellation_refunded' => $cancellationRefunded,
+            'cancellation_kept_turf' => $cancellationKeptTurf,
+            'cancellation_kept_platform' => $cancellationKeptPlatform,
+            'discount_coupon' => $discountCoupon,
+            'discount_staff' => $discountStaff,
+            'active_hours' => $activeHours,
+            'avg_booking_value' => $avgBookingValue,
+            'collection_rate' => $collectionRate,
+            'cancellation_rate' => $cancellationRate,
+            'booked_by' => $bookedBy,
         ];
     }
 
@@ -398,9 +553,14 @@ class BookingsLedgerService
                 $line = "{$dateStr}, {$timeStr}" . ($isCancelled ? ' (cancelled)' : '');
 
                 foreach ($activeSlots as $bs) {
-                    $f = Carbon::parse($bs->slot->from_time);
-                    $t = Carbon::parse($bs->slot->to_time);
-                    $totalMinutes += max(0, $t->diffInMinutes($f));
+                    $dur = (int) ($bs->slot->duration ?? 0);
+                    if ($dur > 0) {
+                        $totalMinutes += $dur;
+                    } elseif ($bs->slot->from_time && $bs->slot->to_time) {
+                        $f = Carbon::parse($bs->slot->from_time);
+                        $t = Carbon::parse($bs->slot->to_time);
+                        $totalMinutes += abs((float) $t->diffInMinutes($f));
+                    }
                 }
             } else {
                 $line = $dateStr . ($isCancelled ? ' (cancelled)' : '');

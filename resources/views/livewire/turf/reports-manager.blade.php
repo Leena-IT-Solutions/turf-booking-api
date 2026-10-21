@@ -861,17 +861,18 @@ new #[Layout('layouts.app')] class extends Component
 
         <!-- Tab Contents -->
         @if ($activeTab === 'bookings' && $ledgerData)
-            <!-- Summary Metric Cards -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <!-- Summary Metric Cards (8 Cards in 2 rows on desktop) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <!-- Card 1: Bookings -->
                 <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
                     <div>
                         <span class="text-xs font-medium text-gray-500">Bookings</span>
                         <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($ledgerData['summary']['count']) }}</p>
                     </div>
-                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
-                        Online {{ $ledgerData['summary']['by_channel_count']['online'] }} · Venue {{ $ledgerData['summary']['by_channel_count']['venue'] }} · Mixed {{ $ledgerData['summary']['by_channel_count']['mixed'] }}
-                    </p>
+                    <div class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 space-y-0.5">
+                        <div>Active {{ $ledgerData['summary']['count_active'] }} · Cancelled {{ $ledgerData['summary']['count_cancelled'] }} · Partly cancelled {{ $ledgerData['summary']['count_partly_cancelled'] }}</div>
+                        <div class="text-gray-400">Online {{ $ledgerData['summary']['by_channel_count']['online'] }} · Venue {{ $ledgerData['summary']['by_channel_count']['venue'] }} · Mixed {{ $ledgerData['summary']['by_channel_count']['mixed'] }}</div>
+                    </div>
                 </div>
 
                 <!-- Card 2: Booking value -->
@@ -881,19 +882,18 @@ new #[Layout('layouts.app')] class extends Component
                         <p class="text-2xl font-bold text-indigo-600 mt-1">₹{{ number_format($ledgerData['summary']['booking_value'], 2) }}</p>
                     </div>
                     <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
-                        Original total order value
+                        Active ₹{{ number_format($ledgerData['summary']['active_value'], 2) }} · Cancelled ₹{{ number_format($ledgerData['summary']['cancelled_value'], 2) }}
                     </p>
                 </div>
 
-                <!-- Card 3: Collected -->
+                <!-- Card 3: Collected (net) -->
                 <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
                     <div>
-                        <span class="text-xs font-medium text-gray-500">Collected</span>
+                        <span class="text-xs font-medium text-gray-500">Collected (net)</span>
                         <p class="text-2xl font-bold text-emerald-600 mt-1">₹{{ number_format($ledgerData['summary']['net_collected'], 2) }}</p>
                     </div>
-                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 leading-relaxed" title="App ₹{{ number_format($ledgerData['summary']['online_collected'], 2) }} · Venue ₹{{ number_format($ledgerData['summary']['venue_collected'], 2) }} (Cash ₹{{ number_format($ledgerData['summary']['venue_split']['Cash'], 2) }} · UPI ₹{{ number_format($ledgerData['summary']['venue_split']['UPI'], 2) }} · Other ₹{{ number_format($ledgerData['summary']['venue_split']['Other'], 2) }}) · Refunded −₹{{ number_format($ledgerData['summary']['refunded'], 2) }}">
-                        App ₹{{ number_format($ledgerData['summary']['online_collected'], 2) }} · Venue ₹{{ number_format($ledgerData['summary']['venue_collected'], 2) }}
-                        <span class="text-gray-400">(Cash ₹{{ number_format($ledgerData['summary']['venue_split']['Cash'], 2) }} · UPI ₹{{ number_format($ledgerData['summary']['venue_split']['UPI'], 2) }} · Other ₹{{ number_format($ledgerData['summary']['venue_split']['Other'], 2) }})</span> · Refunded −₹{{ number_format($ledgerData['summary']['refunded'], 2) }}
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 leading-relaxed">
+                        Received ₹{{ number_format($ledgerData['summary']['received'], 2) }} − Refunded ₹{{ number_format($ledgerData['summary']['refunded'], 2) }}
                         @if ($ledgerData['summary']['refund_pending'] > 0)
                             · <span class="text-amber-600 font-semibold">Refund pending ₹{{ number_format($ledgerData['summary']['refund_pending'], 2) }}</span>
                         @endif
@@ -909,9 +909,81 @@ new #[Layout('layouts.app')] class extends Component
                         </p>
                     </div>
                     <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
-                        Balance to collect on active bookings
+                        @if ($ledgerData['summary']['due_count'] > 0)
+                            on {{ $ledgerData['summary']['due_count'] }} active booking{{ $ledgerData['summary']['due_count'] === 1 ? '' : 's' }}
+                        @else
+                            Nothing due
+                        @endif
                     </p>
                 </div>
+
+                <!-- Card 5: By App -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">By App</span>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">
+                            ₹{{ number_format($ledgerData['summary']['online_collected'], 2) }}
+                            <span class="text-xs font-normal text-gray-500">received</span>
+                        </p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        {{ $ledgerData['summary']['app_booking_count'] }} booking{{ $ledgerData['summary']['app_booking_count'] === 1 ? '' : 's' }} paid online (incl. mixed)
+                    </p>
+                </div>
+
+                <!-- Card 6: At Location -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">At Location</span>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">
+                            ₹{{ number_format($ledgerData['summary']['venue_collected'], 2) }}
+                            <span class="text-xs font-normal text-gray-500">received</span>
+                        </p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        Cash ₹{{ number_format($ledgerData['summary']['venue_split']['Cash'], 2) }} · UPI ₹{{ number_format($ledgerData['summary']['venue_split']['UPI'], 2) }} · Other ₹{{ number_format($ledgerData['summary']['venue_split']['Other'], 2) }}
+                    </p>
+                </div>
+
+                <!-- Card 7: Cancellations -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Cancellations</span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <p class="text-2xl font-bold text-rose-600">{{ $ledgerData['summary']['cancelled_sessions'] }} session{{ $ledgerData['summary']['cancelled_sessions'] === 1 ? '' : 's' }}</p>
+                            <span class="text-xs font-semibold text-rose-700">₹{{ number_format($ledgerData['summary']['cancelled_value'], 2) }}</span>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 leading-relaxed">
+                        Refunded ₹{{ number_format($ledgerData['summary']['cancellation_refunded'], 2) }} · Kept: turf ₹{{ number_format($ledgerData['summary']['cancellation_kept_turf'], 2) }}, platform ₹{{ number_format($ledgerData['summary']['cancellation_kept_platform'], 2) }}
+                    </p>
+                </div>
+
+                <!-- Card 8: Discounts given -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Discounts Given</span>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">
+                            ₹{{ number_format($ledgerData['summary']['discount_coupon'] + $ledgerData['summary']['discount_staff'], 2) }}
+                        </p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        Coupons ₹{{ number_format($ledgerData['summary']['discount_coupon'], 2) }} · Staff ₹{{ number_format($ledgerData['summary']['discount_staff'], 2) }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Strip below the cards -->
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-gray-600 bg-gray-50/80 px-4 py-2.5 rounded-xl border border-gray-200/80 mb-6">
+                <span>Hours booked <strong class="text-gray-900 font-semibold">{{ $ledgerData['summary']['active_hours'] }}</strong></span>
+                <span class="text-gray-300">·</span>
+                <span>Avg booking <strong class="text-gray-900 font-semibold">₹{{ number_format($ledgerData['summary']['avg_booking_value'], 2) }}</strong></span>
+                <span class="text-gray-300">·</span>
+                <span>Collection rate <strong class="text-gray-900 font-semibold">{{ $ledgerData['summary']['collection_rate'] }}%</strong></span>
+                <span class="text-gray-300">·</span>
+                <span>Cancellation rate <strong class="text-gray-900 font-semibold">{{ $ledgerData['summary']['cancellation_rate'] }}%</strong></span>
+                <span class="text-gray-300">·</span>
+                <span>Booked by app <strong class="text-gray-900 font-semibold">{{ $ledgerData['summary']['booked_by']['app'] }}</strong> · staff <strong class="text-gray-900 font-semibold">{{ $ledgerData['summary']['booked_by']['staff'] }}</strong>@if ($ledgerData['summary']['booked_by']['unknown'] > 0) · not recorded <strong class="text-gray-900 font-semibold">{{ $ledgerData['summary']['booked_by']['unknown'] }}</strong>@endif</span>
             </div>
 
             <!-- Bookings Ledger Container -->
