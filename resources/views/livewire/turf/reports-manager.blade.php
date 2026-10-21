@@ -4,10 +4,12 @@ use App\Models\Booking;
 use App\Models\BookingDate;
 use App\Models\Payment;
 use App\Models\Turf;
+use App\Services\BookingsLedgerService;
 use App\Services\ReportService;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Url;
 use Livewire\Volt\Component;
 
 new #[Layout('layouts.app')] class extends Component
@@ -17,8 +19,49 @@ new #[Layout('layouts.app')] class extends Component
     public string $cursorDate = '';
     public string $startDate = '';
     public string $endDate = '';
+
+    #[Url]
     public string $statusFilter = 'all';
+    #[Url]
     public string $paymentStatusFilter = 'all';
+    #[Url]
+    public string $channelFilter = 'all'; // 'all', 'online', 'venue'
+    #[Url]
+    public string $dateBasis = 'session'; // 'session', 'booked'
+    #[Url]
+    public string $search = '';
+
+    public int $bookingsPerPage = 25;
+
+    public function loadMoreBookings(): void
+    {
+        $this->bookingsPerPage += 25;
+    }
+
+    public function updatedStatusFilter(): void
+    {
+        $this->bookingsPerPage = 25;
+    }
+
+    public function updatedPaymentStatusFilter(): void
+    {
+        $this->bookingsPerPage = 25;
+    }
+
+    public function updatedChannelFilter(): void
+    {
+        $this->bookingsPerPage = 25;
+    }
+
+    public function updatedDateBasis(): void
+    {
+        $this->bookingsPerPage = 25;
+    }
+
+    public function updatedSearch(): void
+    {
+        $this->bookingsPerPage = 25;
+    }
 
     public int $passbookPerPage = 25;
     public string $passbookGroupFilter = 'all';
@@ -251,6 +294,39 @@ new #[Layout('layouts.app')] class extends Component
             $totalAmountSum = $totalBilling;
             $totalPaidSum = $totalReceived;
 
+            // Bookings Ledger Service integration
+            /** @var BookingsLedgerService $bookingsLedgerService */
+            $bookingsLedgerService = app(BookingsLedgerService::class);
+            $ledgerScopeTurfIds = ($activeTurfId && in_array($activeTurfId, $manageableTurfIds))
+                ? [$activeTurfId]
+                : $manageableTurfIds;
+
+            $ledgerFilters = [
+                'date_basis' => $this->dateBasis,
+                'start' => $this->startDate,
+                'end' => $this->endDate,
+                'status' => $this->statusFilter,
+                'payment_status' => $this->paymentStatusFilter,
+                'channel' => $this->channelFilter,
+                'search' => $this->search,
+            ];
+
+            $ledgerData = null;
+            if ($activeTab === 'bookings') {
+                $ledgerSummary = $bookingsLedgerService->summary($ledgerScopeTurfIds, $ledgerFilters);
+                $ledgerQuery = $bookingsLedgerService->query($ledgerScopeTurfIds, $ledgerFilters);
+                $totalLedgerCount = $ledgerSummary['count'];
+                $ledgerBookings = $ledgerQuery->take($this->bookingsPerPage)->get();
+
+                $ledgerData = [
+                    'summary' => $ledgerSummary,
+                    'bookings' => $ledgerBookings,
+                    'total' => $totalLedgerCount,
+                    'hasMore' => $totalLedgerCount > $ledgerBookings->count(),
+                    'showingCount' => $ledgerBookings->count(),
+                ];
+            }
+
             // Fetch tab data on demand
             $passbookData = $activeTab === 'passbook'
                 ? $reportService->getWalletPassbookSummary(
@@ -357,7 +433,15 @@ new #[Layout('layouts.app')] class extends Component
                         Export Bookings CSV
                     </a>
                 @elseif ($activeTab === 'bookings')
-                    <a href="{{ route('reports.export-bookings', ['start_date' => $startDate, 'end_date' => $endDate, 'status' => $statusFilter, 'payment_status' => $paymentStatusFilter]) }}" 
+                    <a href="{{ route('reports.export-bookings', [
+                        'start_date' => $startDate,
+                        'end_date' => $endDate,
+                        'date_basis' => $dateBasis,
+                        'status' => $statusFilter,
+                        'payment_status' => $paymentStatusFilter,
+                        'channel' => $channelFilter,
+                        'search' => $search,
+                    ]) }}" 
                        target="_blank"
                        class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg text-sm transition flex items-center gap-1.5 shadow-sm">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -711,118 +795,371 @@ new #[Layout('layouts.app')] class extends Component
                 </div>
             @endif
 
-            @if ($activeTab === 'bookings')
-                <!-- Bookings Sub-filters (Status & Payment Status) -->
-                <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs flex flex-wrap items-center justify-between gap-4 mb-6">
-                    <div class="flex flex-wrap items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Status:</label>
-                            <select wire:model.live="statusFilter" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
-                                <option value="all">All Statuses</option>
-                                <option value="Confirmed">Confirmed</option>
-                                <option value="Partially Cancelled">Partially Cancelled</option>
-                                <option value="Cancelled">Cancelled</option>
-                            </select>
+            @if ($activeTab === 'bookings' && $ledgerData)
+                <!-- Bookings Sub-filters (Channel, Date Basis, Status, Payment, Search) -->
+                <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-2xs mb-6 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <!-- Channel Filter -->
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Channel:</label>
+                                <select wire:model.live="channelFilter" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
+                                    <option value="all">All channels</option>
+                                    <option value="online">By App (online gateway)</option>
+                                    <option value="venue">At Location (Cash / UPI / Counter)</option>
+                                </select>
+                            </div>
+
+                            <!-- Date Basis Filter -->
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Date Basis:</label>
+                                <select wire:model.live="dateBasis" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
+                                    <option value="session">Session Date</option>
+                                    <option value="booked">Booking Date</option>
+                                </select>
+                            </div>
+
+                            <!-- Status Filter -->
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Status:</label>
+                                <select wire:model.live="statusFilter" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
+                                    <option value="all">All Statuses</option>
+                                    <option value="Confirmed">Confirmed</option>
+                                    <option value="Partially Cancelled">Partially Cancelled</option>
+                                    <option value="Cancelled">Cancelled</option>
+                                </select>
+                            </div>
+
+                            <!-- Payment Status Filter -->
+                            <div class="flex items-center gap-1.5">
+                                <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment:</label>
+                                <select wire:model.live="paymentStatusFilter" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
+                                    <option value="all">All Payment Statuses</option>
+                                    <option value="Paid">Paid (Full)</option>
+                                    <option value="Partially Paid">Partially Paid</option>
+                                    <option value="Unpaid">Unpaid</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <label class="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment:</label>
-                            <select wire:model.live="paymentStatusFilter" class="rounded-xl border-gray-200 text-xs font-semibold text-gray-700 py-1.5 pl-3 pr-8 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
-                                <option value="all">All Payment Statuses</option>
-                                <option value="Paid">Paid (Full)</option>
-                                <option value="Partially Paid">Partially Paid</option>
-                                <option value="Unpaid">Unpaid</option>
-                            </select>
+
+                        <!-- Search Box -->
+                        <div class="relative w-full sm:w-64">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </div>
+                            <input type="text" wire:model.live.debounce.300ms="search" placeholder="Search ref, player, mobile..." class="w-full pl-9 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs text-gray-700 placeholder-gray-400 focus:border-emerald-500 focus:ring-emerald-500 bg-gray-50/50">
                         </div>
                     </div>
-                    <div class="text-xs text-gray-500">
-                        Showing <strong>{{ number_format($totalBookingsCount) }}</strong> records for <strong>{{ $periodLabel }}</strong>
+
+                    <div class="text-xs text-gray-500 pt-1 border-t border-gray-100 flex items-center justify-between">
+                        <div>
+                            Showing <strong>{{ $ledgerData['showingCount'] }}</strong> of <strong>{{ number_format($ledgerData['total']) }}</strong> bookings for <strong>{{ $periodLabel }}</strong>
+                        </div>
                     </div>
                 </div>
             @endif
 
         <!-- Tab Contents -->
-        @if ($activeTab === 'bookings')
+        @if ($activeTab === 'bookings' && $ledgerData)
             <!-- Summary Metric Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <span class="text-xs font-medium text-gray-500">Total Bookings</span>
-                    <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($totalBookingsCount) }}</p>
+                <!-- Card 1: Bookings -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Bookings</span>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ number_format($ledgerData['summary']['count']) }}</p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        Online {{ $ledgerData['summary']['by_channel_count']['online'] }} · Venue {{ $ledgerData['summary']['by_channel_count']['venue'] }} · Mixed {{ $ledgerData['summary']['by_channel_count']['mixed'] }}
+                    </p>
                 </div>
-                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <span class="text-xs font-medium text-gray-500">Total Value</span>
-                    <p class="text-2xl font-bold text-indigo-600 mt-1">₹{{ number_format($totalAmountSum, 2) }}</p>
+
+                <!-- Card 2: Booking value -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Booking Value</span>
+                        <p class="text-2xl font-bold text-indigo-600 mt-1">₹{{ number_format($ledgerData['summary']['booking_value'], 2) }}</p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        Original total order value
+                    </p>
                 </div>
-                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <span class="text-xs font-medium text-gray-500">Collected Revenue</span>
-                    <p class="text-2xl font-bold text-emerald-600 mt-1">₹{{ number_format($totalPaidSum, 2) }}</p>
+
+                <!-- Card 3: Collected -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Collected</span>
+                        <p class="text-2xl font-bold text-emerald-600 mt-1">₹{{ number_format($ledgerData['summary']['net_collected'], 2) }}</p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100 leading-relaxed" title="App ₹{{ number_format($ledgerData['summary']['online_collected'], 2) }} · Venue ₹{{ number_format($ledgerData['summary']['venue_collected'], 2) }} (Cash ₹{{ number_format($ledgerData['summary']['venue_split']['Cash'], 2) }} · UPI ₹{{ number_format($ledgerData['summary']['venue_split']['UPI'], 2) }} · Other ₹{{ number_format($ledgerData['summary']['venue_split']['Other'], 2) }}) · Refunded −₹{{ number_format($ledgerData['summary']['refunded'], 2) }}">
+                        App ₹{{ number_format($ledgerData['summary']['online_collected'], 2) }} · Venue ₹{{ number_format($ledgerData['summary']['venue_collected'], 2) }}
+                        <span class="text-gray-400">(Cash ₹{{ number_format($ledgerData['summary']['venue_split']['Cash'], 2) }} · UPI ₹{{ number_format($ledgerData['summary']['venue_split']['UPI'], 2) }} · Other ₹{{ number_format($ledgerData['summary']['venue_split']['Other'], 2) }})</span> · Refunded −₹{{ number_format($ledgerData['summary']['refunded'], 2) }}
+                        @if ($ledgerData['summary']['refund_pending'] > 0)
+                            · <span class="text-amber-600 font-semibold">Refund pending ₹{{ number_format($ledgerData['summary']['refund_pending'], 2) }}</span>
+                        @endif
+                    </p>
                 </div>
-                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
-                    <span class="text-xs font-medium text-gray-500">Outstanding Balance</span>
-                    <p class="text-2xl font-bold text-amber-600 mt-1">₹{{ number_format($totalOutstandingBalance, 2) }}</p>
+
+                <!-- Card 4: Due at venue -->
+                <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-xs flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-medium text-gray-500">Due at Venue</span>
+                        <p class="text-2xl font-bold {{ $ledgerData['summary']['due_at_venue'] > 0 ? 'text-amber-600' : 'text-gray-900' }} mt-1">
+                            ₹{{ number_format($ledgerData['summary']['due_at_venue'], 2) }}
+                        </p>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                        Balance to collect on active bookings
+                    </p>
                 </div>
             </div>
 
-            <!-- Bookings Ledger Table -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Bookings Ledger Container -->
+            <div class="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
                 <div class="p-4 border-b border-gray-100 flex items-center justify-between">
-                    <h3 class="font-semibold text-gray-900">Bookings Ledger ({{ $bookings->count() }})</h3>
+                    <h3 class="font-semibold text-gray-900 text-sm">
+                        Bookings Ledger (Showing {{ $ledgerData['showingCount'] }} of {{ number_format($ledgerData['total']) }})
+                    </h3>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-600">
-                        <thead class="text-xs uppercase bg-gray-50 text-gray-700">
+                <!-- Desktop Table View -->
+                <div class="hidden sm:block overflow-x-auto ledger-table">
+                    <table class="w-full text-left text-xs text-gray-600">
+                        <thead class="text-[11px] uppercase bg-gray-50 text-gray-700 tracking-wider">
                             <tr>
-                                <th class="px-4 py-3">Ref</th>
-                                <th class="px-4 py-3">Customer</th>
-                                <th class="px-4 py-3">Turf</th>
-                                <th class="px-4 py-3">Date(s)</th>
-                                <th class="px-4 py-3">Total</th>
-                                <th class="px-4 py-3">Paid</th>
-                                <th class="px-4 py-3">Balance</th>
-                                <th class="px-4 py-3">Payment Status</th>
-                                <th class="px-4 py-3">Status</th>
+                                <th class="px-3.5 py-3 font-semibold">Booking</th>
+                                <th class="px-3.5 py-3 font-semibold">Player</th>
+                                <th class="px-3.5 py-3 font-semibold">Turf</th>
+                                <th class="px-3.5 py-3 font-semibold">Session(s)</th>
+                                <th class="px-3.5 py-3 font-semibold">Channel</th>
+                                <th class="px-3.5 py-3 font-semibold">Value</th>
+                                <th class="px-3.5 py-3 font-semibold">Paid</th>
+                                <th class="px-3.5 py-3 font-semibold">Refunded</th>
+                                <th class="px-3.5 py-3 font-semibold">Net</th>
+                                <th class="px-3.5 py-3 font-semibold">Due</th>
+                                <th class="px-3.5 py-3 font-semibold">Discount</th>
+                                <th class="px-3.5 py-3 font-semibold">Booked by</th>
+                                <th class="px-3.5 py-3 font-semibold">Status</th>
+                                <th class="px-3.5 py-3 font-semibold text-right">Invoice</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                            @forelse ($bookings as $b)
+                            @forelse ($ledgerData['bookings'] as $b)
                                 @php
-                                    $totalAmt = (float)$b->bookingDates->where('status', '!=', 'Cancelled')->sum('amount');
-                                    $paidAmt = (float)$b->payments->where('status', 'Success')->sum('amount');
-                                    $balAmt = max(0.00, $totalAmt - $paidAmt);
+                                    $metrics = $bookingsLedgerService->rowMetrics($b);
+                                    $channelBadge = match($metrics['channel']) {
+                                        'online' => ['label' => 'App', 'class' => 'bg-indigo-50 text-indigo-700 border-indigo-200'],
+                                        'venue' => ['label' => 'Venue', 'class' => 'bg-amber-50 text-amber-700 border-amber-200'],
+                                        'mixed' => ['label' => 'Mixed', 'class' => 'bg-purple-50 text-purple-700 border-purple-200'],
+                                        default => ['label' => '—', 'class' => 'bg-gray-50 text-gray-600 border-gray-200'],
+                                    };
+                                    $paidParts = [];
+                                    if ($metrics['online_paid'] > 0) $paidParts[] = 'App ₹' . number_format($metrics['online_paid'], 2);
+                                    if ($metrics['venue_paid'] > 0) $paidParts[] = 'Venue ₹' . number_format($metrics['venue_paid'], 2);
+                                    $paidText = !empty($paidParts) ? implode(' · ', $paidParts) : '—';
                                 @endphp
-                                <tr class="hover:bg-gray-50/50">
-                                    <td class="px-4 py-3 font-semibold text-gray-900">
-                                        {{ $b->booking_reference ?? ('#' . $b->id) }}
+                                <tr class="hover:bg-gray-50/60 transition">
+                                    <td class="px-3.5 py-3 font-semibold">
+                                        <a href="{{ route('turf.bookings', ['search' => $b->booking_reference]) }}" class="text-indigo-600 hover:text-indigo-800 underline font-mono">
+                                            {{ $b->booking_reference }}
+                                        </a>
                                     </td>
-                                    <td class="px-4 py-3">
+                                    <td class="px-3.5 py-3">
                                         <div class="font-medium text-gray-900">{{ $b->user?->name ?? 'Guest' }}</div>
-                                        <div class="text-xs text-gray-500">{{ $b->user?->mobile ?? '' }}</div>
+                                        <div class="text-[11px] text-gray-500 font-mono">{{ $b->user?->mobile ?? '—' }}</div>
                                     </td>
-                                    <td class="px-4 py-3">{{ $b->turf?->name ?? 'N/A' }}</td>
-                                    <td class="px-4 py-3 text-xs">{{ $b->bookingDates->pluck('booking_date')->implode(', ') }}</td>
-                                    <td class="px-4 py-3 font-semibold text-gray-900">₹{{ number_format($totalAmt, 2) }}</td>
-                                    <td class="px-4 py-3 text-emerald-600 font-semibold">₹{{ number_format($paidAmt, 2) }}</td>
-                                    <td class="px-4 py-3 text-amber-600 font-semibold">₹{{ number_format($balAmt, 2) }}</td>
-                                    <td class="px-4 py-3">
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $b->payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-800 ' : ($b->payment_status === 'Partially Paid' ? 'bg-amber-100 text-amber-800 ' : 'bg-red-100 text-red-800 ') }}">
-                                            {{ $b->payment_status }}
+                                    <td class="px-3.5 py-3 font-medium text-gray-800">{{ $b->turf?->name ?? 'N/A' }}</td>
+                                    <td class="px-3.5 py-3">
+                                        <div class="space-y-0.5">
+                                            @foreach ($metrics['sessions'] as $sessionLine)
+                                                <div class="{{ str_contains($sessionLine, '(cancelled)') ? 'text-gray-400 line-through' : 'text-gray-800' }}">
+                                                    {{ $sessionLine }}
+                                                </div>
+                                            @endforeach
+                                            <div class="text-[10px] text-gray-500 font-semibold">{{ $metrics['hours_text'] }}</div>
+                                        </div>
+                                    </td>
+                                    <td class="px-3.5 py-3">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold border {{ $channelBadge['class'] }}">
+                                            {{ $channelBadge['label'] }}
                                         </span>
                                     </td>
-                                    <td class="px-4 py-3">
-                                        <span class="px-2 py-0.5 text-xs font-semibold rounded-full {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800 ' : 'bg-gray-100 text-gray-800 ' }}">
-                                            {{ $b->status }}
-                                        </span>
+                                    <td class="px-3.5 py-3 font-semibold text-gray-900 font-mono">
+                                        ₹{{ number_format($metrics['booking_value'], 2) }}
+                                    </td>
+                                    <td class="px-3.5 py-3 font-medium text-emerald-700">
+                                        {{ $paidText }}
+                                    </td>
+                                    <td class="px-3.5 py-3 font-mono">
+                                        @if ($metrics['refunded'] > 0)
+                                            <span class="text-rose-600 font-semibold">−₹{{ number_format($metrics['refunded'], 2) }}</span>
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3.5 py-3 font-bold text-gray-900 font-mono">
+                                        ₹{{ number_format($metrics['net_paid'], 2) }}
+                                    </td>
+                                    <td class="px-3.5 py-3 font-mono">
+                                        @if ($metrics['balance_due'] > 0)
+                                            <span class="text-amber-600 font-bold">₹{{ number_format($metrics['balance_due'], 2) }}</span>
+                                        @else
+                                            <span class="text-gray-400">₹0.00</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3.5 py-3">
+                                        @if ($metrics['discount'] > 0)
+                                            <div class="font-medium text-gray-900">₹{{ number_format($metrics['discount'], 2) }}</div>
+                                            @if (!empty($metrics['coupon_codes']))
+                                                <div class="text-[10px] text-gray-500 font-mono">{{ implode(', ', $metrics['coupon_codes']) }}</div>
+                                            @endif
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-3.5 py-3 text-gray-700">
+                                        {{ $metrics['booked_by_label'] }}
+                                    </td>
+                                    <td class="px-3.5 py-3 space-y-1">
+                                        <div>
+                                            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-full {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800' : ($b->status === 'Partially Cancelled' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800') }}">
+                                                {{ $b->status }}
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <span class="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold rounded-full {{ $b->payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-800' : ($b->payment_status === 'Partially Paid' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800') }}">
+                                                {{ $b->payment_status }}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td class="px-3.5 py-3 text-right">
+                                        <a href="{{ route('turf.bookings.invoice', $b) }}" target="_blank" class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                            Invoice
+                                        </a>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-4 py-8 text-center text-gray-500">
-                                        No booking records found for the selected date range.
+                                    <td colspan="14" class="px-4 py-8 text-center text-gray-500">
+                                        No booking records found for the selected filters.
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Phone Cards View (below sm) -->
+                <div class="sm:hidden divide-y divide-gray-100">
+                    @forelse ($ledgerData['bookings'] as $b)
+                        @php
+                            $metrics = $bookingsLedgerService->rowMetrics($b);
+                            $channelBadge = match($metrics['channel']) {
+                                'online' => ['label' => 'App', 'class' => 'bg-indigo-50 text-indigo-700 border-indigo-200'],
+                                'venue' => ['label' => 'Venue', 'class' => 'bg-amber-50 text-amber-700 border-amber-200'],
+                                'mixed' => ['label' => 'Mixed', 'class' => 'bg-purple-50 text-purple-700 border-purple-200'],
+                                default => ['label' => '—', 'class' => 'bg-gray-50 text-gray-600 border-gray-200'],
+                            };
+                            $paidParts = [];
+                            if ($metrics['online_paid'] > 0) $paidParts[] = 'App ₹' . number_format($metrics['online_paid'], 2);
+                            if ($metrics['venue_paid'] > 0) $paidParts[] = 'Venue ₹' . number_format($metrics['venue_paid'], 2);
+                            $paidText = !empty($paidParts) ? implode(' · ', $paidParts) : '—';
+                        @endphp
+                        <div class="p-4 ledger-card space-y-2.5">
+                            <!-- Line 1: Reference and status badges -->
+                            <div class="flex items-center justify-between gap-2">
+                                <a href="{{ route('turf.bookings', ['search' => $b->booking_reference]) }}" class="font-bold text-sm text-indigo-600 hover:text-indigo-800 underline font-mono">
+                                    {{ $b->booking_reference }}
+                                </a>
+                                <div class="flex items-center gap-1.5 flex-wrap justify-end">
+                                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full {{ $b->status === 'Confirmed' ? 'bg-blue-100 text-blue-800' : ($b->status === 'Partially Cancelled' ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800') }}">
+                                        {{ $b->status }}
+                                    </span>
+                                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded-full {{ $b->payment_status === 'Paid' ? 'bg-emerald-100 text-emerald-800' : ($b->payment_status === 'Partially Paid' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800') }}">
+                                        {{ $b->payment_status }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Line 2: Player & Turf -->
+                            <div class="text-xs text-gray-700 flex items-center justify-between">
+                                <div>
+                                    <span class="font-semibold text-gray-900">{{ $b->user?->name ?? 'Guest' }}</span>
+                                    <span class="text-gray-400 font-mono text-[11px]">({{ $b->user?->mobile ?? '—' }})</span>
+                                </div>
+                                <div class="text-gray-500 font-medium">{{ $b->turf?->name ?? 'N/A' }}</div>
+                            </div>
+
+                            <!-- Line 3: Sessions -->
+                            <div class="text-xs bg-gray-50/80 p-2.5 rounded-lg space-y-0.5">
+                                @foreach ($metrics['sessions'] as $sessionLine)
+                                    <div class="{{ str_contains($sessionLine, '(cancelled)') ? 'text-gray-400 line-through' : 'text-gray-700' }}">
+                                        {{ $sessionLine }}
+                                    </div>
+                                @endforeach
+                                <div class="text-[10px] text-gray-500 font-semibold mt-1">{{ $metrics['hours_text'] }}</div>
+                            </div>
+
+                            <!-- Line 4: Channel badge with Paid / Refunded / Net / Due on one line -->
+                            <div class="flex items-center justify-between gap-2 text-xs flex-wrap pt-1 border-t border-gray-100">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-semibold border {{ $channelBadge['class'] }}">
+                                        {{ $channelBadge['label'] }}
+                                    </span>
+                                    <span class="text-gray-600">Paid: <strong class="text-emerald-700 font-medium">{{ $paidText }}</strong></span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    @if ($metrics['refunded'] > 0)
+                                        <span class="text-rose-600 font-medium">Ref: −₹{{ number_format($metrics['refunded'], 2) }}</span>
+                                    @endif
+                                    <span class="text-gray-900 font-bold">Net: ₹{{ number_format($metrics['net_paid'], 2) }}</span>
+                                    @if ($metrics['balance_due'] > 0)
+                                        <span class="text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                                            Due: ₹{{ number_format($metrics['balance_due'], 2) }}
+                                        </span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <!-- Line 5: Invoice link and booked by -->
+                            <div class="pt-1 flex items-center justify-between text-xs text-gray-500 border-t border-gray-50">
+                                <span>Booked by: <strong>{{ $metrics['booked_by_label'] }}</strong></span>
+                                <a href="{{ route('turf.bookings.invoice', $b) }}" target="_blank" class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                    Invoice
+                                </a>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="p-8 text-center text-gray-500 text-xs">
+                            No booking records found for the selected filters.
+                        </div>
+                    @endforelse
+                </div>
+
+                <!-- Footer / Paging -->
+                <div class="p-4 border-t border-gray-100 bg-gray-50/50">
+                    @if ($ledgerData['hasMore'])
+                        <div class="text-center">
+                            <button
+                                type="button"
+                                wire:click="loadMoreBookings"
+                                wire:loading.attr="disabled"
+                                class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition"
+                            >
+                                <span wire:loading.remove wire:target="loadMoreBookings">Load more</span>
+                                <span wire:loading wire:target="loadMoreBookings" class="inline-flex items-center gap-1.5">
+                                    <span class="animate-spin inline-block w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full"></span>
+                                    Loading older bookings...
+                                </span>
+                            </button>
+                        </div>
+                    @else
+                        <div class="text-center text-xs text-gray-500 font-medium">
+                            End of ledger · {{ number_format($ledgerData['total']) }} bookings
+                        </div>
+                    @endif
                 </div>
             </div>
         @elseif ($activeTab === 'passbook' && $passbookData)

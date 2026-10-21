@@ -1032,6 +1032,8 @@ class BookingController extends Controller
                 'turf_id' => $turf->id,
                 'date_of_booking' => Carbon::now(),
                 'booking_type' => $bookingType,
+                'booking_source' => ($isStaffOrAdmin && $customerId) ? 'staff' : 'app',
+                'booked_by_user_id' => auth()->id(),
                 'status' => 'Confirmed',
                 'payment_status' => 'Pending',
                 'actual_amount' => $pricing['actual_amount'] ?? ($pricing['subtotal'] ?? 0.00),

@@ -9,6 +9,7 @@ use App\Models\CommissionWalletTransaction;
 use App\Models\Payment;
 use App\Models\Turf;
 use App\Models\TurfPayout;
+use App\Services\BookingsLedgerService;
 use App\Services\WalletLedgerService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -17,101 +18,151 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ReportController extends Controller
 {
     /**
-     * Export detailed Bookings report as CSV download.
+     * Export Bookings Ledger report as CSV download (Part 6 layout).
      */
     public function exportBookings(Request $request): StreamedResponse
     {
-        $startDate = $request->input('start_date', Carbon::now()->startOfMonth()->toDateString());
-        $endDate = $request->input('end_date', Carbon::now()->endOfMonth()->toDateString());
-        $status = $request->input('status');
-        $paymentStatus = $request->input('payment_status');
+        $startDate = $request->input('start_date', Carbon::now('Asia/Kolkata')->startOfMonth()->toDateString());
+        $endDate = $request->input('end_date', Carbon::now('Asia/Kolkata')->endOfMonth()->toDateString());
+        $dateBasis = $request->input('date_basis', 'session');
+        $status = $request->input('status', 'all');
+        $paymentStatus = $request->input('payment_status', 'all');
+        $channel = $request->input('channel', 'all');
+        $search = $request->input('search');
+
         $activeTurfId = session('active_turf_id');
         $manageableTurfIds = Turf::manageable(auth()->user())->pluck('id')->toArray();
 
-        $query = Booking::with(['turf', 'user', 'bookingDates.bookingSlots.slot', 'payments'])
-            ->whereHas('bookingDates', function ($q) use ($startDate, $endDate) {
-                $q->whereBetween('booking_date', [$startDate, $endDate]);
-            });
-
         if ($activeTurfId && in_array($activeTurfId, $manageableTurfIds)) {
-            $query->where('turf_id', $activeTurfId);
+            $turfIds = [$activeTurfId];
+            $turfScopeName = Turf::find($activeTurfId)?->name ?? 'Turf';
         } else {
-            $query->whereIn('turf_id', $manageableTurfIds);
+            $turfIds = $manageableTurfIds;
+            $turfScopeName = count($turfIds) === 1 ? (Turf::find($turfIds[0])?->name ?? 'All Turfs') : 'All Turfs';
         }
 
-        if ($status && $status !== 'all') {
-            $query->where('status', $status);
-        }
+        /** @var BookingsLedgerService $service */
+        $service = app(BookingsLedgerService::class);
+        $filters = [
+            'date_basis' => $dateBasis,
+            'start' => $startDate,
+            'end' => $endDate,
+            'status' => $status,
+            'payment_status' => $paymentStatus,
+            'channel' => $channel,
+            'search' => $search,
+        ];
 
-        if ($paymentStatus && $paymentStatus !== 'all') {
-            $query->where('payment_status', $paymentStatus);
-        }
+        $bookings = $service->query($turfIds, $filters)->get();
+        $summary = $service->summary($turfIds, $filters);
 
-        $bookings = $query->orderBy('created_at', 'desc')->get();
+        $filename = 'bookings_ledger_' . $startDate . '_to_' . $endDate . '.csv';
 
-        $filename = 'bookings_report_' . $startDate . '_to_' . $endDate . '.csv';
+        $channelLabel = match ($channel) {
+            'online' => 'App',
+            'venue' => 'Venue',
+            default => 'All',
+        };
 
-        return response()->streamDownload(function () use ($bookings) {
+        $basisLabel = ($dateBasis === 'booked') ? 'booking date' : 'session date';
+
+        return response()->streamDownload(function () use ($bookings, $summary, $service, $turfScopeName, $startDate, $endDate, $basisLabel, $channelLabel) {
             $handle = fopen('php://output', 'w');
 
             // Add UTF-8 BOM for Excel compatibility
             fputs($handle, chr(0xEF) . chr(0xBB) . chr(0xBF));
 
-            // CSV Header Row
+            // Title Line
             fputcsv($handle, [
-                'Booking Ref',
-                'Turf Name',
-                'Customer Name',
-                'Mobile Number',
-                'Email',
-                'Booking Type',
-                'Booking Dates',
-                'Time Range / Slots',
-                'Total Amount (INR)',
-                'Paid Amount (INR)',
-                'Balance (INR)',
-                'Payment Status',
-                'Booking Status',
-                'Created At',
+                "# Bookings Ledger — {$turfScopeName} — {$startDate} to {$endDate} — by {$basisLabel} — channel {$channelLabel}"
             ]);
 
-            foreach ($bookings as $b) {
-                $datesStr = $b->bookingDates->pluck('booking_date')->implode(', ');
-                
-                // Determine slot summary
-                $allSlots = [];
-                foreach ($b->bookingDates as $bd) {
-                    foreach ($bd->bookingSlots as $bs) {
-                        if ($bs->slot) {
-                            $from = date('h:i A', strtotime($bs->slot->from_time));
-                            $to = date('h:i A', strtotime($bs->slot->to_time));
-                            $allSlots[] = "$from - $to";
-                        }
-                    }
-                }
-                $slotsStr = implode(' | ', array_unique($allSlots));
+            // CSV Header Row
+            fputcsv($handle, [
+                'Booking',
+                'Booked On',
+                'Player',
+                'Mobile',
+                'Turf',
+                'Sessions',
+                'Hours',
+                'Channel',
+                'Booking Value (INR)',
+                'Paid App (INR)',
+                'Paid Cash (INR)',
+                'Paid UPI (INR)',
+                'Paid Other (INR)',
+                'Refunded (INR)',
+                'Net Paid (INR)',
+                'Due (INR)',
+                'Discount (INR)',
+                'Coupon',
+                'Booked By',
+                'Status',
+                'Payment Status',
+            ]);
 
-                $totalAmount = (float)$b->bookingDates->where('status', '!=', 'Cancelled')->sum('amount');
-                $paidAmount = (float)$b->payments->where('status', 'Success')->sum('amount');
-                $balance = max(0.00, $totalAmount - $paidAmount);
+            $totalDiscount = 0.00;
+
+            foreach ($bookings as $b) {
+                $metrics = $service->rowMetrics($b);
+                $totalDiscount += $metrics['discount'];
+
+                $channelCol = match ($metrics['channel']) {
+                    'online' => 'App',
+                    'venue' => 'Venue',
+                    'mixed' => 'Mixed',
+                    default => '—',
+                };
 
                 fputcsv($handle, [
                     $b->booking_reference ?? ('#' . $b->id),
+                    $b->created_at ? $b->created_at->format('Y-m-d H:i:s') : '—',
+                    $b->user?->name ?? 'Guest',
+                    $b->user?->mobile ?? '—',
                     $b->turf?->name ?? 'N/A',
-                    $b->user?->name ?? 'Guest / Manual',
-                    $b->user?->mobile ?? 'N/A',
-                    $b->user?->email ?? 'N/A',
-                    ucfirst($b->booking_type ?? 'day'),
-                    $datesStr,
-                    $slotsStr,
-                    number_format($totalAmount, 2, '.', ''),
-                    number_format($paidAmount, 2, '.', ''),
-                    number_format($balance, 2, '.', ''),
-                    $b->payment_status ?? 'Unpaid',
+                    implode(' | ', $metrics['sessions']),
+                    number_format($metrics['total_hours'], 1, '.', ''),
+                    $channelCol,
+                    number_format($metrics['booking_value'], 2, '.', ''),
+                    number_format($metrics['online_paid'], 2, '.', ''),
+                    number_format($metrics['venue_split']['Cash'], 2, '.', ''),
+                    number_format($metrics['venue_split']['UPI'], 2, '.', ''),
+                    number_format($metrics['venue_split']['Other'], 2, '.', ''),
+                    number_format($metrics['refunded'], 2, '.', ''),
+                    number_format($metrics['net_paid'], 2, '.', ''),
+                    number_format($metrics['balance_due'], 2, '.', ''),
+                    number_format($metrics['discount'], 2, '.', ''),
+                    implode(', ', $metrics['coupon_codes']) ?: '—',
+                    $metrics['booked_by_label'],
                     $b->status ?? 'Confirmed',
-                    $b->created_at->format('Y-m-d H:i:s'),
+                    $b->payment_status ?? 'Unpaid',
                 ]);
             }
+
+            // Blank line before Totals
+            fputcsv($handle, []);
+
+            // Totals row: Totals,,,,,,,,{value},{app},{cash},{upi},{other},{refunded},{net},{due},{discount}
+            fputcsv($handle, [
+                'Totals',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                number_format($summary['booking_value'], 2, '.', ''),
+                number_format($summary['online_collected'], 2, '.', ''),
+                number_format($summary['venue_split']['Cash'], 2, '.', ''),
+                number_format($summary['venue_split']['UPI'], 2, '.', ''),
+                number_format($summary['venue_split']['Other'], 2, '.', ''),
+                number_format($summary['refunded'], 2, '.', ''),
+                number_format($summary['net_collected'], 2, '.', ''),
+                number_format($summary['due_at_venue'], 2, '.', ''),
+                number_format($totalDiscount, 2, '.', ''),
+            ]);
 
             fclose($handle);
         }, $filename, [

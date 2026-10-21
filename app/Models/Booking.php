@@ -17,6 +17,8 @@ class Booking extends Model
         'turf_id',
         'date_of_booking',
         'booking_type',
+        'booking_source',
+        'booked_by_user_id',
         'status',
         'payment_status',
         'actual_amount',
@@ -192,6 +194,11 @@ class Booking extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function bookedBy()
+    {
+        return $this->belongsTo(User::class, 'booked_by_user_id');
+    }
+
     public function turf()
     {
         return $this->belongsTo(Turf::class);
@@ -210,6 +217,11 @@ class Booking extends Model
     public function bookingCancellations()
     {
         return $this->hasMany(BookingCancellation::class);
+    }
+
+    public function reschedules()
+    {
+        return $this->hasMany(BookingReschedule::class);
     }
 
     public function getBookingReferenceAttribute(): string
