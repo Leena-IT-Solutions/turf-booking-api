@@ -10,6 +10,7 @@ use App\Models\Turf;
 use App\Models\TurfSubscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -28,6 +29,11 @@ class TurfSubscriptionRenewalTest extends TestCase
     {
         parent::setUp();
         $this->seed(\Database\Seeders\RoleSeeder::class);
+
+        // Never call the real Razorpay API from tests.
+        Http::fake([
+            'api.razorpay.com/v1/orders' => Http::response(['id' => 'order_test_abc'], 200),
+        ]);
 
         SaasSetting::create([
             'commission_percentage' => 7.00,
@@ -176,10 +182,6 @@ class TurfSubscriptionRenewalTest extends TestCase
 
     public function test_subscribe_button_dispatches_checkout_and_opens_razorpay(): void
     {
-        \Illuminate\Support\Facades\Http::fake([
-            'api.razorpay.com/v1/orders' => \Illuminate\Support\Facades\Http::response(['id' => 'order_test_abc'], 200),
-        ]);
-
         $this->actingAs($this->turfAdmin);
 
         // The page script opens the Razorpay popup (rzp.open() was missing, so nothing happened)
@@ -205,5 +207,133 @@ class TurfSubscriptionRenewalTest extends TestCase
             'razorpay_order_id' => 'order_test_abc',
             'status' => 'pending',
         ]);
+    }
+
+    /** Replace the setUp() Razorpay fake with a different response. */
+    protected function fakeRazorpayOrders($response): void
+    {
+        Http::swap(new \Illuminate\Http\Client\Factory());
+        Http::fake(['api.razorpay.com/v1/orders' => $response]);
+    }
+
+    protected function pendingPayment(?User $owner = null, ?string $orderId = 'order_test_abc'): SubscriptionPayment
+    {
+        return SubscriptionPayment::create([
+            'user_id' => ($owner ?? $this->turfAdmin)->id,
+            'subscription_package_id' => $this->package->id,
+            'billing_cycle' => 'monthly',
+            'amount' => 1500.00,
+            'turf_ids' => [$this->turfNew->id],
+            'turf_count' => 1,
+            'razorpay_order_id' => $orderId,
+            'status' => 'pending',
+        ]);
+    }
+
+    public function test_checkout_does_not_open_when_razorpay_order_fails(): void
+    {
+        $this->fakeRazorpayOrders(Http::response(['error' => ['description' => 'Authentication failed']], 401));
+        $this->actingAs($this->turfAdmin);
+
+        Volt::test('turf.subscription-manager')
+            ->set('selectedTurfIds', [$this->turfNew->id])
+            ->call('initiatePayment', $this->package->id, 'monthly')
+            ->assertNotDispatched('open-razorpay-checkout')
+            ->assertSee('Could not start the payment with Razorpay');
+
+        $this->assertSame(0, SubscriptionPayment::where('status', 'pending')->count());
+    }
+
+    public function test_checkout_does_not_open_on_network_error(): void
+    {
+        $this->fakeRazorpayOrders(fn () => throw new \Illuminate\Http\Client\ConnectionException('timeout'));
+        $this->actingAs($this->turfAdmin);
+
+        Volt::test('turf.subscription-manager')
+            ->set('selectedTurfIds', [$this->turfNew->id])
+            ->call('initiatePayment', $this->package->id, 'monthly')
+            ->assertNotDispatched('open-razorpay-checkout');
+
+        $this->assertSame(0, SubscriptionPayment::where('status', 'pending')->count());
+    }
+
+    public function test_checkout_does_not_open_without_razorpay_keys(): void
+    {
+        SaasSetting::query()->update(['razorpay_key' => null, 'razorpay_secret' => null]);
+        config(['services.razorpay.key' => null, 'services.razorpay.secret' => null]);
+        $this->actingAs($this->turfAdmin);
+
+        Volt::test('turf.subscription-manager')
+            ->set('selectedTurfIds', [$this->turfNew->id])
+            ->call('initiatePayment', $this->package->id, 'monthly')
+            ->assertNotDispatched('open-razorpay-checkout')
+            ->assertSee('Online payments are not configured');
+
+        Http::assertNothingSent();
+        $this->assertSame(0, SubscriptionPayment::where('status', 'pending')->count());
+    }
+
+    public function test_only_own_turfs_are_charged(): void
+    {
+        $other = User::factory()->create(['email' => 'other@turf.com']);
+        $other->assignRole('turf-admin');
+        $otherLoc = Location::create(['user_id' => $other->id, 'name' => 'Other', 'address' => 'X']);
+        $otherTurf = Turf::create(['location_id' => $otherLoc->id, 'name' => 'Not Mine', 'type' => 'Football']);
+
+        $this->actingAs($this->turfAdmin);
+        Volt::test('turf.subscription-manager')
+            ->call('initiatePayment', $this->package->id, 'monthly', [$this->turfNew->id, $otherTurf->id]);
+
+        $payment = SubscriptionPayment::where('status', 'pending')->latest('id')->first();
+        $this->assertSame([$this->turfNew->id], $payment->turf_ids);
+        $this->assertEquals(1500.00, (float) $payment->amount);
+    }
+
+    public function test_verify_rejects_missing_or_invalid_signature(): void
+    {
+        $this->actingAs($this->turfAdmin);
+
+        // No signature at all
+        $p1 = $this->pendingPayment();
+        Volt::test('turf.subscription-manager')->call('verifyPayment', $p1->id, 'pay_x', '');
+        $this->assertSame('pending', $p1->fresh()->status);
+
+        // Record without a Razorpay order can never be activated (old "simulated" path)
+        $p2 = $this->pendingPayment(null, null);
+        Volt::test('turf.subscription-manager')->call('verifyPayment', $p2->id, null, null);
+        $this->assertSame('pending', $p2->fresh()->status);
+
+        // Wrong signature
+        $p3 = $this->pendingPayment();
+        Volt::test('turf.subscription-manager')->call('verifyPayment', $p3->id, 'pay_x', 'not-a-real-signature');
+        $this->assertSame('pending', $p3->fresh()->status);
+
+        $this->assertNull($this->turfNew->fresh()->activeSubscription);
+    }
+
+    public function test_verify_rejects_other_users_payment_and_replay(): void
+    {
+        $other = User::factory()->create(['email' => 'other2@turf.com']);
+        $other->assignRole('turf-admin');
+
+        $payment = $this->pendingPayment();
+        $sig = hash_hmac('sha256', 'order_test_abc|pay_ok_1', 'rzp_test_secret');
+
+        // Another user can't activate it, even with a valid signature
+        $this->actingAs($other);
+        Volt::test('turf.subscription-manager')->call('verifyPayment', $payment->id, 'pay_ok_1', $sig);
+        $this->assertSame('pending', $payment->fresh()->status);
+
+        // Owner activates it once
+        $this->actingAs($this->turfAdmin);
+        Volt::test('turf.subscription-manager')->call('verifyPayment', $payment->id, 'pay_ok_1', $sig);
+        $this->assertSame('completed', $payment->fresh()->status);
+        $this->assertSame(1, TurfSubscription::where('subscription_payment_id', $payment->id)->count());
+
+        // Replaying the same verification doesn't extend it again
+        Volt::test('turf.subscription-manager')
+            ->call('verifyPayment', $payment->id, 'pay_ok_1', $sig)
+            ->assertSee('already been processed');
+        $this->assertSame(1, TurfSubscription::where('subscription_payment_id', $payment->id)->count());
     }
 }

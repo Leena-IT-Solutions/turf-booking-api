@@ -75,21 +75,26 @@ new #[Layout('layouts.app')] class extends Component
             $this->selectedTurfIds = $targetTurfIds;
         }
 
-        $turfsToPay = $this->selectedTurfIds;
+        $user = auth()->user();
+        $allowedTurfIds = $user->manageableTurfs()->pluck('turfs.id')->map(fn($id) => (int) $id)->all();
+        $turfsToPay = array_values(array_unique(array_intersect(array_map('intval', $this->selectedTurfIds), $allowedTurfIds)));
 
         if (empty($turfsToPay)) {
             session()->flash('error', 'Please select at least one turf to subscribe/renew.');
             return;
         }
 
+        if (!in_array($cycle, ['monthly', 'yearly'], true)) {
+            session()->flash('error', 'Invalid billing cycle.');
+            return;
+        }
 
-        $pkg = SubscriptionPackage::find($packageId);
+        $pkg = SubscriptionPackage::where('is_active', true)->find($packageId);
         if (!$pkg) {
             session()->flash('error', 'Selected subscription package not found.');
             return;
         }
 
-        $user = auth()->user();
         $turfCount = count($turfsToPay);
         $unitPrice = $cycle === 'yearly' ? $pkg->getEffectiveYearlyAmount() : $pkg->getEffectiveMonthlyAmount();
         $totalPrice = round($unitPrice * $turfCount, 2);
@@ -100,30 +105,40 @@ new #[Layout('layouts.app')] class extends Component
         $rzpKey = $setting?->razorpay_key ?: config('services.razorpay.key');
         $rzpSecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
 
+        if (!$rzpKey || !$rzpSecret) {
+            session()->flash('error', 'Online payments are not configured yet. Please contact support.');
+            return;
+        }
+
+        // A real Razorpay order is required: its id is what the payment signature is checked against.
         $orderId = null;
+        try {
+            $response = Http::withBasicAuth($rzpKey, $rzpSecret)
+                ->timeout(15)
+                ->post('https://api.razorpay.com/v1/orders', [
+                    'amount' => $amountInPaise,
+                    'currency' => 'INR',
+                    'receipt' => 'sub_' . time() . '_' . $user->id,
+                    'notes' => [
+                        'user_id' => $user->id,
+                        'package_id' => $pkg->id,
+                        'cycle' => $cycle,
+                        'turf_count' => $turfCount,
+                    ],
+                ]);
 
-        if ($rzpKey && $rzpSecret) {
-            try {
-                $response = Http::withBasicAuth($rzpKey, $rzpSecret)
-                    ->post('https://api.razorpay.com/v1/orders', [
-                        'amount' => $amountInPaise,
-                        'currency' => 'INR',
-                        'receipt' => 'sub_' . time() . '_' . $user->id,
-                        'notes' => [
-                            'user_id' => $user->id,
-                            'package_id' => $pkg->id,
-                            'cycle' => $cycle,
-                            'turf_count' => $turfCount,
-                        ],
-                    ]);
-
-                if ($response->successful()) {
-                    $orderData = $response->json();
-                    $orderId = $orderData['id'] ?? null;
-                }
-            } catch (\Exception $e) {
-                // Fallback to null order ID on network error
+            if ($response->successful()) {
+                $orderId = $response->json('id');
+            } else {
+                \Illuminate\Support\Facades\Log::warning('Razorpay subscription order failed', ['status' => $response->status(), 'body' => $response->body()]);
             }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Razorpay subscription order error', ['error' => $e->getMessage()]);
+        }
+
+        if (!$orderId) {
+            session()->flash('error', 'Could not start the payment with Razorpay. Please try again in a moment.');
+            return;
         }
 
         $payment = SubscriptionPayment::create([
@@ -139,7 +154,7 @@ new #[Layout('layouts.app')] class extends Component
 
 
         $this->dispatch('open-razorpay-checkout', payload: [
-            'key' => $this->razorpayKey,
+            'key' => $rzpKey,
             'amount' => $amountInPaise,
             'currency' => 'INR',
             'name' => config('app.name', 'TurfBooking'),
@@ -164,26 +179,29 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $paymentRecord = SubscriptionPayment::find($paymentRecordId);
-        if (!$paymentRecord) {
-            session()->flash('error', "Payment record #{$paymentRecordId} not found.");
+        if (!$paymentRecord || (int) $paymentRecord->user_id !== (int) auth()->id()) {
+            session()->flash('error', 'Payment record not found.');
+            return;
+        }
+
+        if ($paymentRecord->status !== 'pending') {
+            session()->flash('error', 'This payment has already been processed.');
             return;
         }
 
         $setting = SaasSetting::first();
         $rzpSecret = $setting?->razorpay_secret ?: config('services.razorpay.secret');
 
-        // HMAC Signature Verification if Razorpay Secret is set and order_id exists
-        if ($rzpSecret && $paymentRecord->razorpay_order_id) {
-            if (!$paymentId || !$signature) {
-                session()->flash('error', 'Payment verification failed: missing payment ID or signature.');
-                return;
-            }
+        // Always verify Razorpay's HMAC signature. No secret, order, payment id or signature = no activation.
+        if (!$rzpSecret || !$paymentRecord->razorpay_order_id || !$paymentId || !$signature) {
+            session()->flash('error', 'Payment verification failed: missing payment details.');
+            return;
+        }
 
-            $expectedSignature = hash_hmac('sha256', $paymentRecord->razorpay_order_id . '|' . $paymentId, $rzpSecret);
-            if (!hash_equals($expectedSignature, (string)$signature)) {
-                session()->flash('error', 'Payment verification failed: invalid HMAC signature.');
-                return;
-            }
+        $expectedSignature = hash_hmac('sha256', $paymentRecord->razorpay_order_id . '|' . $paymentId, $rzpSecret);
+        if (!hash_equals($expectedSignature, (string) $signature)) {
+            session()->flash('error', 'Payment verification failed: invalid signature.');
+            return;
         }
 
         $pkg = SubscriptionPackage::find($paymentRecord->subscription_package_id);
@@ -192,11 +210,19 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        $paymentRecord->update([
-            'razorpay_payment_id' => $paymentId ?: ('pay_simulated_' . time()),
-            'razorpay_signature' => $signature ?: 'simulated_sig',
-            'status' => 'completed',
-        ]);
+        // Claim the record atomically so the same payment can't activate twice (double click / replay).
+        $claimed = SubscriptionPayment::whereKey($paymentRecord->id)
+            ->where('status', 'pending')
+            ->update([
+                'razorpay_payment_id' => $paymentId,
+                'razorpay_signature' => $signature,
+                'status' => 'completed',
+            ]);
+        if ($claimed !== 1) {
+            session()->flash('error', 'This payment has already been processed.');
+            return;
+        }
+        $paymentRecord->refresh();
 
         $days = $paymentRecord->billing_cycle === 'yearly' ? 365 : 30;
         $turfIds = $paymentRecord->turf_ids ?? [];

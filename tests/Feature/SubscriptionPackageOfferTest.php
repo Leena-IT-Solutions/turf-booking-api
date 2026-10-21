@@ -168,6 +168,10 @@ class SubscriptionPackageOfferTest extends TestCase
             'offer_claimed_count' => 0,
         ]);
 
+        \Illuminate\Support\Facades\Http::fake([
+            'api.razorpay.com/v1/orders' => \Illuminate\Support\Facades\Http::response(['id' => 'order_offer_1'], 200),
+        ]);
+
         $this->actingAs($turfAdmin);
 
         Volt::test('turf.subscription-manager')
