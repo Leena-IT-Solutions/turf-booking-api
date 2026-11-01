@@ -581,4 +581,56 @@ class CommissionInvoiceTest extends TestCase
         $this->assertStringContainsString('State GST (SGST', $view);
         $this->assertStringContainsString('Place of Supply: Karnataka (29)', $view);
     }
+
+    public function test_commission_manager_page_reconciles_net_commission_with_cancellation_reversals(): void
+    {
+        $this->actingAs($this->saasAdmin);
+
+        // Booking: ₹1000 slot, ₹100 commission, ₹18 GST (₹118 total)
+        [$booking, $payment, $tx] = $this->createBookingWithCommission(
+            $this->turfA,
+            Carbon::parse('2026-10-15 10:00:00'),
+            1000.00,
+            100.00,
+            18.00
+        );
+
+        // Cancellation reversing ₹40 taxable commission and ₹7.20 GST (₹47.20 total)
+        $cancellation = \App\Models\BookingCancellation::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $booking->bookingDates->first()?->id,
+            'cancelled_by_user_id' => $this->turfOwner->id,
+            'gross_cancelled_amount' => 400.00,
+            'saas_cancellation_fee' => 20.00,
+            'total_cancellation_fee' => 20.00,
+            'refund_amount' => 380.00,
+            'refund_status' => 'Refunded',
+            'created_at' => Carbon::parse('2026-10-20 14:00:00'),
+        ]);
+
+        CommissionWalletTransaction::create([
+            'user_id' => $this->turfOwner->id,
+            'type' => 'commission_reversal',
+            'amount' => 47.20,
+            'balance_after' => 0.00,
+            'reference_type' => \App\Models\BookingCancellation::class,
+            'reference_id' => $cancellation->id,
+            'description' => 'Booking Commission Returned',
+            'meta' => [
+                'booking_id' => $booking->id,
+                'commission_amount' => 40.00,
+                'commission_gst_amount' => 7.20,
+            ],
+            'created_at' => Carbon::parse('2026-10-20 14:00:00'),
+        ]);
+
+        \Livewire\Volt\Volt::test('saas.commission-manager')
+            ->set('filterMode', 'month')
+            ->set('selectedDate', '2026-10-01')
+            ->assertViewHas('totalCommissionEarned', 60.00) // 100 - 40
+            ->assertViewHas('totalCommissionGst', 10.80)     // 18 - 7.20
+            ->assertViewHas('netCommissionTotal', 70.80)    // 118 - 47.20
+            ->assertSee('₹60.00')
+            ->assertSee('₹70.80');
+    }
 }

@@ -3,6 +3,7 @@
 use App\Models\Booking;
 use App\Models\BookingCancellation;
 use App\Models\CommissionSettlement;
+use App\Models\CommissionWalletTransaction;
 use App\Models\Payment;
 use App\Models\Turf;
 use App\Models\User;
@@ -107,13 +108,68 @@ new #[Layout('layouts.app')] class extends Component
             $badgeLabel = 'This Month';
         }
 
-        // 1. Commission earned from successful booking payments in timeframe
-        $totalCommissionEarned = (float) Payment::where('status', 'Success')
+        // 1. Commission debited and reversed from CommissionWalletTransaction in timeframe
+        $commDebitTxs = CommissionWalletTransaction::query()
+            ->where('type', 'commission_debit')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->sum('commission_amount');
-        $totalCommissionGst = (float) Payment::where('status', 'Success')
+            ->get();
+
+        $commReversalTxs = CommissionWalletTransaction::query()
+            ->where('type', 'commission_reversal')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->sum('commission_gst_amount');
+            ->get();
+
+        if ($commDebitTxs->isNotEmpty()) {
+            $grossCommissionTaxable = (float) $commDebitTxs->sum(function ($tx) {
+                return (float) ($tx->meta['commission_amount'] ?? 0) ?: round(abs((float)$tx->amount) / 1.18, 2);
+            });
+            $grossCommissionGst = (float) $commDebitTxs->sum(function ($tx) {
+                return (float) ($tx->meta['commission_gst'] ?? ($tx->meta['commission_gst_amount'] ?? 0)) ?: round(abs((float)$tx->amount) - (abs((float)$tx->amount) / 1.18), 2);
+            });
+            $grossCommissionTotal = round(abs((float) $commDebitTxs->sum('amount')), 2);
+
+            $reversalCommissionTaxable = (float) $commReversalTxs->sum(function ($tx) {
+                return (float) ($tx->meta['commission_amount'] ?? 0) ?: round(abs((float)$tx->amount) / 1.18, 2);
+            });
+            $reversalCommissionGst = (float) $commReversalTxs->sum(function ($tx) {
+                return (float) ($tx->meta['commission_gst_amount'] ?? ($tx->meta['commission_gst'] ?? 0)) ?: round(abs((float)$tx->amount) - (abs((float)$tx->amount) / 1.18), 2);
+            });
+            $reversalCommissionTotal = round(abs((float) $commReversalTxs->sum('amount')), 2);
+
+            $netCommissionTaxable = max(0.0, round($grossCommissionTaxable - $reversalCommissionTaxable, 2));
+            $netCommissionGst = max(0.0, round($grossCommissionGst - $reversalCommissionGst, 2));
+            $netCommissionTotal = max(0.0, round($grossCommissionTotal - $reversalCommissionTotal, 2));
+        } else {
+            // Fallback for setups without wallet transaction history
+            $grossCommissionTaxable = (float) Payment::where('status', 'Success')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->sum('commission_amount');
+            $grossCommissionGst = (float) Payment::where('status', 'Success')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->sum('commission_gst_amount');
+            $grossCommissionTotal = round($grossCommissionTaxable + $grossCommissionGst, 2);
+
+            $cancellationsInPeriod = BookingCancellation::with('bookingDate')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->get();
+            $reversalCommissionTaxable = 0.0;
+            $reversalCommissionGst = 0.0;
+            $reversalCommissionTotal = 0.0;
+            foreach ($cancellationsInPeriod as $c) {
+                $bDate = $c->bookingDate;
+                if ($bDate && (float)$bDate->commission_amount > 0) {
+                    $reversalCommissionTaxable += (float)$bDate->commission_amount;
+                    $reversalCommissionGst += (float)$bDate->commission_gst_amount;
+                    $reversalCommissionTotal += ((float)$bDate->commission_amount + (float)$bDate->commission_gst_amount);
+                }
+            }
+            $netCommissionTaxable = max(0.0, round($grossCommissionTaxable - $reversalCommissionTaxable, 2));
+            $netCommissionGst = max(0.0, round($grossCommissionGst - $reversalCommissionGst, 2));
+            $netCommissionTotal = max(0.0, round($grossCommissionTotal - $reversalCommissionTotal, 2));
+        }
+
+        $totalCommissionEarned = $netCommissionTaxable;
+        $totalCommissionGst = $netCommissionGst;
 
         // 2. Platform Fees collected from successful bookings in timeframe
         $totalPlatformFeeEarned = (float) Booking::whereHas('payments', function ($q) {
@@ -132,7 +188,7 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         // 4. Combined Total SaaS Booking & Cancellation Revenue
-        $totalCombinedSaaSEarnings = round($totalCommissionEarned + $totalPlatformFeeEarned + $totalCancellationFeeEarned, 2);
+        $totalCombinedSaaSEarnings = round($netCommissionTaxable + $totalPlatformFeeEarned + $totalCancellationFeeEarned, 2);
 
         $totalGrossBookingVolume = (float) Payment::where('status', 'Success')
             ->whereBetween('created_at', [$startDate, $endDate])
@@ -140,7 +196,7 @@ new #[Layout('layouts.app')] class extends Component
         $totalCommissionDue = abs((float) User::where('commission_wallet_balance', '<', 0)->sum('commission_wallet_balance'));
 
         // 1. Commission by Bookings Query (scoped to timeframe)
-        $bookingsQuery = Booking::with(['turf.location.user', 'user', 'payments'])
+        $bookingsQuery = Booking::with(['turf.location.user', 'user', 'payments', 'bookingCancellations.bookingDate'])
             ->whereHas('payments', function ($q) {
                 $q->where('status', 'Success');
             })
@@ -254,6 +310,11 @@ new #[Layout('layouts.app')] class extends Component
             'totalCombinedSaaSEarnings' => $totalCombinedSaaSEarnings,
             'totalCommissionEarned' => $totalCommissionEarned,
             'totalCommissionGst' => $totalCommissionGst,
+            'netCommissionTotal' => $netCommissionTotal,
+            'grossCommissionEarned' => $grossCommissionTaxable,
+            'grossCommissionTotal' => $grossCommissionTotal,
+            'reversalCommissionEarned' => $reversalCommissionTaxable,
+            'reversalCommissionTotal' => $reversalCommissionTotal,
             'totalPlatformFeeEarned' => $totalPlatformFeeEarned,
             'totalCancellationFeeEarned' => $totalCancellationFeeEarned,
             'totalGrossBookingVolume' => $totalGrossBookingVolume,
@@ -364,21 +425,33 @@ new #[Layout('layouts.app')] class extends Component
             <div class="text-3xl font-black text-emerald-600">
                 ₹{{ number_format($totalCombinedSaaSEarnings, 2) }}
             </div>
-            <p class="text-[11px] text-gray-500">Commission + Platform Fee + Cancellation Fee</p>
+            <p class="text-[11px] text-gray-500">Net Commission + Platform Fee + Cancellation Fee</p>
         </div>
 
         <!-- 2. Booking Commission -->
         <div class="bg-white p-6 rounded-3xl border border-indigo-100 shadow-xs space-y-2">
             <div class="flex items-center justify-between">
-                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">BOOKING COMMISSION</span>
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400">BOOKING COMMISSION (NET)</span>
                 <span class="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/></svg>
                 </span>
             </div>
-            <div class="text-3xl font-black text-indigo-600">
-                ₹{{ number_format($totalCommissionEarned, 2) }}
+            <div class="space-y-0.5">
+                <div class="text-3xl font-black text-indigo-600">
+                    ₹{{ number_format($totalCommissionEarned, 2) }}
+                </div>
+                <div class="text-xs font-bold text-gray-700">
+                    ₹{{ number_format($netCommissionTotal, 2) }} <span class="text-[10px] font-normal text-gray-500">(Total Deducted incl. GST)</span>
+                </div>
             </div>
-            <p class="text-[11px] text-gray-500">Platform % fee on slots (GST: ₹{{ number_format($totalCommissionGst, 2) }})</p>
+            <div class="text-[11px] text-gray-500 pt-1 border-t border-gray-100 flex items-center justify-between">
+                <span>GST: ₹{{ number_format($totalCommissionGst, 2) }}</span>
+                @if ($reversalCommissionEarned > 0)
+                    <span class="text-[10px] font-semibold text-amber-600" title="Commission reversed on cancellations">
+                        Refunded: -₹{{ number_format($reversalCommissionEarned, 2) }}
+                    </span>
+                @endif
+            </div>
         </div>
 
         <!-- 3. Platform Fees -->
@@ -526,10 +599,30 @@ new #[Layout('layouts.app')] class extends Component
                                 $commAmount = (float)($b->commission_amount ?? $b->payments->where('status', 'Success')->sum('commission_amount'));
                                 $platFee = (float)($b->platform_fee ?? 0);
                                 $totalSaaSCut = round($commAmount + $platFee, 2);
+
+                                $hasCancellations = $b->bookingCancellations->isNotEmpty();
+                                $reversedComm = $hasCancellations 
+                                    ? (float) $b->bookingCancellations->sum(fn($c) => (float)($c->bookingDate?->commission_amount ?? 0))
+                                    : ($b->status === 'Cancelled' ? $commAmount : 0.0);
+                                if ($b->status === 'Cancelled' && $reversedComm <= 0) {
+                                    $reversedComm = $commAmount;
+                                }
+                                $isFullyCancelled = ($b->status === 'Cancelled') || ($reversedComm >= $commAmount && $commAmount > 0);
+                                $netComm = max(0.0, round($commAmount - $reversedComm, 2));
+                                $netTotalSaaSCut = round($netComm + $platFee, 2);
                             @endphp
                             <tr class="hover:bg-gray-50/50 transition">
                                 <td class="py-3.5 px-4 font-mono font-bold text-gray-900">
-                                    {{ $b->booking_reference ?? ('#' . $b->id) }}
+                                    <span>{{ $b->booking_reference ?? ('#' . $b->id) }}</span>
+                                    @if ($isFullyCancelled)
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 text-rose-700 border border-rose-200 mt-0.5 block w-fit">
+                                            Cancelled
+                                        </span>
+                                    @elseif ($hasCancellations)
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200 mt-0.5 block w-fit">
+                                            Partial Cancel
+                                        </span>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4 font-bold text-gray-900">
                                     {{ $b->turf?->name ?? 'N/A' }}
@@ -544,14 +637,38 @@ new #[Layout('layouts.app')] class extends Component
                                 <td class="py-3.5 px-4 font-semibold text-gray-600">
                                     {{ (float)($b->commission_rate ?? $b->turf?->commission_percentage ?? 8.00) }}%
                                 </td>
-                                <td class="py-3.5 px-4 font-black text-indigo-600">
-                                    ₹{{ number_format($commAmount, 2) }}
+                                <td class="py-3.5 px-4 font-black">
+                                    @if ($isFullyCancelled)
+                                        <div>
+                                            <span class="text-xs font-semibold line-through text-gray-400">₹{{ number_format($commAmount, 2) }}</span>
+                                            <span class="text-[10px] text-amber-600 font-bold block">Reversed</span>
+                                        </div>
+                                    @elseif ($reversedComm > 0)
+                                        <div>
+                                            <span class="text-indigo-600">₹{{ number_format($netComm, 2) }}</span>
+                                            <span class="text-[10px] text-gray-400 block line-through">₹{{ number_format($commAmount, 2) }}</span>
+                                        </div>
+                                    @else
+                                        <span class="text-indigo-600">₹{{ number_format($commAmount, 2) }}</span>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4 font-black text-purple-600">
                                     ₹{{ number_format($platFee, 2) }}
                                 </td>
-                                <td class="py-3.5 px-4 font-black text-emerald-700 text-sm bg-emerald-50/30">
-                                    ₹{{ number_format($totalSaaSCut, 2) }}
+                                <td class="py-3.5 px-4 font-black text-sm bg-emerald-50/30">
+                                    @if ($isFullyCancelled)
+                                        <div>
+                                            <span class="text-xs line-through text-gray-400">₹{{ number_format($totalSaaSCut, 2) }}</span>
+                                            <span class="text-xs text-emerald-700 block">₹{{ number_format($platFee, 2) }} <span class="text-[9px] text-gray-400 font-normal">(Fee only)</span></span>
+                                        </div>
+                                    @elseif ($reversedComm > 0)
+                                        <div>
+                                            <span class="text-emerald-700">₹{{ number_format($netTotalSaaSCut, 2) }}</span>
+                                            <span class="text-[10px] text-gray-400 block line-through">₹{{ number_format($totalSaaSCut, 2) }}</span>
+                                        </div>
+                                    @else
+                                        <span class="text-emerald-700">₹{{ number_format($totalSaaSCut, 2) }}</span>
+                                    @endif
                                 </td>
                                 <td class="py-3.5 px-4">
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold

@@ -355,7 +355,7 @@ class TurfAdminPagesTest extends TestCase
             'turf_id' => $turf->id,
             'date_of_booking' => now(),
             'booking_type' => 'day',
-            'booking_reference' => 'TB-202610-00001',
+            'booking_number' => 'TB-202610-00001',
             'status' => 'Confirmed',
             'payment_status' => 'Paid',
             'total_amount' => 810.00,

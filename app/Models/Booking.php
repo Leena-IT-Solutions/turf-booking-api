@@ -115,7 +115,7 @@ class Booking extends Model
      */
     public static function generateBookingNumber(): string
     {
-        $prefix = 'TB-' . date('Ym') . '-';
+        $prefix = 'TB-' . now()->format('Ym') . '-';
         $last = static::where('booking_number', 'like', "{$prefix}%")
             ->orderByDesc('id')
             ->first();
@@ -226,6 +226,6 @@ class Booking extends Model
 
     public function getBookingReferenceAttribute(): string
     {
-        return $this->booking_number ?? ('#' . $this->id);
+        return $this->booking_number ?? ($this->id ? ('#' . $this->id) : '');
     }
 }
