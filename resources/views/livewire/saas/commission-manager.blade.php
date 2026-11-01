@@ -108,37 +108,22 @@ new #[Layout('layouts.app')] class extends Component
             $badgeLabel = 'This Month';
         }
 
-        // 1. Commission debited and reversed from CommissionWalletTransaction in timeframe
-        $commDebitTxs = CommissionWalletTransaction::query()
-            ->where('type', 'commission_debit')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->get();
+        // 1. Commission debited and reversed calculated using unified invoice calculation service
+        $invoiceService = app(\App\Services\CommissionInvoiceService::class);
+        $summary = $invoiceService->calculatePeriodTransactions($startDate, $endDate);
 
-        $commReversalTxs = CommissionWalletTransaction::query()
-            ->where('type', 'commission_reversal')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->get();
+        if ($summary['has_transactions']) {
+            $grossCommissionTaxable = $summary['gross_taxable'];
+            $grossCommissionGst = $summary['gross_gst'];
+            $grossCommissionTotal = $summary['gross_total'];
 
-        if ($commDebitTxs->isNotEmpty()) {
-            $grossCommissionTaxable = (float) $commDebitTxs->sum(function ($tx) {
-                return (float) ($tx->meta['commission_amount'] ?? 0) ?: round(abs((float)$tx->amount) / 1.18, 2);
-            });
-            $grossCommissionGst = (float) $commDebitTxs->sum(function ($tx) {
-                return (float) ($tx->meta['commission_gst'] ?? ($tx->meta['commission_gst_amount'] ?? 0)) ?: round(abs((float)$tx->amount) - (abs((float)$tx->amount) / 1.18), 2);
-            });
-            $grossCommissionTotal = round(abs((float) $commDebitTxs->sum('amount')), 2);
+            $reversalCommissionTaxable = $summary['reversal_taxable'];
+            $reversalCommissionGst = $summary['reversal_gst'];
+            $reversalCommissionTotal = $summary['reversal_total'];
 
-            $reversalCommissionTaxable = (float) $commReversalTxs->sum(function ($tx) {
-                return (float) ($tx->meta['commission_amount'] ?? 0) ?: round(abs((float)$tx->amount) / 1.18, 2);
-            });
-            $reversalCommissionGst = (float) $commReversalTxs->sum(function ($tx) {
-                return (float) ($tx->meta['commission_gst_amount'] ?? ($tx->meta['commission_gst'] ?? 0)) ?: round(abs((float)$tx->amount) - (abs((float)$tx->amount) / 1.18), 2);
-            });
-            $reversalCommissionTotal = round(abs((float) $commReversalTxs->sum('amount')), 2);
-
-            $netCommissionTaxable = max(0.0, round($grossCommissionTaxable - $reversalCommissionTaxable, 2));
-            $netCommissionGst = max(0.0, round($grossCommissionGst - $reversalCommissionGst, 2));
-            $netCommissionTotal = max(0.0, round($grossCommissionTotal - $reversalCommissionTotal, 2));
+            $netCommissionTaxable = $summary['taxable'];
+            $netCommissionGst = $summary['gst'];
+            $netCommissionTotal = $summary['total'];
         } else {
             // Fallback for setups without wallet transaction history
             $grossCommissionTaxable = (float) Payment::where('status', 'Success')

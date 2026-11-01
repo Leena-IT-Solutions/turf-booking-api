@@ -88,154 +88,27 @@ class CommissionInvoiceService
             return null;
         }
 
-        // 2. Query transactions (both debits and cancellation reversals)
-        $debitTransactions = CommissionWalletTransaction::query()
-            ->join('payments', 'payments.id', '=', 'commission_wallet_transactions.reference_id')
-            ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
-            ->where('commission_wallet_transactions.type', 'commission_debit')
-            ->where('commission_wallet_transactions.reference_type', Payment::class)
-            ->whereBetween('commission_wallet_transactions.created_at', [$startOfMonth, $endOfMonth])
-            ->where('bookings.turf_id', $turf->id)
-            ->select('commission_wallet_transactions.*')
-            ->get();
+        // 2. Query transactions & compute figures
+        $summary = $this->calculatePeriodTransactions($startOfMonth, $endOfMonth, $turf->id);
 
-        $reversalTransactions = CommissionWalletTransaction::query()
-            ->join('booking_cancellations', 'booking_cancellations.id', '=', 'commission_wallet_transactions.reference_id')
-            ->join('bookings', 'bookings.id', '=', 'booking_cancellations.booking_id')
-            ->where('commission_wallet_transactions.type', 'commission_reversal')
-            ->where('commission_wallet_transactions.reference_type', \App\Models\BookingCancellation::class)
-            ->whereBetween('commission_wallet_transactions.created_at', [$startOfMonth, $endOfMonth])
-            ->where('bookings.turf_id', $turf->id)
-            ->select('commission_wallet_transactions.*')
-            ->get();
-
-        $transactions = $debitTransactions->concat($reversalTransactions)->sortBy('created_at');
-
-        // 3. Skip if no commission rows
-        if ($transactions->isEmpty()) {
+        if (!$summary['has_transactions'] || $summary['total'] <= 0) {
+            if ($summary['has_transactions'] && $summary['total'] <= 0) {
+                \Log::info("Skipping commission invoice for Turf {$turf->id} ({$turf->name}) for {$periodStart}: net total {$summary['total']} <= 0");
+            }
             return null;
         }
 
-        $paymentIds = $debitTransactions->pluck('reference_id')->unique()->filter();
-        $payments = Payment::with('booking')->whereIn('id', $paymentIds)->get()->keyBy('id');
-
-        $cancellationIds = $reversalTransactions->pluck('reference_id')->unique()->filter();
-        $cancellations = \App\Models\BookingCancellation::with('booking')->whereIn('id', $cancellationIds)->get()->keyBy('id');
-
-        $saasSetting = SaasSetting::first();
-        $isGstInvoice = (bool)($saasSetting?->is_gst_billing_active ?? false);
-
-        // 4. Build line items
-        $lines = [];
-
-        foreach ($transactions as $tx) {
-            if ($tx->type === 'commission_reversal') {
-                // NOTE: A formal GST credit note for reversals of commission invoiced in an earlier month
-                // is a CA decision and is out of scope; here we carry negative line items in the cancellation month.
-                $cancellation = $cancellations->get($tx->reference_id);
-                $booking = $cancellation?->booking;
-                $meta = $tx->meta ?? [];
-
-                $commAmt = (float) ($meta['commission_amount'] ?? 0);
-                $cgstAmt = (float) ($meta['commission_cgst_amount'] ?? 0);
-                $sgstAmt = (float) ($meta['commission_sgst_amount'] ?? 0);
-                $igstAmt = (float) ($meta['commission_igst_amount'] ?? 0);
-                $rowTotal = (float) $tx->amount;
-
-                if (!$isGstInvoice) {
-                    $taxable = -$rowTotal;
-                    $cgst = 0.00;
-                    $sgst = 0.00;
-                    $igst = 0.00;
-                } else {
-                    $taxable = -$commAmt;
-                    $cgst = -$cgstAmt;
-                    $sgst = -$sgstAmt;
-                    $igst = -$igstAmt;
-                }
-
-                $lines[] = [
-                    'booking_id' => $booking?->id,
-                    'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
-                    'description' => 'Credit: session cancelled',
-                    'charged_at' => $tx->created_at->toDateTimeString(),
-                    'booking_amount' => 0.00,
-                    'commission_rate' => (float) ($booking?->commission_rate ?? 0),
-                    'taxable' => $taxable,
-                    'cgst' => $cgst,
-                    'sgst' => $sgst,
-                    'igst' => $igst,
-                    'total' => -$rowTotal,
-                ];
-                continue;
-            }
-
-            $payment = $payments->get($tx->reference_id);
-            $booking = $payment?->booking;
-            $ledgerTotal = round(abs((float)$tx->amount), 2);
-
-            if (!$isGstInvoice) {
-                $taxable = $ledgerTotal;
-                $cgst = 0.00;
-                $sgst = 0.00;
-                $igst = 0.00;
-            } else {
-                $bTaxable = (float)($booking?->commission_amount ?? 0);
-                $bCgst = (float)($booking?->commission_cgst_amount ?? 0);
-                $bSgst = (float)($booking?->commission_sgst_amount ?? 0);
-                $bIgst = (float)($booking?->commission_igst_amount ?? 0);
-                $bSum = round($bTaxable + $bCgst + $bSgst + $bIgst, 2);
-
-                if (abs($bSum - $ledgerTotal) <= 0.01 && $bSum > 0) {
-                    $taxable = $bTaxable;
-                    $cgst = $bCgst;
-                    $sgst = $bSgst;
-                    $igst = $bIgst;
-                } else {
-                    $taxable = (float)($payment?->commission_amount ?? 0);
-                    $pGst = (float)($payment?->commission_gst_amount ?? 0);
-                    $isInterState = (float)($booking?->commission_igst_amount ?? 0) > 0;
-                    if ($isInterState) {
-                        $igst = $pGst;
-                        $cgst = 0.00;
-                        $sgst = 0.00;
-                    } else {
-                        $cgst = round($pGst / 2, 2);
-                        $sgst = round($pGst - $cgst, 2);
-                        $igst = 0.00;
-                    }
-                }
-            }
-
-            $lines[] = [
-                'booking_id' => $booking?->id,
-                'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
-                'description' => null,
-                'charged_at' => $tx->created_at->toDateTimeString(),
-                'booking_amount' => (float)($booking?->total_amount ?? 0),
-                'commission_rate' => (float)($booking?->commission_rate ?? 0),
-                'taxable' => $taxable,
-                'cgst' => $cgst,
-                'sgst' => $sgst,
-                'igst' => $igst,
-                'total' => $ledgerTotal,
-            ];
-        }
-
-        $linesCollection = collect($lines);
-        $taxableAmount = round($linesCollection->sum('taxable'), 2);
-        $cgstAmount = round($linesCollection->sum('cgst'), 2);
-        $sgstAmount = round($linesCollection->sum('sgst'), 2);
-        $igstAmount = round($linesCollection->sum('igst'), 2);
-        $totalAmount = round($linesCollection->sum('total'), 2);
+        $lines = $summary['lines'];
+        $taxableAmount = $summary['taxable'];
+        $cgstAmount = $summary['cgst'];
+        $sgstAmount = $summary['sgst'];
+        $igstAmount = $summary['igst'];
+        $totalAmount = $summary['total'];
         $isInterState = $igstAmount > 0;
 
-        if ($totalAmount <= 0) {
-            \Log::info("Skipping commission invoice for Turf {$turf->id} ({$turf->name}) for {$periodStart}: net total {$totalAmount} <= 0");
-            return null;
-        }
-
         // 7. Snapshots
+        $saasSetting = SaasSetting::first();
+        $isGstInvoice = (bool)($saasSetting?->is_gst_billing_active ?? false);
         $supplierSnapshot = [
             'company_name' => $saasSetting?->company_name ?? config('app.name'),
             'company_address' => $saasSetting?->company_address ?? '',
@@ -320,5 +193,205 @@ class CommissionInvoiceService
             }
             throw $e;
         }
+    }
+
+    /**
+     * Calculate itemized commission debits, reversals, and net totals for a timeframe.
+     */
+    public function calculatePeriodTransactions(Carbon $startDate, Carbon $endDate, ?int $turfId = null): array
+    {
+        $debitQuery = CommissionWalletTransaction::query()
+            ->join('payments', 'payments.id', '=', 'commission_wallet_transactions.reference_id')
+            ->join('bookings', 'bookings.id', '=', 'payments.booking_id')
+            ->where('commission_wallet_transactions.type', 'commission_debit')
+            ->where('commission_wallet_transactions.reference_type', Payment::class)
+            ->whereBetween('commission_wallet_transactions.created_at', [$startDate, $endDate]);
+
+        if ($turfId) {
+            $debitQuery->where('bookings.turf_id', $turfId);
+        }
+
+        $debitTransactions = $debitQuery->select('commission_wallet_transactions.*')->get();
+
+        $reversalQuery = CommissionWalletTransaction::query()
+            ->join('booking_cancellations', 'booking_cancellations.id', '=', 'commission_wallet_transactions.reference_id')
+            ->join('bookings', 'bookings.id', '=', 'booking_cancellations.booking_id')
+            ->where('commission_wallet_transactions.type', 'commission_reversal')
+            ->where('commission_wallet_transactions.reference_type', \App\Models\BookingCancellation::class)
+            ->whereBetween('commission_wallet_transactions.created_at', [$startDate, $endDate]);
+
+        if ($turfId) {
+            $reversalQuery->where('bookings.turf_id', $turfId);
+        }
+
+        $reversalTransactions = $reversalQuery->select('commission_wallet_transactions.*')->get();
+
+        $transactions = $debitTransactions->concat($reversalTransactions)->sortBy('created_at');
+
+        if ($transactions->isEmpty()) {
+            return [
+                'has_transactions' => false,
+                'taxable' => 0.0,
+                'cgst' => 0.0,
+                'sgst' => 0.0,
+                'igst' => 0.0,
+                'gst' => 0.0,
+                'total' => 0.0,
+                'gross_taxable' => 0.0,
+                'gross_gst' => 0.0,
+                'gross_total' => 0.0,
+                'reversal_taxable' => 0.0,
+                'reversal_gst' => 0.0,
+                'reversal_total' => 0.0,
+                'lines' => [],
+            ];
+        }
+
+        $paymentIds = $debitTransactions->pluck('reference_id')->unique()->filter();
+        $payments = Payment::with('booking')->whereIn('id', $paymentIds)->get()->keyBy('id');
+
+        $cancellationIds = $reversalTransactions->pluck('reference_id')->unique()->filter();
+        $cancellations = \App\Models\BookingCancellation::with('booking')->whereIn('id', $cancellationIds)->get()->keyBy('id');
+
+        $saasSetting = SaasSetting::first();
+        $isGstInvoice = (bool)($saasSetting?->is_gst_billing_active ?? false);
+
+        $lines = [];
+        $grossTaxable = 0.0;
+        $grossGst = 0.0;
+        $grossTotal = 0.0;
+        $reversalTaxable = 0.0;
+        $reversalGst = 0.0;
+        $reversalTotal = 0.0;
+
+        foreach ($transactions as $tx) {
+            if ($tx->type === 'commission_reversal') {
+                $cancellation = $cancellations->get($tx->reference_id);
+                $booking = $cancellation?->booking;
+                $meta = $tx->meta ?? [];
+
+                $commAmt = (float) ($meta['commission_amount'] ?? 0);
+                $cgstAmt = (float) ($meta['commission_cgst_amount'] ?? 0);
+                $sgstAmt = (float) ($meta['commission_sgst_amount'] ?? 0);
+                $igstAmt = (float) ($meta['commission_igst_amount'] ?? 0);
+                $rowTotal = (float) $tx->amount;
+
+                if ($isGstInvoice && $cgstAmt == 0 && $sgstAmt == 0 && $igstAmt == 0 && isset($meta['commission_gst_amount'])) {
+                    $totalGst = (float)$meta['commission_gst_amount'];
+                    $cgstAmt = round($totalGst / 2, 2);
+                    $sgstAmt = round($totalGst - $cgstAmt, 2);
+                }
+
+                if (!$isGstInvoice) {
+                    $taxable = -$rowTotal;
+                    $cgst = 0.00;
+                    $sgst = 0.00;
+                    $igst = 0.00;
+                } else {
+                    $taxable = -$commAmt;
+                    $cgst = -$cgstAmt;
+                    $sgst = -$sgstAmt;
+                    $igst = -$igstAmt;
+                }
+
+                $reversalTaxable += abs($taxable);
+                $reversalGst += abs($cgst + $sgst + $igst);
+                $reversalTotal += abs($rowTotal);
+
+                $lines[] = [
+                    'booking_id' => $booking?->id,
+                    'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
+                    'description' => 'Credit: session cancelled',
+                    'charged_at' => $tx->created_at->toDateTimeString(),
+                    'booking_amount' => 0.00,
+                    'commission_rate' => (float) ($booking?->commission_rate ?? 0),
+                    'taxable' => $taxable,
+                    'cgst' => $cgst,
+                    'sgst' => $sgst,
+                    'igst' => $igst,
+                    'total' => -$rowTotal,
+                ];
+                continue;
+            }
+
+            $payment = $payments->get($tx->reference_id);
+            $booking = $payment?->booking;
+            $ledgerTotal = round(abs((float)$tx->amount), 2);
+
+            if (!$isGstInvoice) {
+                $taxable = $ledgerTotal;
+                $cgst = 0.00;
+                $sgst = 0.00;
+                $igst = 0.00;
+            } else {
+                $bTaxable = (float)($booking?->commission_amount ?? 0);
+                $bCgst = (float)($booking?->commission_cgst_amount ?? 0);
+                $bSgst = (float)($booking?->commission_sgst_amount ?? 0);
+                $bIgst = (float)($booking?->commission_igst_amount ?? 0);
+                $bSum = round($bTaxable + $bCgst + $bSgst + $bIgst, 2);
+
+                if (abs($bSum - $ledgerTotal) <= 0.01 && $bSum > 0) {
+                    $taxable = $bTaxable;
+                    $cgst = $bCgst;
+                    $sgst = $bSgst;
+                    $igst = $bIgst;
+                } else {
+                    $taxable = (float)($payment?->commission_amount ?? 0);
+                    $pGst = (float)($payment?->commission_gst_amount ?? 0);
+                    $isInterState = (float)($booking?->commission_igst_amount ?? 0) > 0;
+                    if ($isInterState) {
+                        $igst = $pGst;
+                        $cgst = 0.00;
+                        $sgst = 0.00;
+                    } else {
+                        $cgst = round($pGst / 2, 2);
+                        $sgst = round($pGst - $cgst, 2);
+                        $igst = 0.00;
+                    }
+                }
+            }
+
+            $grossTaxable += $taxable;
+            $grossGst += ($cgst + $sgst + $igst);
+            $grossTotal += $ledgerTotal;
+
+            $lines[] = [
+                'booking_id' => $booking?->id,
+                'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
+                'description' => null,
+                'charged_at' => $tx->created_at->toDateTimeString(),
+                'booking_amount' => (float)($booking?->total_amount ?? 0),
+                'commission_rate' => (float)($booking?->commission_rate ?? 0),
+                'taxable' => $taxable,
+                'cgst' => $cgst,
+                'sgst' => $sgst,
+                'igst' => $igst,
+                'total' => $ledgerTotal,
+            ];
+        }
+
+        $linesCollection = collect($lines);
+        $taxableAmount = round($linesCollection->sum('taxable'), 2);
+        $cgstAmount = round($linesCollection->sum('cgst'), 2);
+        $sgstAmount = round($linesCollection->sum('sgst'), 2);
+        $igstAmount = round($linesCollection->sum('igst'), 2);
+        $totalAmount = round($linesCollection->sum('total'), 2);
+
+        return [
+            'has_transactions' => true,
+            'taxable' => $taxableAmount,
+            'cgst' => $cgstAmount,
+            'sgst' => $sgstAmount,
+            'igst' => $igstAmount,
+            'gst' => round($cgstAmount + $sgstAmount + $igstAmount, 2),
+            'total' => $totalAmount,
+            'gross_taxable' => round($grossTaxable, 2),
+            'gross_gst' => round($grossGst, 2),
+            'gross_total' => round($grossTotal, 2),
+            'reversal_taxable' => round($reversalTaxable, 2),
+            'reversal_gst' => round($reversalGst, 2),
+            'reversal_total' => round($reversalTotal, 2),
+            'lines' => $lines,
+        ];
     }
 }
