@@ -89,7 +89,17 @@ class TurfAdminPagesTest extends TestCase
 
         Volt::test('turf.dashboard-manager')
             ->assertSee('Mumbai Sports Complex')
-            ->assertSee('Football Turf A');
+            ->assertSee('Football Turf A')
+            ->assertSee('Business & Performance Command Center')
+            ->assertSee('Period Gross Revenue')
+            ->assertSee('Payment & Collection Split')
+            ->assertSee('Peak Hours & Slot Demand')
+            ->assertSee('Channels & Top Players')
+            ->call('setPeriod', 'week')
+            ->assertSet('period', 'week')
+            ->call('setChartMetric', 'bookings')
+            ->assertSet('chartMetric', 'bookings')
+            ->assertSee('Confirmed Bookings Volume Trend');
     }
 
     public function test_turf_admin_with_no_turfs_sees_no_bookings(): void
