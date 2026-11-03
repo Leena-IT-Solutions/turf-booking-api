@@ -37,6 +37,11 @@ new #[Layout('layouts.app')] class extends Component
     public $deletingId = null;
     public $showDeleteConfirm = false;
 
+    // Free Trial management modal state
+    public $trialUserId = null;
+    public bool $showTrialModal = false;
+    public int $customTrialDays = 30;
+
     public function mount()
     {
         $this->chartCursor = Carbon::now('Asia/Kolkata')->toDateString();
@@ -239,6 +244,24 @@ new #[Layout('layouts.app')] class extends Component
         $this->resetForm();
     }
 
+    public function openTrialModal($userId): void
+    {
+        $user = User::findOrFail($userId);
+        $this->trialUserId = $user->id;
+        $saas = \App\Models\SaasSetting::first();
+        $this->customTrialDays = (int) ($saas?->free_trial_days ?? 15);
+        if ($this->customTrialDays <= 0) {
+            $this->customTrialDays = 15;
+        }
+        $this->showTrialModal = true;
+    }
+
+    public function closeTrialModal(): void
+    {
+        $this->showTrialModal = false;
+        $this->trialUserId = null;
+    }
+
     public function extendTrial($userId, ?int $days = null): void
     {
         $user = User::findOrFail($userId);
@@ -259,7 +282,46 @@ new #[Layout('layouts.app')] class extends Component
         $user->trial_ends_at = $base->copy()->addDays($daysToAdd);
         $user->save();
 
-        session()->flash('status', "Free trial extended by {$daysToAdd} days for {$user->name}.");
+        session()->flash('status', "Free trial extended by {$daysToAdd} days for {$user->name} (now ends {$user->trial_ends_at->format('d M Y')}).");
+    }
+
+    public function reduceTrial($userId, ?int $days = null): void
+    {
+        $user = User::findOrFail($userId);
+        $daysToSub = $days ?: (int) $this->customTrialDays;
+        if ($daysToSub <= 0) {
+            $daysToSub = 7;
+        }
+
+        if (!$user->trial_ends_at || !$user->trial_ends_at->isFuture()) {
+            session()->flash('error', "{$user->name} does not have an active free trial to reduce.");
+            return;
+        }
+
+        $newEnd = $user->trial_ends_at->copy()->subDays($daysToSub);
+        if ($newEnd->lte(now())) {
+            $user->trial_ends_at = now()->subSecond();
+            $user->save();
+            session()->flash('status', "Free trial for {$user->name} has been ended.");
+            return;
+        }
+
+        $user->trial_ends_at = $newEnd;
+        $user->save();
+
+        session()->flash('status', "Free trial reduced by {$daysToSub} days for {$user->name} (now ends {$user->trial_ends_at->format('d M Y')}).");
+    }
+
+    public function endTrialNow($userId): void
+    {
+        $user = User::findOrFail($userId);
+        if ($user->trial_started_at === null) {
+            $user->trial_started_at = now()->subMinute();
+        }
+        $user->trial_ends_at = now()->subSecond();
+        $user->save();
+
+        session()->flash('status', "Free trial immediately ended for {$user->name}.");
     }
 
     public function deleteUser($id)
@@ -448,6 +510,7 @@ new #[Layout('layouts.app')] class extends Component
             'managersCount' => $managersCount,
             'customersCount' => $customersCount,
             'chartData' => $chartData,
+            'trialUser' => $this->trialUserId ? User::find($this->trialUserId) : null,
         ];
     }
 }; ?>
@@ -779,7 +842,7 @@ new #[Layout('layouts.app')] class extends Component
                                 @if ($user->onTrial())
                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-300">
                                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                                        Trial · ends {{ $user->trial_ends_at->format('d M') }}
+                                        Trial · ends {{ $user->trial_ends_at->format('d M Y') }} ({{ $user->trialDaysLeft() }}d)
                                     </span>
                                 @elseif ($user->trial_started_at !== null)
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 border border-gray-200">
@@ -792,9 +855,9 @@ new #[Layout('layouts.app')] class extends Component
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-1.5 shrink-0 pl-2 md:border-l md:border-gray-100">
                             @if ($user->roles->contains('name', 'turf-admin'))
-                                <!-- Extend Trial Button -->
-                                <button wire:click="extendTrial({{ $user->id }})" 
-                                        title="{{ $user->onTrial() ? 'Extend Free Trial (+30 days)' : 'Grant / Extend Free Trial' }}" 
+                                <!-- Manage Free Trial Button -->
+                                <button wire:click="openTrialModal({{ $user->id }})" 
+                                        title="{{ $user->onTrial() ? 'Manage Free Trial (Extend / Reduce / End)' : 'Grant / Manage Free Trial' }}" 
                                         class="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition cursor-pointer border border-amber-200/50 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -967,6 +1030,154 @@ new #[Layout('layouts.app')] class extends Component
                             </button>
                             <button type="button" wire:click="performDelete" class="px-5 py-2.5 bg-red-600 hover:bg-red-750 text-white rounded-xl font-bold text-xs uppercase shadow transition duration-150 cursor-pointer">
                                 {{ __('Yes, Delete') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <!-- Manage Free Trial Modal -->
+        @if ($showTrialModal && $trialUser)
+            <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+                <!-- Backdrop -->
+                <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="closeTrialModal"></div>
+
+                <!-- Modal Container -->
+                <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-lg z-50 border border-gray-100">
+                    <div class="p-6 sm:p-8 space-y-6">
+                        <!-- Modal Header -->
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div class="flex items-center gap-3">
+                                <div class="h-10 w-10 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200/60 shrink-0">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-gray-900">{{ __('Manage Free Trial') }}</h3>
+                                    <p class="text-xs text-gray-500">{{ $trialUser->name }} · {{ $trialUser->email }}</p>
+                                </div>
+                            </div>
+                            <button type="button" wire:click="closeTrialModal" class="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer">
+                                <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <!-- Current Trial Status Summary Card -->
+                        <div class="p-4 rounded-2xl border {{ $trialUser->onTrial() ? 'bg-emerald-50/70 border-emerald-200' : 'bg-gray-50 border-gray-200' }} flex items-center justify-between gap-4">
+                            <div>
+                                <div class="text-[10px] font-black uppercase tracking-wider {{ $trialUser->onTrial() ? 'text-emerald-700' : 'text-gray-500' }}">
+                                    {{ $trialUser->onTrial() ? __('Active Free Trial (0% Commission)') : __('Trial Inactive / Ended') }}
+                                </div>
+                                @if ($trialUser->onTrial())
+                                    <div class="text-lg font-black text-gray-900 mt-0.5">
+                                        {{ $trialUser->trialDaysLeft() }} {{ \Illuminate\Support\Str::plural('day', $trialUser->trialDaysLeft()) }} {{ __('remaining') }}
+                                    </div>
+                                    <div class="text-xs text-gray-600 mt-0.5">
+                                        {{ __('Ends on:') }} <span class="font-bold text-gray-900">{{ $trialUser->trial_ends_at->format('d M Y, h:i A') }}</span>
+                                    </div>
+                                @else
+                                    <div class="text-sm font-bold text-gray-700 mt-0.5">
+                                        {{ $trialUser->trial_ends_at ? __('Ended on ') . $trialUser->trial_ends_at->format('d M Y') : __('No active trial assigned') }}
+                                    </div>
+                                @endif
+                            </div>
+
+                            @if ($trialUser->onTrial())
+                                <button
+                                    type="button"
+                                    wire:click="endTrialNow({{ $trialUser->id }})"
+                                    class="px-3 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer shrink-0"
+                                >
+                                    {{ __('End Trial Now') }}
+                                </button>
+                            @endif
+                        </div>
+
+                        <!-- Quick Extend & Reduce Presets -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <!-- Extend Presets -->
+                            <div class="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-100 space-y-2.5">
+                                <span class="block text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">
+                                    ➕ {{ __('Quick Extend Trial') }}
+                                </span>
+                                <div class="grid grid-cols-3 gap-2">
+                                    @foreach ([7, 15, 30] as $presetDays)
+                                        <button
+                                            type="button"
+                                            wire:click="extendTrial({{ $trialUser->id }}, {{ $presetDays }})"
+                                            class="py-2 px-2.5 rounded-xl bg-white hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-200 font-bold text-xs transition shadow-2xs cursor-pointer"
+                                        >
+                                            +{{ $presetDays }}d
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <!-- Reduce Presets -->
+                            <div class="p-4 rounded-2xl bg-amber-50/40 border border-amber-100 space-y-2.5">
+                                <span class="block text-[11px] font-extrabold uppercase tracking-wider text-amber-800">
+                                    ➖ {{ __('Quick Reduce Trial') }}
+                                </span>
+                                <div class="grid grid-cols-3 gap-2">
+                                    @foreach ([7, 15, 30] as $presetDays)
+                                        <button
+                                            type="button"
+                                            wire:click="reduceTrial({{ $trialUser->id }}, {{ $presetDays }})"
+                                            @disabled(!$trialUser->onTrial())
+                                            class="py-2 px-2.5 rounded-xl border font-bold text-xs transition shadow-2xs {{ $trialUser->onTrial() ? 'bg-white hover:bg-amber-600 text-amber-800 hover:text-white border-amber-200 cursor-pointer' : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' }}"
+                                        >
+                                            -{{ $presetDays }}d
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Custom Days Input with Add / Reduce Actions -->
+                        <div class="p-4 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-3">
+                            <label for="customTrialDays" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                                {{ __('Custom Days Adjustment') }}
+                            </label>
+                            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                                <input
+                                    id="customTrialDays"
+                                    type="number"
+                                    min="1"
+                                    max="3650"
+                                    wire:model="customTrialDays"
+                                    class="w-full sm:w-28 rounded-xl border-gray-300 text-sm font-bold font-mono text-gray-900 focus:border-indigo-500 focus:ring-indigo-500"
+                                    placeholder="Days"
+                                />
+                                <button
+                                    type="button"
+                                    wire:click="extendTrial({{ $trialUser->id }}, $wire.customTrialDays)"
+                                    class="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition cursor-pointer shadow-2xs"
+                                >
+                                    + {{ __('Add Days') }}
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="reduceTrial({{ $trialUser->id }}, $wire.customTrialDays)"
+                                    @disabled(!$trialUser->onTrial())
+                                    class="flex-1 py-2.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-2xs {{ $trialUser->onTrial() ? 'bg-amber-600 hover:bg-amber-700 text-white cursor-pointer' : 'bg-gray-200 text-gray-400 cursor-not-allowed' }}"
+                                >
+                                    - {{ __('Reduce Days') }}
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Footer -->
+                        <div class="flex justify-end pt-2 border-t border-gray-100">
+                            <button
+                                type="button"
+                                wire:click="closeTrialModal"
+                                class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition cursor-pointer"
+                            >
+                                {{ __('Done') }}
                             </button>
                         </div>
                     </div>

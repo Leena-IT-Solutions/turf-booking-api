@@ -328,6 +328,22 @@ class TurfOwnerTrialTest extends TestCase
 
         $existingOwner->refresh();
         $this->assertEquals('2026-12-05 10:00:00', $existingOwner->trial_ends_at->format('Y-m-d H:i:s'));
+
+        // Reducing an active trial subtracts days from current trial_ends_at
+        Volt::test('saas.user-manager')
+            ->call('openTrialModal', $existingOwner->id)
+            ->assertSet('showTrialModal', true)
+            ->call('reduceTrial', $existingOwner->id, 10);
+
+        $existingOwner->refresh();
+        $this->assertEquals('2026-11-25 10:00:00', $existingOwner->trial_ends_at->format('Y-m-d H:i:s'));
+
+        // Ending trial immediately expires it
+        Volt::test('saas.user-manager')
+            ->call('endTrialNow', $existingOwner->id);
+
+        $existingOwner->refresh();
+        $this->assertFalse($existingOwner->onTrial());
     }
 
     public function test_screens_trial_banners_and_badges(): void
