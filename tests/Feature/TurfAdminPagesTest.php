@@ -87,6 +87,17 @@ class TurfAdminPagesTest extends TestCase
             'length' => 40,
         ]);
 
+        $slot = \App\Models\Slot::first();
+        if ($slot) {
+            \App\Models\SlotLock::create([
+                'turf_id' => $turf->id,
+                'slot_id' => $slot->id,
+                'lock_date' => now('Asia/Kolkata')->toDateString(),
+                'reason' => 'Maintenance',
+                'created_by_user_id' => $admin->id,
+            ]);
+        }
+
         Volt::test('turf.dashboard-manager')
             ->assertSee('Mumbai Sports Complex')
             ->assertSee('Football Turf A')

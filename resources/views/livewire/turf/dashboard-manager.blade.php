@@ -594,7 +594,7 @@ new #[Layout('layouts.app')] class extends Component
         $lockedSlotIdsToday = empty($scopedTurfIds)
             ? []
             : SlotLock::whereIn('turf_id', $scopedTurfIds)
-                ->where('date', $today)
+                ->where('lock_date', $today)
                 ->pluck('slot_id')
                 ->unique()
                 ->all();
