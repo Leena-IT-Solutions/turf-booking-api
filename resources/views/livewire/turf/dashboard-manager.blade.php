@@ -247,7 +247,38 @@ new #[Layout('layouts.app')] class extends Component
         $prevGrossRevenue = (float) $confirmedPrevDates->sum('amount');
         $revenueGrowth = $this->calculateGrowth($periodGrossRevenue, $prevGrossRevenue);
 
-        // Online vs Venue Cash split from successful Payments in period
+        // Online vs Venue Cash split helper from successful Payments in period
+        $resolveBdSplit = function ($bd): array {
+            $online = 0.0;
+            $cash = 0.0;
+            $successPayments = $bd->payments->where('status', 'Success');
+            if ($successPayments->isNotEmpty()) {
+                foreach ($successPayments as $pmt) {
+                    $netPmt = max(0, (float) $pmt->amount - (float) $pmt->refunded_amount);
+                    if (stripos((string) $pmt->payment_method, 'Online') !== false || stripos((string) $pmt->payment_method, 'Razorpay') !== false) {
+                        $online += $netPmt;
+                    } else {
+                        $cash += $netPmt;
+                    }
+                }
+            } else {
+                // Fallback when no Payment row is attached directly to the BookingDate
+                $source = strtolower((string) ($bd->booking?->booking_source ?? ''));
+                if ($source === 'walkin' || $source === 'offline' || $source === 'manual') {
+                    $cash += (float) $bd->paid_amount;
+                } else {
+                    $online += (float) $bd->paid_amount;
+                }
+            }
+
+            $unpaid = max(0.0, (float) $bd->amount - ($online + $cash));
+            if ($unpaid > 0) {
+                $cash += $unpaid;
+            }
+
+            return ['online' => $online, 'cash' => $cash];
+        };
+
         $onlineCollected = 0.0;
         $venueCashCollected = 0.0;
         foreach ($confirmedPeriodDates as $bd) {
@@ -262,7 +293,6 @@ new #[Layout('layouts.app')] class extends Component
                     }
                 }
             } else {
-                // Fallback when no Payment row is attached directly to the BookingDate
                 $source = strtolower((string) ($bd->booking?->booking_source ?? ''));
                 if ($source === 'walkin' || $source === 'offline' || $source === 'manual') {
                     $venueCashCollected += (float) $bd->paid_amount;
@@ -373,11 +403,11 @@ new #[Layout('layouts.app')] class extends Component
                         break;
                     }
                 }
-                $isWalkin = in_array(strtolower((string) ($bd->booking?->booking_source ?? '')), ['walkin', 'offline', 'manual'], true);
+                $split = $resolveBdSplit($bd);
                 $amt = (float) $bd->amount;
                 $chartBuckets[$targetKey]['revenue'] += $amt;
-                $chartBuckets[$targetKey]['online'] += $isWalkin ? 0.0 : $amt;
-                $chartBuckets[$targetKey]['cash'] += $isWalkin ? $amt : 0.0;
+                $chartBuckets[$targetKey]['online'] += $split['online'];
+                $chartBuckets[$targetKey]['cash'] += $split['cash'];
                 $chartBuckets[$targetKey]['bookings'] += 1;
             }
         } elseif ($this->period === 'week') {
@@ -397,11 +427,11 @@ new #[Layout('layouts.app')] class extends Component
             foreach ($confirmedPeriodDates as $bd) {
                 $dKey = $bd->booking_date;
                 if (isset($chartBuckets[$dKey])) {
-                    $isWalkin = in_array(strtolower((string) ($bd->booking?->booking_source ?? '')), ['walkin', 'offline', 'manual'], true);
+                    $split = $resolveBdSplit($bd);
                     $amt = (float) $bd->amount;
                     $chartBuckets[$dKey]['revenue'] += $amt;
-                    $chartBuckets[$dKey]['online'] += $isWalkin ? 0.0 : $amt;
-                    $chartBuckets[$dKey]['cash'] += $isWalkin ? $amt : 0.0;
+                    $chartBuckets[$dKey]['online'] += $split['online'];
+                    $chartBuckets[$dKey]['cash'] += $split['cash'];
                     $chartBuckets[$dKey]['bookings'] += 1;
                 }
             }
@@ -421,11 +451,11 @@ new #[Layout('layouts.app')] class extends Component
             foreach ($confirmedPeriodDates as $bd) {
                 $mKey = substr((string) $bd->booking_date, 0, 7);
                 if (isset($chartBuckets[$mKey])) {
-                    $isWalkin = in_array(strtolower((string) ($bd->booking?->booking_source ?? '')), ['walkin', 'offline', 'manual'], true);
+                    $split = $resolveBdSplit($bd);
                     $amt = (float) $bd->amount;
                     $chartBuckets[$mKey]['revenue'] += $amt;
-                    $chartBuckets[$mKey]['online'] += $isWalkin ? 0.0 : $amt;
-                    $chartBuckets[$mKey]['cash'] += $isWalkin ? $amt : 0.0;
+                    $chartBuckets[$mKey]['online'] += $split['online'];
+                    $chartBuckets[$mKey]['cash'] += $split['cash'];
                     $chartBuckets[$mKey]['bookings'] += 1;
                 }
             }
@@ -447,11 +477,11 @@ new #[Layout('layouts.app')] class extends Component
             foreach ($confirmedPeriodDates as $bd) {
                 $dKey = $bd->booking_date;
                 if (isset($chartBuckets[$dKey])) {
-                    $isWalkin = in_array(strtolower((string) ($bd->booking?->booking_source ?? '')), ['walkin', 'offline', 'manual'], true);
+                    $split = $resolveBdSplit($bd);
                     $amt = (float) $bd->amount;
                     $chartBuckets[$dKey]['revenue'] += $amt;
-                    $chartBuckets[$dKey]['online'] += $isWalkin ? 0.0 : $amt;
-                    $chartBuckets[$dKey]['cash'] += $isWalkin ? $amt : 0.0;
+                    $chartBuckets[$dKey]['online'] += $split['online'];
+                    $chartBuckets[$dKey]['cash'] += $split['cash'];
                     $chartBuckets[$dKey]['bookings'] += 1;
                 }
             }
@@ -868,7 +898,7 @@ new #[Layout('layouts.app')] class extends Component
         <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
 
             {{-- Card 1: Gross Revenue & Collections (Vibrant Emerald Gradient) --}}
-            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 text-white p-5 shadow-md">
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 via-emerald-600 to-teal-700 text-white p-5 shadow-md" style="background: linear-gradient(135deg, #059669 0%, #0d9488 55%, #0f766e 100%);">
                 <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-[11px] font-extrabold uppercase tracking-wider text-emerald-100">{{ __('Period Gross Revenue') }}</span>
@@ -895,7 +925,7 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             {{-- Card 2: Confirmed Bookings & Slot Occupancy (Vibrant Indigo/Blue Gradient) --}}
-            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-blue-700 text-white p-5 shadow-md">
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-indigo-600 to-blue-700 text-white p-5 shadow-md" style="background: linear-gradient(135deg, #4f46e5 0%, #4338ca 55%, #1d4ed8 100%);">
                 <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-[11px] font-extrabold uppercase tracking-wider text-indigo-100">{{ __('Confirmed Bookings') }}</span>
@@ -923,7 +953,7 @@ new #[Layout('layouts.app')] class extends Component
             </div>
 
             {{-- Card 3: Wallet & Payout Status (Vibrant Violet/Purple Gradient) --}}
-            <a href="{{ route('turf.business') }}" wire:navigate class="block relative overflow-hidden rounded-3xl {{ $walletBalance < 0 ? 'bg-gradient-to-br from-rose-600 via-red-600 to-orange-700' : 'bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-700' }} text-white p-5 shadow-md hover:opacity-95 transition">
+            <a href="{{ route('turf.business') }}" wire:navigate class="block relative overflow-hidden rounded-3xl {{ $walletBalance < 0 ? 'bg-gradient-to-br from-rose-600 via-red-600 to-orange-700' : 'bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-700' }} text-white p-5 shadow-md hover:opacity-95 transition" style="{{ $walletBalance < 0 ? 'background: linear-gradient(135deg, #e11d48 0%, #dc2626 55%, #c2410c 100%);' : 'background: linear-gradient(135deg, #7c3aed 0%, #9333ea 55%, #a21caf 100%);' }}">
                 <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-[11px] font-extrabold uppercase tracking-wider text-purple-100">
@@ -951,7 +981,7 @@ new #[Layout('layouts.app')] class extends Component
             </a>
 
             {{-- Card 4: Net Commission & Cancellations (Amber/Slate Surface Card with Accent) --}}
-            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-5 shadow-md">
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-white p-5 shadow-md" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #1e1b4b 100%);">
                 <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-amber-400/10 blur-xl pointer-events-none"></div>
                 <div class="flex items-center justify-between gap-2">
                     <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-300">{{ __('Net Commission & Refunds') }}</span>
