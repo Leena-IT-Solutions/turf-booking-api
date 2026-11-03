@@ -1026,6 +1026,13 @@ new #[Layout('layouts.app')] class extends Component
                                 @endif
                             @endif
 
+                            <a href="{{ route('turf.bookings.invoice', $b->id) }}" target="_blank"
+                                class="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
+                                title="Download Tax Invoice / Bill">
+                                <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                <span>Bill</span>
+                            </a>
+
                             <button wire:click="viewDetails({{ $b->id }})" type="button" 
                                 class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer shrink-0">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
@@ -1857,19 +1864,27 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- 3. Drawer Footer Actions (Sticky Bottom) -->
-                    <div class="p-4 sm:p-5 border-t border-gray-200 bg-gray-50/90 shrink-0 flex items-center gap-3">
-                        @if ($dBalance > 0 && $bDetail->payment_status !== 'Paid' && $bDetail->status !== 'Cancelled')
-                            @php $firstUnpaidDate = $bDetail->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
-                            @if ($firstUnpaidDate)
-                                <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
-                                    + Record Payment
-                                </button>
-                            @endif
-                        @endif
+                    <div class="p-4 sm:p-5 border-t border-gray-200 bg-gray-50/90 shrink-0 flex items-center justify-between gap-3">
+                        <a href="{{ route('turf.bookings.invoice', $bDetail->id) }}" target="_blank"
+                            class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs cursor-pointer">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            <span>Download Invoice Bill</span>
+                        </a>
 
-                        <button wire:click="closeDetails" class="py-2.5 px-5 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs">
-                            Close
-                        </button>
+                        <div class="flex items-center gap-3 ml-auto">
+                            @if ($dBalance > 0 && $bDetail->payment_status !== 'Paid' && $bDetail->status !== 'Cancelled')
+                                @php $firstUnpaidDate = $bDetail->bookingDates->firstWhere('payment_status', '!=', 'Paid'); @endphp
+                                @if ($firstUnpaidDate)
+                                    <button wire:click="openPaymentModal({{ $firstUnpaidDate->id }})" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                                        + Record Payment
+                                    </button>
+                                @endif
+                            @endif
+
+                            <button wire:click="closeDetails" class="py-2.5 px-5 bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-2xs">
+                                Close
+                            </button>
+                        </div>
                     </div>
 
                 </div>
