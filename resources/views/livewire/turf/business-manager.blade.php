@@ -413,20 +413,6 @@ new #[Layout('layouts.app')] class extends Component
         </div>
     @endif
 
-
-        $totalCommissionEarned = $user ? (float) Payment::whereHas('booking.turf.location', function($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })->where('status', 'Success')->sum('commission_amount') : 0.00;
-
-        $totalPayoutsReceived = $user ? (float) TurfPayout::where('user_id', $user->id)->where('status', 'completed')->sum('net_amount') : 0.00;
-
-        $maxDue = (float) ($saas?->max_commission_due ?? 2000.00);
-        $graceDays = (int) ($saas?->commission_due_grace_days ?? 7);
-        $dueDays = ($user && $user->commission_due_since) ? now()->diffInDays($user->commission_due_since) : 0;
-        $isOfflineLocked = $balance <= -$maxDue || ($balance < 0 && $dueDays >= $graceDays);
-    @endphp
-
-
     <!-- WALLET SUMMARY BADGES -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Available / Due Balance Badge -->
