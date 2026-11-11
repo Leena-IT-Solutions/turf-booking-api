@@ -18,6 +18,10 @@ class RoleSeeder extends Seeder
                 'display_name' => 'Saas Admin',
             ],
             [
+                'name' => 'marketing',
+                'display_name' => 'Marketing Executive',
+            ],
+            [
                 'name' => 'turf-admin',
                 'display_name' => 'Turf Admin',
             ],

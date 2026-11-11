@@ -89,6 +89,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function confirmDelete($id)
     {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can delete user accounts.');
+        }
+
         $this->deletingId = $id;
         $this->showDeleteConfirm = true;
     }
@@ -101,6 +105,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function performDelete()
     {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can delete user accounts.');
+        }
+
         if ($this->deletingId) {
             $this->deleteUser($this->deletingId);
         }
@@ -125,7 +133,9 @@ new #[Layout('layouts.app')] class extends Component
     public function openCreateModal()
     {
         $this->resetForm();
-        $this->selectedRoles = ['customer'];
+        $this->selectedRoles = auth()->user()?->hasRole('saas-admin')
+            ? ['customer']
+            : ['customer', 'turf-admin', 'manager'];
         $this->showModal = true;
     }
 
@@ -140,6 +150,11 @@ new #[Layout('layouts.app')] class extends Component
     {
         $this->resetForm();
         $user = User::findOrFail($id);
+
+        if ($user->hasRole('saas-admin') && !auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Marketing executives cannot edit SaaS Admin accounts.');
+        }
+
         $this->editingId = $user->id;
         $this->name = $user->name;
         $this->email = $user->email;
@@ -192,9 +207,20 @@ new #[Layout('layouts.app')] class extends Component
         ];
 
         $validated = $this->validate($rules);
+        $isSaasAdmin = auth()->user()?->hasRole('saas-admin') ?? false;
+
+        // Marketing executives can only assign customer, turf-admin, and manager roles
+        $allowedRoles = $isSaasAdmin
+            ? $this->selectedRoles
+            : array_values(array_intersect($this->selectedRoles, ['customer', 'turf-admin', 'manager']));
 
         if ($this->editingId) {
             $user = User::findOrFail($this->editingId);
+
+            if ($user->hasRole('saas-admin') && !$isSaasAdmin) {
+                abort(403, 'Marketing executives cannot edit SaaS Admin accounts.');
+            }
+
             $hadTurfAdmin = $user->hasRole('turf-admin');
 
             $user->update([
@@ -209,8 +235,9 @@ new #[Layout('layouts.app')] class extends Component
                 ]);
             }
 
-            // Sync roles - force merge 'customer' so it cannot be removed
-            $rolesToSync = array_unique(array_merge($this->selectedRoles, ['customer']));
+            // Sync roles - force merge 'customer' so it cannot be removed, and preserve 'marketing' if non-saas-admin edits a marketing user
+            $preservedRoles = (!$isSaasAdmin && $user->hasRole('marketing')) ? ['customer', 'marketing'] : ['customer'];
+            $rolesToSync = array_unique(array_merge($allowedRoles, $preservedRoles));
             $user->roles()->sync(
                 Role::whereIn('name', $rolesToSync)->pluck('id')->toArray()
             );
@@ -229,7 +256,7 @@ new #[Layout('layouts.app')] class extends Component
             ]);
 
             // Sync roles - force merge 'customer' so it cannot be removed
-            $rolesToSync = array_unique(array_merge($this->selectedRoles, ['customer']));
+            $rolesToSync = array_unique(array_merge($allowedRoles, ['customer']));
             $user->roles()->sync(
                 Role::whereIn('name', $rolesToSync)->pluck('id')->toArray()
             );
@@ -246,6 +273,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function openTrialModal($userId): void
     {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can modify free trial periods.');
+        }
+
         $user = User::findOrFail($userId);
         $this->trialUserId = $user->id;
         $saas = \App\Models\SaasSetting::first();
@@ -264,6 +295,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function extendTrial($userId, ?int $days = null): void
     {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can modify free trial periods.');
+        }
+
         $user = User::findOrFail($userId);
         $saas = \App\Models\SaasSetting::first();
         $daysToAdd = $days ?: (int) ($saas?->free_trial_days ?? 30);
@@ -287,6 +322,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function reduceTrial($userId, ?int $days = null): void
     {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can modify free trial periods.');
+        }
+
         $user = User::findOrFail($userId);
         $daysToSub = $days ?: (int) $this->customTrialDays;
         if ($daysToSub <= 0) {
@@ -314,6 +353,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function endTrialNow($userId): void
     {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can modify free trial periods.');
+        }
+
         $user = User::findOrFail($userId);
         if ($user->trial_started_at === null) {
             $user->trial_started_at = now()->subMinute();
@@ -326,6 +369,10 @@ new #[Layout('layouts.app')] class extends Component
 
     public function deleteUser($id)
     {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can delete user accounts.');
+        }
+
         if ($id === auth()->id()) {
             session()->flash('error', 'You cannot delete your own account.');
             return;
@@ -833,7 +880,7 @@ new #[Layout('layouts.app')] class extends Component
                         <!-- Roles Badges -->
                         <div class="flex flex-wrap items-center gap-1.5">
                             @foreach ($user->roles as $role)
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{ $role->name === 'saas-admin' ? 'bg-indigo-100 text-indigo-700 border border-indigo-200/20' : ( $role->name === 'turf-admin' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200/20' : ( $role->name === 'manager' ? 'bg-amber-100 text-amber-700 border border-amber-200/20' : 'bg-blue-100 text-blue-700 border border-blue-200/20')) }}">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider {{ $role->name === 'saas-admin' ? 'bg-indigo-100 text-indigo-700 border border-indigo-200/20' : ( $role->name === 'marketing' ? 'bg-fuchsia-100 text-fuchsia-700 border border-fuchsia-200/40' : ( $role->name === 'turf-admin' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200/20' : ( $role->name === 'manager' ? 'bg-amber-100 text-amber-700 border border-amber-200/20' : 'bg-blue-100 text-blue-700 border border-blue-200/20'))) }}">
                                     {{ $role->display_name }}
                                 </span>
                             @endforeach
@@ -866,42 +913,48 @@ new #[Layout('layouts.app')] class extends Component
                                     <span class="hidden sm:inline">Setup Turf</span>
                                 </a>
 
-                                <!-- Manage Free Trial Button -->
-                                <button wire:click="openTrialModal({{ $user->id }})" 
-                                        title="{{ $user->onTrial() ? 'Manage Free Trial (Extend / Reduce / End)' : 'Grant / Manage Free Trial' }}" 
-                                        class="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition cursor-pointer border border-amber-200/50 flex items-center justify-center">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                </button>
+                                @if (auth()->user()->hasRole('saas-admin'))
+                                    <!-- Manage Free Trial Button (SaaS Admin Only) -->
+                                    <button wire:click="openTrialModal({{ $user->id }})" 
+                                            title="{{ $user->onTrial() ? 'Manage Free Trial (Extend / Reduce / End)' : 'Grant / Manage Free Trial' }}" 
+                                            class="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-xl transition cursor-pointer border border-amber-200/50 flex items-center justify-center">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                    </button>
+                                @endif
                             @endif
 
                             <!-- Edit Button -->
-                            <button wire:click="editUser({{ $user->id }})" 
-                                    title="Edit User Profile" 
-                                    class="p-2 bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-xl transition cursor-pointer border border-gray-100 flex items-center justify-center">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                </svg>
-                            </button>
+                            @if (auth()->user()->hasRole('saas-admin') || !$user->roles->contains('name', 'saas-admin'))
+                                <button wire:click="editUser({{ $user->id }})" 
+                                        title="Edit User Profile" 
+                                        class="p-2 bg-gray-50 hover:bg-indigo-50 text-gray-500 hover:text-indigo-600 rounded-xl transition cursor-pointer border border-gray-100 flex items-center justify-center">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                    </svg>
+                                </button>
+                            @endif
                             
-                            <!-- Delete Button -->
-                            @if ($user->id !== auth()->id())
-                                <button wire:click="confirmDelete({{ $user->id }})" 
-                                        title="Delete Account" 
-                                        class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            @else
-                                <button disabled 
-                                        title="Cannot delete your active account" 
-                                        class="p-2 bg-gray-50 text-gray-300 rounded-xl cursor-not-allowed border border-gray-100 flex items-center justify-center">
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
+                            <!-- Delete Button (SaaS Admin Only) -->
+                            @if (auth()->user()->hasRole('saas-admin'))
+                                @if ($user->id !== auth()->id())
+                                    <button wire:click="confirmDelete({{ $user->id }})" 
+                                            title="Delete Account" 
+                                            class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                @else
+                                    <button disabled 
+                                            title="Cannot delete your active account" 
+                                            class="p-2 bg-gray-50 text-gray-300 rounded-xl cursor-not-allowed border border-gray-100 flex items-center justify-center">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                @endif
                             @endif
                         </div>
                     </div>
@@ -976,7 +1029,12 @@ new #[Layout('layouts.app')] class extends Component
                             <div>
                                 <x-input-label :value="__('Assign Security Roles')" />
                                 <div class="mt-2.5 grid grid-cols-2 gap-3 bg-gray-50/50 border border-gray-200 p-4 rounded-2xl">
-                                    @foreach ($availableRoles as $role)
+                                    @php
+                                        $assignableRoles = auth()->user()->hasRole('saas-admin')
+                                            ? $availableRoles
+                                            : $availableRoles->whereIn('name', ['customer', 'turf-admin', 'manager']);
+                                    @endphp
+                                    @foreach ($assignableRoles as $role)
                                         <label class="inline-flex items-center select-none {{ $role->name === 'customer' ? 'cursor-not-allowed opacity-70' : 'cursor-pointer' }}">
                                             <input type="checkbox" 
                                                    wire:model.live="selectedRoles" 

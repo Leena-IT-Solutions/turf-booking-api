@@ -136,4 +136,53 @@ class SaasTurfImpersonationTest extends TestCase
             ->assertDontSee('Center Pitch')
             ->assertSee('No Turfs Found');
     }
+
+    public function test_marketing_executive_can_access_onboarding_pages_and_approve_turfs_but_is_blocked_from_sensitive_saas_pages(): void
+    {
+        $marketingExec = User::factory()->create([
+            'name' => 'Field Executive',
+            'email' => 'marketing@turf.com',
+            'mobile' => '9666666666',
+        ]);
+        $marketingExec->assignRole('marketing');
+
+        // Allowed onboarding & master setup routes
+        $this->actingAs($marketingExec)->get(route('saas.turfs'))->assertStatus(200);
+        $this->actingAs($marketingExec)->get(route('saas.turf-verification'))->assertStatus(200);
+        $this->actingAs($marketingExec)->get(route('saas.users'))->assertStatus(200);
+        $this->actingAs($marketingExec)->get(route('saas.facilities'))->assertStatus(200);
+        $this->actingAs($marketingExec)->get(route('saas.equipments'))->assertStatus(200);
+        $this->actingAs($marketingExec)->get(route('saas.sports'))->assertStatus(200);
+
+        // Can approve/verify a turf on Turf Verification
+        $this->turf->update(['status' => 'Pending']);
+        Livewire::actingAs($marketingExec)
+            ->test('saas.turf-verification')
+            ->set('stateCode', '27')
+            ->call('updateStatus', $this->turf->id, 'Approved');
+        $this->assertEquals('Approved', $this->turf->fresh()->status);
+
+        // Can impersonate Turf Owner and leave back to Turfs Directory
+        $this->actingAs($marketingExec)
+            ->get(route('saas.turfs.impersonate', $this->turf->id))
+            ->assertRedirect(route('turf.dashboard'));
+        $this->assertEquals($this->turfOwner->id, auth()->id());
+
+        $this->get(route('saas.impersonation.leave'))
+            ->assertRedirect(route('saas.turfs'));
+        $this->assertEquals($marketingExec->id, auth()->id());
+
+        // Cannot impersonate SaaS Admin
+        $this->actingAs($marketingExec)
+            ->get(route('saas.users.impersonate', $this->saasAdmin->id))
+            ->assertStatus(403);
+
+        // Blocked from sensitive financial & system settings routes
+        $this->actingAs($marketingExec)->get(route('saas.administrator'))->assertStatus(403);
+        $this->actingAs($marketingExec)->get(route('saas.commissions'))->assertStatus(403);
+        $this->actingAs($marketingExec)->get(route('saas.payouts'))->assertStatus(403);
+        $this->actingAs($marketingExec)->get(route('saas.subscriptions'))->assertStatus(403);
+        $this->actingAs($marketingExec)->get(route('saas.reports'))->assertStatus(403);
+        $this->actingAs($marketingExec)->get(route('saas.settings.credentials'))->assertStatus(403);
+    }
 }

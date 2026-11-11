@@ -17,7 +17,7 @@ class ImpersonationController extends Controller
     {
         $admin = $request->user();
 
-        if (!$admin || !$admin->hasRole('saas-admin')) {
+        if (!$admin || (!$admin->hasRole('saas-admin') && !$admin->hasRole('marketing'))) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -28,7 +28,7 @@ class ImpersonationController extends Controller
             abort(404, 'No owner account associated with this venue.');
         }
 
-        // Remember the original SaaS Admin in the session
+        // Remember the original SaaS Admin / Marketing Executive in the session
         session([
             'impersonator_id' => $admin->id,
             'active_turf_id' => $turf->id,
@@ -49,8 +49,13 @@ class ImpersonationController extends Controller
     {
         $admin = $request->user();
 
-        if (!$admin || !$admin->hasRole('saas-admin')) {
+        if (!$admin || (!$admin->hasRole('saas-admin') && !$admin->hasRole('marketing'))) {
             abort(403, 'Unauthorized access.');
+        }
+
+        // Marketing executives cannot impersonate SaaS Admin accounts
+        if ($user->hasRole('saas-admin') && !$admin->hasRole('saas-admin')) {
+            abort(403, 'Marketing executives cannot impersonate SaaS Admin accounts.');
         }
 
         if (!$user->hasRole('turf-admin') && !$user->hasRole('manager')) {
@@ -84,7 +89,7 @@ class ImpersonationController extends Controller
     }
 
     /**
-     * Leave impersonation mode and return as SaaS Admin.
+     * Leave impersonation mode and return as SaaS Admin / Marketing Executive.
      */
     public function leave(Request $request)
     {
@@ -93,11 +98,11 @@ class ImpersonationController extends Controller
         if ($adminId) {
             $admin = User::find($adminId);
 
-            if ($admin && $admin->hasRole('saas-admin')) {
+            if ($admin && ($admin->hasRole('saas-admin') || $admin->hasRole('marketing'))) {
                 // Clear impersonation session variables
                 session()->forget(['impersonator_id', 'active_turf_id', 'active_location_id']);
 
-                // Re-login as the original SaaS Admin
+                // Re-login as the original SaaS Admin or Marketing Executive
                 Auth::login($admin);
 
                 return redirect()->route('saas.turfs');

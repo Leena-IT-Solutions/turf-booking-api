@@ -49,7 +49,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:saas-admin')
         ->name('saas.sliders');
     Volt::route('saas/users', 'saas.user-manager')
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.users');
     Volt::route('saas/slot-categories', 'saas.slot-category-manager')
         ->middleware('role:saas-admin')
@@ -58,13 +58,13 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:saas-admin')
         ->name('saas.slots');
     Volt::route('saas/facilities', 'saas.facilities-manager')
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.facilities');
     Volt::route('saas/equipments', 'saas.equipments-manager')
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.equipments');
     Volt::route('saas/sports', 'saas.sports-manager')
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.sports');
     Volt::route('saas/settings', 'saas.settings.branding')
         ->middleware('role:saas-admin')
@@ -91,7 +91,7 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:saas-admin')
         ->name('saas.support');
     Volt::route('saas/turf-verification', 'saas.turf-verification')
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.turf-verification');
     Volt::route('saas/subscription-packages', 'saas.subscription-package-manager')
         ->middleware('role:saas-admin')
@@ -122,15 +122,15 @@ Route::middleware(['auth'])->group(function () {
         ->name('saas.contact-messages');
 
     Volt::route('saas/turfs', 'saas.turf-directory')
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.turfs');
 
     Route::get('saas/turfs/{turf}/impersonate', [\App\Http\Controllers\Saas\ImpersonationController::class, 'impersonate'])
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.turfs.impersonate');
 
     Route::get('saas/users/{user}/impersonate', [\App\Http\Controllers\Saas\ImpersonationController::class, 'impersonateUser'])
-        ->middleware('role:saas-admin')
+        ->middleware('role:saas-admin|marketing')
         ->name('saas.users.impersonate');
 
     Route::get('saas/impersonation/leave', [\App\Http\Controllers\Saas\ImpersonationController::class, 'leave'])
