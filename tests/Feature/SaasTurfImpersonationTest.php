@@ -81,6 +81,22 @@ class SaasTurfImpersonationTest extends TestCase
         $this->assertEquals($this->turf->location_id, session('active_location_id'));
     }
 
+    public function test_saas_admin_can_impersonate_new_user_without_location_and_is_redirected_to_locations(): void
+    {
+        $newOwner = User::factory()->create([
+            'name' => 'New Turf Owner',
+            'email' => 'newowner@turf.com',
+            'mobile' => '9777777777',
+        ]);
+        $newOwner->assignRole('turf-admin');
+
+        $response = $this->actingAs($this->saasAdmin)->get(route('saas.users.impersonate', $newOwner->id));
+
+        $response->assertRedirect(route('turf.locations'));
+        $this->assertEquals($newOwner->id, auth()->id());
+        $this->assertEquals($this->saasAdmin->id, session('impersonator_id'));
+    }
+
     public function test_saas_admin_can_leave_impersonation_and_restore_original_account(): void
     {
         // First, impersonate

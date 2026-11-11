@@ -855,6 +855,17 @@ new #[Layout('layouts.app')] class extends Component
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-1.5 shrink-0 pl-2 md:border-l md:border-gray-100">
                             @if ($user->roles->contains('name', 'turf-admin'))
+                                <!-- Access as Owner / Setup Location & Turf Button -->
+                                <a href="{{ route('saas.users.impersonate', $user->id) }}"
+                                   target="_blank"
+                                   title="Access as Owner (Add / Manage Location & Turf)"
+                                   class="px-2.5 py-2 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white rounded-xl transition cursor-pointer border border-emerald-200/70 flex items-center gap-1 text-[10px] font-black uppercase tracking-wider">
+                                    <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                    <span class="hidden sm:inline">Setup Turf</span>
+                                </a>
+
                                 <!-- Manage Free Trial Button -->
                                 <button wire:click="openTrialModal({{ $user->id }})" 
                                         title="{{ $user->onTrial() ? 'Manage Free Trial (Extend / Reduce / End)' : 'Grant / Manage Free Trial' }}" 

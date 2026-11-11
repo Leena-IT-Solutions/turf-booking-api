@@ -129,6 +129,10 @@ Route::middleware(['auth'])->group(function () {
         ->middleware('role:saas-admin')
         ->name('saas.turfs.impersonate');
 
+    Route::get('saas/users/{user}/impersonate', [\App\Http\Controllers\Saas\ImpersonationController::class, 'impersonateUser'])
+        ->middleware('role:saas-admin')
+        ->name('saas.users.impersonate');
+
     Route::get('saas/impersonation/leave', [\App\Http\Controllers\Saas\ImpersonationController::class, 'leave'])
         ->name('saas.impersonation.leave');
 

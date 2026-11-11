@@ -43,6 +43,47 @@ class ImpersonationController extends Controller
     }
 
     /**
+     * Impersonate a specific user (Turf Owner) directly — even if they have 0 locations/turfs yet.
+     */
+    public function impersonateUser(Request $request, User $user)
+    {
+        $admin = $request->user();
+
+        if (!$admin || !$admin->hasRole('saas-admin')) {
+            abort(403, 'Unauthorized access.');
+        }
+
+        if (!$user->hasRole('turf-admin') && !$user->hasRole('manager')) {
+            $user->assignRole('turf-admin');
+            $user->startTurfOwnerTrial();
+        }
+
+        $firstLocation = \App\Models\Location::where('user_id', $user->id)->with('turfs')->first();
+        $firstTurf = $firstLocation?->turfs->first();
+
+        session()->forget(['active_turf_id', 'active_location_id']);
+        session([
+            'impersonator_id' => $admin->id,
+            'active_location_id' => $firstLocation?->id,
+            'active_turf_id' => $firstTurf?->id,
+        ]);
+
+        Auth::login($user);
+
+        if (!$firstLocation) {
+            session()->flash('status', "Switched to {$user->name}'s workspace. Start by adding their first Location below.");
+            return redirect()->route('turf.locations');
+        }
+
+        if (!$firstTurf) {
+            session()->flash('status', "Switched to {$user->name}'s workspace. Now add their first Turf under {$firstLocation->name}.");
+            return redirect()->route('turf.turfs');
+        }
+
+        return redirect()->route('turf.dashboard');
+    }
+
+    /**
      * Leave impersonation mode and return as SaaS Admin.
      */
     public function leave(Request $request)

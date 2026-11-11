@@ -16,6 +16,19 @@ new #[Layout('layouts.app')] class extends Component
     public string $statusFilter = 'All'; // 'All', 'Approved', 'Pending', 'Suspended'
     public string $sportFilter = 'All';
     public int $perPage = 12;
+    public bool $showOwnerOnboardModal = false;
+    public string $ownerSearch = '';
+
+    public function openOwnerOnboardModal(): void
+    {
+        $this->ownerSearch = '';
+        $this->showOwnerOnboardModal = true;
+    }
+
+    public function closeOwnerOnboardModal(): void
+    {
+        $this->showOwnerOnboardModal = false;
+    }
 
     public function updatingSearch(): void
     {
@@ -85,6 +98,20 @@ new #[Layout('layouts.app')] class extends Component
 
         $availableSports = Sport::orderBy('name')->pluck('name')->unique()->values();
 
+        $ownersQuery = User::whereHas('roles', fn ($q) => $q->where('name', 'turf-admin'))
+            ->withCount('locations');
+
+        if (trim($this->ownerSearch) !== '') {
+            $os = trim($this->ownerSearch);
+            $ownersQuery->where(function ($q) use ($os) {
+                $q->where('name', 'LIKE', "%{$os}%")
+                  ->orWhere('email', 'LIKE', "%{$os}%")
+                  ->orWhere('mobile', 'LIKE', "%{$os}%");
+            });
+        }
+
+        $turfOwners = $ownersQuery->orderBy('locations_count', 'asc')->orderBy('id', 'desc')->limit(25)->get();
+
         return [
             'turfs' => $turfs,
             'totalTurfsCount' => $totalTurfsCount,
@@ -93,6 +120,7 @@ new #[Layout('layouts.app')] class extends Component
             'totalLocationsCount' => $totalLocationsCount,
             'totalOwnersCount' => $totalOwnersCount,
             'availableSports' => $availableSports,
+            'turfOwners' => $turfOwners,
         ];
     }
 }; ?>
@@ -114,7 +142,17 @@ new #[Layout('layouts.app')] class extends Component
                     View all venues and turfs across India. Click <span class="text-emerald-400 font-bold">Access as Owner</span> to open any turf in a new tab logged in as that venue's owner with full workspace access.
                 </p>
             </div>
-            <div class="shrink-0 flex items-center gap-2">
+            <div class="shrink-0 flex flex-wrap items-center gap-2">
+                <button
+                    type="button"
+                    wire:click="openOwnerOnboardModal"
+                    class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span>Setup Location / Turf for Owner</span>
+                </button>
                 <a href="{{ route('saas.turf-verification') }}" wire:navigate class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-white/15">
                     <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -342,6 +380,86 @@ new #[Layout('layouts.app')] class extends Component
         <!-- Pagination -->
         <div class="pt-4">
             {{ $turfs->links() }}
+        </div>
+    @endif
+
+    <!-- Setup Location / Turf for Owner Modal -->
+    @if ($showOwnerOnboardModal)
+        <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="closeOwnerOnboardModal"></div>
+
+            <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-2xl z-50 border border-gray-100">
+                <div class="p-6 sm:p-8 space-y-5">
+                    <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                        <div>
+                            <h3 class="text-base font-black text-gray-900">Setup Location / Turf for Turf Owner</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Select any Turf Owner account below (including newly registered owners with 0 turfs) to open their workspace and configure their Location, Turf, Photos, Slots & Pricing.</p>
+                        </div>
+                        <button type="button" wire:click="closeOwnerOnboardModal" class="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100 hover:text-gray-600 cursor-pointer">
+                            <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div>
+                        <input
+                            type="text"
+                            wire:model.live.debounce.250ms="ownerSearch"
+                            placeholder="Search Turf Owner by name, mobile, or email..."
+                            class="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs sm:text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                    </div>
+
+                    <div class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                        @forelse ($turfOwners as $ownerItem)
+                            <div class="p-3.5 rounded-2xl border {{ $ownerItem->locations_count === 0 ? 'bg-amber-50/40 border-amber-200' : 'bg-gray-50/60 border-gray-200/80' }} flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold text-xs sm:text-sm text-gray-900 truncate">{{ $ownerItem->name }}</span>
+                                        @if ($ownerItem->locations_count === 0)
+                                            <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">
+                                                No Location Yet · Needs Setup
+                                            </span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                {{ $ownerItem->locations_count }} {{ \Illuminate\Support\Str::plural('Location', $ownerItem->locations_count) }}
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 font-medium mt-0.5">
+                                        {{ $ownerItem->mobile }} &bull; {{ $ownerItem->email }}
+                                    </div>
+                                </div>
+
+                                <a
+                                    href="{{ route('saas.users.impersonate', $ownerItem->id) }}"
+                                    target="_blank"
+                                    class="shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer"
+                                >
+                                    <span>{{ $ownerItem->locations_count === 0 ? 'Add Location & Turf' : 'Manage Workspace' }}</span>
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                    </svg>
+                                </a>
+                            </div>
+                        @empty
+                            <div class="py-8 text-center text-xs text-gray-500">
+                                No Turf Owner accounts found matching your search.
+                            </div>
+                        @endforelse
+                    </div>
+
+                    <div class="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <a href="{{ route('saas.users') }}" wire:navigate class="text-xs font-bold text-indigo-600 hover:text-indigo-700">
+                            + Create New Turf Owner in User Accounts &rarr;
+                        </a>
+                        <button type="button" wire:click="closeOwnerOnboardModal" class="px-4 py-2 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition cursor-pointer">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     @endif
 </div>
