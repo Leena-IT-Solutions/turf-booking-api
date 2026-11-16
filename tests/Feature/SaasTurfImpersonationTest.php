@@ -184,5 +184,122 @@ class SaasTurfImpersonationTest extends TestCase
         $this->actingAs($marketingExec)->get(route('saas.subscriptions'))->assertStatus(403);
         $this->actingAs($marketingExec)->get(route('saas.reports'))->assertStatus(403);
         $this->actingAs($marketingExec)->get(route('saas.settings.credentials'))->assertStatus(403);
+
+        // Marketing executive cannot delete a turf on Turfs Directory
+        Livewire::actingAs($marketingExec)
+            ->test('saas.turf-directory')
+            ->call('confirmDeleteTurf', $this->turf->id)
+            ->assertForbidden();
+    }
+
+    public function test_saas_admin_can_delete_turf_bookings_wallet_entries_invoices_and_empty_location_on_turfs_directory(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('turf_photos/pitch.jpg', 'fake-image');
+
+        \App\Models\TurfPhoto::create([
+            'turf_id' => $this->turf->id,
+            'photo' => 'turf_photos/pitch.jpg',
+            'is_active' => true,
+        ]);
+
+        // Create a booking, booking date, payment, wallet transaction, and commission invoice for this turf
+        $booking = \App\Models\Booking::create([
+            'booking_number' => 'TB-DEL-001',
+            'user_id' => $this->turfOwner->id,
+            'turf_id' => $this->turf->id,
+            'date_of_booking' => now()->toDateString(),
+            'actual_amount' => 1000,
+            'total_amount' => 1000,
+            'payable_now' => 1000,
+            'balance_amount' => 0,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        $bDate = \App\Models\BookingDate::create([
+            'booking_id' => $booking->id,
+            'booking_date' => now()->toDateString(),
+            'actual_amount' => 1000,
+            'amount' => 1000,
+            'paid_amount' => 1000,
+            'balance_amount' => 0,
+            'status' => 'Confirmed',
+            'payment_status' => 'Paid',
+        ]);
+
+        $payment = \App\Models\Payment::create([
+            'booking_id' => $booking->id,
+            'booking_date_id' => $bDate->id,
+            'amount' => 1000,
+            'payment_method' => 'Online',
+            'status' => 'Success',
+        ]);
+
+        // First, an unrelated wallet entry of +500
+        \App\Models\CommissionWalletTransaction::create([
+            'user_id' => $this->turfOwner->id,
+            'type' => 'payment_credit',
+            'amount' => 500.00,
+            'balance_after' => 500.00,
+            'description' => 'Other turf booking',
+        ]);
+
+        // Second, a wallet entry tied to this turf's payment (+900)
+        $turfWalletTx = \App\Models\CommissionWalletTransaction::create([
+            'user_id' => $this->turfOwner->id,
+            'type' => 'payment_credit',
+            'amount' => 900.00,
+            'balance_after' => 1400.00,
+            'reference_type' => \App\Models\Payment::class,
+            'reference_id' => $payment->id,
+            'meta' => ['booking_id' => $booking->id],
+        ]);
+        $this->turfOwner->update(['commission_wallet_balance' => 1400.00]);
+
+        $invoice = \App\Models\CommissionInvoice::create([
+            'invoice_number' => 'INV-DEL-001',
+            'turf_id' => $this->turf->id,
+            'owner_user_id' => $this->turfOwner->id,
+            'period_start' => '2026-11-01',
+            'period_end' => '2026-11-30',
+            'is_gst_invoice' => false,
+            'is_inter_state' => false,
+            'taxable_amount' => 100,
+            'cgst_amount' => 0,
+            'sgst_amount' => 0,
+            'igst_amount' => 0,
+            'total_amount' => 100,
+            'line_count' => 1,
+            'line_items' => [],
+            'supplier_snapshot' => [],
+            'recipient_snapshot' => [],
+            'generated_at' => now(),
+        ]);
+
+        $locationId = $this->turf->location_id;
+
+        Livewire::actingAs($this->saasAdmin)
+            ->test('saas.turf-directory')
+            ->call('confirmDeleteTurf', $this->turf->id)
+            ->assertSet('showDeleteTurfModal', true)
+            ->set('deleteWalletTransactions', true)
+            ->set('deleteCommissionInvoices', true)
+            ->set('deleteEmptyLocation', true)
+            ->call('performDeleteTurf')
+            ->assertSet('showDeleteTurfModal', false);
+
+        // Assert turf, booking, payment, photo file, wallet entry, invoice, and empty parent location were deleted
+        $this->assertDatabaseMissing('turfs', ['id' => $this->turf->id]);
+        $this->assertDatabaseMissing('bookings', ['id' => $booking->id]);
+        $this->assertDatabaseMissing('booking_dates', ['id' => $bDate->id]);
+        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+        $this->assertDatabaseMissing('commission_wallet_transactions', ['id' => $turfWalletTx->id]);
+        $this->assertDatabaseMissing('commission_invoices', ['id' => $invoice->id]);
+        $this->assertDatabaseMissing('locations', ['id' => $locationId]);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertMissing('turf_photos/pitch.jpg');
+
+        // Assert owner's wallet balance was recalculated to the remaining +500 entry
+        $this->assertEquals(500.00, (float) $this->turfOwner->fresh()->commission_wallet_balance);
     }
 }

@@ -50,3 +50,4 @@ class TurfSubmittedForVerification extends Notification
             ->line('Thank you for growing the TurfBooking network!');
     }
 }
+

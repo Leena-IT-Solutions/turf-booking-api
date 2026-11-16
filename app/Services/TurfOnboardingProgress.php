@@ -298,3 +298,4 @@ class TurfOnboardingProgress
         ];
     }
 }
+

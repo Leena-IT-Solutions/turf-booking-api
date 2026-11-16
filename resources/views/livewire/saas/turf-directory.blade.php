@@ -1,9 +1,16 @@
 <?php
 
+use App\Models\Booking;
+use App\Models\BookingCancellation;
+use App\Models\CommissionInvoice;
+use App\Models\CommissionWalletTransaction;
 use App\Models\Location;
+use App\Models\Payment;
 use App\Models\Sport;
 use App\Models\Turf;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 use Livewire\WithPagination;
@@ -18,6 +25,146 @@ new #[Layout('layouts.app')] class extends Component
     public int $perPage = 12;
     public bool $showOwnerOnboardModal = false;
     public string $ownerSearch = '';
+
+    // Delete Turf Confirmation Modal State (SaaS Admin Only)
+    public ?int $deletingTurfId = null;
+    public bool $showDeleteTurfModal = false;
+    public bool $deleteWalletTransactions = true;
+    public bool $deleteCommissionInvoices = true;
+    public bool $deleteEmptyLocation = true;
+
+    public function confirmDeleteTurf(int $turfId): void
+    {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can delete turfs.');
+        }
+
+        $turf = Turf::findOrFail($turfId);
+        $this->deletingTurfId = $turf->id;
+        $this->deleteWalletTransactions = true;
+        $this->deleteCommissionInvoices = true;
+        $this->deleteEmptyLocation = true;
+        $this->showDeleteTurfModal = true;
+    }
+
+    public function cancelDeleteTurf(): void
+    {
+        $this->deletingTurfId = null;
+        $this->showDeleteTurfModal = false;
+    }
+
+    public function performDeleteTurf(): void
+    {
+        if (!auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can delete turfs.');
+        }
+
+        if (!$this->deletingTurfId) {
+            return;
+        }
+
+        $turf = Turf::with(['location.user', 'photos'])->findOrFail($this->deletingTurfId);
+        $turfName = $turf->name;
+        $location = $turf->location;
+        $owner = $location?->user;
+
+        // 1. Delete physical photo files from public storage disk
+        foreach ($turf->photos as $photo) {
+            if ($photo->photo && Storage::disk('public')->exists($photo->photo)) {
+                Storage::disk('public')->delete($photo->photo);
+            }
+        }
+
+        DB::transaction(function () use ($turf, $location, $owner) {
+            $bookingIds = Booking::where('turf_id', $turf->id)->pluck('id')->toArray();
+            $paymentIds = !empty($bookingIds)
+                ? Payment::whereIn('booking_id', $bookingIds)->pluck('id')->toArray()
+                : [];
+            $cancellationIds = !empty($bookingIds)
+                ? BookingCancellation::whereIn('booking_id', $bookingIds)->pluck('id')->toArray()
+                : [];
+
+            // Option A: Delete Wallet Passbook Transactions for this turf's bookings & recalculate owner balance
+            if ($this->deleteWalletTransactions && $owner && (!empty($bookingIds) || !empty($paymentIds) || !empty($cancellationIds))) {
+                $txQuery = CommissionWalletTransaction::where('user_id', $owner->id)
+                    ->where(function ($q) use ($bookingIds, $paymentIds, $cancellationIds) {
+                        if (!empty($paymentIds)) {
+                            $q->orWhere(function ($sq) use ($paymentIds) {
+                                $sq->where('reference_type', Payment::class)
+                                   ->whereIn('reference_id', $paymentIds);
+                            });
+                        }
+                        if (!empty($bookingIds)) {
+                            $q->orWhere(function ($sq) use ($bookingIds) {
+                                $sq->where('reference_type', Booking::class)
+                                   ->whereIn('reference_id', $bookingIds);
+                            });
+                        }
+                        if (!empty($cancellationIds)) {
+                            $q->orWhere(function ($sq) use ($cancellationIds) {
+                                $sq->where('reference_type', BookingCancellation::class)
+                                   ->whereIn('reference_id', $cancellationIds);
+                            });
+                        }
+                    });
+
+                $txIdsToDelete = $txQuery->pluck('id')->toArray();
+
+                // Also check JSON meta->booking_id for any wallet entries linked via meta
+                if (!empty($bookingIds)) {
+                    $allOwnerTxs = CommissionWalletTransaction::where('user_id', $owner->id)->get(['id', 'meta']);
+                    foreach ($allOwnerTxs as $tx) {
+                        $metaBookingId = $tx->meta['booking_id'] ?? null;
+                        if ($metaBookingId && in_array((int) $metaBookingId, array_map('intval', $bookingIds), true)) {
+                            $txIdsToDelete[] = $tx->id;
+                        }
+                    }
+                }
+
+                $txIdsToDelete = array_values(array_unique($txIdsToDelete));
+                if (!empty($txIdsToDelete)) {
+                    CommissionWalletTransaction::whereIn('id', $txIdsToDelete)->delete();
+                }
+
+                // Recalculate rolling balance_after and owner's commission_wallet_balance
+                $remainingTxs = CommissionWalletTransaction::where('user_id', $owner->id)
+                    ->orderBy('id', 'asc')
+                    ->get();
+
+                $runningBalance = 0.0;
+                foreach ($remainingTxs as $rTx) {
+                    $runningBalance = round($runningBalance + (float) $rTx->amount, 2);
+                    if ((float) $rTx->balance_after !== $runningBalance) {
+                        $rTx->update(['balance_after' => $runningBalance]);
+                    }
+                }
+
+                $owner->update([
+                    'commission_wallet_balance' => $runningBalance,
+                    'commission_due_since' => $runningBalance < 0 ? ($owner->commission_due_since ?: now()) : null,
+                ]);
+            }
+
+            // Option B: Delete Monthly Commission Invoices for this turf
+            if ($this->deleteCommissionInvoices) {
+                CommissionInvoice::where('turf_id', $turf->id)->delete();
+            }
+
+            // Delete all bookings of this turf (cascades booking_dates, booking_slots, payments, cancellations, reschedules, coupon_usages)
+            Booking::where('turf_id', $turf->id)->delete();
+
+            // Delete the turf itself (cascades turf_photos, slot_turf, slot_locks, facility_turf, equipment_turf, sport_turf, turf_settings, coupons, reviews, staff_turf, turf_subscriptions)
+            $turf->delete();
+
+            // Option C: Delete parent Location if it has no other turfs left
+            if ($this->deleteEmptyLocation && $location && $location->turfs()->count() === 0) {
+                $location->delete();
+            }
+        });
+
+        $this->cancelDeleteTurf();
+        session()->flash('status', "Turf '{$turfName}' and all selected associated records have been permanently deleted.");
+    }
 
     public function openOwnerOnboardModal(): void
     {
@@ -112,6 +259,51 @@ new #[Layout('layouts.app')] class extends Component
 
         $turfOwners = $ownersQuery->orderBy('locations_count', 'asc')->orderBy('id', 'desc')->limit(25)->get();
 
+        $deletingTurf = null;
+        $deletingStats = [
+            'bookings_count' => 0,
+            'photos_count' => 0,
+            'wallet_tx_count' => 0,
+            'invoices_count' => 0,
+            'other_turfs_in_location' => 0,
+        ];
+
+        if ($this->deletingTurfId) {
+            $deletingTurf = Turf::with(['location.user', 'photos'])->find($this->deletingTurfId);
+            if ($deletingTurf) {
+                $bIds = Booking::where('turf_id', $deletingTurf->id)->pluck('id')->toArray();
+                $pIds = !empty($bIds) ? Payment::whereIn('booking_id', $bIds)->pluck('id')->toArray() : [];
+                $cIds = !empty($bIds) ? BookingCancellation::whereIn('booking_id', $bIds)->pluck('id')->toArray() : [];
+                $ownerUser = $deletingTurf->location?->user;
+
+                $walletTxCount = 0;
+                if ($ownerUser && (!empty($bIds) || !empty($pIds) || !empty($cIds))) {
+                    $walletTxCount = CommissionWalletTransaction::where('user_id', $ownerUser->id)
+                        ->where(function ($q) use ($bIds, $pIds, $cIds) {
+                            if (!empty($pIds)) {
+                                $q->orWhere(fn ($sq) => $sq->where('reference_type', Payment::class)->whereIn('reference_id', $pIds));
+                            }
+                            if (!empty($bIds)) {
+                                $q->orWhere(fn ($sq) => $sq->where('reference_type', Booking::class)->whereIn('reference_id', $bIds));
+                            }
+                            if (!empty($cIds)) {
+                                $q->orWhere(fn ($sq) => $sq->where('reference_type', BookingCancellation::class)->whereIn('reference_id', $cIds));
+                            }
+                        })->count();
+                }
+
+                $deletingStats = [
+                    'bookings_count' => count($bIds),
+                    'photos_count' => $deletingTurf->photos->count(),
+                    'wallet_tx_count' => $walletTxCount,
+                    'invoices_count' => CommissionInvoice::where('turf_id', $deletingTurf->id)->count(),
+                    'other_turfs_in_location' => $deletingTurf->location
+                        ? $deletingTurf->location->turfs()->where('id', '!=', $deletingTurf->id)->count()
+                        : 0,
+                ];
+            }
+        }
+
         return [
             'turfs' => $turfs,
             'totalTurfsCount' => $totalTurfsCount,
@@ -121,6 +313,8 @@ new #[Layout('layouts.app')] class extends Component
             'totalOwnersCount' => $totalOwnersCount,
             'availableSports' => $availableSports,
             'turfOwners' => $turfOwners,
+            'deletingTurf' => $deletingTurf,
+            'deletingStats' => $deletingStats,
         ];
     }
 }; ?>
@@ -184,6 +378,13 @@ new #[Layout('layouts.app')] class extends Component
     </div>
 
     <!-- Filter & Search Controls -->
+    @if (session()->has('status'))
+        <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-5 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-2.5 shadow-2xs">
+            <span>✓</span>
+            <span>{{ session('status') }}</span>
+        </div>
+    @endif
+
     <div class="bg-white rounded-2xl border border-gray-200/90 p-4 sm:p-5 shadow-xs space-y-4">
         <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <!-- Search input -->
@@ -255,7 +456,7 @@ new #[Layout('layouts.app')] class extends Component
                 @php
                     $owner = $turf->location?->user;
                     $ownerInitials = $owner ? strtoupper(substr($owner->name, 0, 1) . (str_contains($owner->name, ' ') ? substr(explode(' ', $owner->name)[1], 0, 1) : '')) : 'NA';
-                    $firstPhoto = $turf->photos->first()?->photo_path;
+                    $firstPhoto = $turf->photos->first()?->photo ?? $turf->photos->first()?->photo_path;
                     $statusColor = match($turf->status) {
                         'Approved' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                         'Pending' => 'bg-amber-50 text-amber-700 border-amber-200',
@@ -350,28 +551,43 @@ new #[Layout('layouts.app')] class extends Component
                     </div>
 
                     <!-- Card Footer: Action Button -->
-                    <div class="px-5 pb-5 pt-2 border-t border-gray-100 flex items-center justify-between gap-3">
+                    <div class="px-5 pb-5 pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
                         <span class="text-[11px] text-gray-400 font-medium">
                             Slots: <strong class="text-gray-700">{{ $turf->is_slots_verified ? 'Configured' : 'Pending' }}</strong>
                         </span>
 
-                        @if ($owner)
-                            <a 
-                                href="{{ route('saas.turfs.impersonate', $turf->id) }}" 
-                                target="_blank" 
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-md transition cursor-pointer"
-                                title="Open this turf in a new tab logged in as {{ $owner->name }}"
-                            >
-                                <span>Access as Owner</span>
-                                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                                </svg>
-                            </a>
-                        @else
-                            <button disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 text-xs font-bold rounded-xl cursor-not-allowed">
-                                Owner Missing
-                            </button>
-                        @endif
+                        <div class="flex items-center gap-2">
+                            @if ($owner)
+                                <a 
+                                    href="{{ route('saas.turfs.impersonate', $turf->id) }}" 
+                                    target="_blank" 
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-black rounded-xl shadow-sm hover:shadow-md transition cursor-pointer"
+                                    title="Open this turf in a new tab logged in as {{ $owner->name }}"
+                                >
+                                    <span>Access as Owner</span>
+                                    <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                    </svg>
+                                </a>
+                            @else
+                                <button disabled class="px-3 py-1.5 bg-gray-100 text-gray-400 text-xs font-bold rounded-xl cursor-not-allowed">
+                                    Owner Missing
+                                </button>
+                            @endif
+
+                            @if (auth()->user()->hasRole('saas-admin'))
+                                <button
+                                    type="button"
+                                    wire:click="confirmDeleteTurf({{ $turf->id }})"
+                                    title="Delete Turf & Bookings"
+                                    class="p-2 rounded-xl bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 transition cursor-pointer"
+                                >
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endforeach
@@ -456,6 +672,105 @@ new #[Layout('layouts.app')] class extends Component
                         </a>
                         <button type="button" wire:click="closeOwnerOnboardModal" class="px-4 py-2 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition cursor-pointer">
                             Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <!-- Delete Turf & Bookings Confirmation Modal (SaaS Admin Only) -->
+    @if ($showDeleteTurfModal && $deletingTurf)
+        <div class="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-gray-950/60 backdrop-blur-sm transition-opacity" wire:click="cancelDeleteTurf"></div>
+
+            <div class="bg-white rounded-3xl overflow-hidden shadow-xl transform transition-all w-full max-w-xl z-50 border border-gray-100">
+                <div class="p-6 sm:p-8 space-y-5">
+                    <div class="flex items-start justify-between gap-4 pb-4 border-b border-gray-100">
+                        <div class="flex items-center gap-3.5">
+                            <div class="h-12 w-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100 shrink-0">
+                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-black text-gray-900">Delete Turf & All Bookings</h3>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <strong>{{ $deletingTurf->name }}</strong>
+                                    @if ($deletingTurf->location)
+                                        &bull; {{ $deletingTurf->location->name }}
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" wire:click="cancelDeleteTurf" class="p-1.5 rounded-xl text-gray-400 hover:bg-gray-100 cursor-pointer">
+                            <svg class="h-5 w-5" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Impact Summary Counters -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        <div class="p-3 rounded-2xl bg-rose-50/70 border border-rose-100 text-center">
+                            <span class="block text-lg font-black text-rose-700 font-mono">{{ $deletingStats['bookings_count'] }}</span>
+                            <span class="block text-[10px] font-bold uppercase text-rose-600">Bookings</span>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-gray-50 border border-gray-200/70 text-center">
+                            <span class="block text-lg font-black text-gray-800 font-mono">{{ $deletingStats['photos_count'] }}</span>
+                            <span class="block text-[10px] font-bold uppercase text-gray-500">Photos</span>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-amber-50/70 border border-amber-100 text-center">
+                            <span class="block text-lg font-black text-amber-800 font-mono">{{ $deletingStats['wallet_tx_count'] }}</span>
+                            <span class="block text-[10px] font-bold uppercase text-amber-700">Wallet Entries</span>
+                        </div>
+                        <div class="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-100 text-center">
+                            <span class="block text-lg font-black text-indigo-800 font-mono">{{ $deletingStats['invoices_count'] }}</span>
+                            <span class="block text-[10px] font-bold uppercase text-indigo-700">Invoices</span>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-gray-600 leading-relaxed">
+                        Deleting this turf will permanently remove all <strong>{{ $deletingStats['bookings_count'] }} booking(s)</strong> (including booking dates, slots, payments, cancellations &amp; reschedules), <strong>{{ $deletingStats['photos_count'] }} photo file(s)</strong> from storage, slot pricing, locks, coupons, reviews, and taxation settings.
+                    </p>
+
+                    <!-- Checkboxes A, B & C -->
+                    <div class="space-y-2.5 bg-gray-50 p-4 rounded-2xl border border-gray-200/80">
+                        <div class="text-[10px] font-black uppercase tracking-wider text-gray-500 mb-1">Additional Cleanup Options</div>
+
+                        <label class="flex items-start gap-3 cursor-pointer select-none">
+                            <input type="checkbox" wire:model="deleteWalletTransactions" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
+                            <div class="text-xs">
+                                <span class="font-bold text-gray-900 block">Delete Owner's Wallet Passbook entries ({{ $deletingStats['wallet_tx_count'] }}) &amp; recalculate wallet balance</span>
+                                <span class="text-[11px] text-gray-500">Removes credits/debits from this turf's bookings so the owner's passbook has no ghost entries.</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 cursor-pointer select-none pt-2 border-t border-gray-200/60">
+                            <input type="checkbox" wire:model="deleteCommissionInvoices" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
+                            <div class="text-xs">
+                                <span class="font-bold text-gray-900 block">Delete Monthly Commission Invoices ({{ $deletingStats['invoices_count'] }}) for this turf</span>
+                                <span class="text-[11px] text-gray-500">Removes generated commission invoices tied to this turf instead of leaving them unlinked.</span>
+                            </div>
+                        </label>
+
+                        @if ($deletingTurf->location && $deletingStats['other_turfs_in_location'] === 0)
+                            <label class="flex items-start gap-3 cursor-pointer select-none pt-2 border-t border-gray-200/60">
+                                <input type="checkbox" wire:model="deleteEmptyLocation" class="mt-0.5 h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500" />
+                                <div class="text-xs">
+                                    <span class="font-bold text-gray-900 block">Also delete parent Location ({{ $deletingTurf->location->name }})</span>
+                                    <span class="text-[11px] text-gray-500">This is the only turf inside {{ $deletingTurf->location->name }}.</span>
+                                </div>
+                            </label>
+                        @endif
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                        <button type="button" wire:click="cancelDeleteTurf" class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition cursor-pointer">
+                            Cancel
+                        </button>
+                        <button type="button" wire:click="performDeleteTurf" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition cursor-pointer">
+                            Yes, Permanently Delete Turf
                         </button>
                     </div>
                 </div>
