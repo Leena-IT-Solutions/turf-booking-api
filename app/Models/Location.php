@@ -37,6 +37,23 @@ class Location extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Location $location) {
+            $turfs = $location->turfs()->with('photos')->get();
+            foreach ($turfs as $turf) {
+                foreach ($turf->photos as $photo) {
+                    if (!empty($photo->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($photo->photo)) {
+                        \Illuminate\Support\Facades\Storage::disk('public')->delete($photo->photo);
+                    }
+                }
+            }
+            if (session('active_location_id') && (int) session('active_location_id') === (int) $location->id) {
+                session()->forget(['active_location_id', 'active_turf_id']);
+            }
+        });
+    }
+
     /**
      * Get the user that owns the location.
      */

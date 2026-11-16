@@ -302,4 +302,41 @@ class SaasTurfImpersonationTest extends TestCase
         // Assert owner's wallet balance was recalculated to the remaining +500 entry
         $this->assertEquals(500.00, (float) $this->turfOwner->fresh()->commission_wallet_balance);
     }
+
+    public function test_deleting_turf_or_location_always_deletes_physical_photo_files_from_server_storage(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('turf_photos/photo_a.jpg', 'img-a');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('turf_photos/photo_b.jpg', 'img-b');
+
+        \App\Models\TurfPhoto::create([
+            'turf_id' => $this->turf->id,
+            'photo' => 'turf_photos/photo_a.jpg',
+            'is_active' => true,
+        ]);
+
+        // Deleting turf via Turf::delete() removes photo_a.jpg from disk
+        $this->turf->delete();
+        \Illuminate\Support\Facades\Storage::disk('public')->assertMissing('turf_photos/photo_a.jpg');
+
+        // Creating a second turf under a location and deleting the Location removes photo_b.jpg from disk
+        $loc2 = Location::create([
+            'name' => 'Second Arena',
+            'user_id' => $this->turfOwner->id,
+            'address' => 'Dadar, Mumbai',
+        ]);
+        $turf2 = Turf::create([
+            'location_id' => $loc2->id,
+            'name' => 'Court B',
+            'type' => 'Synthetic',
+        ]);
+        \App\Models\TurfPhoto::create([
+            'turf_id' => $turf2->id,
+            'photo' => 'turf_photos/photo_b.jpg',
+            'is_active' => true,
+        ]);
+
+        $loc2->delete();
+        \Illuminate\Support\Facades\Storage::disk('public')->assertMissing('turf_photos/photo_b.jpg');
+    }
 }

@@ -71,6 +71,20 @@ class Turf extends Model
         'submitted_at' => 'datetime',
     ];
 
+    protected static function booted(): void
+    {
+        static::deleting(function (Turf $turf) {
+            foreach ($turf->photos()->get() as $photo) {
+                if (!empty($photo->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($photo->photo)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($photo->photo);
+                }
+            }
+            if (session('active_turf_id') && (int) session('active_turf_id') === (int) $turf->id) {
+                session()->forget('active_turf_id');
+            }
+        });
+    }
+
     /**
      * Get the location that owns the turf.
      */
