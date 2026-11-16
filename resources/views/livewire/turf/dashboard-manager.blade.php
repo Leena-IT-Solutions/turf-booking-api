@@ -164,6 +164,11 @@ new #[Layout('layouts.app')] class extends Component
             $activeTurf = $turfs->first();
         }
         $missingGstState = $activeTurf ? (GstStateResolver::turfStateCode($activeTurf) === null) : false;
+        $onboardingProgress = \App\Services\TurfOnboardingProgress::evaluate(
+            $activeTurf,
+            $activeTurf?->location ?? $locations->first(),
+            auth()->user()
+        );
 
         if ($activeTurfId && in_array((int) $activeTurfId, $manageableTurfIds, true)) {
             $scopedTurfIds = [(int) $activeTurfId];
@@ -733,6 +738,8 @@ new #[Layout('layouts.app')] class extends Component
             'sportsCount' => $sportsCount,
             'locations' => $locations,
             'missingGstState' => $missingGstState,
+            'onboardingProgress' => $onboardingProgress,
+            'activeTurfModel' => $activeTurf,
             'todayDateFormatted' => $now->format('l, d M Y'),
             'scopedVenueName' => $scopedVenueName,
             // Period Controls & KPI Data
@@ -787,6 +794,35 @@ new #[Layout('layouts.app')] class extends Component
 }; ?>
 
 <div class="w-full space-y-6">
+
+    {{-- TURF ONBOARDING PROGRESS BANNER --}}
+    @if (!$onboardingProgress['required_completed'] || !$activeTurfModel || in_array($activeTurfModel->status, ['Draft', 'Rejected'], true))
+        <div class="bg-gradient-to-r from-indigo-600 via-violet-600 to-emerald-600 text-white p-5 sm:p-6 rounded-3xl shadow-md flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="space-y-1.5 max-w-2xl">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 text-white">
+                        ✨ {{ $onboardingProgress['completed_count'] }} of {{ $onboardingProgress['total_visible_steps'] }} Steps Done ({{ $onboardingProgress['percentage'] }}%)
+                    </span>
+                    @if ($activeTurfModel)
+                        <span class="text-xs font-bold text-indigo-100">{{ $activeTurfModel->name }} · {{ $activeTurfModel->status }}</span>
+                    @endif
+                </div>
+                <h3 class="text-lg font-black tracking-tight">
+                    {{ !$onboardingProgress['required_completed'] ? __('Complete Your Turf Onboarding Setup') : __('Ready to Submit Your Turf for Verification') }}
+                </h3>
+                <p class="text-xs text-indigo-100 leading-relaxed">
+                    {{ __('Use our guided 12-step Setup Wizard to configure your venue map pin, photos, sports, operating slots, 7-day pricing, and GST in one place.') }}
+                </p>
+            </div>
+            <div class="shrink-0">
+                <a href="{{ route('turf.setup-wizard', $activeTurfModel ? ['turf' => $activeTurfModel->id] : []) }}"
+                   wire:navigate
+                   class="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white text-indigo-800 hover:bg-indigo-50 font-black text-xs uppercase tracking-wider shadow-sm transition">
+                    <span>{{ __('Continue Setup Wizard →') }}</span>
+                </a>
+            </div>
+        </div>
+    @endif
 
     {{-- ALERT BANNERS (Preserved for Trial & GST State Compliance) --}}
     @if ($onTrial && $trialDaysLeft <= 7 && !$hasActiveSub)

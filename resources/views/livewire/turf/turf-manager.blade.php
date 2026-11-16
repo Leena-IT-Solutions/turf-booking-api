@@ -225,7 +225,10 @@ new #[Layout('layouts.app')] class extends Component
                 <h2 class="text-xl font-bold text-gray-900">{{ __('Turfs') }}</h2>
                 <p class="text-xs text-gray-500 mt-1.5">{{ __('Configure playing courts, surface specifications, dimensions, and included sport equipment.') }}</p>
             </div>
-            <div>
+            <div class="flex flex-wrap items-center gap-2.5">
+                <a href="{{ route('turf.setup-wizard') }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer">
+                    <span>✨ {{ __('Setup Wizard') }}</span>
+                </a>
                 @if ($availableLocations->isEmpty())
                     <a href="{{ route('turf.locations') }}" wire:navigate class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow transition duration-150 ease-in-out cursor-pointer">
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -296,6 +299,13 @@ new #[Layout('layouts.app')] class extends Component
                             </div>
 
                             <div class="flex items-center gap-1.5 shrink-0">
+                                <a href="{{ route('turf.setup-wizard', ['turf' => $turf->id]) }}"
+                                   wire:navigate
+                                   title="Open Guided Setup Wizard"
+                                   class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition cursor-pointer border border-emerald-200 text-[10px] font-black uppercase tracking-wider">
+                                    ✨ {{ in_array($turf->status, ['Draft', 'Rejected'], true) ? __('Continue Setup') : __('Wizard') }}
+                                </a>
+
                                 <!-- Edit Button -->
                                 <button wire:click="editTurf({{ $turf->id }})" class="p-2 bg-gray-50 hover:bg-gray-100 text-indigo-600 rounded-xl transition cursor-pointer border border-gray-100 flex items-center justify-center">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

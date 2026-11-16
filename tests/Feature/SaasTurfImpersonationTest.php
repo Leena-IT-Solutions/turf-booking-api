@@ -92,7 +92,7 @@ class SaasTurfImpersonationTest extends TestCase
 
         $response = $this->actingAs($this->saasAdmin)->get(route('saas.users.impersonate', $newOwner->id));
 
-        $response->assertRedirect(route('turf.locations'));
+        $response->assertRedirect(route('turf.setup-wizard'));
         $this->assertEquals($newOwner->id, auth()->id());
         $this->assertEquals($this->saasAdmin->id, session('impersonator_id'));
     }

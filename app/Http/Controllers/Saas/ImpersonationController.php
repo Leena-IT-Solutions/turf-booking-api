@@ -76,13 +76,13 @@ class ImpersonationController extends Controller
         Auth::login($user);
 
         if (!$firstLocation) {
-            session()->flash('status', "Switched to {$user->name}'s workspace. Start by adding their first Location below.");
-            return redirect()->route('turf.locations');
+            session()->flash('status', "Switched to {$user->name}'s workspace. Complete the guided Onboarding Wizard below.");
+            return redirect()->route('turf.setup-wizard');
         }
 
         if (!$firstTurf) {
-            session()->flash('status', "Switched to {$user->name}'s workspace. Now add their first Turf under {$firstLocation->name}.");
-            return redirect()->route('turf.turfs');
+            session()->flash('status', "Switched to {$user->name}'s workspace. Continue setting up their first Turf under {$firstLocation->name}.");
+            return redirect()->route('turf.setup-wizard');
         }
 
         return redirect()->route('turf.dashboard');

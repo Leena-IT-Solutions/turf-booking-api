@@ -175,7 +175,12 @@ class User extends Authenticatable
         }
 
         $assignment = $this->staffAssignments()->first();
-        return $assignment ? $assignment->turf_admin_id : $this->id;
+        if ($assignment) {
+            return $assignment->turf_admin_id;
+        }
+
+        $turfAssignment = $this->assignedTurfs()->first();
+        return $turfAssignment?->pivot?->turf_admin_id ?: $this->id;
     }
 
     /**

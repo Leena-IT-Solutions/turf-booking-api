@@ -3,6 +3,7 @@
 use App\Models\Turf;
 use App\Models\Slot;
 use App\Models\SlotCategory;
+use App\Services\TurfPricingService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Livewire\Volt\Component;
@@ -156,100 +157,15 @@ new #[Layout('layouts.app')] class extends Component
 
         $turf = Turf::manageable()->findOrFail($activeTurfId);
 
-        // Save wizard parameters to turf model
-        $turf->update([
-            'pricing_wizard_data' => [
-                'sameRateThroughoutWeek' => $this->sameRateThroughoutWeek,
-                'sameRateThroughoutDayAll' => $this->sameRateThroughoutDayAll,
-                'flatRateAll' => $this->flatRateAll,
-                'timeRangesAll' => $this->timeRangesAll,
-                'dayGroups' => $this->dayGroups,
-            ]
-        ]);
-
-        // Ensure all active slots are attached to this turf in the pivot table
-        $allActiveSlots = Slot::where('is_active', true)->pluck('id');
-        $alreadyAttached = $turf->slots()->pluck('slots.id');
-        $toAttach = $allActiveSlots->diff($alreadyAttached);
-
-        if ($toAttach->isNotEmpty()) {
-            $attachData = [];
-            foreach ($toAttach as $slotId) {
-                $attachData[$slotId] = ['is_active' => true];
-            }
-            $turf->slots()->attach($attachData);
-        }
-
-        // Now get all active slots for this turf (freshly including newly attached)
-        $activeSlots = $turf->slots()->wherePivot('is_active', true)->get();
-
-        foreach ($activeSlots as $slot) {
-            // Start with all days null — ensures unassigned days are explicitly set
-            $prices = [
-                'mon' => null, 'tue' => null, 'wed' => null, 'thu' => null,
-                'fri' => null, 'sat' => null, 'sun' => null,
-            ];
-
-            // Scale hourly rate based on slot duration (e.g. 30 min slot → 0.5 of hourly rate)
-            $scaleFactor = ((float)$slot->duration) / 60.0;
-
-            if ($this->sameRateThroughoutWeek === 'yes') {
-                // All days share the same pricing rule
-                if ($this->sameRateThroughoutDayAll === 'yes') {
-                    $rate = $this->flatRateAll !== '' ? (float)$this->flatRateAll : 0.0;
-                    $scaledRate = $rate * $scaleFactor;
-                    foreach (['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as $day) {
-                        $prices[$day] = $scaledRate;
-                    }
-                } else {
-                    // Match slot to a time range
-                    $scaledRate = null;
-                    foreach ($this->timeRangesAll as $range) {
-                        if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'] ?? '', $range['to'] ?? '')) {
-                            $rate = ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : 0.0;
-                            $scaledRate = $rate * $scaleFactor;
-                            break;
-                        }
-                    }
-                    foreach (['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as $day) {
-                        $prices[$day] = $scaledRate;
-                    }
-                }
-            } else {
-                // Custom day groups — each group can cover different days with different rates
-                foreach ($this->dayGroups as $group) {
-                    $selectedDays = $group['days'] ?? [];
-                    if (empty($selectedDays)) {
-                        continue;
-                    }
-
-                    if (($group['sameRateThroughoutDay'] ?? 'yes') === 'yes') {
-                        // Flat rate for all slots in these days
-                        $rate = ($group['flatRate'] ?? '') !== '' ? (float)$group['flatRate'] : 0.0;
-                        $scaledRate = $rate * $scaleFactor;
-                        foreach ($selectedDays as $day) {
-                            $prices[$day] = $scaledRate;
-                        }
-                    } else {
-                        // Match slot to this group's time ranges
-                        $scaledRate = null;
-                        $groupRanges = $group['timeRanges'] ?? [];
-                        foreach ($groupRanges as $range) {
-                            if ($this->slotMatchesRange($slot->from_time, $slot->to_time, $range['from'] ?? '', $range['to'] ?? '')) {
-                                $rate = ($range['rate'] ?? '') !== '' ? (float)$range['rate'] : 0.0;
-                                $scaledRate = $rate * $scaleFactor;
-                                break;
-                            }
-                        }
-                        foreach ($selectedDays as $day) {
-                            $prices[$day] = $scaledRate;
-                        }
-                    }
-                }
-            }
-
-            $turf->slots()->updateExistingPivot($slot->id, $prices);
-        }
+        TurfPricingService::applyPricingToTurf(
+            $turf,
+            (string) $this->sameRateThroughoutWeek,
+            (string) $this->sameRateThroughoutDayAll,
+            $this->flatRateAll,
+            (array) $this->timeRangesAll,
+            (array) $this->dayGroups,
+            true
+        );
 
         session()->flash('status', 'Pricing rules updated and applied successfully.');
         $this->step = 1;

@@ -17,6 +17,8 @@ class Turf extends Model
         'area',
         'is_active',
         'status',
+        'onboarded_by',
+        'submitted_at',
         'is_location_verified',
         'is_details_verified',
         'is_photos_verified',
@@ -66,6 +68,7 @@ class Turf extends Model
         'cancellation_fee' => 'decimal:2',
         'is_reschedule_active' => 'boolean',
         'max_reschedules' => 'integer',
+        'submitted_at' => 'datetime',
     ];
 
     /**
@@ -76,9 +79,14 @@ class Turf extends Model
         return $this->belongsTo(Location::class);
     }
 
+    public function onboardedBy()
+    {
+        return $this->belongsTo(User::class, 'onboarded_by');
+    }
+
     public function photos()
     {
-        return $this->hasMany(TurfPhoto::class);
+        return $this->hasMany(TurfPhoto::class)->orderBy('sort_order', 'asc')->orderBy('id', 'asc');
     }
 
     public function facilities()

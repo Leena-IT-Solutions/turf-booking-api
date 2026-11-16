@@ -2,6 +2,7 @@
 
 use App\Models\Turf;
 use App\Models\TurfSetting;
+use App\Services\TurfTaxationService;
 use App\Support\IndianStates;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
@@ -138,18 +139,9 @@ new #[Layout('layouts.app')] class extends Component
 
         $turf = Turf::manageable()->findOrFail($this->turfId);
 
-        // Ensure state_code is synchronized with selected state
-        if (!empty($this->state)) {
-            $code = array_search($this->state, IndianStates::ALL);
-            if ($code !== false) {
-                $this->state_code = (string)$code;
-            } elseif (isset(IndianStates::ALL[$this->state])) {
-                $this->state_code = (string)$this->state;
-                $this->state = IndianStates::ALL[$this->state];
-            }
-        } else {
-            $this->state_code = null;
-        }
+        $resolved = TurfTaxationService::resolveState($this->state);
+        $this->state = $resolved['state'];
+        $this->state_code = $resolved['state_code'];
 
         $rules = [
             'company_name' => 'nullable|string|max:150',
@@ -179,27 +171,11 @@ new #[Layout('layouts.app')] class extends Component
 
         $validated = $this->validate($rules, $messages);
 
-        if (!IndianStates::isValid($this->state_code)) {
-            $this->addError('state', 'Select the state where this turf is located. It decides how GST is charged.');
+        $result = TurfTaxationService::validateAndSave($turf, $validated, $this->state_code);
+        if (!$result['ok']) {
+            $this->addError($result['field'], $result['message']);
             return;
         }
-
-        if (!empty($validated['gst_number'])) {
-            $validated['gst_number'] = strtoupper(trim($validated['gst_number']));
-            $prefix = substr($validated['gst_number'], 0, 2);
-            if ($prefix !== $this->state_code) {
-                $prefixStateName = IndianStates::name($prefix) ?? 'another state';
-                $this->addError('gst_number', "This GSTIN is registered in {$prefixStateName}, but the turf's state is {$this->state}. A turf must use a GSTIN from the state where the venue is.");
-                return;
-            }
-        }
-
-        $validated['state_code'] = $this->state_code;
-
-        TurfSetting::updateOrCreate(
-            ['turf_id' => $turf->id],
-            $validated
-        );
 
         session()->flash('status', 'Taxation & legal details saved successfully.');
     }

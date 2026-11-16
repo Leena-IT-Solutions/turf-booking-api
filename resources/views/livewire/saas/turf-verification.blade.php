@@ -192,7 +192,7 @@ new #[Layout('layouts.app')] class extends Component
 
     public function with()
     {
-        $query = Turf::with(['location.user']);
+        $query = Turf::with(['location.user', 'onboardedBy']);
 
         if ($this->statusFilter !== 'All') {
             $query->where('status', $this->statusFilter);
@@ -335,6 +335,21 @@ new #[Layout('layouts.app')] class extends Component
                                 <span class="text-indigo-500 font-bold">{{ $turf->location->user->mobile }}</span>
                             </div>
                         </div>
+
+                        @if ($turf->onboardedBy || $turf->submitted_at)
+                            <div class="mt-3 pt-3 border-t border-gray-50 flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                                @if ($turf->onboardedBy)
+                                    <span class="px-2 py-0.5 rounded-lg bg-fuchsia-50 text-fuchsia-700 border border-fuchsia-200/60 font-bold">
+                                        Onboarded by: {{ $turf->onboardedBy->name }}
+                                    </span>
+                                @endif
+                                @if ($turf->submitted_at)
+                                    <span class="text-gray-400 font-medium">
+                                        Submitted {{ $turf->submitted_at->format('d M Y, h:i A') }}
+                                    </span>
+                                @endif
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Actions Footer -->
