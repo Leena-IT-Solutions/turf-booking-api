@@ -27,13 +27,13 @@ return [
     // (Play Console > Setup > App integrity > App signing key certificate)
     'android_sha256_fingerprints' => array_values(array_filter(array_map(
         'trim',
-        explode(',', (string) env('ANDROID_SHA256_FINGERPRINTS', ''))
+        explode(',', (string) env('ANDROID_SHA256_FINGERPRINTS', '6D:0A:03:36:94:66:8E:57:61:09:6D:DA:5D:C9:3B:2A:37:8A:3F:D5:8D:F1:AE:08:96:F3:74:61:5F:26:C8:F1'))
     ))),
 
     'ios_bundle_id' => env('IOS_BUNDLE_ID', 'com.infoleena.turf.booking'),
 
     // 10-character Apple Developer Team ID (developer.apple.com > Membership)
-    'apple_team_id' => env('APPLE_TEAM_ID', ''),
+    'apple_team_id' => env('APPLE_TEAM_ID', 'KLTNG7LHKA'),
 
     /*
     |--------------------------------------------------------------------------
