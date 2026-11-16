@@ -100,4 +100,33 @@ class ProfileTest extends TestCase
 
         $this->assertNotNull($user->fresh());
     }
+
+    public function test_protected_account_cannot_be_deleted_via_api_or_web_or_eloquent(): void
+    {
+        $protectedUser = User::factory()->create([
+            'name' => 'Sandeep Rathod',
+            'email' => 'sandeep198558@yahoo.com',
+            'mobile' => '9664588677',
+        ]);
+
+        $this->assertTrue($protectedUser->isProtectedAccount());
+
+        // 1. Mobile API DELETE /api/user returns 403
+        $token = $protectedUser->createToken('mobile-app')->plainTextToken;
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->deleteJson('/api/user');
+        $response->assertStatus(403)
+            ->assertJsonPath('message', 'This master administrator account is protected and cannot be deleted.');
+        $this->assertNotNull($protectedUser->fresh());
+
+        // 2. Web Profile Page hides delete-user-form for protected user
+        $this->actingAs($protectedUser)
+            ->get('/profile')
+            ->assertOk()
+            ->assertDontSeeVolt('profile.delete-user-form');
+
+        // 3. Direct Eloquent $user->delete() returns false and keeps the record
+        $this->assertFalse($protectedUser->delete());
+        $this->assertNotNull($protectedUser->fresh());
+    }
 }

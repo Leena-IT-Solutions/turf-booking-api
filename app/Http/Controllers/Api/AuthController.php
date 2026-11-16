@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\DeviceToken;
 use App\Models\User;
+use App\Services\WhatsAppService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -25,9 +30,9 @@ class AuthController extends Controller
 
         $user = User::where($field, $login)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (! $user || ! Hash::check($request->password, $user->password)) {
             return response()->json([
-                'message' => 'The provided credentials do not match our records.'
+                'message' => 'The provided credentials do not match our records.',
             ], 401);
         }
 
@@ -45,7 +50,7 @@ class AuthController extends Controller
                 'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
                 'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
                 'on_trial' => $user->onTrial(),
-            ]
+            ],
         ]);
     }
 
@@ -57,7 +62,7 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
-            'message' => 'Logged out successfully.'
+            'message' => 'Logged out successfully.',
         ]);
     }
 
@@ -68,6 +73,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
         $user->load('roles');
+
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
@@ -89,23 +95,23 @@ class AuthController extends Controller
         $mobile = $request->input('mobile');
         $cleanMobile = preg_replace('/[^0-9]/', '', $mobile);
         if (strlen($cleanMobile) === 10) {
-            $cleanMobile = '91' . $cleanMobile;
+            $cleanMobile = '91'.$cleanMobile;
         }
 
         // Mandatory WhatsApp OTP Verification check
-        $isOtpVerified = \Illuminate\Support\Facades\Cache::get('whatsapp_verified_' . $cleanMobile)
-            || \Illuminate\Support\Facades\Cache::get('whatsapp_verified_' . $mobile);
+        $isOtpVerified = Cache::get('whatsapp_verified_'.$cleanMobile)
+            || Cache::get('whatsapp_verified_'.$mobile);
 
-        if (!$isOtpVerified && $request->filled('otp')) {
-            $reset = \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $cleanMobile)->first();
-            if ($reset && Hash::check($request->otp, $reset->token) && !\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+        if (! $isOtpVerified && $request->filled('otp')) {
+            $reset = \DB::table('password_reset_tokens')->where('email', 'whatsapp_'.$cleanMobile)->first();
+            if ($reset && Hash::check($request->otp, $reset->token) && ! Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
                 $isOtpVerified = true;
             }
         }
 
-        if (!$isOtpVerified) {
+        if (! $isOtpVerified) {
             return response()->json([
-                'message' => 'WhatsApp OTP verification is required before registration.'
+                'message' => 'WhatsApp OTP verification is required before registration.',
             ], 422);
         }
 
@@ -114,7 +120,7 @@ class AuthController extends Controller
         if ($email) {
             $existingUser = User::where('email', $email)->first();
         }
-        if (!$existingUser && $mobile) {
+        if (! $existingUser && $mobile) {
             $existingUser = User::where('mobile', $mobile)->first();
         }
 
@@ -148,9 +154,9 @@ class AuthController extends Controller
                 'is_quick_created' => false,
             ]);
 
-            \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $cleanMobile);
-            \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $mobile);
-            \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $cleanMobile)->delete();
+            Cache::forget('whatsapp_verified_'.$cleanMobile);
+            Cache::forget('whatsapp_verified_'.$mobile);
+            \DB::table('password_reset_tokens')->where('email', 'whatsapp_'.$cleanMobile)->delete();
 
             $token = $existingUser->createToken('auth_token')->plainTextToken;
 
@@ -166,7 +172,7 @@ class AuthController extends Controller
                     'manageable_turf_ids' => $existingUser->manageableTurfs()->pluck('turfs.id')->toArray(),
                     'trial_ends_at' => $existingUser->trial_ends_at?->toIso8601String(),
                     'on_trial' => $existingUser->onTrial(),
-                ]
+                ],
             ], 201);
         }
 
@@ -186,9 +192,9 @@ class AuthController extends Controller
 
         $user->assignRole('customer');
 
-        \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $cleanMobile);
-        \Illuminate\Support\Facades\Cache::forget('whatsapp_verified_' . $mobile);
-        \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $cleanMobile)->delete();
+        Cache::forget('whatsapp_verified_'.$cleanMobile);
+        Cache::forget('whatsapp_verified_'.$mobile);
+        \DB::table('password_reset_tokens')->where('email', 'whatsapp_'.$cleanMobile)->delete();
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -204,7 +210,7 @@ class AuthController extends Controller
                 'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
                 'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
                 'on_trial' => $user->onTrial(),
-            ]
+            ],
         ], 201);
     }
 
@@ -220,20 +226,20 @@ class AuthController extends Controller
 
         $mobile = preg_replace('/[^0-9]/', '', $request->mobile);
         if (strlen($mobile) === 10) {
-            $mobile = '91' . $mobile;
+            $mobile = '91'.$mobile;
         }
 
         if ($request->purpose === 'registration') {
             if (User::where('mobile', $request->mobile)->orWhere('mobile', $mobile)->where('is_quick_created', false)->exists()) {
                 return response()->json([
-                    'message' => 'This mobile number is already registered.'
+                    'message' => 'This mobile number is already registered.',
                 ], 422);
             }
         } elseif ($request->purpose === 'forgot_password') {
             $user = User::where('mobile', $request->mobile)->orWhere('mobile', $mobile)->orWhere('mobile', substr($mobile, 2))->first();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
-                    'message' => 'No user found with this mobile number.'
+                    'message' => 'No user found with this mobile number.',
                 ], 404);
             }
         }
@@ -241,14 +247,14 @@ class AuthController extends Controller
         $otp = strval(rand(100000, 999999));
 
         \DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => 'whatsapp_' . $mobile],
+            ['email' => 'whatsapp_'.$mobile],
             [
                 'token' => Hash::make($otp),
-                'created_at' => now()
+                'created_at' => now(),
             ]
         );
 
-        $whatsAppService = new \App\Services\WhatsAppService();
+        $whatsAppService = new WhatsAppService;
         $sent = $whatsAppService->sendOtp($mobile, $otp, $request->purpose);
 
         return response()->json([
@@ -270,29 +276,29 @@ class AuthController extends Controller
 
         $mobile = preg_replace('/[^0-9]/', '', $request->mobile);
         if (strlen($mobile) === 10) {
-            $mobile = '91' . $mobile;
+            $mobile = '91'.$mobile;
         }
 
-        $reset = \DB::table('password_reset_tokens')->where('email', 'whatsapp_' . $mobile)->first();
+        $reset = \DB::table('password_reset_tokens')->where('email', 'whatsapp_'.$mobile)->first();
 
-        if (!$reset || !Hash::check($request->otp, $reset->token)) {
+        if (! $reset || ! Hash::check($request->otp, $reset->token)) {
             return response()->json([
-                'message' => 'Invalid OTP code.'
+                'message' => 'Invalid OTP code.',
             ], 422);
         }
 
-        if (\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+        if (Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
             return response()->json([
-                'message' => 'OTP has expired.'
+                'message' => 'OTP has expired.',
             ], 422);
         }
 
         // Cache successful OTP verification for 15 minutes
-        \Illuminate\Support\Facades\Cache::put('whatsapp_verified_' . $mobile, true, now()->addMinutes(15));
-        \Illuminate\Support\Facades\Cache::put('whatsapp_verified_' . $request->mobile, true, now()->addMinutes(15));
+        Cache::put('whatsapp_verified_'.$mobile, true, now()->addMinutes(15));
+        Cache::put('whatsapp_verified_'.$request->mobile, true, now()->addMinutes(15));
 
         return response()->json([
-            'message' => 'WhatsApp OTP verified successfully.'
+            'message' => 'WhatsApp OTP verified successfully.',
         ]);
     }
 
@@ -308,33 +314,33 @@ class AuthController extends Controller
         ]);
 
         $login = $request->input('login', $request->input('email', $request->input('mobile')));
-        if (!$login) {
+        if (! $login) {
             return response()->json(['message' => 'Email or mobile number is required.'], 422);
         }
 
         $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
         $user = User::where($isEmail ? 'email' : 'mobile', $login)->first();
 
-        if (!$user) {
+        if (! $user) {
             return response()->json([
-                'message' => 'No user found with the provided credentials.'
+                'message' => 'No user found with the provided credentials.',
             ], 404);
         }
 
         $otp = strval(rand(100000, 999999));
-        $identifier = $isEmail ? $user->email : ('whatsapp_' . preg_replace('/[^0-9]/', '', $user->mobile));
+        $identifier = $isEmail ? $user->email : ('whatsapp_'.preg_replace('/[^0-9]/', '', $user->mobile));
 
         \DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $identifier],
             [
                 'token' => Hash::make($otp),
-                'created_at' => now()
+                'created_at' => now(),
             ]
         );
 
         $whatsappSent = false;
-        if (!$isEmail) {
-            $whatsAppService = new \App\Services\WhatsAppService();
+        if (! $isEmail) {
+            $whatsAppService = new WhatsAppService;
             $whatsappSent = $whatsAppService->sendOtp($user->mobile, $otp, 'password reset');
         }
 
@@ -359,24 +365,24 @@ class AuthController extends Controller
 
         $login = $request->input('login', $request->input('email', $request->input('mobile')));
         $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
-        $identifier = $isEmail ? $login : ('whatsapp_' . preg_replace('/[^0-9]/', '', $login));
+        $identifier = $isEmail ? $login : ('whatsapp_'.preg_replace('/[^0-9]/', '', $login));
 
         $reset = \DB::table('password_reset_tokens')->where('email', $identifier)->first();
 
-        if (!$reset || !Hash::check($request->otp, $reset->token)) {
+        if (! $reset || ! Hash::check($request->otp, $reset->token)) {
             return response()->json([
-                'message' => 'Invalid OTP code.'
+                'message' => 'Invalid OTP code.',
             ], 422);
         }
 
-        if (\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+        if (Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
             return response()->json([
-                'message' => 'OTP has expired.'
+                'message' => 'OTP has expired.',
             ], 422);
         }
 
         return response()->json([
-            'message' => 'OTP verified successfully.'
+            'message' => 'OTP verified successfully.',
         ]);
     }
 
@@ -395,25 +401,25 @@ class AuthController extends Controller
 
         $login = $request->input('login', $request->input('email', $request->input('mobile')));
         $isEmail = filter_var($login, FILTER_VALIDATE_EMAIL);
-        
+
         $cleanMobile = preg_replace('/[^0-9]/', '', $login);
         if (strlen($cleanMobile) === 10) {
-            $cleanMobile = '91' . $cleanMobile;
+            $cleanMobile = '91'.$cleanMobile;
         }
 
-        $identifier = $isEmail ? $login : ('whatsapp_' . $cleanMobile);
+        $identifier = $isEmail ? $login : ('whatsapp_'.$cleanMobile);
 
         $reset = \DB::table('password_reset_tokens')->where('email', $identifier)->first();
 
-        if (!$reset || !Hash::check($request->otp, $reset->token)) {
+        if (! $reset || ! Hash::check($request->otp, $reset->token)) {
             return response()->json([
-                'message' => 'Invalid OTP code.'
+                'message' => 'Invalid OTP code.',
             ], 422);
         }
 
-        if (\Carbon\Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
+        if (Carbon::parse($reset->created_at)->addMinutes(15)->isPast()) {
             return response()->json([
-                'message' => 'OTP has expired.'
+                'message' => 'OTP has expired.',
             ], 422);
         }
 
@@ -428,11 +434,9 @@ class AuthController extends Controller
         \DB::table('password_reset_tokens')->where('email', $identifier)->delete();
 
         return response()->json([
-            'message' => 'Password reset successfully.'
+            'message' => 'Password reset successfully.',
         ]);
     }
-
-
 
     /**
      * Update user profile details.
@@ -443,8 +447,8 @@ class AuthController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'mobile' => 'required|string|max:15|unique:users,mobile,' . $user->id,
+            'email' => 'required|string|email|max:255|unique:users,email,'.$user->id,
+            'mobile' => 'required|string|max:15|unique:users,mobile,'.$user->id,
         ]);
 
         $user->update([
@@ -464,7 +468,7 @@ class AuthController extends Controller
                 'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
                 'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
                 'on_trial' => $user->onTrial(),
-            ]
+            ],
         ]);
     }
 
@@ -480,9 +484,9 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             return response()->json([
-                'message' => 'The current password does not match.'
+                'message' => 'The current password does not match.',
             ], 422);
         }
 
@@ -491,7 +495,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Password updated successfully.'
+            'message' => 'Password updated successfully.',
         ]);
     }
 
@@ -502,11 +506,17 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
+        if ($user->isProtectedAccount()) {
+            return response()->json([
+                'message' => 'This master administrator account is protected and cannot be deleted.',
+            ], 403);
+        }
+
         $user->tokens()->delete();
         $user->delete();
 
         return response()->json([
-            'message' => 'Account deleted successfully.'
+            'message' => 'Account deleted successfully.',
         ]);
     }
 
@@ -516,7 +526,7 @@ class AuthController extends Controller
     public function searchUsers(Request $request)
     {
         $user = auth()->user();
-        if (!$user->hasAnyRole(['saas-admin', 'turf-admin', 'manager'])) {
+        if (! $user->hasAnyRole(['saas-admin', 'turf-admin', 'manager'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -527,11 +537,11 @@ class AuthController extends Controller
 
         $users = User::where(function ($q) use ($query) {
             $q->where('name', 'LIKE', "%{$query}%")
-              ->orWhere('email', 'LIKE', "%{$query}%")
-              ->orWhere('mobile', 'LIKE', "%{$query}%");
+                ->orWhere('email', 'LIKE', "%{$query}%")
+                ->orWhere('mobile', 'LIKE', "%{$query}%");
         })
-        ->limit(15)
-        ->get(['id', 'name', 'email', 'mobile']);
+            ->limit(15)
+            ->get(['id', 'name', 'email', 'mobile']);
 
         return response()->json($users);
     }
@@ -542,7 +552,7 @@ class AuthController extends Controller
     public function quickCreateUser(Request $request)
     {
         $user = auth()->user();
-        if (!$user->hasAnyRole(['saas-admin', 'turf-admin', 'manager'])) {
+        if (! $user->hasAnyRole(['saas-admin', 'turf-admin', 'manager'])) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -555,9 +565,9 @@ class AuthController extends Controller
         $email = $request->input('email');
         $mobile = $request->input('mobile');
 
-        if (!$email && !$mobile) {
+        if (! $email && ! $mobile) {
             return response()->json([
-                'message' => 'Either email or mobile number is required.'
+                'message' => 'Either email or mobile number is required.',
             ], 422);
         }
 
@@ -573,7 +583,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $email,
             'mobile' => $mobile,
-            'password' => Hash::make(\Illuminate\Support\Str::random(16)),
+            'password' => Hash::make(Str::random(16)),
             'is_quick_created' => true,
         ]);
 
@@ -600,7 +610,7 @@ class AuthController extends Controller
 
         $user = auth()->user();
 
-        \App\Models\DeviceToken::updateOrCreate([
+        DeviceToken::updateOrCreate([
             'user_id' => $user->id,
             'device_token' => $request->input('device_token'),
         ], [
@@ -608,7 +618,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'message' => 'Device token saved successfully.'
+            'message' => 'Device token saved successfully.',
         ]);
     }
 
@@ -623,12 +633,12 @@ class AuthController extends Controller
 
         $user = auth()->user();
 
-        \App\Models\DeviceToken::where('user_id', $user->id)
+        DeviceToken::where('user_id', $user->id)
             ->where('device_token', $request->input('device_token'))
             ->delete();
 
         return response()->json([
-            'message' => 'Device token deleted successfully.'
+            'message' => 'Device token deleted successfully.',
         ]);
     }
 }

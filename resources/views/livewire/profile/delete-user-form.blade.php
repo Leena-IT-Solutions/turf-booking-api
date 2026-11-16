@@ -13,6 +13,10 @@ new class extends Component
      */
     public function deleteUser(Logout $logout): void
     {
+        if (Auth::user()?->isProtectedAccount()) {
+            abort(403, 'This master administrator account is protected and cannot be deleted.');
+        }
+
         $this->validate([
             'password' => ['required', 'string', 'current_password'],
         ]);

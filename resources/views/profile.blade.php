@@ -91,15 +91,17 @@
                     <span>{{ __('Security & Password') }}</span>
                 </button>
 
-                <button 
-                    @click="activeTab = 'danger'"
-                    :class="activeTab === 'danger' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/25' : 'text-gray-600 hover:bg-gray-100'"
-                    type="button"
-                    class="px-4 py-2 rounded-2xl text-xs font-bold transition duration-150 flex items-center gap-2 shrink-0 cursor-pointer"
-                >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    <span>{{ __('Danger Zone') }}</span>
-                </button>
+                @if (!$user->isProtectedAccount())
+                    <button 
+                        @click="activeTab = 'danger'"
+                        :class="activeTab === 'danger' ? 'bg-rose-600 text-white shadow-md shadow-rose-600/25' : 'text-gray-600 hover:bg-gray-100'"
+                        type="button"
+                        class="px-4 py-2 rounded-2xl text-xs font-bold transition duration-150 flex items-center gap-2 shrink-0 cursor-pointer"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <span>{{ __('Danger Zone') }}</span>
+                    </button>
+                @endif
             </div>
         </div>
 
@@ -118,11 +120,13 @@
             </div>
         </div>
 
-        <!-- Danger Zone Tab -->
-        <div x-show="activeTab === 'danger'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
-            <div class="bg-white border-2 border-rose-200/70 shadow-xl shadow-rose-100/40 rounded-3xl p-6 sm:p-10">
-                <livewire:profile.delete-user-form />
+        @if (!$user->isProtectedAccount())
+            <!-- Danger Zone Tab -->
+            <div x-show="activeTab === 'danger'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
+                <div class="bg-white border-2 border-rose-200/70 shadow-xl shadow-rose-100/40 rounded-3xl p-6 sm:p-10">
+                    <livewire:profile.delete-user-form />
+                </div>
             </div>
-        </div>
+        @endif
     </div>
 </x-app-layout>

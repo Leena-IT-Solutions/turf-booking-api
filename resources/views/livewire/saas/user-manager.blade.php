@@ -93,6 +93,12 @@ new #[Layout('layouts.app')] class extends Component
             abort(403, 'Only SaaS Admins can delete user accounts.');
         }
 
+        $targetUser = User::find($id);
+        if ($targetUser && $targetUser->isProtectedAccount()) {
+            session()->flash('error', 'This protected master account cannot be deleted.');
+            return;
+        }
+
         $this->deletingId = $id;
         $this->showDeleteConfirm = true;
     }
@@ -379,6 +385,11 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         $user = User::findOrFail($id);
+        if ($user->isProtectedAccount()) {
+            session()->flash('error', 'This protected master account cannot be deleted.');
+            return;
+        }
+
         $user->roles()->detach();
         $user->delete();
 
@@ -938,7 +949,7 @@ new #[Layout('layouts.app')] class extends Component
                             
                             <!-- Delete Button (SaaS Admin Only) -->
                             @if (auth()->user()->hasRole('saas-admin'))
-                                @if ($user->id !== auth()->id())
+                                @if ($user->id !== auth()->id() && !$user->isProtectedAccount())
                                     <button wire:click="confirmDelete({{ $user->id }})" 
                                             title="Delete Account" 
                                             class="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition cursor-pointer flex items-center justify-center border border-red-100/10">
@@ -948,7 +959,7 @@ new #[Layout('layouts.app')] class extends Component
                                     </button>
                                 @else
                                     <button disabled 
-                                            title="Cannot delete your active account" 
+                                            title="{{ $user->isProtectedAccount() ? 'Protected Master Account — Cannot be deleted' : 'Cannot delete your active account' }}" 
                                             class="p-2 bg-gray-50 text-gray-300 rounded-xl cursor-not-allowed border border-gray-100 flex items-center justify-center">
                                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

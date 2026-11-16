@@ -7,18 +7,17 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 #[Fillable([
     'name', 'email', 'mobile', 'password', 'is_quick_created',
     'commission_wallet_balance', 'commission_due_since', 'payout_method',
     'bank_account_name', 'bank_account_number', 'bank_ifsc', 'upi_id',
     'razorpay_contact_id', 'razorpay_fund_account_id', 'payout_schedule', 'payout_schedule_day',
-    'trial_started_at', 'trial_ends_at', 'trial_reminder_3d_sent_at', 'trial_reminder_0d_sent_at'
+    'trial_started_at', 'trial_ends_at', 'trial_reminder_3d_sent_at', 'trial_reminder_0d_sent_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
 
@@ -79,7 +78,7 @@ class User extends Authenticatable
      */
     public function trialDaysLeft(): int
     {
-        if (!$this->onTrial()) {
+        if (! $this->onTrial()) {
             return 0;
         }
 
@@ -89,6 +88,43 @@ class User extends Authenticatable
         }
 
         return (int) ceil($diff / 86400);
+    }
+
+    public const PROTECTED_MOBILES = [
+        '9664588677',
+    ];
+
+    public const PROTECTED_EMAILS = [
+        'sandeep198558@yahoo.com',
+        'sandeep198558@gmail.com',
+    ];
+
+    protected static function booted(): void
+    {
+        static::deleting(function (User $user) {
+            if ($user->isProtectedAccount()) {
+                return false;
+            }
+        });
+    }
+
+    /**
+     * Determine whether this account is a protected master account that cannot be deleted.
+     */
+    public function isProtectedAccount(): bool
+    {
+        $email = strtolower(trim((string) $this->email));
+        if ($email !== '' && in_array($email, self::PROTECTED_EMAILS, true)) {
+            return true;
+        }
+
+        $digits = preg_replace('/[^0-9]/', '', (string) $this->mobile);
+        $last10 = strlen($digits) > 10 ? substr($digits, -10) : $digits;
+        if ($last10 !== '' && in_array($last10, self::PROTECTED_MOBILES, true)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -161,8 +197,8 @@ class User extends Authenticatable
     public function assignedTurfs()
     {
         return $this->belongsToMany(Turf::class, 'staff_turf', 'user_id', 'turf_id')
-                    ->withPivot('turf_admin_id')
-                    ->withTimestamps();
+            ->withPivot('turf_admin_id')
+            ->withTimestamps();
     }
 
     /**
@@ -180,6 +216,7 @@ class User extends Authenticatable
         }
 
         $turfAssignment = $this->assignedTurfs()->first();
+
         return $turfAssignment?->pivot?->turf_admin_id ?: $this->id;
     }
 
@@ -221,10 +258,6 @@ class User extends Authenticatable
      */
     public function deviceTokens()
     {
-        return $this->hasMany(\App\Models\DeviceToken::class);
+        return $this->hasMany(DeviceToken::class);
     }
 }
-
-
-
-
