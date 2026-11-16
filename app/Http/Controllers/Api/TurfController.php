@@ -124,6 +124,83 @@ class TurfController extends Controller
         return response()->json($this->formatTurfData($turf, $now, $getRateForTime));
     }
 
+    /**
+     * Resolve a Turf by its QR code (or numeric ID) for mobile deep linking and log an app-open scan.
+     */
+    public function showByCode(\Illuminate\Http\Request $request, string $code): JsonResponse
+    {
+        $normalized = strtoupper(trim($code));
+
+        $turf = Turf::where('qr_code', $normalized)
+            ->when(ctype_digit($code), fn ($q) => $q->orWhere('id', (int) $code))
+            ->firstOrFail();
+
+        \App\Models\TurfQrScan::create([
+            'turf_id' => $turf->id,
+            'platform' => \App\Models\TurfQrScan::detectPlatform($request->userAgent()),
+            'source' => 'app',
+            'user_agent' => \Illuminate\Support\Str::limit((string) $request->userAgent(), 490, ''),
+            'ip_hash' => hash('sha256', (string) $request->ip() . '|' . (string) config('app.key')),
+            'converted_user_id' => $request->user('sanctum')?->id,
+            'converted_at' => $request->user('sanctum') ? now() : null,
+        ]);
+
+        return $this->show($turf);
+    }
+
+    /**
+     * Record user conversion / attribution when a user registers or logs in after scanning a Turf QR code.
+     */
+    public function recordQrAttribution(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:32',
+            'platform' => 'nullable|string|in:android,ios,desktop',
+        ]);
+
+        $normalized = strtoupper(trim($validated['code']));
+        $turf = Turf::where('qr_code', $normalized)
+            ->when(ctype_digit($validated['code']), fn ($q) => $q->orWhere('id', (int) $validated['code']))
+            ->first();
+
+        if (!$turf) {
+            return response()->json(['message' => 'Turf not found for code.'], 404);
+        }
+
+        $user = $request->user();
+        $platform = $validated['platform'] ?? \App\Models\TurfQrScan::detectPlatform($request->userAgent());
+
+        // Attach conversion to latest unattributed scan for this turf within last 24h, or create a new app conversion row
+        $latestScan = \App\Models\TurfQrScan::where('turf_id', $turf->id)
+            ->whereNull('converted_user_id')
+            ->where('created_at', '>=', now()->subDay())
+            ->latest('id')
+            ->first();
+
+        if ($latestScan) {
+            $latestScan->update([
+                'converted_user_id' => $user->id,
+                'converted_at' => now(),
+            ]);
+        } else {
+            \App\Models\TurfQrScan::create([
+                'turf_id' => $turf->id,
+                'platform' => $platform,
+                'source' => 'app',
+                'user_agent' => \Illuminate\Support\Str::limit((string) $request->userAgent(), 490, ''),
+                'ip_hash' => hash('sha256', (string) $request->ip() . '|' . (string) config('app.key')),
+                'converted_user_id' => $user->id,
+                'converted_at' => now(),
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'ok',
+            'turf_id' => $turf->id,
+            'qr_code' => $turf->qr_code,
+        ]);
+    }
+
     private function formatTurfData(Turf $turf, Carbon $now, callable $getRateForTime): array
     {
         $currentDay = strtolower($now->format('D'));

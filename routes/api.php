@@ -17,6 +17,7 @@ Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::get('/slider-images', [\App\Http\Controllers\Api\SliderImageController::class, 'index']);
 Route::get('/turfs', [\App\Http\Controllers\Api\TurfController::class, 'index']);
+Route::get('/turfs/by-code/{code}', [\App\Http\Controllers\Api\TurfController::class, 'showByCode']);
 Route::get('/turfs/{turf}', [\App\Http\Controllers\Api\TurfController::class, 'show']);
 Route::get('/turfs/{turf}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
 Route::get('/turfs/{turf}/slots', [\App\Http\Controllers\Api\BookingController::class, 'getSlots']);
@@ -77,6 +78,7 @@ Route::get('/policies', function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
+    Route::post('/qr/attribution', [\App\Http\Controllers\Api\TurfController::class, 'recordQrAttribution']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::put('/user/password', [AuthController::class, 'changePassword']);

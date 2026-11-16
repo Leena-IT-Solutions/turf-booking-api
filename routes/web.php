@@ -32,6 +32,11 @@ Route::view('/refund-policy', 'refund-cancellation-policy')->name('refund-policy
 Route::view('/return-policy', 'return-policy')->name('return-policy');
 Route::view('/shipping-policy', 'shipping-policy')->name('shipping-policy');
 
+// Public Turf QR Smart Deep-Link Landing Page & Well-Known App Link Verification
+Route::get('/t/{code}', [\App\Http\Controllers\TurfQrController::class, 'landing'])->name('turf.qr.landing');
+Route::get('/.well-known/assetlinks.json', [\App\Http\Controllers\TurfQrController::class, 'assetLinks'])->name('well-known.assetlinks');
+Route::get('/.well-known/apple-app-site-association', [\App\Http\Controllers\TurfQrController::class, 'appleAppSiteAssociation'])->name('well-known.aasa');
+
 Route::get('dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
@@ -161,6 +166,20 @@ Route::middleware(['auth'])->group(function () {
     Volt::route('turf/setup-wizard', 'turf.onboarding-wizard')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.setup-wizard');
+    Volt::route('turf/qr-code', 'turf.qr-code-manager')
+        ->middleware('role:turf-admin|manager|admin')
+        ->name('turf.qr-code');
+
+    Route::get('turf/qr-code/{turf}/download/png', [\App\Http\Controllers\TurfQrController::class, 'downloadPng'])
+        ->middleware('role:turf-admin|manager|admin|saas-admin|marketing')
+        ->name('turf.qr.download.png');
+    Route::get('turf/qr-code/{turf}/download/svg', [\App\Http\Controllers\TurfQrController::class, 'downloadSvg'])
+        ->middleware('role:turf-admin|manager|admin|saas-admin|marketing')
+        ->name('turf.qr.download.svg');
+    Route::get('turf/qr-code/{turf}/download/poster/{size?}', [\App\Http\Controllers\TurfQrController::class, 'downloadPoster'])
+        ->middleware('role:turf-admin|manager|admin|saas-admin|marketing')
+        ->name('turf.qr.download.poster');
+
     Volt::route('turf/locations', 'turf.location-manager')
         ->middleware('role:turf-admin|manager|admin')
         ->name('turf.locations');

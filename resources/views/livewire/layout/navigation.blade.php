@@ -442,6 +442,12 @@ new class extends Component
                             </div>
                             <span class="px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-indigo-600 text-white">12 Steps</span>
                         </a>
+                        <a href="{{ route('turf.qr-code') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.qr-code') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.qr-code') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
+                            <span class="ms-3">{{ __('QR Code') }}</span>
+                        </a>
                         <a href="{{ route('turf.locations') }}" wire:navigate class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.locations') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.locations') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -974,6 +980,12 @@ new class extends Component
                                 <span class="ms-3">{{ __('Setup Wizard') }}</span>
                             </div>
                             <span class="px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-indigo-600 text-white">12 Steps</span>
+                        </a>
+                        <a href="{{ route('turf.qr-code') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.qr-code') ? $activeClass : $inactiveClass }}">
+                            <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.qr-code') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                            </svg>
+                            <span class="ms-3">{{ __('QR Code') }}</span>
                         </a>
                         <a href="{{ route('turf.locations') }}" wire:navigate @click="sidebarOpen = false" class="flex items-center px-3 py-2 text-sm font-medium rounded-lg transition duration-150 ease-in-out {{ request()->routeIs('turf.locations') ? $activeClass : $inactiveClass }}">
                             <svg class="h-5 w-5 text-gray-500 {{ request()->routeIs('turf.locations') ? $activeSvgClass : '' }}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

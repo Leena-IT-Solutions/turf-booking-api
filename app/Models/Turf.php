@@ -19,6 +19,7 @@ class Turf extends Model
         'status',
         'onboarded_by',
         'submitted_at',
+        'qr_code',
         'is_location_verified',
         'is_details_verified',
         'is_photos_verified',
@@ -73,6 +74,12 @@ class Turf extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (Turf $turf) {
+            if (empty($turf->qr_code)) {
+                $turf->qr_code = static::generateUniqueQrCode();
+            }
+        });
+
         static::deleting(function (Turf $turf) {
             foreach ($turf->photos()->get() as $photo) {
                 if (!empty($photo->photo) && \Illuminate\Support\Facades\Storage::disk('public')->exists($photo->photo)) {
@@ -83,6 +90,47 @@ class Turf extends Model
                 session()->forget('active_turf_id');
             }
         });
+    }
+
+    public static function generateUniqueQrCode(): string
+    {
+        do {
+            $code = strtoupper(\Illuminate\Support\Str::random(8));
+            $code = preg_replace('/[^A-Z0-9]/', 'A', $code);
+        } while (static::where('qr_code', $code)->exists());
+
+        return $code;
+    }
+
+    public function ensureQrCode(): string
+    {
+        if (empty($this->qr_code)) {
+            $this->qr_code = static::generateUniqueQrCode();
+            $this->saveQuietly();
+        }
+
+        return $this->qr_code;
+    }
+
+    public function regenerateQrCode(): string
+    {
+        $this->qr_code = static::generateUniqueQrCode();
+        $this->save();
+
+        return $this->qr_code;
+    }
+
+    public function qrUrl(): string
+    {
+        $code = $this->ensureQrCode();
+        $base = rtrim((string) config('deeplink.base_url', config('app.url')), '/');
+
+        return "{$base}/t/{$code}";
+    }
+
+    public function qrScans()
+    {
+        return $this->hasMany(TurfQrScan::class);
     }
 
     /**
