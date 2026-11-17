@@ -72,6 +72,8 @@ new #[Layout('layouts.app')] class extends Component
             $this->isPricingVerified = true;
         }
 
+        $previousStatus = $turf->status;
+
         $turf->update([
             'status' => $status,
             'is_location_verified' => $this->isLocationVerified,
@@ -83,6 +85,10 @@ new #[Layout('layouts.app')] class extends Component
             'is_slots_verified' => $this->isSlotsVerified,
             'is_pricing_verified' => $this->isPricingVerified,
         ]);
+
+        if ($previousStatus !== $status) {
+            \App\Services\NotificationService::notifyTurfVerificationStatus($turf->fresh(['location.user']), $status);
+        }
 
         if (IndianStates::isValid($this->stateCode)) {
             $setting = TurfSetting::firstOrCreate(
@@ -158,6 +164,8 @@ new #[Layout('layouts.app')] class extends Component
             }
         }
 
+        $previousStatus = $turf->status;
+
         $turf->update([
             'is_location_verified' => $this->isLocationVerified,
             'is_details_verified' => $this->isDetailsVerified,
@@ -169,6 +177,10 @@ new #[Layout('layouts.app')] class extends Component
             'is_pricing_verified' => $this->isPricingVerified,
             'status' => $status
         ]);
+
+        if ($previousStatus !== $status) {
+            \App\Services\NotificationService::notifyTurfVerificationStatus($turf->fresh(['location.user']), $status);
+        }
 
         if (IndianStates::isValid($this->stateCode)) {
             $setting = TurfSetting::firstOrCreate(

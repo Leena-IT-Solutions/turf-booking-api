@@ -4,16 +4,23 @@ namespace App\Services;
 
 use App\Jobs\SendPushNotification;
 use App\Models\Booking;
+use App\Models\CommissionInvoice;
+use App\Models\Coupon;
 use App\Models\DeviceToken;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationLog;
 use App\Models\NotificationSetting;
+use App\Models\Review;
 use App\Models\StaffMember;
+use App\Models\SupportMessage;
 use App\Models\Turf;
 use App\Models\TurfPayout;
 use App\Models\User;
+use App\Notifications\CommissionInvoiceGeneratedNotification;
 use App\Notifications\TurfSubmittedForVerification;
+use App\Notifications\TurfVerificationStatusNotification;
 use App\Support\NotificationEvents;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification as LaravelNotification;
 use Kreait\Firebase\Contract\Messaging;
@@ -511,6 +518,263 @@ class NotificationService
         } else {
             self::recordSkipped($verifierIds, 'admin.turf_submitted', $title, $body, ['turf_id' => (string) $turf->id], NotificationDelivery::STATUS_SKIPPED_DISABLED, 'email');
         }
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Phase 2: Real-Time Event Triggers (Support, Verification, Reviews,
+    | Invoices, Payout Failures, Targeted Offers)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Notify SaaS Admins when a customer or turf owner sends a Support Chat message.
+     */
+    public static function notifySupportMessageToAdmins(SupportMessage $message): void
+    {
+        $adminIds = User::whereHas('roles', fn ($q) => $q->where('name', 'saas-admin'))->pluck('id')->all();
+        if (empty($adminIds)) {
+            return;
+        }
+
+        $senderName = User::find($message->sender_id)?->name ?? 'User';
+        $preview = mb_strimwidth((string) $message->message, 0, 120, '…');
+
+        self::dispatchEventPush(
+            'admin.support_message',
+            $adminIds,
+            'New Support Message 💬',
+            "{$senderName}: {$preview}",
+            ['type' => 'admin_support_message', 'user_id' => (string) $message->user_id]
+        );
+    }
+
+    /**
+     * Notify the customer/owner when a SaaS Admin replies in Support Chat.
+     */
+    public static function notifySupportReplyToUser(SupportMessage $message): void
+    {
+        if (! $message->user_id) {
+            return;
+        }
+
+        $preview = mb_strimwidth((string) $message->message, 0, 120, '…');
+
+        self::dispatchEventPush(
+            'customer.support_reply',
+            [(int) $message->user_id],
+            'New Support Reply 💬',
+            $preview,
+            ['type' => 'support_reply']
+        );
+    }
+
+    /**
+     * Notify the turf owner when their turf verification status changes (Approved / Rejected / Review / Hold).
+     * Supports both Push and Email independently via venue.turf_verification.
+     */
+    public static function notifyTurfVerificationStatus(Turf $turf, string $status): void
+    {
+        $turf->loadMissing(['location.user']);
+        $owner = $turf->location?->user;
+        if (! $owner) {
+            return;
+        }
+
+        $isApproved = $status === 'Approved';
+        $title = $isApproved ? 'Turf Verified & Live! 🎉' : "Turf Verification Update ({$status})";
+        $body = $isApproved
+            ? "Congratulations! {$turf->name} has been approved and is now live for bookings."
+            : "The verification status of {$turf->name} has been updated to {$status}. Please check your dashboard.";
+
+        self::dispatchEventPush(
+            'venue.turf_verification',
+            [$owner->id],
+            $title,
+            $body,
+            ['type' => 'turf_verification', 'turf_id' => (string) $turf->id, 'status' => $status]
+        );
+
+        if (self::isEnabled('venue.turf_verification', 'email')) {
+            try {
+                $owner->notify(new TurfVerificationStatusNotification($turf, $status));
+                self::recordEmailDelivery([$owner->id], 'venue.turf_verification', $title, $body, NotificationDelivery::STATUS_SENT);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send TurfVerificationStatusNotification email: '.$e->getMessage());
+                self::recordEmailDelivery([$owner->id], 'venue.turf_verification', $title, $body, NotificationDelivery::STATUS_FAILED, $e->getMessage());
+            }
+        } else {
+            self::recordSkipped([$owner->id], 'venue.turf_verification', $title, $body, ['turf_id' => (string) $turf->id], NotificationDelivery::STATUS_SKIPPED_DISABLED, 'email');
+        }
+    }
+
+    /**
+     * Notify the turf owner when a customer leaves a review on their turf.
+     */
+    public static function notifyNewReview(Review $review): void
+    {
+        $review->loadMissing(['turf.location', 'user']);
+        $ownerId = $review->turf?->location?->user_id;
+        if (! $ownerId || (int) $ownerId === (int) $review->user_id) {
+            return;
+        }
+
+        $turfName = $review->turf?->name ?? 'your turf';
+        $stars = (int) $review->rating;
+        $reviewerName = $review->user?->name ?? 'A player';
+        $comment = trim((string) ($review->comment ?? ''));
+        $body = $comment !== ''
+            ? "{$reviewerName} rated {$turfName} {$stars}★: \"".mb_strimwidth($comment, 0, 100, '…').'"'
+            : "{$reviewerName} rated {$turfName} {$stars}★.";
+
+        self::dispatchEventPush(
+            'venue.new_review',
+            [(int) $ownerId],
+            "New {$stars}★ Review for {$turfName} ⭐",
+            $body,
+            ['type' => 'new_review', 'turf_id' => (string) $review->turf_id, 'review_id' => (string) $review->id]
+        );
+    }
+
+    /**
+     * Notify the turf owner when a monthly Commission Tax Invoice is generated (Push + Email).
+     */
+    public static function notifyCommissionInvoiceGenerated(CommissionInvoice $invoice): void
+    {
+        $invoice->loadMissing(['turf.location.user']);
+        $owner = $invoice->owner ?? $invoice->turf?->location?->user;
+        if (! $owner) {
+            return;
+        }
+
+        $turfName = $invoice->recipient_snapshot['turf_name'] ?? ($invoice->turf?->name ?? 'Your Turf');
+        $totalFormatted = number_format((float) $invoice->total_amount, 2);
+        $title = 'Commission Tax Invoice Generated 🧾';
+        $body = "Monthly commission tax invoice {$invoice->invoice_number} (₹{$totalFormatted}) for {$turfName} is ready.";
+
+        self::dispatchEventPush(
+            'venue.commission_invoice',
+            [$owner->id],
+            $title,
+            $body,
+            ['type' => 'commission_invoice', 'invoice_id' => (string) $invoice->id]
+        );
+
+        if (self::isEnabled('venue.commission_invoice', 'email')) {
+            try {
+                $owner->notify(new CommissionInvoiceGeneratedNotification($invoice));
+                self::recordEmailDelivery([$owner->id], 'venue.commission_invoice', $title, $body, NotificationDelivery::STATUS_SENT);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send CommissionInvoiceGeneratedNotification email: '.$e->getMessage());
+                self::recordEmailDelivery([$owner->id], 'venue.commission_invoice', $title, $body, NotificationDelivery::STATUS_FAILED, $e->getMessage());
+            }
+        } else {
+            self::recordSkipped([$owner->id], 'venue.commission_invoice', $title, $body, ['invoice_id' => (string) $invoice->id], NotificationDelivery::STATUS_SKIPPED_DISABLED, 'email');
+        }
+    }
+
+    /**
+     * Notify SaaS Admins when an automated RazorpayX payout fails or is reversed.
+     */
+    public static function notifyPayoutFailedToAdmins(TurfPayout $payout, string $reason): void
+    {
+        $adminIds = User::whereHas('roles', fn ($q) => $q->where('name', 'saas-admin'))->pluck('id')->all();
+        if (empty($adminIds)) {
+            return;
+        }
+
+        $reqFormatted = number_format((float) $payout->requested_amount, 2);
+
+        self::dispatchEventPush(
+            'admin.payout_failed',
+            $adminIds,
+            'Payout Failed ⚠️',
+            "RazorpayX payout #{$payout->id} (₹{$reqFormatted}) failed and was reversed. Reason: {$reason}",
+            ['type' => 'admin_payout_failed', 'payout_id' => (string) $payout->id]
+        );
+    }
+
+    /**
+     * Notify targeted players when a coupon is activated on a turf.
+     * Safeguards:
+     * - Only active coupons within valid date window
+     * - Quiet hours check (10:00 PM – 08:00 AM IST): suppressed during quiet hours
+     * - Only players who booked that turf in the last 180 days
+     * - Rate-limited to max 1 offer push per user per 24 hours
+     */
+    public static function notifyNewOffer(Coupon $coupon, ?Carbon $nowIst = null): int
+    {
+        if (! $coupon->is_active) {
+            return 0;
+        }
+
+        $nowIst = ($nowIst ?? Carbon::now('Asia/Kolkata'))->copy()->setTimezone('Asia/Kolkata');
+        $todayStr = $nowIst->toDateString();
+
+        if ($coupon->starts_at && Carbon::parse($coupon->starts_at)->toDateString() > $todayStr) {
+            return 0;
+        }
+        if ($coupon->expires_at && Carbon::parse($coupon->expires_at)->toDateString() < $todayStr) {
+            return 0;
+        }
+
+        // Quiet hours safeguard: no promotional offer push between 10 PM and 8 AM IST
+        $hour = (int) $nowIst->format('G');
+        if ($hour >= 22 || $hour < 8) {
+            return 0;
+        }
+
+        $coupon->loadMissing(['turf']);
+        $turf = $coupon->turf;
+        if (! $turf) {
+            return 0;
+        }
+
+        // Target only customers who booked this turf in the last 180 days
+        $cutoff = $nowIst->copy()->subDays(180);
+        $candidateUserIds = Booking::where('turf_id', $turf->id)
+            ->whereNotNull('user_id')
+            ->where('status', '!=', 'Cancelled')
+            ->where('created_at', '>=', $cutoff)
+            ->distinct()
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        if (empty($candidateUserIds)) {
+            return 0;
+        }
+
+        // Rate limit: exclude users who already received a new_offer push in the last 24 hours
+        $recentlyNotifiedUserIds = NotificationDelivery::whereIn('user_id', $candidateUserIds)
+            ->where('event', 'new_offer')
+            ->where('status', NotificationDelivery::STATUS_SENT)
+            ->where('created_at', '>=', now()->subDay())
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $eligibleUserIds = array_values(array_diff($candidateUserIds, $recentlyNotifiedUserIds));
+        if (empty($eligibleUserIds)) {
+            return 0;
+        }
+
+        $discountLabel = $coupon->discount_type === 'percentage'
+            ? rtrim(rtrim(number_format((float) $coupon->discount_value, 2), '0'), '.').'% off'
+            : '₹'.number_format((float) $coupon->discount_value, 0).' off';
+
+        $title = "New Offer at {$turf->name}! 🎁";
+        $body = "Use coupon code {$coupon->code} to get {$discountLabel} on your next booking at {$turf->name}!";
+
+        self::dispatchEventPush(
+            'customer.new_offer',
+            $eligibleUserIds,
+            $title,
+            $body,
+            ['type' => 'new_offer', 'turf_id' => (string) $turf->id, 'coupon_code' => (string) $coupon->code]
+        );
+
+        return count($eligibleUserIds);
     }
 
     /*

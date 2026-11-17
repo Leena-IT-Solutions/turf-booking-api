@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Models\Booking;
+use App\Models\BookingCancellation;
 use App\Models\CommissionInvoice;
 use App\Models\CommissionWalletTransaction;
 use App\Models\Payment;
@@ -46,7 +46,7 @@ class CommissionInvoiceService
             ->join('booking_cancellations', 'booking_cancellations.id', '=', 'commission_wallet_transactions.reference_id')
             ->join('bookings', 'bookings.id', '=', 'booking_cancellations.booking_id')
             ->where('commission_wallet_transactions.type', 'commission_reversal')
-            ->where('commission_wallet_transactions.reference_type', \App\Models\BookingCancellation::class)
+            ->where('commission_wallet_transactions.reference_type', BookingCancellation::class)
             ->whereBetween('commission_wallet_transactions.created_at', [$startOfMonth, $endOfMonth])
             ->distinct()
             ->pluck('bookings.turf_id');
@@ -91,10 +91,11 @@ class CommissionInvoiceService
         // 2. Query transactions & compute figures
         $summary = $this->calculatePeriodTransactions($startOfMonth, $endOfMonth, $turf->id);
 
-        if (!$summary['has_transactions'] || $summary['total'] <= 0) {
+        if (! $summary['has_transactions'] || $summary['total'] <= 0) {
             if ($summary['has_transactions'] && $summary['total'] <= 0) {
                 \Log::info("Skipping commission invoice for Turf {$turf->id} ({$turf->name}) for {$periodStart}: net total {$summary['total']} <= 0");
             }
+
             return null;
         }
 
@@ -108,7 +109,7 @@ class CommissionInvoiceService
 
         // 7. Snapshots
         $saasSetting = SaasSetting::first();
-        $isGstInvoice = (bool)($saasSetting?->is_gst_billing_active ?? false);
+        $isGstInvoice = (bool) ($saasSetting?->is_gst_billing_active ?? false);
         $supplierSnapshot = [
             'company_name' => $saasSetting?->company_name ?? config('app.name'),
             'company_address' => $saasSetting?->company_address ?? '',
@@ -118,7 +119,7 @@ class CommissionInvoiceService
             'state_code' => $saasSetting?->state_code ?? '27',
             'gst_number' => $saasSetting?->gst_number ?? '',
             'commission_gst_sac' => $saasSetting?->commission_gst_sac ?? '998599',
-            'commission_gst_percentage' => (float)($saasSetting?->commission_gst_percentage ?? 18),
+            'commission_gst_percentage' => (float) ($saasSetting?->commission_gst_percentage ?? 18),
         ];
 
         $turfSetting = $turf->turfSetting ?? TurfSetting::where('turf_id', $turf->id)->first();
@@ -127,11 +128,11 @@ class CommissionInvoiceService
         $addrParts = array_filter([
             $turfSetting?->address,
             $turfSetting?->city,
-            $turfSetting?->pincode ? ('- ' . $turfSetting->pincode) : null,
+            $turfSetting?->pincode ? ('- '.$turfSetting->pincode) : null,
         ]);
-        $recipientAddress = !empty($addrParts) ? implode(', ', $addrParts) : ($turf->location?->address ?? '');
+        $recipientAddress = ! empty($addrParts) ? implode(', ', $addrParts) : ($turf->location?->address ?? '');
 
-        $recipientGstin = ($turfSetting?->is_gst_billing_active && !empty($turfSetting?->gst_number))
+        $recipientGstin = ($turfSetting?->is_gst_billing_active && ! empty($turfSetting?->gst_number))
             ? $turfSetting->gst_number
             : null;
 
@@ -165,7 +166,7 @@ class CommissionInvoiceService
 
                 $invoiceNumber = CommissionInvoice::generateInvoiceNumber($endOfMonth);
 
-                return CommissionInvoice::create([
+                $invoice = CommissionInvoice::create([
                     'invoice_number' => $invoiceNumber,
                     'turf_id' => $turf->id,
                     'owner_user_id' => $turf->location?->user_id,
@@ -185,6 +186,14 @@ class CommissionInvoiceService
                     'generated_at' => now(),
                     'generated_by_user_id' => $generatedBy?->id,
                 ]);
+
+                try {
+                    NotificationService::notifyCommissionInvoiceGenerated($invoice);
+                } catch (\Throwable $e) {
+                    \Log::warning('Failed to send commission invoice notification: '.$e->getMessage());
+                }
+
+                return $invoice;
             });
         } catch (QueryException $e) {
             // Error code 23000: duplicate entry constraint violation
@@ -217,7 +226,7 @@ class CommissionInvoiceService
             ->join('booking_cancellations', 'booking_cancellations.id', '=', 'commission_wallet_transactions.reference_id')
             ->join('bookings', 'bookings.id', '=', 'booking_cancellations.booking_id')
             ->where('commission_wallet_transactions.type', 'commission_reversal')
-            ->where('commission_wallet_transactions.reference_type', \App\Models\BookingCancellation::class)
+            ->where('commission_wallet_transactions.reference_type', BookingCancellation::class)
             ->whereBetween('commission_wallet_transactions.created_at', [$startDate, $endDate]);
 
         if ($turfId) {
@@ -251,10 +260,10 @@ class CommissionInvoiceService
         $payments = Payment::with('booking')->whereIn('id', $paymentIds)->get()->keyBy('id');
 
         $cancellationIds = $reversalTransactions->pluck('reference_id')->unique()->filter();
-        $cancellations = \App\Models\BookingCancellation::with('booking')->whereIn('id', $cancellationIds)->get()->keyBy('id');
+        $cancellations = BookingCancellation::with('booking')->whereIn('id', $cancellationIds)->get()->keyBy('id');
 
         $saasSetting = SaasSetting::first();
-        $isGstInvoice = (bool)($saasSetting?->is_gst_billing_active ?? false);
+        $isGstInvoice = (bool) ($saasSetting?->is_gst_billing_active ?? false);
 
         $lines = [];
         $grossTaxable = 0.0;
@@ -277,12 +286,12 @@ class CommissionInvoiceService
                 $rowTotal = (float) $tx->amount;
 
                 if ($isGstInvoice && $cgstAmt == 0 && $sgstAmt == 0 && $igstAmt == 0 && isset($meta['commission_gst_amount'])) {
-                    $totalGst = (float)$meta['commission_gst_amount'];
+                    $totalGst = (float) $meta['commission_gst_amount'];
                     $cgstAmt = round($totalGst / 2, 2);
                     $sgstAmt = round($totalGst - $cgstAmt, 2);
                 }
 
-                if (!$isGstInvoice) {
+                if (! $isGstInvoice) {
                     $taxable = -$rowTotal;
                     $cgst = 0.00;
                     $sgst = 0.00;
@@ -300,7 +309,7 @@ class CommissionInvoiceService
 
                 $lines[] = [
                     'booking_id' => $booking?->id,
-                    'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
+                    'booking_reference' => $booking?->booking_reference ?? ('#'.($booking?->id ?? 'N/A')),
                     'description' => 'Credit: session cancelled',
                     'charged_at' => $tx->created_at->toDateTimeString(),
                     'booking_amount' => 0.00,
@@ -311,23 +320,24 @@ class CommissionInvoiceService
                     'igst' => $igst,
                     'total' => -$rowTotal,
                 ];
+
                 continue;
             }
 
             $payment = $payments->get($tx->reference_id);
             $booking = $payment?->booking;
-            $ledgerTotal = round(abs((float)$tx->amount), 2);
+            $ledgerTotal = round(abs((float) $tx->amount), 2);
 
-            if (!$isGstInvoice) {
+            if (! $isGstInvoice) {
                 $taxable = $ledgerTotal;
                 $cgst = 0.00;
                 $sgst = 0.00;
                 $igst = 0.00;
             } else {
-                $bTaxable = (float)($booking?->commission_amount ?? 0);
-                $bCgst = (float)($booking?->commission_cgst_amount ?? 0);
-                $bSgst = (float)($booking?->commission_sgst_amount ?? 0);
-                $bIgst = (float)($booking?->commission_igst_amount ?? 0);
+                $bTaxable = (float) ($booking?->commission_amount ?? 0);
+                $bCgst = (float) ($booking?->commission_cgst_amount ?? 0);
+                $bSgst = (float) ($booking?->commission_sgst_amount ?? 0);
+                $bIgst = (float) ($booking?->commission_igst_amount ?? 0);
                 $bSum = round($bTaxable + $bCgst + $bSgst + $bIgst, 2);
 
                 if (abs($bSum - $ledgerTotal) <= 0.01 && $bSum > 0) {
@@ -336,9 +346,9 @@ class CommissionInvoiceService
                     $sgst = $bSgst;
                     $igst = $bIgst;
                 } else {
-                    $taxable = (float)($payment?->commission_amount ?? 0);
-                    $pGst = (float)($payment?->commission_gst_amount ?? 0);
-                    $isInterState = (float)($booking?->commission_igst_amount ?? 0) > 0;
+                    $taxable = (float) ($payment?->commission_amount ?? 0);
+                    $pGst = (float) ($payment?->commission_gst_amount ?? 0);
+                    $isInterState = (float) ($booking?->commission_igst_amount ?? 0) > 0;
                     if ($isInterState) {
                         $igst = $pGst;
                         $cgst = 0.00;
@@ -357,11 +367,11 @@ class CommissionInvoiceService
 
             $lines[] = [
                 'booking_id' => $booking?->id,
-                'booking_reference' => $booking?->booking_reference ?? ('#' . ($booking?->id ?? 'N/A')),
+                'booking_reference' => $booking?->booking_reference ?? ('#'.($booking?->id ?? 'N/A')),
                 'description' => null,
                 'charged_at' => $tx->created_at->toDateTimeString(),
-                'booking_amount' => (float)($booking?->total_amount ?? 0),
-                'commission_rate' => (float)($booking?->commission_rate ?? 0),
+                'booking_amount' => (float) ($booking?->total_amount ?? 0),
+                'commission_rate' => (float) ($booking?->commission_rate ?? 0),
                 'taxable' => $taxable,
                 'cgst' => $cgst,
                 'sgst' => $sgst,

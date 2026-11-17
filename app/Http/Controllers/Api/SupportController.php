@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SupportMessage;
+use App\Services\NotificationService;
 use Illuminate\Http\Request;
 
 class SupportController extends Controller
@@ -47,6 +48,8 @@ class SupportController extends Controller
             'is_read_by_user' => true,
             'is_read_by_admin' => false,
         ]);
+
+        NotificationService::notifySupportMessageToAdmins($message);
 
         return response()->json($message, 201);
     }

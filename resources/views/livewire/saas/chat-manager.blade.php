@@ -30,13 +30,15 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
-        SupportMessage::create([
+        $msg = SupportMessage::create([
             'user_id' => $this->activeCustomerId,
             'sender_id' => auth()->id(),
             'message' => trim($this->replyMessage),
             'is_read_by_user' => false,
             'is_read_by_admin' => true,
         ]);
+
+        \App\Services\NotificationService::notifySupportReplyToUser($msg);
 
         $this->replyMessage = '';
         $this->dispatch('scroll-to-bottom');

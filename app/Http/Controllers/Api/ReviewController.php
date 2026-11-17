@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Turf;
 use App\Models\Review;
-use Illuminate\Http\Request;
+use App\Models\Turf;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class ReviewController extends Controller
 {
@@ -53,6 +54,8 @@ class ReviewController extends Controller
             ]
         );
 
+        NotificationService::notifyNewReview($review);
+
         return response()->json([
             'message' => 'Review submitted successfully.',
             'review' => [
@@ -61,7 +64,7 @@ class ReviewController extends Controller
                 'rating' => $review->rating,
                 'comment' => $review->comment ?? '',
                 'created_at' => $review->created_at ? $review->created_at->diffForHumans() : 'Just now',
-            ]
+            ],
         ]);
     }
 }

@@ -158,10 +158,17 @@ new #[Layout('layouts.app')] class extends Component
 
         if ($this->couponId) {
             $coupon = Coupon::where('turf_id', $activeTurfId)->findOrFail($this->couponId);
+            $wasActive = (bool) $coupon->is_active;
             $coupon->update($data);
+            if (! $wasActive && $coupon->is_active) {
+                \App\Services\NotificationService::notifyNewOffer($coupon->fresh());
+            }
             session()->flash('status', 'Coupon updated successfully.');
         } else {
-            Coupon::create($data);
+            $coupon = Coupon::create($data);
+            if ($coupon->is_active) {
+                \App\Services\NotificationService::notifyNewOffer($coupon);
+            }
             session()->flash('status', 'Coupon created successfully.');
         }
 
@@ -175,7 +182,11 @@ new #[Layout('layouts.app')] class extends Component
         if (!$activeTurfId) return;
 
         $coupon = Coupon::where('turf_id', $activeTurfId)->findOrFail($id);
-        $coupon->update(['is_active' => !$coupon->is_active]);
+        $newState = !$coupon->is_active;
+        $coupon->update(['is_active' => $newState]);
+        if ($newState) {
+            \App\Services\NotificationService::notifyNewOffer($coupon->fresh());
+        }
         session()->flash('status', 'Coupon status updated successfully.');
     }
 

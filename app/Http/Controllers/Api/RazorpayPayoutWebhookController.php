@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\PayoutWebhook;
 use App\Models\SaasSetting;
 use App\Models\TurfPayout;
+use App\Services\NotificationService;
 use App\Services\WalletService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class RazorpayPayoutWebhookController extends Controller
 {
@@ -26,21 +28,21 @@ class RazorpayPayoutWebhookController extends Controller
         // 1. Verify HMAC signature. Without a configured secret anyone could post a fake
         // "payout failed" event and have money credited back while the bank transfer still goes out,
         // so unsigned webhooks are refused outright.
-        if (!$webhookSecret) {
-            \Illuminate\Support\Facades\Log::critical('RazorpayX webhook received but no webhook secret is configured; event rejected.');
+        if (! $webhookSecret) {
+            Log::critical('RazorpayX webhook received but no webhook secret is configured; event rejected.');
+
             return response()->json(['message' => 'Webhook secret not configured'], 503);
         }
-        if (!$signature) {
+        if (! $signature) {
             return response()->json(['message' => 'Missing X-Razorpay-Signature header'], 400);
         }
         $expectedSignature = hash_hmac('sha256', $payload, $webhookSecret);
-        if (!hash_equals($expectedSignature, $signature)) {
+        if (! hash_equals($expectedSignature, $signature)) {
             return response()->json(['message' => 'Invalid webhook signature'], 400);
         }
 
-
         $data = $request->all();
-        $eventId = $request->header('X-Razorpay-Event-Id') ?: ($data['event_id'] ?? null ?: ('evt_' . time() . '_' . uniqid()));
+        $eventId = $request->header('X-Razorpay-Event-Id') ?: ($data['event_id'] ?? null ?: ('evt_'.time().'_'.uniqid()));
         $eventType = $data['event'] ?? null;
 
         // 2. Log & Deduplicate event
@@ -53,7 +55,7 @@ class RazorpayPayoutWebhookController extends Controller
             ]
         );
 
-        if (!$webhookLog->wasRecentlyCreated && $webhookLog->processed) {
+        if (! $webhookLog->wasRecentlyCreated && $webhookLog->processed) {
             return response()->json(['message' => 'Event already processed']);
         }
 
@@ -64,14 +66,16 @@ class RazorpayPayoutWebhookController extends Controller
             $payout = TurfPayout::where('razorpay_payout_id', $razorpayPayoutId)->first();
 
             if ($payout && $payout->mode === 'razorpayx') {
-                $walletService = new WalletService();
+                $walletService = new WalletService;
 
                 if ($eventType === 'payout.processed') {
                     if ($payout->status !== 'completed') {
                         $payout->update([
                             'status' => 'completed',
+                            'utr' => $entity['utr'] ?? $payout->utr,
                             'processed_at' => now(),
                         ]);
+                        NotificationService::notifyPayoutPaid($payout->fresh(), $entity['utr'] ?? $payout->utr);
                     }
                 } elseif (in_array($eventType, ['payout.failed', 'payout.reversed', 'payout.rejected'])) {
                     if ($payout->status === 'processing' || $payout->status === 'pending') {
@@ -83,7 +87,10 @@ class RazorpayPayoutWebhookController extends Controller
                         ]);
 
                         // Reversals: Credit full requested amount back to turf admin wallet
-                        $walletService->applyDelta($payout->user, (float)$payout->requested_amount, 'payout_reversal', $payout);
+                        $walletService->applyDelta($payout->user, (float) $payout->requested_amount, 'payout_reversal', $payout);
+
+                        NotificationService::notifyPayoutRejected($payout->fresh(), $failureReason);
+                        NotificationService::notifyPayoutFailedToAdmins($payout->fresh(), $failureReason);
                     }
                 }
             }

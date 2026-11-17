@@ -23,12 +23,11 @@ class BookingCancellationService
      * Frees slots, updates date/booking status, creates cancellation records
      * with refund_status = 'Pending Resolution'.
      *
-     * @param  Booking  $booking
-     * @param  array    $bookingDateIds  IDs of BookingDate records to cancel
-     * @param  User     $cancelledBy     The user initiating cancellation
-     * @param  string   $reason          Cancellation reason
-     * @param  bool     $isAdmin         Whether the canceller is turf admin (bypasses cutoff)
-     * @return array    ['success' => bool, 'message' => string, 'cancellations' => Collection]
+     * @param  array  $bookingDateIds  IDs of BookingDate records to cancel
+     * @param  User  $cancelledBy  The user initiating cancellation
+     * @param  string  $reason  Cancellation reason
+     * @param  bool  $isAdmin  Whether the canceller is turf admin (bypasses cutoff)
+     * @return array ['success' => bool, 'message' => string, 'cancellations' => Collection]
      */
     public function cancelBookingDates(
         Booking $booking,
@@ -44,15 +43,15 @@ class BookingCancellationService
         $turf = $booking->turf;
 
         // Customer-initiated: enforce turf cancellation settings
-        if (!$isAdmin) {
-            if (!$turf || !$turf->is_cancellation_active) {
+        if (! $isAdmin) {
+            if (! $turf || ! $turf->is_cancellation_active) {
                 return ['success' => false, 'message' => 'Cancellation is not allowed for this turf.'];
             }
         }
 
         // Get targeted dates
         $targetedDatesQuery = $booking->bookingDates()->where('status', '!=', 'Cancelled');
-        if (!empty($bookingDateIds)) {
+        if (! empty($bookingDateIds)) {
             $targetedDatesQuery->whereIn('id', $bookingDateIds);
         }
         $targetedDates = $targetedDatesQuery->get();
@@ -62,7 +61,7 @@ class BookingCancellationService
         }
 
         // Customer-initiated: enforce cutoff hours
-        if (!$isAdmin) {
+        if (! $isAdmin) {
             $cancellationHours = (int) $turf->cancellation_hours;
             $now = Carbon::now('Asia/Kolkata');
 
@@ -73,7 +72,7 @@ class BookingCancellationService
                 foreach ($bDate->bookingSlots as $bSlot) {
                     $slot = $bSlot->slot;
                     if ($slot && $slot->from_time) {
-                        $dt = Carbon::parse($bDate->booking_date . ' ' . $slot->from_time, 'Asia/Kolkata');
+                        $dt = Carbon::parse($bDate->booking_date.' '.$slot->from_time, 'Asia/Kolkata');
                         if ($earliestStart === null || $dt->lt($earliestStart)) {
                             $earliestStart = $dt;
                         }
@@ -115,7 +114,7 @@ class BookingCancellationService
                 $payments = Payment::where('booking_date_id', $bDate->id)
                     ->where('status', 'Success')
                     ->get();
-                $datePaidSum = (float) $payments->sum(fn($p) => max(0.0, (float) $p->amount - (float) $p->refunded_amount));
+                $datePaidSum = (float) $payments->sum(fn ($p) => max(0.0, (float) $p->amount - (float) $p->refunded_amount));
 
                 if ($payments->isEmpty() && $datePaidSum <= 0 && $booking->payment_status === 'Paid') {
                     $datePaidSum = (float) $bDate->amount;
@@ -125,7 +124,7 @@ class BookingCancellationService
                 $datePlatformFee = ($allActiveDatesCount > 0) ? round($totalBookingPlatformFee / $allActiveDatesCount, 2) : 0.00;
                 $datePlatformFee = min($datePaidSum, $datePlatformFee);
 
-                $feeBreakdown = (new \App\Services\CancellationFeeCalculator())->calculate($turf, $bDate, $datePaidSum, $datePlatformFee);
+                $feeBreakdown = (new CancellationFeeCalculator)->calculate($turf, $bDate, $datePaidSum, $datePlatformFee);
                 $saasFee = $feeBreakdown['saas_fee'];
                 $turfFee = $feeBreakdown['turf_fee'];
                 $standardTotalFee = $feeBreakdown['total_deductions'];
@@ -173,7 +172,7 @@ class BookingCancellationService
                 ]);
 
                 // Reverse deducted commission and gateway fees for the cancelled session back to the owner
-                $walletService = new \App\Services\WalletService();
+                $walletService = new WalletService;
                 $walletService->reverseDeductionsForCancellation($cancellation);
 
                 $createdCancellations[] = $cancellation;
@@ -190,7 +189,7 @@ class BookingCancellationService
                 // Refund is resolved later (Pending Resolution), so no refund amount here.
                 NotificationService::notifyBookingCancelled($booking->fresh(), $totalDatesCancelledNow, 0.0);
             } catch (\Exception $e) {
-                Log::warning('Cancellation notification failed: ' . $e->getMessage());
+                Log::warning('Cancellation notification failed: '.$e->getMessage());
             }
 
             return [
@@ -200,21 +199,20 @@ class BookingCancellationService
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('BookingCancellationService::cancelBookingDates failed: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Cancellation failed: ' . $e->getMessage()];
+            Log::error('BookingCancellationService::cancelBookingDates failed: '.$e->getMessage());
+
+            return ['success' => false, 'message' => 'Cancellation failed: '.$e->getMessage()];
         }
     }
 
     /**
      * Phase 2: Resolve refund for a cancellation record.
      *
-     * @param  BookingCancellation  $cancellation
-     * @param  string  $resolutionMode       standard_policy|full_compensation|custom|no_refund
+     * @param  string  $resolutionMode  standard_policy|full_compensation|custom|no_refund
      * @param  string  $disbursementChannel  online_gateway|offline
-     * @param  User    $resolvedBy
-     * @param  float|null  $customAmount     Required when resolutionMode = 'custom'
-     * @param  string|null $offlineReference  Reference note for offline settlements
-     * @return array   ['success' => bool, 'message' => string]
+     * @param  float|null  $customAmount  Required when resolutionMode = 'custom'
+     * @param  string|null  $offlineReference  Reference note for offline settlements
+     * @return array ['success' => bool, 'message' => string]
      */
     public function resolveRefund(
         BookingCancellation $cancellation,
@@ -224,7 +222,7 @@ class BookingCancellationService
         ?float $customAmount = null,
         ?string $offlineReference = null
     ): array {
-        if (!in_array($cancellation->refund_status, ['Pending Resolution', 'Pending'])) {
+        if (! in_array($cancellation->refund_status, ['Pending Resolution', 'Pending'])) {
             return ['success' => false, 'message' => 'This cancellation has already been resolved.'];
         }
 
@@ -276,7 +274,8 @@ class BookingCancellationService
                     $razorpayRefundId = $refundResult['razorpay_refund_id'];
                 } else {
                     DB::rollBack();
-                    return ['success' => false, 'message' => 'Gateway refund failed: ' . $refundResult['message']];
+
+                    return ['success' => false, 'message' => 'Gateway refund failed: '.$refundResult['message']];
                 }
             }
 
@@ -290,7 +289,7 @@ class BookingCancellationService
 
             // Update the cancellation record
             $refundGst = $bDate
-                ? (new \App\Services\CancellationFeeCalculator())->refundGstBreakup($bDate, $finalRefund)
+                ? (new CancellationFeeCalculator)->refundGstBreakup($bDate, $finalRefund)
                 : ['taxable' => $finalRefund, 'gst' => 0.00, 'cgst' => 0.00, 'sgst' => 0.00];
 
             $cancellation->update([
@@ -330,6 +329,18 @@ class BookingCancellationService
 
             DB::commit();
 
+            if ($finalRefund > 0) {
+                try {
+                    NotificationService::notifyRefundProcessed(
+                        $booking->fresh(),
+                        (float) $finalRefund,
+                        $disbursementChannel === 'offline' ? 'offline settlement' : 'payment gateway'
+                    );
+                } catch (\Throwable $e) {
+                    Log::warning('Refund processed notification failed: '.$e->getMessage());
+                }
+            }
+
             $modeLabels = [
                 'full_compensation' => 'Full Compensation',
                 'standard_policy' => 'Standard Policy',
@@ -339,13 +350,14 @@ class BookingCancellationService
 
             return [
                 'success' => true,
-                'message' => "Refund resolved as '{$modeLabels[$resolutionMode]}'. " .
-                    ($finalRefund > 0 ? "₹" . number_format($finalRefund, 2) . " refund processed via " . ($disbursementChannel === 'offline' ? 'offline settlement' : 'payment gateway') . "." : "No refund issued."),
+                'message' => "Refund resolved as '{$modeLabels[$resolutionMode]}'. ".
+                    ($finalRefund > 0 ? '₹'.number_format($finalRefund, 2).' refund processed via '.($disbursementChannel === 'offline' ? 'offline settlement' : 'payment gateway').'.' : 'No refund issued.'),
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('BookingCancellationService::resolveRefund failed: ' . $e->getMessage());
-            return ['success' => false, 'message' => 'Refund resolution failed: ' . $e->getMessage()];
+            Log::error('BookingCancellationService::resolveRefund failed: '.$e->getMessage());
+
+            return ['success' => false, 'message' => 'Refund resolution failed: '.$e->getMessage()];
         }
     }
 
@@ -362,12 +374,12 @@ class BookingCancellationService
         $razorpayKey = $razorpayKey ?: ($saas?->razorpay_key ?: config('services.razorpay.key'));
         $razorpaySecret = $razorpaySecret ?: ($saas?->razorpay_secret ?: config('services.razorpay.secret'));
 
-        if (!$razorpayKey || !$razorpaySecret) {
+        if (! $razorpayKey || ! $razorpaySecret) {
             return ['success' => false, 'message' => 'Payment gateway keys not configured.', 'razorpay_refund_id' => null, 'payload' => null];
         }
 
         $gateway = PaymentGateway::where('payment_id', $payment->id)->first();
-        if (!$gateway || $gateway->gateway_name !== 'razorpay' || !$gateway->gateway_payment_id) {
+        if (! $gateway || $gateway->gateway_name !== 'razorpay' || ! $gateway->gateway_payment_id) {
             return ['success' => false, 'message' => 'Payment gateway record not found or not Razorpay.', 'razorpay_refund_id' => null, 'payload' => null];
         }
 
@@ -410,11 +422,13 @@ class BookingCancellationService
             } else {
                 $errBody = $response->json();
                 $gateway->update(['refund_response_payload' => $errBody]);
-                Log::error('Razorpay refund failed: ' . json_encode($errBody));
+                Log::error('Razorpay refund failed: '.json_encode($errBody));
+
                 return ['success' => false, 'message' => $errBody['error']['description'] ?? 'Gateway refund failed.', 'razorpay_refund_id' => null, 'payload' => $errBody];
             }
         } catch (\Exception $e) {
-            Log::error('Razorpay refund exception: ' . $e->getMessage());
+            Log::error('Razorpay refund exception: '.$e->getMessage());
+
             return ['success' => false, 'message' => $e->getMessage(), 'razorpay_refund_id' => null, 'payload' => null];
         }
     }
@@ -424,7 +438,7 @@ class BookingCancellationService
      */
     private function processGatewayRefund(Booking $booking, ?BookingDate $bDate, float $refundAmount): array
     {
-        if (!$bDate) {
+        if (! $bDate) {
             return ['success' => false, 'message' => 'No booking date associated.', 'razorpay_refund_id' => null];
         }
 
@@ -432,7 +446,7 @@ class BookingCancellationService
         $razorpayKey = $saas?->razorpay_key ?: config('services.razorpay.key');
         $razorpaySecret = $saas?->razorpay_secret ?: config('services.razorpay.secret');
 
-        if (!$razorpayKey || !$razorpaySecret) {
+        if (! $razorpayKey || ! $razorpaySecret) {
             return ['success' => false, 'message' => 'Payment gateway keys not configured.', 'razorpay_refund_id' => null];
         }
 
@@ -450,14 +464,18 @@ class BookingCancellationService
         $lastRefundId = null;
 
         foreach ($successfulPayments as $payment) {
-            if ($remainingToRefund <= 0) break;
+            if ($remainingToRefund <= 0) {
+                break;
+            }
 
             $refundable = max(0.0, (float) $payment->amount - (float) $payment->refunded_amount);
-            if ($refundable <= 0) continue;
+            if ($refundable <= 0) {
+                continue;
+            }
 
             $paymentRefund = min($refundable, $remainingToRefund);
             $res = self::refundSinglePayment($payment, $paymentRefund, $razorpayKey, $razorpaySecret);
-            if (!$res['success']) {
+            if (! $res['success']) {
                 return $res;
             }
 
@@ -495,12 +513,11 @@ class BookingCancellationService
         $cancelledAt = Carbon::now('Asia/Kolkata');
         $turfAdminOwner = $booking->turf->location->user ?? null;
 
-
         foreach ($successfulPayments as $payment) {
             $refundable = max(0.0, (float) $payment->amount - (float) $payment->refunded_amount);
             $isOnline = ($payment->payment_method === 'App');
 
-            if ($remainingRefund <= 0 && (!$isOnline || $remainingPlatformFeeToDeduct <= 0)) {
+            if ($remainingRefund <= 0 && (! $isOnline || $remainingPlatformFeeToDeduct <= 0)) {
                 continue;
             }
 
@@ -516,6 +533,7 @@ class BookingCancellationService
                     'refunded_at' => $cancelledAt,
                 ]);
                 $remainingRefund -= $paymentRefund;
+
                 continue;
             }
 
@@ -537,7 +555,7 @@ class BookingCancellationService
                 if ($payment->wallet_cleared_at) {
                     if ($paymentRefund > 0) {
                         $reversalAmount = -round($paymentRefund, 2);
-                        $walletService = new WalletService();
+                        $walletService = new WalletService;
                         $walletService->applyDelta($turfAdminOwner, $reversalAmount, 'refund_adjustment', $payment);
 
                         $newPayoutAmount = max(0.00, round(((float) $payment->turf_payout_amount) - $paymentRefund, 2));
@@ -574,9 +592,9 @@ class BookingCancellationService
                 ->where('reference_id', $cancellation->id)
                 ->exists();
 
-            if (!$alreadyDebited) {
+            if (! $alreadyDebited) {
                 $bookingDisplayId = $booking->booking_id ?? $booking->id;
-                $walletService = new WalletService();
+                $walletService = new WalletService;
                 $walletService->applyDelta(
                     $turfAdminOwner,
                     -$cashFeeToDebit,
