@@ -216,4 +216,21 @@ class NotificationSettingsMatrixTest extends TestCase
         $component->call('sendTestPush', 'customer.booking_created');
         Bus::assertDispatched(SendPushNotification::class, fn ($job) => $job->event === 'test.customer.booking_created' && $job->userIds === [$admin->id]);
     }
+
+    public function test_user_can_toggle_promo_notification_preferences_via_api(): void
+    {
+        $user = User::factory()->create(['promo_notifications_enabled' => true]);
+
+        $this->actingAs($user, 'sanctum')
+            ->patchJson('/api/user/notification-preferences', ['promo_notifications_enabled' => false])
+            ->assertOk()
+            ->assertJsonPath('promo_notifications_enabled', false);
+
+        $this->assertFalse((bool) $user->fresh()->promo_notifications_enabled);
+
+        $this->actingAs($user, 'sanctum')
+            ->getJson('/api/user')
+            ->assertOk()
+            ->assertJsonPath('promo_notifications_enabled', false);
+    }
 }

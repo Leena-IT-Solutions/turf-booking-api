@@ -1,29 +1,38 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\BookingInvoiceController;
+use App\Http\Controllers\Api\BookingRescheduleController;
+use App\Http\Controllers\Api\RazorpayPayoutWebhookController;
+use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\SliderImageController;
 use App\Http\Controllers\Api\SupportController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\TurfController;
+use App\Http\Controllers\Api\WhatsAppWebhookController;
+use App\Models\SaasSetting;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
-Route::match(['get', 'post'], '/whatsapp/webhook', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'handle']);
-Route::post('/razorpay/payout-webhook', [\App\Http\Controllers\Api\RazorpayPayoutWebhookController::class, 'handle']);
+Route::match(['get', 'post'], '/whatsapp/webhook', [WhatsAppWebhookController::class, 'handle']);
+Route::post('/razorpay/payout-webhook', [RazorpayPayoutWebhookController::class, 'handle']);
 
 Route::post('/send-whatsapp-otp', [AuthController::class, 'sendWhatsAppOtp'])->middleware('throttle:5,1');
 Route::post('/verify-whatsapp-otp', [AuthController::class, 'verifyWhatsAppOtp']);
 Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-Route::get('/slider-images', [\App\Http\Controllers\Api\SliderImageController::class, 'index']);
-Route::get('/turfs', [\App\Http\Controllers\Api\TurfController::class, 'index']);
-Route::get('/turfs/by-code/{code}', [\App\Http\Controllers\Api\TurfController::class, 'showByCode']);
-Route::get('/turfs/{turf}', [\App\Http\Controllers\Api\TurfController::class, 'show']);
-Route::get('/turfs/{turf}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'index']);
-Route::get('/turfs/{turf}/slots', [\App\Http\Controllers\Api\BookingController::class, 'getSlots']);
-Route::get('/turfs/{turf}/coupons', [\App\Http\Controllers\Api\BookingController::class, 'getCoupons']);
+Route::get('/slider-images', [SliderImageController::class, 'index']);
+Route::get('/turfs', [TurfController::class, 'index']);
+Route::get('/turfs/by-code/{code}', [TurfController::class, 'showByCode']);
+Route::get('/turfs/{turf}', [TurfController::class, 'show']);
+Route::get('/turfs/{turf}/reviews', [ReviewController::class, 'index']);
+Route::get('/turfs/{turf}/slots', [BookingController::class, 'getSlots']);
+Route::get('/turfs/{turf}/coupons', [BookingController::class, 'getCoupons']);
 Route::get('/config', function () {
-    $setting = \App\Models\SaasSetting::first();
+    $setting = SaasSetting::first();
+
     return response()->json([
         'app_name' => $setting?->app_name ?? 'TurfBooking',
         'google_maps_api_key' => $setting?->google_maps_api_key,
@@ -78,31 +87,32 @@ Route::get('/policies', function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'me']);
-    Route::post('/qr/attribution', [\App\Http\Controllers\Api\TurfController::class, 'recordQrAttribution']);
+    Route::post('/qr/attribution', [TurfController::class, 'recordQrAttribution']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::put('/user/profile', [AuthController::class, 'updateProfile']);
     Route::put('/user/password', [AuthController::class, 'changePassword']);
     Route::delete('/user', [AuthController::class, 'deleteAccount']);
     Route::get('/support/messages', [SupportController::class, 'index']);
     Route::post('/support/messages', [SupportController::class, 'store']);
-    Route::post('/turfs/{turf}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
-    Route::post('/turfs/{turf}/bookings', [\App\Http\Controllers\Api\BookingController::class, 'store']);
-    Route::post('/turfs/{turf}/bookings/order', [\App\Http\Controllers\Api\BookingController::class, 'createRazorpayOrder']);
-    Route::post('/turfs/{turf}/bookings/preview', [\App\Http\Controllers\Api\BookingController::class, 'preview']);
-    Route::post('/coupons/verify', [\App\Http\Controllers\Api\BookingController::class, 'verifyCoupon']);
-    Route::get('/bookings', [\App\Http\Controllers\Api\BookingController::class, 'index']);
+    Route::post('/turfs/{turf}/reviews', [ReviewController::class, 'store']);
+    Route::post('/turfs/{turf}/bookings', [BookingController::class, 'store']);
+    Route::post('/turfs/{turf}/bookings/order', [BookingController::class, 'createRazorpayOrder']);
+    Route::post('/turfs/{turf}/bookings/preview', [BookingController::class, 'preview']);
+    Route::post('/coupons/verify', [BookingController::class, 'verifyCoupon']);
+    Route::get('/bookings', [BookingController::class, 'index']);
     Route::get('/users/search', [AuthController::class, 'searchUsers']);
     Route::post('/users/quick-create', [AuthController::class, 'quickCreateUser']);
-    Route::get('/dashboard/stats', [\App\Http\Controllers\Api\BookingController::class, 'getDashboardStats']);
-    Route::post('/booking-dates/{bookingDate}/payments', [\App\Http\Controllers\Api\BookingController::class, 'recordPayment']);
-    Route::post('/bookings/{booking}/cancel', [\App\Http\Controllers\Api\BookingController::class, 'cancel']);
-    Route::get('/bookings/{booking}/invoice', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'show']);
-    Route::get('/bookings/{booking}/invoice/signed-url', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'signedUrl']);
+    Route::get('/dashboard/stats', [BookingController::class, 'getDashboardStats']);
+    Route::post('/booking-dates/{bookingDate}/payments', [BookingController::class, 'recordPayment']);
+    Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel']);
+    Route::get('/bookings/{booking}/invoice', [BookingInvoiceController::class, 'show']);
+    Route::get('/bookings/{booking}/invoice/signed-url', [BookingInvoiceController::class, 'signedUrl']);
     // Booking Reschedule endpoints (staff-only)
-    Route::get('/booking-dates/{bookingDate}/reschedule/slots', [\App\Http\Controllers\Api\BookingRescheduleController::class, 'slots']);
-    Route::post('/booking-dates/{bookingDate}/reschedule/preview', [\App\Http\Controllers\Api\BookingRescheduleController::class, 'preview']);
-    Route::post('/booking-dates/{bookingDate}/reschedule', [\App\Http\Controllers\Api\BookingRescheduleController::class, 'reschedule']);
+    Route::get('/booking-dates/{bookingDate}/reschedule/slots', [BookingRescheduleController::class, 'slots']);
+    Route::post('/booking-dates/{bookingDate}/reschedule/preview', [BookingRescheduleController::class, 'preview']);
+    Route::post('/booking-dates/{bookingDate}/reschedule', [BookingRescheduleController::class, 'reschedule']);
 
     Route::post('/user/device-token', [AuthController::class, 'storeDeviceToken']);
     Route::delete('/user/device-token', [AuthController::class, 'destroyDeviceToken']);
+    Route::patch('/user/notification-preferences', [AuthController::class, 'updateNotificationPreferences']);
 });

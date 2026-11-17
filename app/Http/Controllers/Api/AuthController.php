@@ -83,6 +83,7 @@ class AuthController extends Controller
             'manageable_turf_ids' => $user->manageableTurfs()->pluck('turfs.id')->toArray(),
             'trial_ends_at' => $user->trial_ends_at?->toIso8601String(),
             'on_trial' => $user->onTrial(),
+            'promo_notifications_enabled' => (bool) ($user->promo_notifications_enabled ?? true),
         ]);
     }
 
@@ -647,6 +648,26 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Device token deleted successfully.',
+        ]);
+    }
+
+    /**
+     * Update user promotional notification preferences (offers & match reminders).
+     */
+    public function updateNotificationPreferences(Request $request)
+    {
+        $validated = $request->validate([
+            'promo_notifications_enabled' => 'required|boolean',
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'promo_notifications_enabled' => (bool) $validated['promo_notifications_enabled'],
+        ]);
+
+        return response()->json([
+            'message' => 'Notification preferences updated.',
+            'promo_notifications_enabled' => (bool) $user->promo_notifications_enabled,
         ]);
     }
 }
