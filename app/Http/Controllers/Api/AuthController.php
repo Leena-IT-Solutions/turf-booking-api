@@ -609,10 +609,18 @@ class AuthController extends Controller
         ]);
 
         $user = auth()->user();
+        $token = $request->input('device_token');
+
+        // A physical device belongs to whoever is logged in on it now. Detach the
+        // token from any previous user so they stop receiving this user's alerts
+        // (and vice versa) on a shared phone.
+        DeviceToken::where('device_token', $token)
+            ->where('user_id', '!=', $user->id)
+            ->delete();
 
         DeviceToken::updateOrCreate([
             'user_id' => $user->id,
-            'device_token' => $request->input('device_token'),
+            'device_token' => $token,
         ], [
             'device_type' => $request->input('device_type', 'android'),
         ]);

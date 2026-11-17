@@ -187,7 +187,8 @@ class BookingCancellationService
 
             // Send notification
             try {
-                NotificationService::notifyBookingCancelled($booking->fresh());
+                // Refund is resolved later (Pending Resolution), so no refund amount here.
+                NotificationService::notifyBookingCancelled($booking->fresh(), $totalDatesCancelledNow, 0.0);
             } catch (\Exception $e) {
                 Log::warning('Cancellation notification failed: ' . $e->getMessage());
             }

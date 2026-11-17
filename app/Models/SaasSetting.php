@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SaasSetting extends Model
 {
@@ -93,4 +94,43 @@ class SaasSetting extends Model
         'booking_gst_percentage' => 'float',
     ];
 
+    public const CACHE_KEY = 'saas_settings.current';
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => static::forgetCache());
+        static::deleted(fn () => static::forgetCache());
+    }
+
+    /**
+     * Cached settings row for hot paths (e.g. notification checks).
+     * Cleared automatically whenever the settings row is saved or deleted.
+     */
+    public static function cached(): ?self
+    {
+        try {
+            $attributes = Cache::rememberForever(self::CACHE_KEY, function () {
+                return static::query()->first()?->getAttributes();
+            });
+        } catch (\Throwable $e) {
+            return static::query()->first();
+        }
+
+        if (! $attributes) {
+            Cache::forget(self::CACHE_KEY);
+
+            return null;
+        }
+
+        return (new static)->newFromBuilder($attributes);
+    }
+
+    public static function forgetCache(): void
+    {
+        try {
+            Cache::forget(self::CACHE_KEY);
+        } catch (\Throwable $e) {
+            // Cache store unavailable; nothing to clear.
+        }
+    }
 }

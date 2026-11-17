@@ -2058,7 +2058,7 @@ class BookingController extends Controller
         $feeMsg = $totalFeeAppliedNow > 0 ? " Cancellation fee of ₹" . number_format($totalFeeAppliedNow, 2) . " applied." : "";
         $refundMsg = $totalRefundProcessedNow > 0 ? " Refund of ₹" . number_format($totalRefundProcessedNow, 2) . " processed to original payment method." : " No refund applicable.";
 
-        \App\Services\NotificationService::notifyBookingCancelled($booking);
+        \App\Services\NotificationService::notifyBookingCancelled($booking, $totalDatesCancelledNow, (float) $totalRefundProcessedNow);
 
         return response()->json([
             'message' => "Successfully cancelled $totalDatesCancelledNow booking date(s)." . $feeMsg . $refundMsg,
