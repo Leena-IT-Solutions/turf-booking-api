@@ -240,7 +240,7 @@ new #[Layout('layouts.app')] class extends Component
             $s = trim($this->search);
             $query->where(function ($q) use ($s) {
                 $q->whereHas('booking', function ($bq) use ($s) {
-                    $bq->where('booking_reference', 'like', "%{$s}%")
+                    $bq->where('booking_number', 'like', "%{$s}%")
                        ->orWhere('id', 'like', "%{$s}%")
                        ->orWhereHas('user', function ($uq) use ($s) {
                            $uq->where('name', 'like', "%{$s}%")

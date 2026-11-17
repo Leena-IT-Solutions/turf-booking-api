@@ -51,6 +51,8 @@ class SupportController extends Controller
 
         NotificationService::notifySupportMessageToAdmins($message);
 
+        NotificationService::notifySupportMessageToAdmins($message);
+
         return response()->json($message, 201);
     }
 }

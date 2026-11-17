@@ -542,7 +542,9 @@ new #[Layout('layouts.app')] class extends Component
                 $search = trim($this->search);
                 $query->where(function ($q) use ($search) {
                     $q->where('id', 'LIKE', "%{$search}%")
-                      ->orWhere('booking_reference', 'LIKE', "%{$search}%")
+                      ->orWhere('booking_number', 'LIKE', "%{$search}%")
+                      ->orWhere('turf_invoice_number', 'LIKE', "%{$search}%")
+                      ->orWhere('saas_invoice_number', 'LIKE', "%{$search}%")
                       ->orWhereHas('user', function ($uq) use ($search) {
                           $uq->where('name', 'LIKE', "%{$search}%")
                             ->orWhere('email', 'LIKE', "%{$search}%")

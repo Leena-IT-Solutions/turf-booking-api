@@ -207,4 +207,26 @@ class NotificationFoundationTest extends TestCase
         $this->assertDatabaseMissing('device_tokens', ['user_id' => $previous->id, 'device_token' => 'shared-phone']);
         $this->assertDatabaseHas('device_tokens', ['user_id' => $current->id, 'device_token' => 'shared-phone']);
     }
+
+    public function test_turf_bookings_search_by_booking_number_succeeds(): void
+    {
+        $owner = User::factory()->create();
+        $owner->assignRole('turf-admin');
+        $customer = User::factory()->create();
+        $turf = $this->makeTurfFor($owner, 'Search Arena');
+
+        Booking::forceCreate([
+            'user_id' => $customer->id,
+            'turf_id' => $turf->id,
+            'status' => 'Confirmed',
+            'date_of_booking' => now(),
+            'booking_number' => 'TB-202611-00004',
+        ]);
+
+        $this->actingAs($owner)
+            ->withSession(['active_turf_id' => $turf->id])
+            ->get('/turf/bookings?search=TB-202611-00004')
+            ->assertOk()
+            ->assertSee('TB-202611-00004');
+    }
 }

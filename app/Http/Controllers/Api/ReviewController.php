@@ -56,6 +56,8 @@ class ReviewController extends Controller
 
         NotificationService::notifyNewReview($review);
 
+        NotificationService::notifyNewReview($review);
+
         return response()->json([
             'message' => 'Review submitted successfully.',
             'review' => [

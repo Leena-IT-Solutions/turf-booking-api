@@ -191,10 +191,10 @@ new #[Layout('layouts.app')] class extends Component
         if ($this->search !== '' && $this->activeTab === 'bookings') {
             $term = '%' . $this->search . '%';
             $bookingsQuery->where(function ($q) use ($term) {
-                $q->where('booking_reference', 'like', $term)
+                $q->where('booking_number', 'like', $term)
                   ->orWhere('id', 'like', $term)
                   ->orWhereHas('user', function ($uq) use ($term) {
-                      $uq->where('name', 'like', $term)->orWhere('phone', 'like', $term);
+                      $uq->where('name', 'like', $term)->orWhere('mobile', 'like', $term)->orWhere('email', 'like', $term);
                   })
                   ->orWhereHas('turf', function ($tq) use ($term) {
                       $tq->where('name', 'like', $term);
@@ -220,7 +220,7 @@ new #[Layout('layouts.app')] class extends Component
             $cancellationsQuery->where(function ($q) use ($term) {
                 $q->where('reason', 'like', $term)
                   ->orWhereHas('booking', function ($bq) use ($term) {
-                      $bq->where('booking_reference', 'like', $term)
+                      $bq->where('booking_number', 'like', $term)
                          ->orWhere('id', 'like', $term);
                   })
                   ->orWhereHas('booking.turf', function ($tq) use ($term) {

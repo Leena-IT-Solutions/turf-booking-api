@@ -76,6 +76,7 @@ class RazorpayPayoutWebhookController extends Controller
                             'processed_at' => now(),
                         ]);
                         NotificationService::notifyPayoutPaid($payout->fresh(), $entity['utr'] ?? $payout->utr);
+                        NotificationService::notifyPayoutPaid($payout->fresh(), $entity['utr'] ?? $payout->utr);
                     }
                 } elseif (in_array($eventType, ['payout.failed', 'payout.reversed', 'payout.rejected'])) {
                     if ($payout->status === 'processing' || $payout->status === 'pending') {
@@ -88,6 +89,9 @@ class RazorpayPayoutWebhookController extends Controller
 
                         // Reversals: Credit full requested amount back to turf admin wallet
                         $walletService->applyDelta($payout->user, (float) $payout->requested_amount, 'payout_reversal', $payout);
+
+                        NotificationService::notifyPayoutRejected($payout->fresh(), $failureReason);
+                        NotificationService::notifyPayoutFailedToAdmins($payout->fresh(), $failureReason);
 
                         NotificationService::notifyPayoutRejected($payout->fresh(), $failureReason);
                         NotificationService::notifyPayoutFailedToAdmins($payout->fresh(), $failureReason);
