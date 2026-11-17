@@ -40,6 +40,7 @@ class BookingDate extends Model
         'refund_amount',
         'refund_status',
         'refunded_at',
+        'reminder_sent_at',
     ];
 
     protected $casts = [
@@ -69,6 +70,7 @@ class BookingDate extends Model
         'cancellation_fee_applied' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'refunded_at' => 'datetime',
+        'reminder_sent_at' => 'datetime',
     ];
 
     public function booking()

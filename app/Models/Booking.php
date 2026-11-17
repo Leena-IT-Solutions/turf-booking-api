@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -60,6 +61,7 @@ class Booking extends Model
         'refund_amount',
         'refund_status',
         'refunded_at',
+        'review_prompt_sent_at',
     ];
 
     protected $casts = [
@@ -99,6 +101,7 @@ class Booking extends Model
         'cancellation_fee_applied' => 'decimal:2',
         'refund_amount' => 'decimal:2',
         'refunded_at' => 'datetime',
+        'review_prompt_sent_at' => 'datetime',
     ];
 
     protected static function booted()
@@ -115,7 +118,7 @@ class Booking extends Model
      */
     public static function generateBookingNumber(): string
     {
-        $prefix = 'TB-' . now()->format('Ym') . '-';
+        $prefix = 'TB-'.now()->format('Ym').'-';
         $last = static::where('booking_number', 'like', "{$prefix}%")
             ->orderByDesc('id')
             ->first();
@@ -126,17 +129,17 @@ class Booking extends Model
             $seq = 1;
         }
 
-        return $prefix . str_pad((string)$seq, 5, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
     }
 
     /**
      * Get Indian Financial Year format (e.g. April 2025 to March 2026 -> '2526')
      */
-    public static function getFinancialYearString(?\Carbon\Carbon $date = null): string
+    public static function getFinancialYearString(?Carbon $date = null): string
     {
         $d = $date ?: now();
-        $year = (int)$d->format('Y');
-        $month = (int)$d->format('n');
+        $year = (int) $d->format('Y');
+        $month = (int) $d->format('n');
 
         if ($month >= 4) {
             $fyStart = $year;
@@ -146,7 +149,7 @@ class Booking extends Model
             $fyEnd = $year;
         }
 
-        return substr((string)$fyStart, -2) . substr((string)$fyEnd, -2);
+        return substr((string) $fyStart, -2).substr((string) $fyEnd, -2);
     }
 
     /**
@@ -166,7 +169,7 @@ class Booking extends Model
             $seq = 1;
         }
 
-        return $prefix . str_pad((string)$seq, 5, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -186,7 +189,7 @@ class Booking extends Model
             $seq = 1;
         }
 
-        return $prefix . str_pad((string)$seq, 5, '0', STR_PAD_LEFT);
+        return $prefix.str_pad((string) $seq, 5, '0', STR_PAD_LEFT);
     }
 
     public function user()
@@ -226,6 +229,6 @@ class Booking extends Model
 
     public function getBookingReferenceAttribute(): string
     {
-        return $this->booking_number ?? ($this->id ? ('#' . $this->id) : '');
+        return $this->booking_number ?? ($this->id ? ('#'.$this->id) : '');
     }
 }
