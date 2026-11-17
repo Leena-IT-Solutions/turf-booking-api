@@ -54,7 +54,13 @@ class SendPushNotification implements ShouldQueue
                 continue;
             }
 
-            $result = NotificationService::sendFcmNotification($tokens, $this->title, $this->body, $this->data);
+            $result = NotificationService::sendFcmNotification(
+                $tokens,
+                $this->title,
+                $this->body,
+                $this->data,
+                channelId: $this->data['android_channel_id'] ?? null,
+            );
 
             $this->record(
                 $userId,

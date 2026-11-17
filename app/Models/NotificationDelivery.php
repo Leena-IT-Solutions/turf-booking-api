@@ -17,6 +17,8 @@ class NotificationDelivery extends Model
 
     public const STATUS_SKIPPED_DISABLED = 'skipped_disabled';
 
+    public const STATUS_SKIPPED_OPT_OUT = 'skipped_user_opt_out';
+
     protected $fillable = [
         'user_id',
         'event',

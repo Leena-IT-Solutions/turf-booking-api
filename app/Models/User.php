@@ -18,6 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
     'bank_account_name', 'bank_account_number', 'bank_ifsc', 'upi_id',
     'razorpay_contact_id', 'razorpay_fund_account_id', 'payout_schedule', 'payout_schedule_day',
     'trial_started_at', 'trial_ends_at', 'trial_reminder_3d_sent_at', 'trial_reminder_0d_sent_at',
+    'promo_notifications_enabled',
 ])]
 #[Hidden(['password', 'remember_token'])]
 
@@ -41,6 +42,7 @@ class User extends Authenticatable
             'trial_ends_at' => 'datetime',
             'trial_reminder_3d_sent_at' => 'datetime',
             'trial_reminder_0d_sent_at' => 'datetime',
+            'promo_notifications_enabled' => 'boolean',
         ];
     }
 

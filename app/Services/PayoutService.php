@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\SaasSetting;
 use App\Models\TurfPayout;
 use App\Models\User;
+use App\Support\PayoutDestination;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 
 class PayoutService
@@ -12,15 +14,13 @@ class PayoutService
     /**
      * Initiate a payout request for a turf admin owner.
      *
-     * @param User $owner
-     * @param float $requestedAmount
-     * @param string $triggeredBy ('manual' or 'scheduled')
-     * @return TurfPayout
+     * @param  string  $triggeredBy  ('manual' or 'scheduled')
+     *
      * @throws \Exception
      */
     public function requestPayout(User $owner, float $requestedAmount, string $triggeredBy = 'manual'): TurfPayout
     {
-        $walletService = new WalletService();
+        $walletService = new WalletService;
         $saas = SaasSetting::first();
 
         $payoutHours = (int) ($saas?->payout_hours ?? 24);
@@ -31,11 +31,11 @@ class PayoutService
             $availableBalance = (float) $lockedUser->commission_wallet_balance;
 
             if ($availableBalance <= 0) {
-                throw new \Exception("Insufficient wallet balance. You currently have a balance/due of ₹" . number_format(abs($availableBalance), 2));
+                throw new \Exception('Insufficient wallet balance. You currently have a balance/due of ₹'.number_format(abs($availableBalance), 2));
             }
 
             if ($requestedAmount <= 0 || $requestedAmount > $availableBalance) {
-                throw new \Exception("Invalid requested amount. Maximum withdrawable amount is ₹" . number_format($availableBalance, 2));
+                throw new \Exception('Invalid requested amount. Maximum withdrawable amount is ₹'.number_format($availableBalance, 2));
             }
 
             // Check payout cooldown
@@ -58,7 +58,7 @@ class PayoutService
             }
 
             // Ensure bank/UPI details exist
-            if ($destinationError = \App\Support\PayoutDestination::errorFor($lockedUser)) {
+            if ($destinationError = PayoutDestination::errorFor($lockedUser)) {
                 throw new \Exception($destinationError);
             }
 
@@ -111,20 +111,11 @@ class PayoutService
                     }
                 }
             } else {
-                // Manual mode: Notify saas-admin users of pending request
+                // Manual mode: Notify saas-admin users of pending request (respects admin.payout_requested toggle)
                 try {
-                    $saasAdminIds = User::whereHas('roles', fn ($q) => $q->where('name', 'saas-admin'))->pluck('id');
-                    $netFormatted = number_format($payout->net_amount, 2);
-                    foreach ($saasAdminIds as $adminId) {
-                        NotificationService::sendToUser(
-                            $adminId,
-                            "Payout request",
-                            "{$lockedUser->name} requested ₹{$netFormatted}. Transfer it and mark it paid in Payout Manager.",
-                            ['type' => 'manual_payout_requested', 'payout_id' => (string) $payout->id]
-                        );
-                    }
+                    NotificationService::notifyManualPayoutRequested($payout, $lockedUser);
                 } catch (\Throwable $e) {
-                    \Log::warning("Failed to send manual payout notification: " . $e->getMessage());
+                    \Log::warning('Failed to send manual payout notification: '.$e->getMessage());
                 }
             }
 
@@ -142,17 +133,17 @@ class PayoutService
             $lockedPayout = TurfPayout::where('id', $payout->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedPayout->mode !== 'manual' || $lockedPayout->status !== TurfPayout::STATUS_PENDING) {
-                throw new \Exception("Only pending manual payouts can be marked as paid.");
+                throw new \Exception('Only pending manual payouts can be marked as paid.');
             }
 
             $trimmedUtr = trim($utr);
             if (strlen($trimmedUtr) < 4 || strlen($trimmedUtr) > 64) {
-                throw new \Exception("UTR / reference number is required and must be between 4 and 64 characters.");
+                throw new \Exception('UTR / reference number is required and must be between 4 and 64 characters.');
             }
 
-            $parsedDate = \Carbon\Carbon::parse($paidAt);
+            $parsedDate = Carbon::parse($paidAt);
             if ($parsedDate->isFuture()) {
-                throw new \Exception("Paid date cannot be in the future.");
+                throw new \Exception('Paid date cannot be in the future.');
             }
 
             $lockedPayout->update([
@@ -165,15 +156,9 @@ class PayoutService
             ]);
 
             try {
-                $netFormatted = number_format($lockedPayout->net_amount, 2);
-                NotificationService::sendToUser(
-                    $lockedPayout->user_id,
-                    "Payout sent",
-                    "₹{$netFormatted} was transferred. UTR {$trimmedUtr}.",
-                    ['type' => 'payout_paid', 'payout_id' => (string) $lockedPayout->id]
-                );
+                NotificationService::notifyPayoutPaid($lockedPayout, $trimmedUtr);
             } catch (\Throwable $e) {
-                \Log::warning("Failed to send payout completed notification: " . $e->getMessage());
+                \Log::warning('Failed to send payout completed notification: '.$e->getMessage());
             }
 
             return $lockedPayout->fresh();
@@ -190,12 +175,12 @@ class PayoutService
             $lockedPayout = TurfPayout::where('id', $payout->id)->lockForUpdate()->firstOrFail();
 
             if ($lockedPayout->mode !== 'manual' || $lockedPayout->status !== TurfPayout::STATUS_PENDING) {
-                throw new \Exception("Only pending manual payouts can be rejected.");
+                throw new \Exception('Only pending manual payouts can be rejected.');
             }
 
             $trimmedReason = trim($reason);
             if (strlen($trimmedReason) < 5 || strlen($trimmedReason) > 500) {
-                throw new \Exception("A rejection reason between 5 and 500 characters is required.");
+                throw new \Exception('A rejection reason between 5 and 500 characters is required.');
             }
 
             $lockedPayout->update([
@@ -207,49 +192,42 @@ class PayoutService
             ]);
 
             $owner = User::where('id', $lockedPayout->user_id)->lockForUpdate()->firstOrFail();
-            $walletService = new WalletService();
+            $walletService = new WalletService;
             $walletService->applyDelta($owner, (float) $lockedPayout->requested_amount, 'payout_reversal', $lockedPayout);
 
             try {
-                $reqFormatted = number_format($lockedPayout->requested_amount, 2);
-                NotificationService::sendToUser(
-                    $lockedPayout->user_id,
-                    "Payout rejected",
-                    "₹{$reqFormatted} was returned to your wallet. Reason: {$trimmedReason}",
-                    ['type' => 'payout_rejected', 'payout_id' => (string) $lockedPayout->id]
-                );
+                NotificationService::notifyPayoutRejected($lockedPayout, $trimmedReason);
             } catch (\Throwable $e) {
-                \Log::warning("Failed to send payout rejected notification: " . $e->getMessage());
+                \Log::warning('Failed to send payout rejected notification: '.$e->getMessage());
             }
 
             return $lockedPayout->fresh();
         });
     }
 
-
     private function processRazorpayXPayout(TurfPayout $payout, User $user, string $key, string $secret, string $accountNumber): void
     {
         // 1. Create or reuse Razorpay Contact
-        if (!$user->razorpay_contact_id) {
+        if (! $user->razorpay_contact_id) {
             $contactRes = Http::withBasicAuth($key, $secret)
                 ->post('https://api.razorpay.com/v1/contacts', [
                     'name' => $user->name,
                     'email' => $user->email,
                     'contact' => $user->mobile ?? '9999999999',
                     'type' => 'vendor',
-                    'reference_id' => 'user_' . $user->id,
+                    'reference_id' => 'user_'.$user->id,
                 ]);
 
             if ($contactRes->successful()) {
                 $contactId = $contactRes->json('id');
                 $user->update(['razorpay_contact_id' => $contactId]);
             } else {
-                throw new \Exception("Razorpay Contact creation failed: " . $contactRes->body());
+                throw new \Exception('Razorpay Contact creation failed: '.$contactRes->body());
             }
         }
 
         // 2. Create or reuse Fund Account
-        if (!$user->razorpay_fund_account_id) {
+        if (! $user->razorpay_fund_account_id) {
             $fundPayload = [
                 'contact_id' => $user->razorpay_contact_id,
                 'account_type' => $user->payout_method === 'upi' ? 'vpa' : 'bank_account',
@@ -274,7 +252,7 @@ class PayoutService
                 $fundAccountId = $fundRes->json('id');
                 $user->update(['razorpay_fund_account_id' => $fundAccountId]);
             } else {
-                throw new \Exception("Razorpay Fund Account creation failed: " . $fundRes->body());
+                throw new \Exception('Razorpay Fund Account creation failed: '.$fundRes->body());
             }
         }
 
@@ -289,7 +267,7 @@ class PayoutService
                 'mode' => $user->payout_method === 'upi' ? 'UPI' : 'IMPS',
                 'purpose' => 'payout',
                 'queue_if_low_balance' => true,
-                'reference_id' => 'payout_' . $payout->id,
+                'reference_id' => 'payout_'.$payout->id,
                 'notes' => [
                     'payout_id' => $payout->id,
                     'user_id' => $user->id,
@@ -304,7 +282,7 @@ class PayoutService
                 'razorpay_payout_id' => $payoutData['id'] ?? null,
             ]);
         } else {
-            throw new \Exception("Razorpay Payout API failed: " . $payoutRes->body());
+            throw new \Exception('Razorpay Payout API failed: '.$payoutRes->body());
         }
     }
 }

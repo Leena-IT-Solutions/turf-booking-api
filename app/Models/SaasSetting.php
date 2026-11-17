@@ -98,8 +98,34 @@ class SaasSetting extends Model
 
     protected static function booted(): void
     {
-        static::saved(fn () => static::forgetCache());
-        static::deleted(fn () => static::forgetCache());
+        static::saved(function (SaasSetting $setting) {
+            static::forgetCache();
+
+            // Sync legacy notify_* columns into NotificationSetting if updated directly
+            $legacyMap = [
+                'notify_booking_created' => ['customer.booking_created', 'venue.booking_created'],
+                'notify_booking_cancelled' => ['customer.booking_cancelled', 'venue.booking_cancelled'],
+                'notify_booking_rescheduled' => ['customer.booking_rescheduled', 'venue.booking_rescheduled'],
+                'notify_payment_received' => ['customer.payment_received'],
+            ];
+
+            try {
+                foreach ($legacyMap as $col => $eventKeys) {
+                    if ($setting->wasChanged($col) && $setting->{$col} !== null) {
+                        NotificationSetting::whereIn('event_key', $eventKeys)
+                            ->update(['push_enabled' => (bool) $setting->{$col}]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                // Ignore if notification_settings table not yet migrated
+            }
+
+            NotificationSetting::forgetCache();
+        });
+        static::deleted(function () {
+            static::forgetCache();
+            NotificationSetting::forgetCache();
+        });
     }
 
     /**

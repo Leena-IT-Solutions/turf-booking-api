@@ -1085,13 +1085,10 @@ new #[Layout('layouts.app')] class extends Component
         ]);
 
         if ($wasDraftOrRejected) {
-            $verifiers = User::whereHas('roles', function ($q) {
-                $q->whereIn('name', ['saas-admin', 'marketing']);
-            })->get();
-
-            if ($verifiers->isNotEmpty()) {
-                Notification::send($verifiers, new TurfSubmittedForVerification($turf->fresh(['location.user', 'onboardedBy']), $submittedByUser));
-            }
+            \App\Services\NotificationService::notifyTurfSubmittedForVerification(
+                $turf->fresh(['location.user', 'onboardedBy']),
+                $submittedByUser
+            );
 
             session()->flash('status', "🎉 {$turf->name} has been submitted for verification! Our team has been notified via email.");
         } else {

@@ -39,33 +39,37 @@ class SendTrialReminders extends Command
 
             // 1. Last-day reminder (today / 0-1 days left)
             if ($daysLeft <= 1 && $owner->trial_reminder_0d_sent_at === null) {
-                NotificationService::sendToUser(
-                    $owner->id,
+                if (NotificationService::notifyTrialReminder(
+                    $owner,
                     'Last Day of Free Trial',
                     'Your free trial with 0% commission ends today. Subscribe now to continue enjoying 0% commission.',
-                    ['type' => 'trial_expiring', 'days_left' => 0]
-                );
-                $owner->trial_reminder_0d_sent_at = now();
-                $owner->save();
-                $count0d++;
+                    0
+                )) {
+                    $owner->trial_reminder_0d_sent_at = now();
+                    $owner->save();
+                    $count0d++;
+                }
+
                 continue;
             }
 
             // 2. 3-day reminder (between 2 and 3 days left)
             if ($daysLeft <= 3 && $daysLeft >= 2 && $owner->trial_reminder_3d_sent_at === null) {
-                NotificationService::sendToUser(
-                    $owner->id,
+                if (NotificationService::notifyTrialReminder(
+                    $owner,
                     'Free Trial Ending in 3 Days',
                     "Your free trial with 0% commission ends in {$daysLeft} days. Subscribe to keep 0% commission without interruption.",
-                    ['type' => 'trial_expiring', 'days_left' => $daysLeft]
-                );
-                $owner->trial_reminder_3d_sent_at = now();
-                $owner->save();
-                $count3d++;
+                    $daysLeft
+                )) {
+                    $owner->trial_reminder_3d_sent_at = now();
+                    $owner->save();
+                    $count3d++;
+                }
             }
         }
 
         $this->info("Trial reminders sent: {$count3d} 3-day reminders, {$count0d} last-day reminders.");
+
         return 0;
     }
 }

@@ -7,11 +7,15 @@ use App\Models\Booking;
 use App\Models\DeviceToken;
 use App\Models\NotificationDelivery;
 use App\Models\NotificationLog;
-use App\Models\SaasSetting;
+use App\Models\NotificationSetting;
 use App\Models\StaffMember;
 use App\Models\Turf;
+use App\Models\TurfPayout;
 use App\Models\User;
+use App\Notifications\TurfSubmittedForVerification;
+use App\Support\NotificationEvents;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification as LaravelNotification;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Messaging\AndroidConfig;
 use Kreait\Firebase\Messaging\CloudMessage;
@@ -24,6 +28,63 @@ class NotificationService
     | Delivery primitives
     |--------------------------------------------------------------------------
     */
+
+    /**
+     * Check whether an event + channel ('push' | 'email') is enabled in NotificationSetting.
+     */
+    public static function isEnabled(string $eventKey, string $channel = 'push'): bool
+    {
+        return NotificationSetting::isEnabled($eventKey, $channel);
+    }
+
+    /**
+     * Queue a push for a registered NotificationEvents key, respecting:
+     * 1. Admin toggle (NotificationSetting::isEnabled($eventKey, 'push'))
+     * 2. User-level promotional opt-out (promo_notifications_enabled) for promotional events
+     * 3. Per-event Android notification channel
+     *
+     * @param  array<int|null>  $userIds
+     */
+    public static function dispatchEventPush(string $eventKey, array $userIds, string $title, string $body, array $data = []): void
+    {
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds))));
+        if (empty($userIds)) {
+            return;
+        }
+
+        $definition = NotificationEvents::get($eventKey);
+        if ($definition && ! empty($definition['android_channel_id']) && ! isset($data['android_channel_id'])) {
+            $data['android_channel_id'] = $definition['android_channel_id'];
+        }
+
+        $legacyEvent = (string) ($data['type'] ?? $eventKey);
+
+        if (! self::isEnabled($eventKey, 'push')) {
+            self::recordSkipped($userIds, $legacyEvent, $title, $body, $data, NotificationDelivery::STATUS_SKIPPED_DISABLED);
+
+            return;
+        }
+
+        // Respect user promotional opt-out for promotional events
+        if (($definition['kind'] ?? null) === NotificationEvents::KIND_PROMOTIONAL) {
+            $optedOutIds = User::whereIn('id', $userIds)
+                ->where('promo_notifications_enabled', false)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            if (! empty($optedOutIds)) {
+                self::recordSkipped($optedOutIds, $legacyEvent, $title, $body, $data, NotificationDelivery::STATUS_SKIPPED_OPT_OUT);
+                $userIds = array_values(array_diff($userIds, $optedOutIds));
+            }
+
+            if (empty($userIds)) {
+                return;
+            }
+        }
+
+        self::dispatchPush($userIds, $legacyEvent, $title, $body, $data);
+    }
 
     /**
      * Queue a push to the given users. Always dispatched after the surrounding
@@ -86,22 +147,54 @@ class NotificationService
     }
 
     /**
-     * Record that an event was suppressed because its admin toggle is off.
+     * Record that an event was suppressed (admin toggle disabled or user opted out).
      *
      * @param  array<int|null>  $userIds
      */
-    private static function recordSkipped(array $userIds, string $event, string $title, string $body, array $data = []): void
+    public static function recordSkipped(
+        array $userIds,
+        string $event,
+        string $title,
+        string $body,
+        array $data = [],
+        string $status = NotificationDelivery::STATUS_SKIPPED_DISABLED,
+        string $channel = 'push'
+    ): void {
+        foreach (array_unique(array_filter($userIds)) as $userId) {
+            try {
+                NotificationDelivery::create([
+                    'user_id' => $userId,
+                    'event' => $event,
+                    'channel' => $channel,
+                    'title' => $title,
+                    'body' => $body,
+                    'data' => $data,
+                    'status' => $status,
+                ]);
+            } catch (\Throwable $e) {
+                // Logging must never break the calling flow.
+            }
+        }
+    }
+
+    /**
+     * Record an email notification delivery row.
+     *
+     * @param  array<int|null>  $userIds
+     */
+    public static function recordEmailDelivery(array $userIds, string $event, string $title, string $body, string $status = NotificationDelivery::STATUS_SENT, ?string $error = null): void
     {
         foreach (array_unique(array_filter($userIds)) as $userId) {
             try {
                 NotificationDelivery::create([
                     'user_id' => $userId,
                     'event' => $event,
-                    'channel' => 'push',
+                    'channel' => 'email',
                     'title' => $title,
                     'body' => $body,
-                    'data' => $data,
-                    'status' => NotificationDelivery::STATUS_SKIPPED_DISABLED,
+                    'status' => $status,
+                    'error' => $error,
+                    'sent_at' => $status === NotificationDelivery::STATUS_SENT ? now() : null,
                 ]);
             } catch (\Throwable $e) {
                 // Logging must never break the calling flow.
@@ -112,17 +205,10 @@ class NotificationService
     /**
      * Human booking number shown to users (e.g. TB-202611-00001).
      */
-    private static function bookingRef(Booking $booking): string
+    public static function bookingRef(Booking $booking): string
     {
         return $booking->booking_number
             ?: ($booking->getAttribute('booking_reference') ?: '#'.$booking->id);
-    }
-
-    private static function setting(string $column, bool $default = true): bool
-    {
-        $value = SaasSetting::cached()?->{$column};
-
-        return $value === null ? $default : (bool) $value;
     }
 
     /*
@@ -146,42 +232,37 @@ class NotificationService
             $dateStr = $dateStr->format('d M Y');
         }
 
-        $customerTitle = 'Booking Confirmed! 🎉';
-        $customerBody = "Your booking ($ref) at $turfName for $dateStr is confirmed.";
-        $customerData = ['type' => 'booking_created', 'booking_id' => (string) $booking->id];
-
-        $venueTitle = 'New Booking Received! 🏟️';
-        $venueBody = "New booking ($ref) created for $turfName ($dateStr).";
-        $venueData = ['type' => 'manager_booking_created', 'booking_id' => (string) $booking->id];
-        $venueIds = self::venueRecipientIds($booking->turf);
-
-        if (! self::setting('notify_booking_created')) {
-            self::recordSkipped([$booking->user_id], 'booking_created', $customerTitle, $customerBody, $customerData);
-            self::recordSkipped($venueIds, 'manager_booking_created', $venueTitle, $venueBody, $venueData);
-
-            return;
-        }
-
         if ($booking->user_id) {
-            self::dispatchPush([$booking->user_id], 'booking_created', $customerTitle, $customerBody, $customerData);
+            self::dispatchEventPush(
+                'customer.booking_created',
+                [$booking->user_id],
+                'Booking Confirmed! 🎉',
+                "Your booking ($ref) at $turfName for $dateStr is confirmed.",
+                ['type' => 'booking_created', 'booking_id' => (string) $booking->id]
+            );
         }
 
-        self::dispatchPush($venueIds, 'manager_booking_created', $venueTitle, $venueBody, $venueData);
+        $venueIds = self::venueRecipientIds($booking->turf);
+        if (! empty($venueIds)) {
+            self::dispatchEventPush(
+                'venue.booking_created',
+                $venueIds,
+                'New Booking Received! 🏟️',
+                "New booking ($ref) created for $turfName ($dateStr).",
+                ['type' => 'manager_booking_created', 'booking_id' => (string) $booking->id, 'turf_id' => (string) $booking->turf_id]
+            );
+        }
     }
 
     /**
-     * Notify customer on booking cancellation (full or partial).
+     * Notify customer and venue on booking cancellation (full or partial).
      *
      * @param  int|null  $datesCancelled  Dates cancelled by THIS action (null = unknown/full)
      * @param  float  $refundAmount  Refund processed by THIS action
      */
     public static function notifyBookingCancelled(Booking $booking, ?int $datesCancelled = null, float $refundAmount = 0.0): void
     {
-        if (! $booking->user_id) {
-            return;
-        }
-
-        $booking->loadMissing(['turf']);
+        $booking->loadMissing(['turf.location']);
         $turfName = $booking->turf?->name ?? 'Turf';
         $ref = self::bookingRef($booking);
 
@@ -201,15 +282,56 @@ class NotificationService
             $body .= ' Refund of ₹'.number_format($refundAmount, 2).' initiated.';
         }
 
-        $data = ['type' => 'booking_cancelled', 'booking_id' => (string) $booking->id];
+        if ($booking->user_id) {
+            self::dispatchEventPush(
+                'customer.booking_cancelled',
+                [$booking->user_id],
+                $title,
+                $body,
+                ['type' => 'booking_cancelled', 'booking_id' => (string) $booking->id]
+            );
 
-        if (! self::setting('notify_booking_cancelled')) {
-            self::recordSkipped([$booking->user_id], 'booking_cancelled', $title, $body, $data);
+            if ($refundAmount > 0) {
+                self::notifyRefundProcessed($booking, $refundAmount);
+            }
+        }
 
+        $venueIds = self::venueRecipientIds($booking->turf);
+        if (! empty($venueIds)) {
+            $venueBody = $isPartial
+                ? "1 or more dates of booking ($ref) at $turfName were cancelled. Slots are now open."
+                : "Booking ($ref) at $turfName was cancelled. Slots are now open.";
+
+            self::dispatchEventPush(
+                'venue.booking_cancelled',
+                $venueIds,
+                'Booking Cancelled (Slots Reopened) ⚠️',
+                $venueBody,
+                ['type' => 'manager_booking_cancelled', 'booking_id' => (string) $booking->id, 'turf_id' => (string) $booking->turf_id]
+            );
+        }
+    }
+
+    /**
+     * Notify customer when a cancellation refund (> ₹0) is initiated or processed.
+     */
+    public static function notifyRefundProcessed(Booking $booking, float $refundAmount, string $channelLabel = 'original payment method'): void
+    {
+        if (! $booking->user_id || $refundAmount <= 0) {
             return;
         }
 
-        self::dispatchPush([$booking->user_id], 'booking_cancelled', $title, $body, $data);
+        $booking->loadMissing(['turf']);
+        $turfName = $booking->turf?->name ?? 'Turf';
+        $ref = self::bookingRef($booking);
+
+        self::dispatchEventPush(
+            'customer.refund_processed',
+            [$booking->user_id],
+            'Refund Initiated 💰',
+            'A refund of ₹'.number_format($refundAmount, 2)." for booking ($ref) at $turfName has been initiated ($channelLabel).",
+            ['type' => 'refund_processed', 'booking_id' => (string) $booking->id]
+        );
     }
 
     /**
@@ -221,26 +343,26 @@ class NotificationService
         $turfName = $booking->turf?->name ?? 'Turf';
         $ref = self::bookingRef($booking);
 
-        $customerTitle = 'Booking Rescheduled 🔄';
-        $customerBody = "Your booking ($ref) at $turfName has been rescheduled from $fromDate to $toDate.";
-        $customerData = ['type' => 'booking_rescheduled', 'booking_id' => (string) $booking->id];
-
-        $venueBody = "Booking ($ref) for $turfName rescheduled from $fromDate to $toDate.";
-        $venueData = ['type' => 'manager_booking_rescheduled', 'booking_id' => (string) $booking->id];
-        $venueIds = self::venueRecipientIds($booking->turf);
-
-        if (! self::setting('notify_booking_rescheduled')) {
-            self::recordSkipped([$booking->user_id], 'booking_rescheduled', $customerTitle, $customerBody, $customerData);
-            self::recordSkipped($venueIds, 'manager_booking_rescheduled', $customerTitle, $venueBody, $venueData);
-
-            return;
-        }
-
         if ($booking->user_id) {
-            self::dispatchPush([$booking->user_id], 'booking_rescheduled', $customerTitle, $customerBody, $customerData);
+            self::dispatchEventPush(
+                'customer.booking_rescheduled',
+                [$booking->user_id],
+                'Booking Rescheduled 🔄',
+                "Your booking ($ref) at $turfName has been rescheduled from $fromDate to $toDate.",
+                ['type' => 'booking_rescheduled', 'booking_id' => (string) $booking->id]
+            );
         }
 
-        self::dispatchPush($venueIds, 'manager_booking_rescheduled', $customerTitle, $venueBody, $venueData);
+        $venueIds = self::venueRecipientIds($booking->turf);
+        if (! empty($venueIds)) {
+            self::dispatchEventPush(
+                'venue.booking_rescheduled',
+                $venueIds,
+                'Booking Rescheduled 🔄',
+                "Booking ($ref) for $turfName rescheduled from $fromDate to $toDate.",
+                ['type' => 'manager_booking_rescheduled', 'booking_id' => (string) $booking->id, 'turf_id' => (string) $booking->turf_id]
+            );
+        }
     }
 
     /**
@@ -253,17 +375,142 @@ class NotificationService
         }
 
         $ref = self::bookingRef($booking);
-        $title = 'Payment Received 💳';
-        $body = 'Payment of ₹'.number_format($amountPaid, 2)." received for booking $ref.";
-        $data = ['type' => 'payment_received', 'booking_id' => (string) $booking->id];
 
-        if (! self::setting('notify_payment_received')) {
-            self::recordSkipped([$booking->user_id], 'payment_received', $title, $body, $data);
+        self::dispatchEventPush(
+            'customer.payment_received',
+            [$booking->user_id],
+            'Payment Received 💳',
+            'Payment of ₹'.number_format($amountPaid, 2)." received for booking $ref.",
+            ['type' => 'payment_received', 'booking_id' => (string) $booking->id]
+        );
+    }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Wrapped existing Payout, Trial & Onboarding triggers
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Notify SaaS admins of a manual payout request (wrapped with admin.payout_requested toggle).
+     */
+    public static function notifyManualPayoutRequested(TurfPayout $payout, User $owner): void
+    {
+        $saasAdminIds = User::whereHas('roles', fn ($q) => $q->where('name', 'saas-admin'))->pluck('id')->all();
+        if (empty($saasAdminIds)) {
             return;
         }
 
-        self::dispatchPush([$booking->user_id], 'payment_received', $title, $body, $data);
+        $netFormatted = number_format((float) $payout->net_amount, 2);
+
+        self::dispatchEventPush(
+            'admin.payout_requested',
+            $saasAdminIds,
+            'Payout request',
+            "{$owner->name} requested ₹{$netFormatted}. Transfer it and mark it paid in Payout Manager.",
+            ['type' => 'manual_payout_requested', 'payout_id' => (string) $payout->id]
+        );
+    }
+
+    /**
+     * Notify turf owner that their payout was transferred (wrapped with venue.payout_paid toggle).
+     */
+    public static function notifyPayoutPaid(TurfPayout $payout, ?string $utr = null): void
+    {
+        if (! $payout->user_id) {
+            return;
+        }
+
+        $netFormatted = number_format((float) $payout->net_amount, 2);
+        $utrText = $utr ?: ($payout->utr ?: 'N/A');
+
+        self::dispatchEventPush(
+            'venue.payout_paid',
+            [(int) $payout->user_id],
+            'Payout sent',
+            "₹{$netFormatted} was transferred. UTR {$utrText}.",
+            ['type' => 'payout_paid', 'payout_id' => (string) $payout->id]
+        );
+    }
+
+    /**
+     * Notify turf owner that their payout was rejected and reversed (wrapped with venue.payout_rejected toggle).
+     */
+    public static function notifyPayoutRejected(TurfPayout $payout, string $reason): void
+    {
+        if (! $payout->user_id) {
+            return;
+        }
+
+        $reqFormatted = number_format((float) $payout->requested_amount, 2);
+
+        self::dispatchEventPush(
+            'venue.payout_rejected',
+            [(int) $payout->user_id],
+            'Payout rejected',
+            "₹{$reqFormatted} was returned to your wallet. Reason: {$reason}",
+            ['type' => 'payout_rejected', 'payout_id' => (string) $payout->id]
+        );
+    }
+
+    /**
+     * Notify turf owner of upcoming trial expiry (wrapped with venue.trial_reminder toggle).
+     */
+    public static function notifyTrialReminder(User $owner, string $title, string $body, int $daysLeft): bool
+    {
+        $enabled = self::isEnabled('venue.trial_reminder', 'push');
+
+        self::dispatchEventPush(
+            'venue.trial_reminder',
+            [$owner->id],
+            $title,
+            $body,
+            ['type' => 'trial_expiring', 'days_left' => (string) $daysLeft]
+        );
+
+        return $enabled;
+    }
+
+    /**
+     * Notify SaaS Admins & Marketing Executives when a turf is submitted for verification
+     * (Push + Email controlled independently by admin.turf_submitted).
+     */
+    public static function notifyTurfSubmittedForVerification(Turf $turf, User $submittedBy): void
+    {
+        $verifiers = User::whereHas('roles', function ($q) {
+            $q->whereIn('name', ['saas-admin', 'marketing']);
+        })->get();
+
+        if ($verifiers->isEmpty()) {
+            return;
+        }
+
+        $verifierIds = $verifiers->pluck('id')->all();
+        $turf->loadMissing(['location.user', 'onboardedBy']);
+        $title = "New Turf Submitted for Verification: {$turf->name}";
+        $body = "{$turf->name} ({$turf->location?->name}) has been submitted by {$submittedBy->name} and is awaiting verification.";
+
+        // 1. Push notification channel
+        self::dispatchEventPush(
+            'admin.turf_submitted',
+            $verifierIds,
+            'New Turf Submitted for Verification 🏟️',
+            $body,
+            ['type' => 'admin_turf_submitted', 'turf_id' => (string) $turf->id]
+        );
+
+        // 2. Email notification channel
+        if (self::isEnabled('admin.turf_submitted', 'email')) {
+            try {
+                LaravelNotification::send($verifiers, new TurfSubmittedForVerification($turf, $submittedBy));
+                self::recordEmailDelivery($verifierIds, 'admin.turf_submitted', $title, $body, NotificationDelivery::STATUS_SENT);
+            } catch (\Throwable $e) {
+                Log::warning('Failed to send TurfSubmittedForVerification email: '.$e->getMessage());
+                self::recordEmailDelivery($verifierIds, 'admin.turf_submitted', $title, $body, NotificationDelivery::STATUS_FAILED, $e->getMessage());
+            }
+        } else {
+            self::recordSkipped($verifierIds, 'admin.turf_submitted', $title, $body, ['turf_id' => (string) $turf->id], NotificationDelivery::STATUS_SKIPPED_DISABLED, 'email');
+        }
     }
 
     /*
@@ -324,8 +571,14 @@ class NotificationService
      *
      * @return array{status: string, error?: string|null}
      */
-    public static function sendFcmNotification(array $tokens, string $title, string $body, array $data = [], ?string $imageUrl = 'https://www.leenaitsolutions.in/turf-logo.png'): array
-    {
+    public static function sendFcmNotification(
+        array $tokens,
+        string $title,
+        string $body,
+        array $data = [],
+        ?string $imageUrl = 'https://www.leenaitsolutions.in/turf-logo.png',
+        ?string $channelId = null,
+    ): array {
         $tokens = array_values(array_filter(array_unique($tokens)));
         if (empty($tokens)) {
             return ['status' => NotificationDelivery::STATUS_NO_DEVICE];
@@ -343,13 +596,18 @@ class NotificationService
         try {
             $notification = Notification::create($title, $body, $imageUrl);
 
+            $androidNotification = [
+                'icon' => 'ic_notification',
+                'color' => '#10B981',
+                'notification_priority' => 'PRIORITY_HIGH',
+                'default_sound' => true,
+            ];
+            if (! empty($channelId)) {
+                $androidNotification['channel_id'] = $channelId;
+            }
+
             $androidConfig = AndroidConfig::fromArray([
-                'notification' => [
-                    'icon' => 'ic_notification',
-                    'color' => '#10B981',
-                    'notification_priority' => 'PRIORITY_HIGH',
-                    'default_sound' => true,
-                ],
+                'notification' => $androidNotification,
             ]);
 
             // FCM data payload values must be strings.
