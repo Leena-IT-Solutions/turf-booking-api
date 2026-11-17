@@ -53,6 +53,119 @@ new #[Layout('layouts.app')] class extends Component
         $this->showDeleteTurfModal = false;
     }
 
+    /**
+     * Delete all bookings, payments, cancellations (and optionally wallet passbook entries
+     * and commission invoices) for a turf while keeping the Turf itself intact.
+     */
+    protected function purgeTurfBookingsAndLedger(Turf $turf, bool $withWallet, bool $withInvoices): int
+    {
+        $owner = $turf->location?->user;
+        $bookingIds = Booking::where('turf_id', $turf->id)->pluck('id')->toArray();
+        $deletedCount = count($bookingIds);
+
+        $paymentIds = ! empty($bookingIds)
+            ? Payment::whereIn('booking_id', $bookingIds)->pluck('id')->toArray()
+            : [];
+        $cancellationIds = ! empty($bookingIds)
+            ? BookingCancellation::whereIn('booking_id', $bookingIds)->pluck('id')->toArray()
+            : [];
+
+        // Option A: Delete Wallet Passbook Transactions for this turf's bookings & recalculate owner balance
+        if ($withWallet && $owner && (! empty($bookingIds) || ! empty($paymentIds) || ! empty($cancellationIds))) {
+            $txQuery = CommissionWalletTransaction::where('user_id', $owner->id)
+                ->where(function ($q) use ($bookingIds, $paymentIds, $cancellationIds) {
+                    if (! empty($paymentIds)) {
+                        $q->orWhere(function ($sq) use ($paymentIds) {
+                            $sq->where('reference_type', Payment::class)
+                                ->whereIn('reference_id', $paymentIds);
+                        });
+                    }
+                    if (! empty($bookingIds)) {
+                        $q->orWhere(function ($sq) use ($bookingIds) {
+                            $sq->where('reference_type', Booking::class)
+                                ->whereIn('reference_id', $bookingIds);
+                        });
+                    }
+                    if (! empty($cancellationIds)) {
+                        $q->orWhere(function ($sq) use ($cancellationIds) {
+                            $sq->where('reference_type', BookingCancellation::class)
+                                ->whereIn('reference_id', $cancellationIds);
+                        });
+                    }
+                });
+
+            $txIdsToDelete = $txQuery->pluck('id')->toArray();
+
+            if (! empty($bookingIds)) {
+                $allOwnerTxs = CommissionWalletTransaction::where('user_id', $owner->id)->get(['id', 'meta']);
+                foreach ($allOwnerTxs as $tx) {
+                    $metaBookingId = $tx->meta['booking_id'] ?? null;
+                    if ($metaBookingId && in_array((int) $metaBookingId, array_map('intval', $bookingIds), true)) {
+                        $txIdsToDelete[] = $tx->id;
+                    }
+                }
+            }
+
+            $txIdsToDelete = array_values(array_unique($txIdsToDelete));
+            if (! empty($txIdsToDelete)) {
+                CommissionWalletTransaction::whereIn('id', $txIdsToDelete)->delete();
+            }
+
+            $remainingTxs = CommissionWalletTransaction::where('user_id', $owner->id)
+                ->orderBy('id', 'asc')
+                ->get();
+
+            $runningBalance = 0.0;
+            foreach ($remainingTxs as $rTx) {
+                $runningBalance = round($runningBalance + (float) $rTx->amount, 2);
+                if ((float) $rTx->balance_after !== $runningBalance) {
+                    $rTx->update(['balance_after' => $runningBalance]);
+                }
+            }
+
+            $owner->update([
+                'commission_wallet_balance' => $runningBalance,
+                'commission_due_since' => $runningBalance < 0 ? ($owner->commission_due_since ?: now()) : null,
+            ]);
+        }
+
+        // Option B: Delete Monthly Commission Invoices for this turf
+        if ($withInvoices) {
+            CommissionInvoice::where('turf_id', $turf->id)->delete();
+        }
+
+        // Delete active slot locks & all bookings of this turf
+        \App\Models\SlotLock::where('turf_id', $turf->id)->delete();
+        Booking::where('turf_id', $turf->id)->delete();
+
+        return $deletedCount;
+    }
+
+    public function performDeleteTurfBookingsOnly(): void
+    {
+        if (! auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can delete turf bookings.');
+        }
+
+        if (! $this->deletingTurfId) {
+            return;
+        }
+
+        $turf = Turf::with(['location.user'])->findOrFail($this->deletingTurfId);
+        $turfName = $turf->name;
+
+        $deletedCount = DB::transaction(function () use ($turf) {
+            return $this->purgeTurfBookingsAndLedger(
+                $turf,
+                (bool) $this->deleteWalletTransactions,
+                (bool) $this->deleteCommissionInvoices
+            );
+        });
+
+        $this->cancelDeleteTurf();
+        session()->flash('status', "Cleared {$deletedCount} booking(s) for '{$turfName}'. The turf and its setup were kept intact.");
+    }
+
     public function performDeleteTurf(): void
     {
         if (!auth()->user()?->hasRole('saas-admin')) {
@@ -66,7 +179,6 @@ new #[Layout('layouts.app')] class extends Component
         $turf = Turf::with(['location.user', 'photos'])->findOrFail($this->deletingTurfId);
         $turfName = $turf->name;
         $location = $turf->location;
-        $owner = $location?->user;
 
         // 1. Delete physical photo files from public storage disk
         foreach ($turf->photos as $photo) {
@@ -75,83 +187,12 @@ new #[Layout('layouts.app')] class extends Component
             }
         }
 
-        DB::transaction(function () use ($turf, $location, $owner) {
-            $bookingIds = Booking::where('turf_id', $turf->id)->pluck('id')->toArray();
-            $paymentIds = !empty($bookingIds)
-                ? Payment::whereIn('booking_id', $bookingIds)->pluck('id')->toArray()
-                : [];
-            $cancellationIds = !empty($bookingIds)
-                ? BookingCancellation::whereIn('booking_id', $bookingIds)->pluck('id')->toArray()
-                : [];
-
-            // Option A: Delete Wallet Passbook Transactions for this turf's bookings & recalculate owner balance
-            if ($this->deleteWalletTransactions && $owner && (!empty($bookingIds) || !empty($paymentIds) || !empty($cancellationIds))) {
-                $txQuery = CommissionWalletTransaction::where('user_id', $owner->id)
-                    ->where(function ($q) use ($bookingIds, $paymentIds, $cancellationIds) {
-                        if (!empty($paymentIds)) {
-                            $q->orWhere(function ($sq) use ($paymentIds) {
-                                $sq->where('reference_type', Payment::class)
-                                   ->whereIn('reference_id', $paymentIds);
-                            });
-                        }
-                        if (!empty($bookingIds)) {
-                            $q->orWhere(function ($sq) use ($bookingIds) {
-                                $sq->where('reference_type', Booking::class)
-                                   ->whereIn('reference_id', $bookingIds);
-                            });
-                        }
-                        if (!empty($cancellationIds)) {
-                            $q->orWhere(function ($sq) use ($cancellationIds) {
-                                $sq->where('reference_type', BookingCancellation::class)
-                                   ->whereIn('reference_id', $cancellationIds);
-                            });
-                        }
-                    });
-
-                $txIdsToDelete = $txQuery->pluck('id')->toArray();
-
-                // Also check JSON meta->booking_id for any wallet entries linked via meta
-                if (!empty($bookingIds)) {
-                    $allOwnerTxs = CommissionWalletTransaction::where('user_id', $owner->id)->get(['id', 'meta']);
-                    foreach ($allOwnerTxs as $tx) {
-                        $metaBookingId = $tx->meta['booking_id'] ?? null;
-                        if ($metaBookingId && in_array((int) $metaBookingId, array_map('intval', $bookingIds), true)) {
-                            $txIdsToDelete[] = $tx->id;
-                        }
-                    }
-                }
-
-                $txIdsToDelete = array_values(array_unique($txIdsToDelete));
-                if (!empty($txIdsToDelete)) {
-                    CommissionWalletTransaction::whereIn('id', $txIdsToDelete)->delete();
-                }
-
-                // Recalculate rolling balance_after and owner's commission_wallet_balance
-                $remainingTxs = CommissionWalletTransaction::where('user_id', $owner->id)
-                    ->orderBy('id', 'asc')
-                    ->get();
-
-                $runningBalance = 0.0;
-                foreach ($remainingTxs as $rTx) {
-                    $runningBalance = round($runningBalance + (float) $rTx->amount, 2);
-                    if ((float) $rTx->balance_after !== $runningBalance) {
-                        $rTx->update(['balance_after' => $runningBalance]);
-                    }
-                }
-
-                $owner->update([
-                    'commission_wallet_balance' => $runningBalance,
-                    'commission_due_since' => $runningBalance < 0 ? ($owner->commission_due_since ?: now()) : null,
-                ]);
-            }
-
-            // Option B: Delete Monthly Commission Invoices for this turf
-            if ($this->deleteCommissionInvoices) {
-                CommissionInvoice::where('turf_id', $turf->id)->delete();
-            }
-
-            // Delete all bookings of this turf (cascades booking_dates, booking_slots, payments, cancellations, reschedules, coupon_usages)
-            Booking::where('turf_id', $turf->id)->delete();
+        DB::transaction(function () use ($turf, $location) {
+            $this->purgeTurfBookingsAndLedger(
+                $turf,
+                (bool) $this->deleteWalletTransactions,
+                (bool) $this->deleteCommissionInvoices
+            );
 
             // Delete the turf itself (cascades turf_photos, slot_turf, slot_locks, facility_turf, equipment_turf, sport_turf, turf_settings, coupons, reviews, staff_turf, turf_subscriptions)
             $turf->delete();
@@ -775,11 +816,14 @@ new #[Layout('layouts.app')] class extends Component
                         @endif
                     </div>
 
-                    <div class="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
-                        <button type="button" wire:click="cancelDeleteTurf" class="px-5 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition cursor-pointer">
+                    <div class="flex flex-wrap items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+                        <button type="button" wire:click="cancelDeleteTurf" class="px-4 py-2.5 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-xs uppercase text-gray-700 transition cursor-pointer">
                             Cancel
                         </button>
-                        <button type="button" wire:click="performDeleteTurf" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition cursor-pointer">
+                        <button type="button" wire:click="performDeleteTurfBookingsOnly" class="px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition cursor-pointer">
+                            Delete Bookings Only (Keep Turf)
+                        </button>
+                        <button type="button" wire:click="performDeleteTurf" class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-sm transition cursor-pointer">
                             Yes, Permanently Delete Turf
                         </button>
                     </div>

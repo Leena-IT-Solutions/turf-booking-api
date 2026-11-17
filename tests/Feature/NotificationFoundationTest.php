@@ -14,10 +14,12 @@ use App\Models\User;
 use App\Services\NotificationService;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\DB;
 use Kreait\Firebase\Contract\Messaging;
 use Kreait\Firebase\Messaging\MulticastSendReport;
+use Livewire\Volt\Volt;
 use Mockery;
 use Tests\TestCase;
 
@@ -228,5 +230,53 @@ class NotificationFoundationTest extends TestCase
             ->get('/turf/bookings?search=TB-202611-00004')
             ->assertOk()
             ->assertSee('TB-202611-00004');
+    }
+
+    public function test_delete_turf_bookings_only_keeps_turf_and_other_turf_bookings_intact(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $owner = User::factory()->create();
+        $owner->assignRole('turf-admin');
+        $customer = User::factory()->create();
+
+        $turfA = $this->makeTurfFor($owner, 'Turf A');
+        $turfB = $this->makeTurfFor($owner, 'Turf B');
+
+        $bookingA = Booking::forceCreate([
+            'user_id' => $customer->id,
+            'turf_id' => $turfA->id,
+            'status' => 'Confirmed',
+            'date_of_booking' => now(),
+            'booking_number' => 'TB-DEL-A',
+        ]);
+        $bookingB = Booking::forceCreate([
+            'user_id' => $customer->id,
+            'turf_id' => $turfB->id,
+            'status' => 'Confirmed',
+            'date_of_booking' => now(),
+            'booking_number' => 'TB-DEL-B',
+        ]);
+
+        // 1. Test SaaS Turfs Directory "Delete Bookings Only (Keep Turf)" action
+        $this->actingAs($admin);
+        Volt::test('saas.turf-directory')
+            ->call('confirmDeleteTurf', $turfA->id)
+            ->call('performDeleteTurfBookingsOnly');
+
+        $this->assertDatabaseHas('turfs', ['id' => $turfA->id]);
+        $this->assertDatabaseMissing('bookings', ['id' => $bookingA->id]);
+        $this->assertDatabaseHas('bookings', ['id' => $bookingB->id]);
+
+        // 2. Test CLI `php artisan bookings:reset --turf={id} --with-wallet --force`
+        Artisan::call('bookings:reset', [
+            '--turf' => $turfB->id,
+            '--with-wallet' => true,
+            '--force' => true,
+        ]);
+
+        $this->assertDatabaseHas('turfs', ['id' => $turfB->id]);
+        $this->assertDatabaseMissing('bookings', ['id' => $bookingB->id]);
     }
 }
