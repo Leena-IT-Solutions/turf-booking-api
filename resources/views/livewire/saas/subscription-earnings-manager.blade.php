@@ -23,9 +23,31 @@ new #[Layout('layouts.app')] class extends Component
     public function updatingStatusFilter() { $this->resetPage(); }
     public function updatingActiveTab() { $this->resetPage(); }
 
+    public function clearAbandonedPendingPayments(): void
+    {
+        $deleted = SubscriptionPayment::whereIn('status', ['pending', 'Pending'])
+            ->whereNull('razorpay_payment_id')
+            ->delete();
+
+        session()->flash('status', "Cleared {$deleted} abandoned pending subscription checkout attempt(s).");
+        $this->resetPage();
+    }
+
+    public function deletePendingPayment(int $paymentId): void
+    {
+        $payment = SubscriptionPayment::find($paymentId);
+        if ($payment && in_array(strtolower((string) $payment->status), ['pending'], true) && empty($payment->razorpay_payment_id)) {
+            $payment->delete();
+            session()->flash('status', "Pending record #{$paymentId} removed.");
+        }
+    }
+
     public function with(): array
     {
-        $totalRevenue = (float) SubscriptionPayment::where('status', 'Success')->sum('amount');
+        $totalRevenue = (float) SubscriptionPayment::whereIn('status', ['completed', 'Completed', 'Success', 'success'])->sum('amount');
+        $pendingAbandonedCount = SubscriptionPayment::whereIn('status', ['pending', 'Pending'])
+            ->whereNull('razorpay_payment_id')
+            ->count();
         $activeSubscriptionsCount = TurfSubscription::where('status', 'active')
             ->where(function ($q) {
                 $q->whereNull('expires_at')->orWhere('expires_at', '>=', now());
@@ -56,7 +78,13 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         if ($this->statusFilter !== 'all') {
-            $paymentsQuery->where('status', $this->statusFilter);
+            if ($this->statusFilter === 'Success') {
+                $paymentsQuery->whereIn('status', ['completed', 'Completed', 'Success', 'success']);
+            } elseif ($this->statusFilter === 'Pending') {
+                $paymentsQuery->whereIn('status', ['pending', 'Pending']);
+            } else {
+                $paymentsQuery->where('status', $this->statusFilter);
+            }
         }
 
         $payments = $paymentsQuery->paginate(15);
@@ -83,13 +111,20 @@ new #[Layout('layouts.app')] class extends Component
         }
 
         if ($this->statusFilter !== 'all') {
-            $turfSubsQuery->where('status', $this->statusFilter);
+            if ($this->statusFilter === 'Success') {
+                $turfSubsQuery->whereIn('status', ['active', 'Active', 'Success']);
+            } elseif ($this->statusFilter === 'Pending') {
+                $turfSubsQuery->whereIn('status', ['pending', 'Pending']);
+            } else {
+                $turfSubsQuery->where('status', $this->statusFilter);
+            }
         }
 
         $turfSubscriptions = $turfSubsQuery->paginate(15);
 
         return [
             'totalRevenue' => $totalRevenue,
+            'pendingAbandonedCount' => $pendingAbandonedCount,
             'activeSubscriptionsCount' => $activeSubscriptionsCount,
             'totalSubscribedTurfs' => $totalSubscribedTurfs,
             'activePackagesCount' => $activePackagesCount,
@@ -115,6 +150,19 @@ new #[Layout('layouts.app')] class extends Component
         </div>
 
         <div class="flex items-center gap-3">
+            @if ($pendingAbandonedCount > 0)
+                <button
+                    type="button"
+                    wire:click="clearAbandonedPendingPayments"
+                    wire:confirm="Remove all {{ $pendingAbandonedCount }} abandoned pending subscription attempt(s) with no payment ID?"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold rounded-2xl transition cursor-pointer"
+                >
+                    <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    <span>Clear {{ $pendingAbandonedCount }} Pending Attempt(s)</span>
+                </button>
+            @endif
             <a href="{{ route('saas.subscription-packages') }}" wire:navigate
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-bold rounded-2xl shadow-xs transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -124,6 +172,15 @@ new #[Layout('layouts.app')] class extends Component
             </a>
         </div>
     </div>
+
+    @if (session()->has('status'))
+        <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-3">
+            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ session('status') }}</span>
+        </div>
+    @endif
 
     <!-- STATS CARDS -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -272,11 +329,28 @@ new #[Layout('layouts.app')] class extends Component
                                     {{ $payment->created_at->format('d M Y, h:i A') }}
                                 </td>
                                 <td class="py-3.5 px-4">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase
-                                        {{ $payment->status === 'Success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
-                                        <span class="w-1.5 h-1.5 rounded-full {{ $payment->status === 'Success' ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
-                                        {{ $payment->status }}
-                                    </span>
+                                    @php
+                                        $isPaid = in_array(strtolower((string) $payment->status), ['completed', 'success'], true);
+                                    @endphp
+                                    <div class="flex items-center gap-2">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase
+                                            {{ $isPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200' }}">
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $isPaid ? 'bg-emerald-500' : 'bg-amber-500' }}"></span>
+                                            {{ $payment->status }}
+                                        </span>
+                                        @if (! $isPaid && empty($payment->razorpay_payment_id))
+                                            <button
+                                                type="button"
+                                                wire:click="deletePendingPayment({{ $payment->id }})"
+                                                title="Remove abandoned pending attempt"
+                                                class="p-1 text-gray-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                                            >
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                </svg>
+                                            </button>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty

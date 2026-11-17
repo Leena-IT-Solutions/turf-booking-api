@@ -9,6 +9,8 @@ use App\Models\Location;
 use App\Models\NotificationDelivery;
 use App\Models\SaasSetting;
 use App\Models\StaffMember;
+use App\Models\SubscriptionPackage;
+use App\Models\SubscriptionPayment;
 use App\Models\Turf;
 use App\Models\User;
 use App\Services\NotificationService;
@@ -278,5 +280,68 @@ class NotificationFoundationTest extends TestCase
 
         $this->assertDatabaseHas('turfs', ['id' => $turfB->id]);
         $this->assertDatabaseMissing('bookings', ['id' => $bookingB->id]);
+    }
+
+    public function test_subscription_earnings_sums_completed_revenue_and_clears_abandoned_pending_attempts(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $owner = User::factory()->create();
+        $owner->assignRole('turf-admin');
+
+        $pkg = SubscriptionPackage::create([
+            'name' => 'Standard Turf Partner',
+            'monthly_price' => 999,
+            'yearly_price' => 9999,
+            'is_active' => true,
+        ]);
+
+        // 1 completed payment (status = 'completed')
+        $paid = SubscriptionPayment::create([
+            'user_id' => $owner->id,
+            'subscription_package_id' => $pkg->id,
+            'billing_cycle' => 'monthly',
+            'amount' => 999.00,
+            'turf_ids' => [1],
+            'turf_count' => 1,
+            'razorpay_order_id' => 'order_paid_1',
+            'razorpay_payment_id' => 'pay_Tv5YLisccdNozFn',
+            'status' => 'completed',
+        ]);
+
+        // 2 abandoned pending attempts (no razorpay_payment_id)
+        $abandoned1 = SubscriptionPayment::create([
+            'user_id' => $owner->id,
+            'subscription_package_id' => $pkg->id,
+            'billing_cycle' => 'monthly',
+            'amount' => 999.00,
+            'turf_ids' => [1],
+            'turf_count' => 1,
+            'razorpay_order_id' => 'order_pend_1',
+            'status' => 'pending',
+        ]);
+        $abandoned2 = SubscriptionPayment::create([
+            'user_id' => $owner->id,
+            'subscription_package_id' => $pkg->id,
+            'billing_cycle' => 'monthly',
+            'amount' => 999.00,
+            'turf_ids' => [1],
+            'turf_count' => 1,
+            'razorpay_order_id' => 'order_pend_2',
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin);
+
+        Volt::test('saas.subscription-earnings-manager')
+            ->assertViewHas('totalRevenue', 999.0)
+            ->assertViewHas('pendingAbandonedCount', 2)
+            ->call('clearAbandonedPendingPayments')
+            ->assertViewHas('pendingAbandonedCount', 0);
+
+        $this->assertDatabaseHas('subscription_payments', ['id' => $paid->id]);
+        $this->assertDatabaseMissing('subscription_payments', ['id' => $abandoned1->id]);
+        $this->assertDatabaseMissing('subscription_payments', ['id' => $abandoned2->id]);
     }
 }

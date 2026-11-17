@@ -141,6 +141,12 @@ new #[Layout('layouts.app')] class extends Component
             return;
         }
 
+        // Remove any previous abandoned pending checkout attempts for this user so they don't pile up
+        SubscriptionPayment::where('user_id', $user->id)
+            ->whereIn('status', ['pending', 'Pending'])
+            ->whereNull('razorpay_payment_id')
+            ->delete();
+
         $payment = SubscriptionPayment::create([
             'user_id' => $user->id,
             'subscription_package_id' => $pkg->id,
