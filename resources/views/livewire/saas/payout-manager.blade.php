@@ -81,6 +81,45 @@ new #[Layout('layouts.app')] class extends Component
         $this->modalError = null;
     }
 
+    public function deletePayout(int $payoutId): void
+    {
+        if (! auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can delete payouts.');
+        }
+
+        $payout = TurfPayout::find($payoutId);
+        if (! $payout) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($payout) {
+            $owner = $payout->user;
+
+            \App\Models\CommissionWalletTransaction::where('reference_type', TurfPayout::class)
+                ->where('reference_id', $payout->id)
+                ->delete();
+
+            $payout->delete();
+
+            if ($owner) {
+                $runningBalance = 0.0;
+                foreach (\App\Models\CommissionWalletTransaction::where('user_id', $owner->id)->orderBy('id', 'asc')->get() as $rTx) {
+                    $runningBalance = round($runningBalance + (float) $rTx->amount, 2);
+                    if ((float) $rTx->balance_after !== $runningBalance) {
+                        $rTx->update(['balance_after' => $runningBalance]);
+                    }
+                }
+
+                $owner->update([
+                    'commission_wallet_balance' => $runningBalance,
+                    'commission_due_since' => $runningBalance < 0 ? ($owner->commission_due_since ?: now()) : null,
+                ]);
+            }
+        });
+
+        session()->flash('status', "Payout #{$payoutId} and its wallet ledger entries were deleted and owner balance recalculated.");
+    }
+
     public function submitReject(): void
     {
         $this->modalError = null;
@@ -371,14 +410,25 @@ new #[Layout('layouts.app')] class extends Component
                                     <span class="font-mono text-gray-700 text-[11px]">{{ $p->utr ?? '—' }}</span>
                                 </td>
                                 <td class="p-3 text-right">
-                                    @if ($p->status === 'failed' && $p->mode === 'razorpayx')
-                                        <button wire:click="retryPayout({{ $p->id }})" type="button"
-                                            class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer">
-                                            Retry Payout
+                                    <div class="flex items-center justify-end gap-2">
+                                        @if ($p->status === 'failed' && $p->mode === 'razorpayx')
+                                            <button wire:click="retryPayout({{ $p->id }})" type="button"
+                                                class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold transition shadow-xs cursor-pointer">
+                                                Retry Payout
+                                            </button>
+                                        @endif
+                                        <button
+                                            type="button"
+                                            wire:click="deletePayout({{ $p->id }})"
+                                            wire:confirm="Delete payout #{{ $p->id }} and recalculate the owner's wallet balance?"
+                                            title="Delete Payout Record"
+                                            class="p-1.5 text-gray-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
                                         </button>
-                                    @else
-                                        <span class="text-gray-400 text-[10px]">—</span>
-                                    @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty

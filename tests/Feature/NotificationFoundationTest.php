@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Jobs\SendPushNotification;
 use App\Models\Booking;
+use App\Models\CommissionWalletTransaction;
 use App\Models\DeviceToken;
 use App\Models\Location;
 use App\Models\NotificationDelivery;
@@ -12,6 +13,7 @@ use App\Models\StaffMember;
 use App\Models\SubscriptionPackage;
 use App\Models\SubscriptionPayment;
 use App\Models\Turf;
+use App\Models\TurfPayout;
 use App\Models\User;
 use App\Services\NotificationService;
 use Database\Seeders\RoleSeeder;
@@ -343,5 +345,72 @@ class NotificationFoundationTest extends TestCase
         $this->assertDatabaseHas('subscription_payments', ['id' => $paid->id]);
         $this->assertDatabaseMissing('subscription_payments', ['id' => $abandoned1->id]);
         $this->assertDatabaseMissing('subscription_payments', ['id' => $abandoned2->id]);
+    }
+
+    public function test_reset_user_wallet_and_payouts_via_ui_and_cli(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('saas-admin');
+
+        $owner1 = User::factory()->create(['commission_wallet_balance' => 1500.00]);
+        $owner1->assignRole('turf-admin');
+
+        $owner2 = User::factory()->create(['commission_wallet_balance' => 800.00]);
+        $owner2->assignRole('turf-admin');
+
+        CommissionWalletTransaction::create([
+            'user_id' => $owner1->id,
+            'type' => 'booking_credit',
+            'amount' => 1500.00,
+            'balance_after' => 1500.00,
+            'description' => 'Owner 1 credit',
+        ]);
+        CommissionWalletTransaction::create([
+            'user_id' => $owner2->id,
+            'type' => 'booking_credit',
+            'amount' => 800.00,
+            'balance_after' => 800.00,
+            'description' => 'Owner 2 credit',
+        ]);
+
+        $p1 = TurfPayout::forceCreate([
+            'user_id' => $owner1->id,
+            'requested_amount' => 500,
+            'charge_applied' => 10,
+            'net_amount' => 490,
+            'mode' => 'manual',
+            'status' => TurfPayout::STATUS_COMPLETED,
+        ]);
+        $p2 = TurfPayout::forceCreate([
+            'user_id' => $owner2->id,
+            'requested_amount' => 300,
+            'charge_applied' => 10,
+            'net_amount' => 290,
+            'mode' => 'manual',
+            'status' => TurfPayout::STATUS_COMPLETED,
+        ]);
+
+        // 1. Reset Owner 1's wallet & payouts via SaaS Commission Manager UI
+        $this->actingAs($admin);
+        Volt::test('saas.commission-manager')
+            ->call('resetUserWalletAndPayouts', $owner1->id);
+
+        $this->assertSame(0.0, (float) $owner1->fresh()->commission_wallet_balance);
+        $this->assertDatabaseMissing('commission_wallet_transactions', ['user_id' => $owner1->id]);
+        $this->assertDatabaseMissing('turf_payouts', ['id' => $p1->id]);
+
+        // Owner 2 is completely untouched
+        $this->assertSame(800.0, (float) $owner2->fresh()->commission_wallet_balance);
+        $this->assertDatabaseHas('turf_payouts', ['id' => $p2->id]);
+
+        // 2. Reset Owner 2 via CLI `php artisan wallet:reset --user={id} --force`
+        Artisan::call('wallet:reset', [
+            '--user' => $owner2->id,
+            '--force' => true,
+        ]);
+
+        $this->assertSame(0.0, (float) $owner2->fresh()->commission_wallet_balance);
+        $this->assertDatabaseMissing('commission_wallet_transactions', ['user_id' => $owner2->id]);
+        $this->assertDatabaseMissing('turf_payouts', ['id' => $p2->id]);
     }
 }

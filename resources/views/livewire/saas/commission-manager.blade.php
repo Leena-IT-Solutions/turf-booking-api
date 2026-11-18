@@ -84,6 +84,21 @@ new #[Layout('layouts.app')] class extends Component
         $this->resetPage();
     }
 
+    public function resetUserWalletAndPayouts(int $userId): void
+    {
+        if (! auth()->user()?->hasRole('saas-admin')) {
+            abort(403, 'Only SaaS Admins can reset user wallets and payouts.');
+        }
+
+        $user = User::findOrFail($userId);
+        $counts = \App\Console\Commands\ResetWalletData::purgeUserWalletAndPayouts($user);
+
+        session()->flash(
+            'status',
+            "Reset wallet & payouts for {$user->name}: removed {$counts['transactions_deleted']} wallet entry(s), {$counts['payouts_deleted']} payout(s), and {$counts['settlements_deleted']} settlement(s). Balance is now ₹0.00."
+        );
+    }
+
     public function with(): array
     {
         $currentDate = Carbon::parse($this->selectedDate ?: Carbon::today());
@@ -337,6 +352,15 @@ new #[Layout('layouts.app')] class extends Component
             </a>
         </div>
     </div>
+
+    @if (session()->has('status'))
+        <div class="bg-emerald-50 border border-emerald-100 text-emerald-800 px-5 py-3.5 rounded-2xl text-xs font-bold flex items-center gap-3">
+            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ session('status') }}</span>
+        </div>
+    @endif
 
     <!-- PERIOD FILTER BAR (ABOVE TILES) -->
     <div class="bg-white p-4 rounded-3xl border border-gray-200 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -779,7 +803,7 @@ new #[Layout('layouts.app')] class extends Component
                                 </td>
                                 <td class="py-3.5 px-4 text-gray-600">
                                     <div>{{ $mgr->email }}</div>
-                                    <div class="text-[11px] text-gray-400">{{ $mgr->phone }}</div>
+                                    <div class="text-[11px] text-gray-400">{{ $mgr->mobile ?? $mgr->phone }}</div>
                                 </td>
                                 <td class="py-3.5 px-4 font-semibold text-emerald-700">
                                     {{ (float)($mgr->commission_percentage ?? 8.00) }}%
@@ -797,9 +821,19 @@ new #[Layout('layouts.app')] class extends Component
                                     @endif
                                 </td>
                                 <td class="py-3.5 px-4">
-                                    <a href="{{ route('saas.turfs') }}" wire:navigate class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline">
-                                        View Turfs &rarr;
-                                    </a>
+                                    <div class="flex flex-wrap items-center gap-3">
+                                        <a href="{{ route('saas.turfs') }}" wire:navigate class="text-indigo-600 hover:text-indigo-800 font-bold hover:underline">
+                                            View Turfs &rarr;
+                                        </a>
+                                        <button
+                                            type="button"
+                                            wire:click="resetUserWalletAndPayouts({{ $mgr->id }})"
+                                            wire:confirm="Reset wallet balance, passbook entries, settlements, and payouts for {{ $mgr->name }} back to ₹0.00?"
+                                            class="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold transition cursor-pointer"
+                                        >
+                                            Reset Wallet &amp; Payouts
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
